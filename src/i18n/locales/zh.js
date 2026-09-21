@@ -1,4 +1,4 @@
-export default {
+const translation = {
   // General
   "appName": "每日成本",
   "loading": "加载中...",
@@ -68,4 +68,6 @@ export default {
   "importConfirmation": "导入数据会完全覆盖现有数据，是否继续？",
   "importSuccess": "数据导入成功",
   "importError": "数据导入失败"
-}; 
+};
+
+export default translation;

@@ -1,4 +1,4 @@
-export default {
+const translation = {
   // General
   "appName": "Coût Par Jour",
   "loading": "Chargement...",
@@ -68,4 +68,6 @@ export default {
   "importConfirmation": "L'importation de données remplacera complètement toutes les données existantes. Voulez-vous continuer ?",
   "importSuccess": "Données importées avec succès",
   "importError": "Échec de l'importation des données"
-}; 
+};
+
+export default translation;

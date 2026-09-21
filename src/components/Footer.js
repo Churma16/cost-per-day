@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { IoHomeOutline, IoAddOutline, IoSettingsOutline } from "react-icons/io5";
 
 function Footer() {
-  const { t } = useTranslation();
   const [activeIcon, setActiveIcon] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();

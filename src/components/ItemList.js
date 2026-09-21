@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getAllItems, deleteItem } from '../services/db';
-import { IoChevronDown, IoChevronForward, IoCalendar, IoCash, IoTrash } from 'react-icons/io5';
+import { IoChevronDown, IoChevronForward, IoCalendar, IoCash } from 'react-icons/io5';
 import { formatCurrency } from '../utils/formatters';
 import { calculateDailyCost } from '../utils/costCalculator';
 import { format, differenceInDays } from 'date-fns';
@@ -63,13 +63,6 @@ function ItemList() {
 
   const toggleItem = (id) => {
     setExpandedItem(expandedItem === id ? null : id);
-  };
-
-  const handleIconClick = (iconName) => {
-    setActiveIcon(iconName);
-    setTimeout(() => {
-      setActiveIcon(null);
-    }, 1000);
   };
 
   return (
