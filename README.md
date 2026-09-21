@@ -19,7 +19,7 @@ A progressive web application that helps you track the daily cost of your purcha
   - Import data from JSON file
   - Data persistence using IndexedDB
 - **Customization**:
-  - Multiple language support (English, French, Chinese)
+  - Multiple language support (English, French, Chinese, Indonesian)
   - Currency selection (USD, EUR, CNY, IDR)
 - **Modern UI/UX**:
   - Responsive design for mobile and desktop
@@ -98,7 +98,7 @@ The build files will be created in the `build` folder.
 
 ### Changing Settings
 1. Go to the Settings page
-2. Change language: Select from English, French, or Chinese
+2. Change language: Select from English, French, Chinese, or Bahasa Indonesia
 3. Change currency: Select from USD ($), EUR (€), CNY (¥), or IDR (Rp)
 
 ## Technologies Used
