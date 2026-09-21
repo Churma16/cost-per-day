@@ -20,7 +20,7 @@ A progressive web application that helps you track the daily cost of your purcha
   - Data persistence using IndexedDB
 - **Customization**:
   - Multiple language support (English, French, Chinese)
-  - Currency selection (USD, EUR, CNY)
+  - Currency selection (USD, EUR, CNY, IDR)
 - **Modern UI/UX**:
   - Responsive design for mobile and desktop
   - Smooth animations and transitions
@@ -32,7 +32,7 @@ A progressive web application that helps you track the daily cost of your purcha
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v22 or higher)
 - npm (comes with Node.js)
 
 ### Installation
