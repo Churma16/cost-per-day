@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { DayPicker, useNavigation } from 'react-day-picker';
+import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { IoTrashOutline, IoArrowBack, IoCalendarOutline } from "react-icons/io5";
+import { IoTrashOutline, IoCalendarOutline } from "react-icons/io5";
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { enUS } from 'date-fns/locale/en-US';
 import { fr } from 'date-fns/locale/fr';
@@ -11,82 +11,7 @@ import { addItem, updateItem, getAllItems, deleteItem } from '../services/db';
 import { formatDate } from '../utils/formatters';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { startOfDay, parseISO } from 'date-fns';
-
-// Custom date picker caption component
-function CustomCaption({ date, locale, goToMonth, goToYear }) {
-  const { t } = useTranslation();
-  const [yearInput, setYearInput] = useState(date.getFullYear());
-  const [showYearInput, setShowYearInput] = useState(false);
-  
-  // Generate month options
-  const getMonthOptions = () => {
-    const options = [];
-    const formatter = new Intl.DateTimeFormat(locale.code, { month: 'long' });
-    
-    for (let i = 0; i < 12; i++) {
-      const monthDate = new Date(date.getFullYear(), i, 1);
-      options.push(
-        <option key={i} value={i}>
-          {formatter.format(monthDate)}
-        </option>
-      );
-    }
-    
-    return options;
-  };
-  
-  // Handle year change
-  const handleYearSubmit = (e) => {
-    e.preventDefault();
-    const year = parseInt(yearInput);
-    if (!isNaN(year) && year >= 1900 && year <= 2100) {
-      goToYear(year);
-      setShowYearInput(false);
-    }
-  };
-  
-  return (
-    <div className="flex justify-between items-center p-1">
-      {/* Year display/input */}
-      {showYearInput ? (
-        <form onSubmit={handleYearSubmit} className="flex">
-          <input
-            type="number"
-            value={yearInput}
-            onChange={(e) => setYearInput(e.target.value)}
-            className="w-20 px-2 py-1 border border-gray-300 rounded-md"
-            min="1900"
-            max="2100"
-          />
-          <button 
-            type="submit" 
-            className="ml-1 bg-purple-600 text-white px-2 rounded-md"
-          >
-            OK
-          </button>
-        </form>
-      ) : (
-        <button 
-          onClick={() => setShowYearInput(true)}
-          className="text-lg font-semibold hover:bg-gray-100 px-2 py-1 rounded-md"
-        >
-          {date.getFullYear()}
-        </button>
-      )}
-      
-      {/* Month selection */}
-      <select
-        value={date.getMonth()}
-        onChange={(e) => goToMonth(new Date(date.getFullYear(), parseInt(e.target.value)))}
-        className="text-lg px-2 py-1 border border-gray-300 rounded-md appearance-none"
-        style={{ maxWidth: '150px' }}
-      >
-        {getMonthOptions()}
-      </select>
-    </div>
-  );
-}
+import { parseISO } from 'date-fns';
 
 // Helper function to set time to noon UTC
 const setToNoonUTC = (date) => {
@@ -109,7 +34,6 @@ function AddItem() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeIcon, setActiveIcon] = useState(null);
   const [month, setMonth] = useState(purchaseDate);
   const { currencySymbol } = useCurrency();
   
@@ -226,13 +150,6 @@ function AddItem() {
     } catch (error) {
       console.error('Error deleting item:', error);
     }
-  };
-
-  const handleIconClick = (iconName) => {
-    setActiveIcon(iconName);
-    setTimeout(() => {
-      setActiveIcon(null);
-    }, 1000);
   };
 
   return (

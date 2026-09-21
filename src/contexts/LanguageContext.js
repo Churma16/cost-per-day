@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useTranslation } from 'react-i18next';
 import { getSetting, updateSetting } from '../services/db';
 import i18n from '../i18n';
 
@@ -10,7 +9,6 @@ const LanguageContext = createContext();
 export const LanguageProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState('en');
-  const { t } = useTranslation();
 
   // Load language settings from database
   useEffect(() => {
