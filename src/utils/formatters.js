@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { enUS } from 'date-fns/locale/en-US';
 import { fr } from 'date-fns/locale/fr';
+import { id } from 'date-fns/locale/id';
 import { normalizeCurrencyCode, getCurrencyConfig } from './currencyConfig';
 
 export const formatCurrency = (number, currencyCode = 'USD') => {
@@ -27,10 +28,15 @@ export const formatCurrency = (number, currencyCode = 'USD') => {
   return formattedCurrencyString;
 };
 
+const DATE_LOCALES = {
+  en: enUS,
+  fr,
+  zh: zhCN,
+  id
+};
+
+export const getDateLocale = (language = 'en') => DATE_LOCALES[language] || enUS;
+
 export const formatDate = (date, language = 'en') => {
-  // Get appropriate locale based on language
-  const locale = language === 'zh' ? zhCN : 
-                language === 'fr' ? fr : enUS;
-  
-  return format(new Date(date), 'yyyy-MM-dd', { locale });
+  return format(new Date(date), 'yyyy-MM-dd', { locale: getDateLocale(language) });
 }; 
