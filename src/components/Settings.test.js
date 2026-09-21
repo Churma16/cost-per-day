@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Settings from './Settings';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -12,6 +12,7 @@ jest.mock('react-i18next', () => ({
         settings: 'Settings',
         language: 'Language',
         currency: 'Currency',
+        selectLanguage: 'Select Language',
         selectCurrency: 'Select Currency',
         dataManagement: 'Data Management',
         exportData: 'Export Data',
@@ -75,6 +76,24 @@ describe('Settings component', () => {
         name: new RegExp(`${currencyConfiguration.symbol}`, 'i')
       });
       expect(currencyOptionElements.length).toBeGreaterThan(0);
+    });
+  });
+
+  test('offers Bahasa Indonesia and selects it', async () => {
+    render(<Settings />);
+
+    const languageDropdownTriggerButton = screen.getByRole('button', {
+      name: /English/i
+    });
+    fireEvent.click(languageDropdownTriggerButton);
+
+    const indonesianLanguageOptionButton = screen.getByRole('button', {
+      name: /Bahasa Indonesia/i
+    });
+    fireEvent.click(indonesianLanguageOptionButton);
+
+    await waitFor(() => {
+      expect(mockChangeLanguage).toHaveBeenCalledWith('id');
     });
   });
 
