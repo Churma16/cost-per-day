@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoChevronDown, IoCloudDownloadOutline, IoCloudUploadOutline, IoWarningOutline } from 'react-icons/io5';
-import { getAllSettings, updateSetting } from '../services/db';
 import { getAllItems, deleteAllItems, addItem } from '../services/db';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -342,7 +341,7 @@ function Settings() {
               className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none"
               onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
             >
-              <span>{currencyCode} {currencies.find(currencyOption => currencyOption.code === currencyCode)?.name}</span>
+              <span>{currencies.find(currencyOption => currencyOption.code === currencyCode)?.symbol} {currencies.find(currencyOption => currencyOption.code === currencyCode)?.name}</span>
               <IoChevronDown className={`transition-transform ${showCurrencyDropdown ? 'rotate-180' : ''}`} />
             </button>
             
@@ -361,7 +360,7 @@ function Settings() {
                       className="w-full text-left p-4 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-0"
                       onClick={() => handleCurrencyChange(currencyOption.code)}
                     >
-                      {currencyOption.code} {currencyOption.name}
+                      {currencyOption.symbol} {currencyOption.name}
                     </button>
                   ))}
                 </div>
