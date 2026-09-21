@@ -46,6 +46,7 @@ export default {
   "usd": "美元 (USD)",
   "eur": "欧元 (EUR)",
   "cny": "人民币 (CNY)",
+  "idr": "印尼卢比 (IDR)",
   
   // Alerts
   "comingSoon": "即将推出",

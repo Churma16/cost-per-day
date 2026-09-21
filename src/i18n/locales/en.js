@@ -48,6 +48,7 @@ export default {
   "usd": "US Dollar (USD)",
   "eur": "Euro (EUR)",
   "cny": "Chinese Yuan (CNY)",
+  "idr": "Indonesian Rupiah (IDR)",
   
   // Alerts
   "comingSoon": "Coming soon",

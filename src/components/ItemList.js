@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getAllItems, deleteItem } from '../services/db';
 import { IoChevronDown, IoChevronForward, IoCalendar, IoCash, IoTrash } from 'react-icons/io5';
-import { formatCurrency, formatDate } from '../utils/formatters';
-import { calculateDailyCost, formatCurrency as calculateCurrency } from '../utils/costCalculator';
+import { formatCurrency } from '../utils/formatters';
+import { calculateDailyCost } from '../utils/costCalculator';
 import { format, differenceInDays } from 'date-fns';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -18,7 +18,7 @@ function ItemList() {
   const [itemToDelete, setItemToDelete] = useState(null);
   const navigate = useNavigate();
   const { setTotalDailyCost } = useTotalCost();
-  const { currency } = useCurrency();
+  const { currencyCode } = useCurrency();
 
   useEffect(() => {
     const loadItems = async () => {
@@ -91,7 +91,7 @@ function ItemList() {
               <div>
                 <h3 className="font-medium text-gray-900">{item.name}</h3>
                 <p className="text-sm text-gray-500">
-                  {currency}{formatCurrency(calculateDailyCost(item.price, item.purchaseDate))}{t('perDay')}
+                  {formatCurrency(calculateDailyCost(item.price, item.purchaseDate), currencyCode)}{t('perDay')}
                 </p>
               </div>
               <div className="flex items-center">
@@ -114,7 +114,7 @@ function ItemList() {
                     </div>
                     <div className="ml-3">
                       <div className="text-xs text-gray-500">{t('purchaseAmount')}</div>
-                      <div className="font-medium">{currency}{formatCurrency(item.price)}</div>
+                      <div className="font-medium">{formatCurrency(item.price, currencyCode)}</div>
                     </div>
                   </div>
                   
