@@ -2,29 +2,29 @@ import { formatCurrency } from './formatters';
 
 describe('formatCurrency utility function', () => {
   describe('Indonesian Rupiah (IDR) formatting', () => {
-    test('formats 1500000 as Rp1.500.000 without space and without decimals', () => {
+    test('formats 1500000 as Rp 1.500.000 with space and without decimals', () => {
       const formattedValue = formatCurrency(1500000, 'IDR');
-      expect(formattedValue).toBe('Rp1.500.000');
+      expect(formattedValue).toBe('Rp 1.500.000');
     });
 
-    test('formats 0 as Rp0 in IDR', () => {
+    test('formats 0 as Rp 0 in IDR', () => {
       const formattedValue = formatCurrency(0, 'IDR');
-      expect(formattedValue).toBe('Rp0');
+      expect(formattedValue).toBe('Rp 0');
     });
 
     test('formats arbitrary number without decimals in IDR', () => {
       const formattedValue = formatCurrency(25000, 'IDR');
-      expect(formattedValue).toBe('Rp25.000');
+      expect(formattedValue).toBe('Rp 25.000');
     });
 
     test('accepts legacy Rp symbol and formats as IDR', () => {
       const formattedValue = formatCurrency(1500000, 'Rp');
-      expect(formattedValue).toBe('Rp1.500.000');
+      expect(formattedValue).toBe('Rp 1.500.000');
     });
 
     test('handles numeric strings as input for IDR', () => {
       const formattedValue = formatCurrency('1500000', 'IDR');
-      expect(formattedValue).toBe('Rp1.500.000');
+      expect(formattedValue).toBe('Rp 1.500.000');
     });
   });
 

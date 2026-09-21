@@ -24,7 +24,7 @@ export const formatCurrency = (number, currencyCode = 'USD') => {
   }).format(numericAmount);
 
   if (isIndonesianRupiah) {
-    return formattedCurrencyString.replace(/Rp[\s\u00a0]+/g, 'Rp');
+    return formattedCurrencyString.replace(/Rp[\s\u00a0]*/g, 'Rp ');
   }
 
   return formattedCurrencyString;
