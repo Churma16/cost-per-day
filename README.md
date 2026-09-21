@@ -99,7 +99,7 @@ The build files will be created in the `build` folder.
 ### Changing Settings
 1. Go to the Settings page
 2. Change language: Select from English, French, or Chinese
-3. Change currency: Select from USD ($), EUR (€), or CNY (¥)
+3. Change currency: Select from USD ($), EUR (€), CNY (¥), or IDR (Rp)
 
 ## Technologies Used
 
