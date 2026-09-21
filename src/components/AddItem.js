@@ -111,7 +111,7 @@ function AddItem() {
   const location = useLocation();
   const [activeIcon, setActiveIcon] = useState(null);
   const [month, setMonth] = useState(purchaseDate);
-  const { currency } = useCurrency();
+  const { currencySymbol } = useCurrency();
   
   // Get locale matching the current language
   const getLocale = () => {
@@ -266,7 +266,7 @@ function AddItem() {
             <div className="space-y-2">
               <label className="text-sm text-gray-600 font-medium">{t('price')}</label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{currency}</div>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{currencySymbol}</div>
                 <input
                   type="number"
                   value={price}
@@ -275,8 +275,8 @@ function AddItem() {
                   min="0.01"
                   step="0.01"
                   placeholder={t('enterPrice')}
-                  className="w-full px-4 py-3 pl-8 rounded-xl border border-purple-100 focus:border-purple-300 
-                  focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200"
+                  className={`w-full px-4 py-3 ${currencySymbol.length > 1 ? 'pl-11' : 'pl-8'} rounded-xl border border-purple-100 focus:border-purple-300 
+                  focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200`}
                 />
               </div>
             </div>
@@ -297,7 +297,14 @@ function AddItem() {
                     const isMobile = window.innerWidth <= 768;
                     if (isMobile) {
                       // Trigger native date picker on mobile
-                      document.getElementById('native-date-picker').click();
+                      const nativeDatePicker = document.getElementById('native-date-picker');
+                      if (nativeDatePicker) {
+                        if (typeof nativeDatePicker.showPicker === 'function') {
+                          nativeDatePicker.showPicker();
+                        } else {
+                          nativeDatePicker.click();
+                        }
+                      }
                     } else {
                       // Show custom date picker on desktop
                       setShowDatePicker(!showDatePicker);
@@ -310,11 +317,11 @@ function AddItem() {
                   </div>
                 </button>
                 
-                {/* Hidden native date picker - used on mobile */}
+                {/* Hidden native date picker - used on mobile only */}
                 <input
                   id="native-date-picker"
                   type="date"
-                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer md:hidden"
                   value={purchaseDate.toISOString().split('T')[0]}
                   onChange={(e) => {
                     if (e.target.value) {

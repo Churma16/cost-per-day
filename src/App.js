@@ -16,7 +16,7 @@ const Header = () => {
   const location = useLocation();
   const { t } = useTranslation();
   const { totalDailyCost } = useTotalCost();
-  const { currency } = useCurrency();
+  const { currencyCode } = useCurrency();
   
   const getTitle = () => {
     switch(location.pathname) {
@@ -39,7 +39,7 @@ const Header = () => {
         </h1>
         {location.pathname === '/' && (
           <p className="text-white text-4xl font-orbitron font-bold tracking-wider mt-2">
-            {currency}{formatCurrency(totalDailyCost)}<span className="text-lg">{t('perDay')}</span>
+            {formatCurrency(totalDailyCost, currencyCode)}<span className="text-lg">{t('perDay')}</span>
           </p>
         )}
       </div>

@@ -6,7 +6,7 @@ const SETTINGS_STORE_NAME = 'settings';
 // Default settings - directly exported
 export const DEFAULT_SETTINGS = {
   language: 'en',
-  currency: '$'
+  currency: 'USD'
 };
 
 export const initDB = () => {
