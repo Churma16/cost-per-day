@@ -297,7 +297,14 @@ function AddItem() {
                     const isMobile = window.innerWidth <= 768;
                     if (isMobile) {
                       // Trigger native date picker on mobile
-                      document.getElementById('native-date-picker').click();
+                      const nativeDatePicker = document.getElementById('native-date-picker');
+                      if (nativeDatePicker) {
+                        if (typeof nativeDatePicker.showPicker === 'function') {
+                          nativeDatePicker.showPicker();
+                        } else {
+                          nativeDatePicker.click();
+                        }
+                      }
                     } else {
                       // Show custom date picker on desktop
                       setShowDatePicker(!showDatePicker);
@@ -310,11 +317,11 @@ function AddItem() {
                   </div>
                 </button>
                 
-                {/* Hidden native date picker - used on mobile */}
+                {/* Hidden native date picker - used on mobile only */}
                 <input
                   id="native-date-picker"
                   type="date"
-                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer md:hidden"
                   value={purchaseDate.toISOString().split('T')[0]}
                   onChange={(e) => {
                     if (e.target.value) {
