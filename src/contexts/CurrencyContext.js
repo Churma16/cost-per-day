@@ -5,14 +5,18 @@ import {
   CURRENCY_CONFIGURATIONS,
   LEGACY_SYMBOL_TO_CODE_MAP,
   normalizeCurrencyCode,
-  getCurrencySymbol
+  getCurrencySymbol,
+  getCurrencyConfig,
+  getSupportedCurrencies
 } from '../utils/currencyConfig';
 
 export {
   CURRENCY_CONFIGURATIONS,
   LEGACY_SYMBOL_TO_CODE_MAP,
   normalizeCurrencyCode,
-  getCurrencySymbol
+  getCurrencySymbol,
+  getCurrencyConfig,
+  getSupportedCurrencies
 };
 
 

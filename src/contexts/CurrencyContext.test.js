@@ -1,6 +1,13 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
-import { CurrencyProvider, useCurrency, normalizeCurrencyCode, getCurrencySymbol } from './CurrencyContext';
+import {
+  CurrencyProvider,
+  useCurrency,
+  normalizeCurrencyCode,
+  getCurrencySymbol,
+  getCurrencyConfig,
+  getSupportedCurrencies
+} from './CurrencyContext';
 import { getSetting, updateSetting } from '../services/db';
 
 jest.mock('../services/db', () => ({
@@ -184,6 +191,21 @@ describe('CurrencyContext', () => {
       expect(getCurrencySymbol('USD')).toBe('$');
       expect(getCurrencySymbol('EUR')).toBe('€');
       expect(getCurrencySymbol('CNY')).toBe('¥');
+    });
+
+    test('getCurrencyConfig returns full configuration', () => {
+      expect(getCurrencyConfig('IDR')).toEqual(expect.objectContaining({
+        code: 'IDR',
+        symbol: 'Rp',
+        locale: 'id-ID',
+        fractionDigits: 0,
+        nameKey: 'idr'
+      }));
+    });
+
+    test('getSupportedCurrencies returns all 4 supported currencies', () => {
+      const supportedCurrenciesList = getSupportedCurrencies();
+      expect(supportedCurrenciesList).toHaveLength(4);
     });
   });
 });

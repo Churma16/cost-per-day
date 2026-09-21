@@ -2,16 +2,42 @@ import {
   CURRENCY_CONFIGURATIONS,
   LEGACY_SYMBOL_TO_CODE_MAP,
   normalizeCurrencyCode,
-  getCurrencySymbol
+  getCurrencySymbol,
+  getCurrencyConfig,
+  getSupportedCurrencies
 } from './currencyConfig';
 
 describe('currencyConfig utility', () => {
   describe('CURRENCY_CONFIGURATIONS', () => {
-    test('defines configurations for supported currencies', () => {
-      expect(CURRENCY_CONFIGURATIONS.USD).toEqual({ code: 'USD', symbol: '$' });
-      expect(CURRENCY_CONFIGURATIONS.EUR).toEqual({ code: 'EUR', symbol: '€' });
-      expect(CURRENCY_CONFIGURATIONS.CNY).toEqual({ code: 'CNY', symbol: '¥' });
-      expect(CURRENCY_CONFIGURATIONS.IDR).toEqual({ code: 'IDR', symbol: 'Rp' });
+    test('defines configurations for supported currencies with full canonical metadata', () => {
+      expect(CURRENCY_CONFIGURATIONS.USD).toEqual({
+        code: 'USD',
+        symbol: '$',
+        locale: 'en-US',
+        fractionDigits: 2,
+        nameKey: 'usd'
+      });
+      expect(CURRENCY_CONFIGURATIONS.EUR).toEqual({
+        code: 'EUR',
+        symbol: '€',
+        locale: 'en-US',
+        fractionDigits: 2,
+        nameKey: 'eur'
+      });
+      expect(CURRENCY_CONFIGURATIONS.CNY).toEqual({
+        code: 'CNY',
+        symbol: '¥',
+        locale: 'zh-CN',
+        fractionDigits: 2,
+        nameKey: 'cny'
+      });
+      expect(CURRENCY_CONFIGURATIONS.IDR).toEqual({
+        code: 'IDR',
+        symbol: 'Rp',
+        locale: 'id-ID',
+        fractionDigits: 0,
+        nameKey: 'idr'
+      });
     });
   });
 
@@ -75,6 +101,48 @@ describe('currencyConfig utility', () => {
       expect(getCurrencySymbol('')).toBe('$');
       expect(getCurrencySymbol(null)).toBe('$');
       expect(getCurrencySymbol(undefined)).toBe('$');
+    });
+  });
+
+  describe('getCurrencyConfig', () => {
+    test('retrieves full configuration object for supported currency codes', () => {
+      expect(getCurrencyConfig('USD')).toEqual(CURRENCY_CONFIGURATIONS.USD);
+      expect(getCurrencyConfig('EUR')).toEqual(CURRENCY_CONFIGURATIONS.EUR);
+      expect(getCurrencyConfig('CNY')).toEqual(CURRENCY_CONFIGURATIONS.CNY);
+      expect(getCurrencyConfig('IDR')).toEqual(CURRENCY_CONFIGURATIONS.IDR);
+    });
+
+    test('retrieves configuration when legacy symbols are provided', () => {
+      expect(getCurrencyConfig('$')).toEqual(CURRENCY_CONFIGURATIONS.USD);
+      expect(getCurrencyConfig('€')).toEqual(CURRENCY_CONFIGURATIONS.EUR);
+      expect(getCurrencyConfig('¥')).toEqual(CURRENCY_CONFIGURATIONS.CNY);
+      expect(getCurrencyConfig('Rp')).toEqual(CURRENCY_CONFIGURATIONS.IDR);
+    });
+
+    test('retrieves configuration when lowercase currency codes are provided', () => {
+      expect(getCurrencyConfig('usd')).toEqual(CURRENCY_CONFIGURATIONS.USD);
+      expect(getCurrencyConfig('eur')).toEqual(CURRENCY_CONFIGURATIONS.EUR);
+      expect(getCurrencyConfig('cny')).toEqual(CURRENCY_CONFIGURATIONS.CNY);
+      expect(getCurrencyConfig('idr')).toEqual(CURRENCY_CONFIGURATIONS.IDR);
+    });
+
+    test('falls back safely to USD configuration for invalid or unrecognized identifiers', () => {
+      expect(getCurrencyConfig('UNKNOWN')).toEqual(CURRENCY_CONFIGURATIONS.USD);
+      expect(getCurrencyConfig('INVALID')).toEqual(CURRENCY_CONFIGURATIONS.USD);
+      expect(getCurrencyConfig('')).toEqual(CURRENCY_CONFIGURATIONS.USD);
+      expect(getCurrencyConfig(null)).toEqual(CURRENCY_CONFIGURATIONS.USD);
+      expect(getCurrencyConfig(undefined)).toEqual(CURRENCY_CONFIGURATIONS.USD);
+    });
+  });
+
+  describe('getSupportedCurrencies', () => {
+    test('returns array of all supported currency configurations', () => {
+      const supportedCurrenciesList = getSupportedCurrencies();
+      expect(supportedCurrenciesList).toHaveLength(4);
+      expect(supportedCurrenciesList).toContainEqual(CURRENCY_CONFIGURATIONS.USD);
+      expect(supportedCurrenciesList).toContainEqual(CURRENCY_CONFIGURATIONS.EUR);
+      expect(supportedCurrenciesList).toContainEqual(CURRENCY_CONFIGURATIONS.CNY);
+      expect(supportedCurrenciesList).toContainEqual(CURRENCY_CONFIGURATIONS.IDR);
     });
   });
 });

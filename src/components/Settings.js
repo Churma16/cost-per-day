@@ -4,6 +4,7 @@ import { IoChevronDown, IoCloudDownloadOutline, IoCloudUploadOutline, IoWarningO
 import { getAllItems, deleteAllItems, addItem } from '../services/db';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { getSupportedCurrencies } from '../utils/currencyConfig';
 
 function Settings() {
   const { t } = useTranslation();
@@ -27,12 +28,15 @@ function Settings() {
     { code: 'zh', name: '中文' }
   ];
 
-  const currencies = [
-    { code: 'USD', symbol: '$', name: t('usd') },
-    { code: 'EUR', symbol: '€', name: t('eur') },
-    { code: 'CNY', symbol: '¥', name: t('cny') },
-    { code: 'IDR', symbol: 'Rp', name: t('idr') }
-  ];
+  const currencyOptions = getSupportedCurrencies().map((currencyConfiguration) => ({
+    code: currencyConfiguration.code,
+    symbol: currencyConfiguration.symbol,
+    name: t(currencyConfiguration.nameKey)
+  }));
+
+  const selectedCurrencyOption = currencyOptions.find(
+    (currencyOption) => currencyOption.code === currencyCode
+  );
 
   // 根据语言代码获取语言名称
   const getLanguageName = (code) => {
@@ -341,7 +345,7 @@ function Settings() {
               className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none"
               onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
             >
-              <span>{currencies.find(currencyOption => currencyOption.code === currencyCode)?.symbol} {currencies.find(currencyOption => currencyOption.code === currencyCode)?.name}</span>
+              <span>{selectedCurrencyOption?.symbol} {selectedCurrencyOption?.name}</span>
               <IoChevronDown className={`transition-transform ${showCurrencyDropdown ? 'rotate-180' : ''}`} />
             </button>
             
@@ -354,7 +358,7 @@ function Settings() {
                   <div className="p-3 border-b border-gray-100 bg-purple-50">
                     <h3 className="text-center font-medium text-purple-800">{t('selectCurrency')}</h3>
                   </div>
-                  {currencies.map((currencyOption) => (
+                  {currencyOptions.map((currencyOption) => (
                     <button
                       key={currencyOption.code}
                       className="w-full text-left p-4 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-0"

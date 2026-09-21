@@ -2,28 +2,25 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { enUS } from 'date-fns/locale/en-US';
 import { fr } from 'date-fns/locale/fr';
-import { normalizeCurrencyCode } from './currencyConfig';
+import { normalizeCurrencyCode, getCurrencyConfig } from './currencyConfig';
 
 export const formatCurrency = (number, currencyCode = 'USD') => {
   const normalizedCurrencyCode = normalizeCurrencyCode(currencyCode);
-
-  const isIndonesianRupiah = normalizedCurrencyCode === 'IDR';
-  const currencyLocale = isIndonesianRupiah ? 'id-ID' : 'en-US';
-  const fractionDigits = isIndonesianRupiah ? 0 : 2;
+  const currencyConfiguration = getCurrencyConfig(normalizedCurrencyCode);
 
   const numericAmount = typeof number === 'number' && !isNaN(number)
     ? number
     : Number(number) || 0;
 
-  const formattedCurrencyString = new Intl.NumberFormat(currencyLocale, {
+  const formattedCurrencyString = new Intl.NumberFormat(currencyConfiguration.locale, {
     style: 'currency',
     currency: normalizedCurrencyCode,
     currencyDisplay: 'narrowSymbol',
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
+    minimumFractionDigits: currencyConfiguration.fractionDigits,
+    maximumFractionDigits: currencyConfiguration.fractionDigits,
   }).format(numericAmount);
 
-  if (isIndonesianRupiah) {
+  if (normalizedCurrencyCode === 'IDR') {
     return formattedCurrencyString.replace(/Rp[\s\u00a0]*/g, 'Rp ');
   }
 

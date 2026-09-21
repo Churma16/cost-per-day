@@ -1,8 +1,32 @@
 export const CURRENCY_CONFIGURATIONS = {
-  USD: { code: 'USD', symbol: '$' },
-  EUR: { code: 'EUR', symbol: '€' },
-  CNY: { code: 'CNY', symbol: '¥' },
-  IDR: { code: 'IDR', symbol: 'Rp' }
+  USD: {
+    code: 'USD',
+    symbol: '$',
+    locale: 'en-US',
+    fractionDigits: 2,
+    nameKey: 'usd'
+  },
+  EUR: {
+    code: 'EUR',
+    symbol: '€',
+    locale: 'en-US',
+    fractionDigits: 2,
+    nameKey: 'eur'
+  },
+  CNY: {
+    code: 'CNY',
+    symbol: '¥',
+    locale: 'zh-CN',
+    fractionDigits: 2,
+    nameKey: 'cny'
+  },
+  IDR: {
+    code: 'IDR',
+    symbol: 'Rp',
+    locale: 'id-ID',
+    fractionDigits: 0,
+    nameKey: 'idr'
+  }
 };
 
 export const LEGACY_SYMBOL_TO_CODE_MAP = {
@@ -26,7 +50,16 @@ export const normalizeCurrencyCode = (currencyIdentifier) => {
   return 'USD';
 };
 
+export const getCurrencyConfig = (currencyIdentifier) => {
+  const resolvedCurrencyCode = normalizeCurrencyCode(currencyIdentifier);
+  return CURRENCY_CONFIGURATIONS[resolvedCurrencyCode] || CURRENCY_CONFIGURATIONS.USD;
+};
+
+export const getSupportedCurrencies = () => {
+  return Object.values(CURRENCY_CONFIGURATIONS);
+};
+
 export const getCurrencySymbol = (currencyIdentifier) => {
-  const resolvedCode = normalizeCurrencyCode(currencyIdentifier);
-  return CURRENCY_CONFIGURATIONS[resolvedCode]?.symbol || '$';
+  const currencyConfiguration = getCurrencyConfig(currencyIdentifier);
+  return currencyConfiguration.symbol;
 };

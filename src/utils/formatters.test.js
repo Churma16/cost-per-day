@@ -1,4 +1,5 @@
 import { formatCurrency } from './formatters';
+import * as currencyConfigModule from './currencyConfig';
 
 describe('formatCurrency utility function', () => {
   describe('Indonesian Rupiah (IDR) formatting', () => {
@@ -61,6 +62,76 @@ describe('formatCurrency utility function', () => {
       expect(formatCurrency(100, 'UNKNOWN')).toBe('$100.00');
       expect(formatCurrency(100, null)).toBe('$100.00');
       expect(formatCurrency(100, '')).toBe('$100.00');
+    });
+  });
+
+  describe('Canonical configuration driving formatter behavior', () => {
+    test('retrieves and applies configuration properties from getCurrencyConfig', () => {
+      const getCurrencyConfigSpy = jest.spyOn(currencyConfigModule, 'getCurrencyConfig');
+
+      const formattedIdrValue = formatCurrency(50000, 'IDR');
+      expect(getCurrencyConfigSpy).toHaveBeenCalledWith('IDR');
+      expect(formattedIdrValue).toBe('Rp 50.000');
+
+      const formattedUsdValue = formatCurrency(50, 'USD');
+      expect(getCurrencyConfigSpy).toHaveBeenCalledWith('USD');
+      expect(formattedUsdValue).toBe('$50.00');
+
+      const formattedCnyValue = formatCurrency(50, 'CNY');
+      expect(getCurrencyConfigSpy).toHaveBeenCalledWith('CNY');
+      expect(formattedCnyValue).toBe('¥50.00');
+
+      const formattedEurValue = formatCurrency(50, 'EUR');
+      expect(getCurrencyConfigSpy).toHaveBeenCalledWith('EUR');
+      expect(formattedEurValue).toBe('€50.00');
+
+      getCurrencyConfigSpy.mockRestore();
+    });
+
+    test('passes canonical locale and fraction digits to Intl.NumberFormat', () => {
+      const intlNumberFormatSpy = jest.spyOn(Intl, 'NumberFormat');
+
+      formatCurrency(1234, 'IDR');
+      expect(intlNumberFormatSpy).toHaveBeenCalledWith(
+        currencyConfigModule.CURRENCY_CONFIGURATIONS.IDR.locale,
+        expect.objectContaining({
+          currency: 'IDR',
+          minimumFractionDigits: currencyConfigModule.CURRENCY_CONFIGURATIONS.IDR.fractionDigits,
+          maximumFractionDigits: currencyConfigModule.CURRENCY_CONFIGURATIONS.IDR.fractionDigits
+        })
+      );
+
+      formatCurrency(1234, 'USD');
+      expect(intlNumberFormatSpy).toHaveBeenCalledWith(
+        currencyConfigModule.CURRENCY_CONFIGURATIONS.USD.locale,
+        expect.objectContaining({
+          currency: 'USD',
+          minimumFractionDigits: currencyConfigModule.CURRENCY_CONFIGURATIONS.USD.fractionDigits,
+          maximumFractionDigits: currencyConfigModule.CURRENCY_CONFIGURATIONS.USD.fractionDigits
+        })
+      );
+
+      formatCurrency(1234, 'CNY');
+      expect(intlNumberFormatSpy).toHaveBeenCalledWith(
+        currencyConfigModule.CURRENCY_CONFIGURATIONS.CNY.locale,
+        expect.objectContaining({
+          currency: 'CNY',
+          minimumFractionDigits: currencyConfigModule.CURRENCY_CONFIGURATIONS.CNY.fractionDigits,
+          maximumFractionDigits: currencyConfigModule.CURRENCY_CONFIGURATIONS.CNY.fractionDigits
+        })
+      );
+
+      formatCurrency(1234, 'EUR');
+      expect(intlNumberFormatSpy).toHaveBeenCalledWith(
+        currencyConfigModule.CURRENCY_CONFIGURATIONS.EUR.locale,
+        expect.objectContaining({
+          currency: 'EUR',
+          minimumFractionDigits: currencyConfigModule.CURRENCY_CONFIGURATIONS.EUR.fractionDigits,
+          maximumFractionDigits: currencyConfigModule.CURRENCY_CONFIGURATIONS.EUR.fractionDigits
+        })
+      );
+
+      intlNumberFormatSpy.mockRestore();
     });
   });
 });
