@@ -306,8 +306,8 @@ func TestSettingsAPI(t *testing.T) {
 		}
 	})
 
-	t.Run("PUT /api/settings/:key updates setting and reflects in subsequent GET", func(subTest *testing.T) {
-		payload := []byte(`{"value":"id"}`)
+	t.Run("PUT /api/settings/:key returns normalized setting and reflects it in subsequent GET", func(subTest *testing.T) {
+		payload := []byte(`{"value":" id "}`)
 		updateRequest, _ := http.NewRequest(http.MethodPut, "/api/settings/language", bytes.NewBuffer(payload))
 		updateRequest.Header.Set("Content-Type", "application/json")
 
@@ -321,6 +321,16 @@ func TestSettingsAPI(t *testing.T) {
 		updateEnvelope := parseResponseBody(t, updateRecorder)
 		if updateEnvelope.Meta.Code != http.StatusOK {
 			subTest.Errorf("expected meta.code 200, got: %d", updateEnvelope.Meta.Code)
+		}
+		updatedSetting, isMap := updateEnvelope.Data.(map[string]any)
+		if !isMap {
+			subTest.Fatalf("expected updated setting data to be a map, got: %v", updateEnvelope.Data)
+		}
+		if updatedSetting["key"] != "language" {
+			subTest.Errorf("expected normalized key 'language', got: %v", updatedSetting["key"])
+		}
+		if updatedSetting["value"] != "id" {
+			subTest.Errorf("expected normalized value 'id', got: %v", updatedSetting["value"])
 		}
 
 		// Verify change with GET /api/settings
