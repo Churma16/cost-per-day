@@ -61,7 +61,8 @@ For an upgrade that requires recovery, restore a known-good database backup and 
 | `PORT` | Port on which the HTTP server listens | `8080` |
 | `GIN_MODE` | Gin operational mode (`debug`, `release`, `test`) | `release` |
 | `ALLOWED_ORIGINS` | Allowed origins for CORS headers | `*` |
-| `DATABASE_PATH` | Filesystem path for the SQLite database | `./data/cost-per-day.db` |\n| `STATIC_DIR` | Optional compiled frontend directory served by the backend | empty |
+| `DATABASE_PATH` | Filesystem path for the SQLite database | `./data/cost-per-day.db` |
+| `STATIC_DIR` | Optional compiled frontend directory served by the backend | empty |
 
 Keep `DATABASE_PATH` on persistent storage in container or VPS deployments so application restarts and redeploys retain data. The production image sets `STATIC_DIR=/app/web`, which is a read-only application directory separate from the SQLite mount.
 
