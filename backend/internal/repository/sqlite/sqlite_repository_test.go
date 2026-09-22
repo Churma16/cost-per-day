@@ -2,6 +2,7 @@ package sqlite_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"math"
 	"path/filepath"
