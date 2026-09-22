@@ -147,3 +147,4 @@ export const replaceAllItems = async (items) => {
 
   return replacedItems;
 };
+\n\nexport const getCurrentUser = () => request('/api/me');\n\nexport const logoutCurrentUser = () => request('/auth/logout', {\n  method: 'POST'\n});\n\nexport const getGoogleLoginUrl = () => buildApiUrl('/auth/google/login');\n
