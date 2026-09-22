@@ -50,7 +50,7 @@ internal/repository/sqlite/migrations/
 
 Migrations run automatically during backend startup before the HTTP server begins accepting traffic. The current schema version is tracked with SQLite `PRAGMA user_version`.
 
-Each migration runs in its own transaction together with the schema-version update. If a migration fails, that migration is rolled back and backend startup fails rather than continuing with a partially upgraded schema.\n\nMigration v3 introduces the local `users` table plus `user_id` ownership for items and settings. Existing single-user rows are preserved and assigned to the deterministic `legacy` owner. Item IDs are preserved during the migration.
+Each migration runs in its own transaction together with the schema-version update. If a migration fails, that migration is rolled back and backend startup fails rather than continuing with a partially upgraded schema.\n\nMigration v3 introduces the local `users` table plus `user_id` ownership for items and settings. Existing single-user rows are preserved and assigned to the deterministic `legacy` owner. Item IDs are preserved during the migration. Built-in language and currency defaults remain read-time fallbacks until a user stores an override.
 
 For an upgrade that requires recovery, restore a known-good database backup and run the previous application version. Production backup/restore automation is tracked separately from this storage adapter.
 
