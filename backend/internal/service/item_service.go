@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"math"
 	"strings"
 	"time"
 
@@ -17,6 +18,8 @@ type ItemService interface {
 	UpdateItem(ctx context.Context, itemID string, name string, price float64, purchaseDate string) (domain.Item, error)
 	DeleteItem(ctx context.Context, itemID string) error
 }
+
+const itemPricePrecisionScale = 1_000_000
 
 type itemServiceImpl struct {
 	itemRepository repository.ItemRepository
@@ -97,8 +100,13 @@ func (serviceInstance *itemServiceImpl) validateItemInput(name string, price flo
 		return "", "", domain.ErrEmptyItemName
 	}
 
-	if price <= 0 {
+	if price <= 0 || math.IsNaN(price) || math.IsInf(price, 0) {
 		return "", "", domain.ErrInvalidItemPrice
+	}
+
+	scaledPrice := price * itemPricePrecisionScale
+	if scaledPrice > float64(math.MaxInt64) || math.Round(scaledPrice) <= 0 {
+		return "", "", domain.ErrUnsupportedItemPrice
 	}
 
 	trimmedPurchaseDate := strings.TrimSpace(purchaseDate)
