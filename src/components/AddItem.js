@@ -132,11 +132,13 @@ function AddItem() {
   const purchaseDateValue = purchaseDate instanceof Date && !Number.isNaN(purchaseDate.getTime())
     ? purchaseDate.toISOString().split('T')[0]
     : '';
+  const currentDateValue = new Date().toISOString().split('T')[0];
   const lifecycleFormValid = !isEditMode ||
     status === 'active' ||
     (
       endedAt !== '' &&
       endedAt >= purchaseDateValue &&
+      endedAt <= currentDateValue &&
       (
         status !== 'sold' ||
         (salePrice !== '' && Number.isFinite(Number(salePrice)) && Number(salePrice) >= 0)
@@ -408,6 +410,7 @@ function AddItem() {
                       type="date"
                       value={endedAt}
                       min={purchaseDateValue}
+                      max={currentDateValue}
                       onChange={(event) => setEndedAt(event.target.value)}
                       required
                       className="w-full px-4 py-3 rounded-xl border border-purple-100 bg-white focus:border-purple-300
