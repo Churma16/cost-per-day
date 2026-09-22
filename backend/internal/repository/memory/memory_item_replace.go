@@ -8,8 +8,13 @@ import (
 	"cost-per-day/backend/internal/domain"
 )
 
-// ReplaceAll atomically replaces the complete in-memory item set.
-func (repositoryInstance *MemoryItemRepository) ReplaceAll(_ context.Context, items []domain.Item) ([]domain.Item, error) {
+// ReplaceAll atomically replaces only the current user's complete in-memory item set.
+func (repositoryInstance *MemoryItemRepository) ReplaceAll(_ context.Context, userID string, items []domain.Item) ([]domain.Item, error) {
+	normalizedUserID, identityError := requireUserID(userID)
+	if identityError != nil {
+		return nil, identityError
+	}
+
 	repositoryInstance.mutex.Lock()
 	defer repositoryInstance.mutex.Unlock()
 
@@ -21,6 +26,7 @@ func (repositoryInstance *MemoryItemRepository) ReplaceAll(_ context.Context, it
 	for _, itemToCreate := range items {
 		nextID++
 		itemToCreate.ID = strconv.FormatInt(nextID, 10)
+		itemToCreate.UserID = normalizedUserID
 		itemToCreate.CreatedAt = currentTimestamp
 		itemToCreate.UpdatedAt = currentTimestamp
 
@@ -28,7 +34,7 @@ func (repositoryInstance *MemoryItemRepository) ReplaceAll(_ context.Context, it
 		createdItems = append(createdItems, itemToCreate)
 	}
 
-	repositoryInstance.itemsByID = replacementItems
+	repositoryInstance.itemsByUserID[normalizedUserID] = replacementItems
 	repositoryInstance.autoIncrementID = nextID
 
 	return createdItems, nil

@@ -8,11 +8,11 @@ import (
 	"cost-per-day/backend/internal/repository"
 )
 
-// SettingsService defines the application operations available for configuration settings.
+// SettingsService defines the application operations available for user-owned configuration settings.
 type SettingsService interface {
-	GetAllSettings(ctx context.Context) (map[string]string, error)
-	GetSettingByKey(ctx context.Context, settingKey string) (string, error)
-	UpdateSetting(ctx context.Context, settingKey string, settingValue string) (domain.Setting, error)
+	GetAllSettings(ctx context.Context, userID string) (map[string]string, error)
+	GetSettingByKey(ctx context.Context, userID string, settingKey string) (string, error)
+	UpdateSetting(ctx context.Context, userID string, settingKey string, settingValue string) (domain.Setting, error)
 }
 
 type settingsServiceImpl struct {
@@ -26,22 +26,36 @@ func NewSettingsService(settingsRepository repository.SettingsRepository) Settin
 	}
 }
 
-// GetAllSettings retrieves all current application settings.
-func (serviceInstance *settingsServiceImpl) GetAllSettings(ctx context.Context) (map[string]string, error) {
-	return serviceInstance.settingsRepository.GetAll(ctx)
+// GetAllSettings retrieves all settings for the current user.
+func (serviceInstance *settingsServiceImpl) GetAllSettings(ctx context.Context, userID string) (map[string]string, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return nil, identityError
+	}
+	return serviceInstance.settingsRepository.GetAll(ctx, normalizedUserID)
 }
 
-// GetSettingByKey retrieves a single setting value by its configuration key.
-func (serviceInstance *settingsServiceImpl) GetSettingByKey(ctx context.Context, settingKey string) (string, error) {
+// GetSettingByKey retrieves one setting for the current user.
+func (serviceInstance *settingsServiceImpl) GetSettingByKey(ctx context.Context, userID string, settingKey string) (string, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return "", identityError
+	}
+
 	trimmedKey := strings.TrimSpace(settingKey)
 	if trimmedKey == "" {
 		return "", domain.ErrEmptySettingKey
 	}
-	return serviceInstance.settingsRepository.GetByKey(ctx, trimmedKey)
+	return serviceInstance.settingsRepository.GetByKey(ctx, normalizedUserID, trimmedKey)
 }
 
-// UpdateSetting validates and stores an updated setting value.
-func (serviceInstance *settingsServiceImpl) UpdateSetting(ctx context.Context, settingKey string, settingValue string) (domain.Setting, error) {
+// UpdateSetting validates and stores an updated setting value for the current user.
+func (serviceInstance *settingsServiceImpl) UpdateSetting(ctx context.Context, userID string, settingKey string, settingValue string) (domain.Setting, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return domain.Setting{}, identityError
+	}
+
 	trimmedKey := strings.TrimSpace(settingKey)
 	if trimmedKey == "" {
 		return domain.Setting{}, domain.ErrEmptySettingKey
@@ -52,12 +66,21 @@ func (serviceInstance *settingsServiceImpl) UpdateSetting(ctx context.Context, s
 		return domain.Setting{}, domain.ErrEmptySettingValue
 	}
 
-	if repositoryError := serviceInstance.settingsRepository.Set(ctx, trimmedKey, trimmedValue); repositoryError != nil {
+	if repositoryError := serviceInstance.settingsRepository.Set(ctx, normalizedUserID, trimmedKey, trimmedValue); repositoryError != nil {
 		return domain.Setting{}, repositoryError
 	}
 
 	return domain.Setting{
-		Key:   trimmedKey,
-		Value: trimmedValue,
+		UserID: normalizedUserID,
+		Key:    trimmedKey,
+		Value:  trimmedValue,
 	}, nil
+}
+
+func normalizeUserID(userID string) (string, error) {
+	normalizedUserID := strings.TrimSpace(userID)
+	if normalizedUserID == "" {
+		return "", domain.ErrUserIdentityRequired
+	}
+	return normalizedUserID, nil
 }

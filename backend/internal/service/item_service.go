@@ -12,9 +12,9 @@ import (
 
 // ItemService defines the application operations available for items.
 type ItemService interface {
-	ListItems(ctx context.Context) ([]domain.Item, error)
-	GetItemByID(ctx context.Context, itemID string) (domain.Item, error)
-	CreateItem(ctx context.Context, name string, price float64, purchaseDate string) (domain.Item, error)
+	ListItems(ctx context.Context, userID string) ([]domain.Item, error)
+	GetItemByID(ctx context.Context, userID string, itemID string) (domain.Item, error)
+	CreateItem(ctx context.Context, userID string, name string, price float64, purchaseDate string) (domain.Item, error)
 	UpdateItem(
 		ctx context.Context,
 		itemID string,
@@ -25,8 +25,8 @@ type ItemService interface {
 		endedAt *string,
 		salePrice *float64,
 	) (domain.Item, error)
-	DeleteItem(ctx context.Context, itemID string) error
-	ReplaceItems(ctx context.Context, items []domain.Item) ([]domain.Item, error)
+	DeleteItem(ctx context.Context, userID string, itemID string) error
+	ReplaceItems(ctx context.Context, userID string, items []domain.Item) ([]domain.Item, error)
 }
 
 const itemPricePrecisionScale = 1_000_000
@@ -53,13 +53,13 @@ func (serviceInstance *itemServiceImpl) ListItems(ctx context.Context) ([]domain
 }
 
 // GetItemByID retrieves an item by its unique identifier and calculates ownership metrics.
-func (serviceInstance *itemServiceImpl) GetItemByID(ctx context.Context, itemID string) (domain.Item, error) {
+func (serviceInstance *itemServiceImpl) GetItemByID(ctx context.Context, userID string, itemID string) (domain.Item, error) {\n\tnormalizedUserID, identityError := normalizeUserID(userID)\n\tif identityError != nil {\n\t\treturn domain.Item{}, identityError\n\t}
 	trimmedItemID := strings.TrimSpace(itemID)
 	if trimmedItemID == "" {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
 
-	item, repositoryError := serviceInstance.itemRepository.GetByID(ctx, trimmedItemID)
+	item, repositoryError := serviceInstance.itemRepository.GetByID(ctx, normalizedUserID, trimmedItemID)
 	if repositoryError != nil {
 		return domain.Item{}, repositoryError
 	}
@@ -68,7 +68,7 @@ func (serviceInstance *itemServiceImpl) GetItemByID(ctx context.Context, itemID 
 }
 
 // CreateItem validates and creates a new active item.
-func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, name string, price float64, purchaseDate string) (domain.Item, error) {
+func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, userID string, name string, price float64, purchaseDate string) (domain.Item, error) {\n\tnormalizedUserID, identityError := normalizeUserID(userID)\n\tif identityError != nil {\n\t\treturn domain.Item{}, identityError\n\t}
 	validatedItem, validationError := validateItem(domain.Item{
 		Name:         name,
 		Price:        price,
@@ -79,7 +79,7 @@ func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, name str
 		return domain.Item{}, validationError
 	}
 
-	createdItem, repositoryError := serviceInstance.itemRepository.Create(ctx, validatedItem)
+	createdItem, repositoryError := serviceInstance.itemRepository.Create(ctx, normalizedUserID, validatedItem)
 	if repositoryError != nil {
 		return domain.Item{}, repositoryError
 	}
@@ -116,7 +116,7 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		return domain.Item{}, validationError
 	}
 
-	updatedItem, repositoryError := serviceInstance.itemRepository.Update(ctx, validatedItem)
+	updatedItem, repositoryError := serviceInstance.itemRepository.Update(ctx, normalizedUserID, validatedItem)
 	if repositoryError != nil {
 		return domain.Item{}, repositoryError
 	}
@@ -125,16 +125,16 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 }
 
 // DeleteItem removes an existing item by its identifier.
-func (serviceInstance *itemServiceImpl) DeleteItem(ctx context.Context, itemID string) error {
+func (serviceInstance *itemServiceImpl) DeleteItem(ctx context.Context, userID string, itemID string) error {\n\tnormalizedUserID, identityError := normalizeUserID(userID)\n\tif identityError != nil {\n\t\treturn identityError\n\t}
 	trimmedItemID := strings.TrimSpace(itemID)
 	if trimmedItemID == "" {
 		return domain.ErrItemNotFound
 	}
-	return serviceInstance.itemRepository.Delete(ctx, trimmedItemID)
+	return serviceInstance.itemRepository.Delete(ctx, normalizedUserID, trimmedItemID)
 }
 
 // ReplaceItems validates the full replacement set before asking the repository to swap it atomically.
-func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, items []domain.Item) ([]domain.Item, error) {
+func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, userID string, items []domain.Item) ([]domain.Item, error) {\n\tnormalizedUserID, identityError := normalizeUserID(userID)\n\tif identityError != nil {\n\t\treturn nil, identityError\n\t}
 	validatedItems := make([]domain.Item, 0, len(items))
 
 	for _, item := range items {
@@ -145,7 +145,7 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, items 
 		validatedItems = append(validatedItems, validatedItem)
 	}
 
-	replacedItems, repositoryError := serviceInstance.itemRepository.ReplaceAll(ctx, validatedItems)
+	replacedItems, repositoryError := serviceInstance.itemRepository.ReplaceAll(ctx, normalizedUserID, validatedItems)
 	if repositoryError != nil {
 		return nil, repositoryError
 	}
