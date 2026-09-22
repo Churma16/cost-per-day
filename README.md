@@ -34,7 +34,7 @@ A progressive web application that helps you track the daily cost of your purcha
 
 - Node.js (v22 or higher)
 - npm (comes with Node.js)
-- Go (v1.22 or higher, for backend service)
+- Go (v1.25.5 or higher, for backend service)
 
 ### Installation
 
