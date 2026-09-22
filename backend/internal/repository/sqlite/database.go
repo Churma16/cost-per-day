@@ -68,6 +68,11 @@ func Open(ctx context.Context, databasePath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("ping sqlite database: %w", pingError)
 	}
 
+	if compatibilityError := verifySchemaCompatibility(ctx, databaseConnection); compatibilityError != nil {
+		_ = databaseConnection.Close()
+		return nil, compatibilityError
+	}
+
 	if walError := enableWALMode(ctx, databaseConnection); walError != nil {
 		_ = databaseConnection.Close()
 		return nil, walError
@@ -84,6 +89,25 @@ func Open(ctx context.Context, databasePath string) (*sql.DB, error) {
 	}
 
 	return databaseConnection, nil
+}
+
+func verifySchemaCompatibility(ctx context.Context, databaseConnection *sql.DB) error {
+	migrations, loadError := loadMigrations()
+	if loadError != nil {
+		return fmt.Errorf("load sqlite migrations: %w", loadError)
+	}
+
+	var currentVersion int
+	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&currentVersion); scanError != nil {
+		return fmt.Errorf("read sqlite schema version: %w", scanError)
+	}
+
+	latestVersion := migrations[len(migrations)-1].version
+	if currentVersion > latestVersion {
+		return fmt.Errorf("database schema version %d is newer than supported version %d", currentVersion, latestVersion)
+	}
+
+	return nil
 }
 
 func enableWALMode(ctx context.Context, databaseConnection *sql.DB) error {
