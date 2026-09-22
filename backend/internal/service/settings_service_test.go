@@ -33,9 +33,15 @@ func TestSettingsService(t *testing.T) {
 		settingsRepository := memory.NewMemorySettingsRepository()
 		settingsService := service.NewSettingsService(settingsRepository)
 
-		updateError := settingsService.UpdateSetting(testContext, "language", "id")
+		updatedSetting, updateError := settingsService.UpdateSetting(testContext, " language ", " id ")
 		if updateError != nil {
 			subTest.Fatalf("expected no error, got: %v", updateError)
+		}
+		if updatedSetting.Key != "language" {
+			subTest.Errorf("expected normalized key 'language', got: %s", updatedSetting.Key)
+		}
+		if updatedSetting.Value != "id" {
+			subTest.Errorf("expected normalized value 'id', got: %s", updatedSetting.Value)
 		}
 
 		retrievedValue, getError := settingsService.GetSettingByKey(testContext, "language")
@@ -51,7 +57,7 @@ func TestSettingsService(t *testing.T) {
 		settingsRepository := memory.NewMemorySettingsRepository()
 		settingsService := service.NewSettingsService(settingsRepository)
 
-		updateError := settingsService.UpdateSetting(testContext, "   ", "EUR")
+		_, updateError := settingsService.UpdateSetting(testContext, "   ", "EUR")
 		if updateError != domain.ErrEmptySettingKey {
 			subTest.Errorf("expected ErrEmptySettingKey, got: %v", updateError)
 		}
@@ -61,7 +67,7 @@ func TestSettingsService(t *testing.T) {
 		settingsRepository := memory.NewMemorySettingsRepository()
 		settingsService := service.NewSettingsService(settingsRepository)
 
-		updateError := settingsService.UpdateSetting(testContext, "currency", "   ")
+		_, updateError := settingsService.UpdateSetting(testContext, "currency", "   ")
 		if updateError != domain.ErrEmptySettingValue {
 			subTest.Errorf("expected ErrEmptySettingValue, got: %v", updateError)
 		}
