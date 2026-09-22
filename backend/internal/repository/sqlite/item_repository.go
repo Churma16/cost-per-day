@@ -82,6 +82,7 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, itemToCrea
 	if conversionError != nil {
 		return domain.Item{}, conversionError
 	}
+	itemToCreate.Price = convertMicrosToPrice(priceMicros)
 
 	currentTimestamp := time.Now().UTC()
 	if itemToCreate.CreatedAt.IsZero() {
@@ -120,6 +121,7 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, itemToUpda
 	if conversionError != nil {
 		return domain.Item{}, conversionError
 	}
+	itemToUpdate.Price = convertMicrosToPrice(priceMicros)
 
 	itemToUpdate.UpdatedAt = time.Now().UTC()
 
@@ -204,11 +206,15 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 	}
 
 	item.ID = strconv.FormatInt(itemIdentifier, 10)
-	item.Price = float64(priceMicros) / float64(priceMicrosPerUnit)
+	item.Price = convertMicrosToPrice(priceMicros)
 	item.CreatedAt = createdAt.UTC()
 	item.UpdatedAt = updatedAt.UTC()
 
 	return item, nil
+}
+
+func convertMicrosToPrice(priceMicros int64) float64 {
+	return float64(priceMicros) / float64(priceMicrosPerUnit)
 }
 
 func convertPriceToMicros(price float64) (int64, error) {
