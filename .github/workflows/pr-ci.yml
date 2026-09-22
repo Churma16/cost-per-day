@@ -118,12 +118,12 @@ jobs:
             | grep --fixed-strings 'CI persistence item'
 
           cleanup
-          rm -f \
-            "$data_dir/cost-per-day.db" \
-            "$data_dir/cost-per-day.db-wal" \
-            "$data_dir/cost-per-day.db-shm"
-          cp "$backup_dir/smoke.db" "$data_dir/cost-per-day.db"
-          prepare_data_owner
+          docker run --rm \
+            -v "$data_dir:/data" \
+            -v "$backup_dir:/backup:ro" \
+            alpine:3.22 \
+            sh -ec 'rm -f /data/cost-per-day.db /data/cost-per-day.db-wal /data/cost-per-day.db-shm; cp /backup/smoke.db /data/cost-per-day.db; chown -R 10001:10001 /data'
+
           start_app
 
           curl --fail --silent http://127.0.0.1:18080/api/items \
