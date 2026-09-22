@@ -29,7 +29,7 @@ HTTP Transport (Gin router, handlers, DTOs, response envelope)
 
 ### Prerequisites
 
-- Go 1.22 or higher
+- Go 1.25.5 or higher
 
 ### Running the Service
 
