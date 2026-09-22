@@ -24,6 +24,39 @@ func seedSQLiteUser(t *testing.T, databaseConnection *sql.DB, userID string) {
 	}
 }
 
+
+func TestSQLiteSettingsRepositoryReturnsDefaultsForFreshUser(t *testing.T) {
+	databaseConnection, _ := openTestDatabase(t)
+	ctx := context.Background()
+	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
+
+	const freshUser = "fresh-user"
+	seedSQLiteUser(t, databaseConnection, freshUser)
+
+	settings, getAllError := settingsRepository.GetAll(ctx, freshUser)
+	if getAllError != nil {
+		t.Fatalf("get fresh-user settings: %v", getAllError)
+	}
+	if settings["language"] != "en" {
+		t.Fatalf("expected default language en, got %q", settings["language"])
+	}
+	if settings["currency"] != "USD" {
+		t.Fatalf("expected default currency USD, got %q", settings["currency"])
+	}
+
+	language, languageError := settingsRepository.GetByKey(ctx, freshUser, "language")
+	if languageError != nil {
+		t.Fatalf("get fresh-user language: %v", languageError)
+	}
+	if language != "en" {
+		t.Fatalf("expected default language en, got %q", language)
+	}
+
+	if _, missingError := settingsRepository.GetByKey(ctx, freshUser, "theme"); !errors.Is(missingError, domain.ErrSettingNotFound) {
+		t.Fatalf("expected non-default missing setting to return ErrSettingNotFound, got %v", missingError)
+	}
+}
+
 func TestSQLiteRepositoriesEnforceUserIsolation(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()

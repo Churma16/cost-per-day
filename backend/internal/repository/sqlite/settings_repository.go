@@ -11,6 +11,11 @@ import (
 	"cost-per-day/backend/internal/repository"
 )
 
+var defaultSettingValues = map[string]string{
+	"language": "en",
+	"currency": "USD",
+}
+
 // SettingsRepository implements repository.SettingsRepository using user-scoped SQLite queries.
 type SettingsRepository struct {
 	databaseConnection *sql.DB
@@ -24,6 +29,7 @@ func NewSettingsRepository(databaseConnection *sql.DB) repository.SettingsReposi
 }
 
 // GetAll returns only the current user's settings as a key-value map.
+// Built-in defaults are returned when the user has not persisted an override yet.
 func (repositoryInstance *SettingsRepository) GetAll(ctx context.Context, userID string) (map[string]string, error) {
 	normalizedUserID, identityError := requireSQLiteUserID(userID)
 	if identityError != nil {
@@ -41,7 +47,11 @@ func (repositoryInstance *SettingsRepository) GetAll(ctx context.Context, userID
 	}
 	defer rows.Close()
 
-	settings := make(map[string]string)
+	settings := make(map[string]string, len(defaultSettingValues))
+	for settingKey, settingValue := range defaultSettingValues {
+		settings[settingKey] = settingValue
+	}
+
 	for rows.Next() {
 		var settingKey string
 		var settingValue string
@@ -59,6 +69,7 @@ func (repositoryInstance *SettingsRepository) GetAll(ctx context.Context, userID
 }
 
 // GetByKey retrieves a single setting only for the current user.
+// Built-in defaults are returned when the user has not persisted an override yet.
 func (repositoryInstance *SettingsRepository) GetByKey(ctx context.Context, userID string, settingKey string) (string, error) {
 	normalizedUserID, identityError := requireSQLiteUserID(userID)
 	if identityError != nil {
@@ -72,6 +83,9 @@ func (repositoryInstance *SettingsRepository) GetByKey(ctx context.Context, user
 		WHERE user_id = ? AND key = ?
 	`, normalizedUserID, settingKey).Scan(&settingValue)
 	if errors.Is(scanError, sql.ErrNoRows) {
+		if defaultValue, hasDefault := defaultSettingValues[settingKey]; hasDefault {
+			return defaultValue, nil
+		}
 		return "", domain.ErrSettingNotFound
 	}
 	if scanError != nil {

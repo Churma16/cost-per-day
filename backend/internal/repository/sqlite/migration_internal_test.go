@@ -46,6 +46,6 @@ func TestApplyMigrationRollsBackSchemaAndVersionOnFailure(t *testing.T) {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
 	if schemaVersion != 3 {
-		t.Fatalf("expected schema version to remain 2 after failed migration, got %d", schemaVersion)
+		t.Fatalf("expected schema version to remain 3 after failed migration, got %d", schemaVersion)
 	}
 }
