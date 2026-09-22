@@ -80,25 +80,44 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	}
 }
 
-func TestOpenRejectsDatabaseFromNewerSchema(t *testing.T) {
+func TestOpenRejectsDatabaseFromNewerSchemaBeforeChangingJournalMode(t *testing.T) {
 	ctx := context.Background()
 	databasePath := filepath.Join(t.TempDir(), "newer-schema.db")
 
-	databaseConnection, openError := sqliterepository.Open(ctx, databasePath)
+	futureDatabase, openError := sql.Open("sqlite", databasePath)
 	if openError != nil {
-		t.Fatalf("failed to open test database: %v", openError)
+		t.Fatalf("failed to create newer-schema database: %v", openError)
 	}
-	if _, versionError := databaseConnection.ExecContext(ctx, "PRAGMA user_version = 99"); versionError != nil {
+	if _, versionError := futureDatabase.ExecContext(ctx, "PRAGMA user_version = 99"); versionError != nil {
 		t.Fatalf("failed to set newer schema version: %v", versionError)
 	}
-	if closeError := databaseConnection.Close(); closeError != nil {
-		t.Fatalf("failed to close test database: %v", closeError)
+
+	var initialJournalMode string
+	if scanError := futureDatabase.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&initialJournalMode); scanError != nil {
+		t.Fatalf("failed to read initial journal mode: %v", scanError)
+	}
+	if closeError := futureDatabase.Close(); closeError != nil {
+		t.Fatalf("failed to close newer-schema database: %v", closeError)
 	}
 
 	reopenedConnection, reopenError := sqliterepository.Open(ctx, databasePath)
 	if reopenError == nil {
 		_ = reopenedConnection.Close()
 		t.Fatal("expected opening a newer schema to fail")
+	}
+
+	verificationDatabase, verificationError := sql.Open("sqlite", databasePath)
+	if verificationError != nil {
+		t.Fatalf("failed to reopen database for verification: %v", verificationError)
+	}
+	defer verificationDatabase.Close()
+
+	var journalModeAfterRejectedOpen string
+	if scanError := verificationDatabase.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&journalModeAfterRejectedOpen); scanError != nil {
+		t.Fatalf("failed to read journal mode after rejected open: %v", scanError)
+	}
+	if journalModeAfterRejectedOpen != initialJournalMode {
+		t.Fatalf("expected journal mode to remain %q, got %q", initialJournalMode, journalModeAfterRejectedOpen)
 	}
 }
 
@@ -109,7 +128,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 
 	createdItem, createError := itemRepository.Create(ctx, domain.Item{
 		Name:         "Laptop",
-		Price:        1234.567891,
+		Price:        1.23456789,
 		PurchaseDate: "2026-09-20T10:00:00Z",
 	})
 	if createError != nil {
@@ -121,6 +140,9 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 	if createdItem.CreatedAt.IsZero() || createdItem.UpdatedAt.IsZero() {
 		t.Fatal("expected timestamps to be populated")
 	}
+	if math.Abs(createdItem.Price-1.234568) > 0.0000001 {
+		t.Fatalf("expected created price to be canonicalized to 1.234568, got %.9f", createdItem.Price)
+	}
 
 	fetchedItem, getError := itemRepository.GetByID(ctx, createdItem.ID)
 	if getError != nil {
@@ -129,16 +151,16 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 	if fetchedItem.Name != "Laptop" {
 		t.Fatalf("expected name Laptop, got %q", fetchedItem.Name)
 	}
-	if math.Abs(fetchedItem.Price-1234.567891) > 0.0000001 {
-		t.Fatalf("expected price to round-trip at six-decimal precision, got %.9f", fetchedItem.Price)
+	if math.Abs(fetchedItem.Price-createdItem.Price) > 0.0000001 {
+		t.Fatalf("expected fetched price %.6f to match create response, got %.9f", createdItem.Price, fetchedItem.Price)
 	}
 
 	var storedPriceMicros int64
 	if scanError := databaseConnection.QueryRowContext(ctx, "SELECT price_micros FROM items WHERE id = ?", createdItem.ID).Scan(&storedPriceMicros); scanError != nil {
 		t.Fatalf("failed to inspect stored price: %v", scanError)
 	}
-	if storedPriceMicros != 1234567891 {
-		t.Fatalf("expected fixed-point price 1234567891 micros, got %d", storedPriceMicros)
+	if storedPriceMicros != 1234568 {
+		t.Fatalf("expected fixed-point price 1234568 micros, got %d", storedPriceMicros)
 	}
 
 	secondItem, secondCreateError := itemRepository.Create(ctx, domain.Item{
@@ -164,7 +186,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 	updatedItem, updateError := itemRepository.Update(ctx, domain.Item{
 		ID:           createdItem.ID,
 		Name:         "Laptop Pro",
-		Price:        1500.125,
+		Price:        2.34567891,
 		PurchaseDate: "2026-09-22T10:00:00Z",
 	})
 	if updateError != nil {
@@ -173,8 +195,26 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 	if updatedItem.Name != "Laptop Pro" {
 		t.Fatalf("expected updated name, got %q", updatedItem.Name)
 	}
+	if math.Abs(updatedItem.Price-2.345679) > 0.0000001 {
+		t.Fatalf("expected updated price to be canonicalized to 2.345679, got %.9f", updatedItem.Price)
+	}
+	persistedUpdatedItem, getUpdatedError := itemRepository.GetByID(ctx, createdItem.ID)
+	if getUpdatedError != nil {
+		t.Fatalf("failed to read updated item: %v", getUpdatedError)
+	}
+	if math.Abs(persistedUpdatedItem.Price-updatedItem.Price) > 0.0000001 {
+		t.Fatalf("expected fetched updated price %.6f to match update response, got %.9f", updatedItem.Price, persistedUpdatedItem.Price)
+	}
 	if !updatedItem.CreatedAt.Equal(createdItem.CreatedAt) {
 		t.Fatal("expected update to preserve creation timestamp")
+	}
+
+	if _, tinyPriceError := itemRepository.Create(ctx, domain.Item{
+		Name:         "Too Small",
+		Price:        0.0000004,
+		PurchaseDate: "2026-09-22T10:00:00Z",
+	}); tinyPriceError == nil {
+		t.Fatal("expected price smaller than six-decimal storage precision to fail")
 	}
 
 	if _, missingUpdateError := itemRepository.Update(ctx, domain.Item{
