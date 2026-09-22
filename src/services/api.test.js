@@ -3,7 +3,9 @@ import {
   updateItem,
   getAllItems,
   getSetting,
-  replaceAllItems
+  replaceAllItems,
+  getCurrentUser,
+  logoutCurrentUser
 } from './api';
 
 const response = (status, data, message = 'ok') => ({
@@ -30,7 +32,8 @@ describe('frontend API client', () => {
 
     await expect(getAllItems()).resolves.toEqual(items);
     expect(global.fetch).toHaveBeenCalledWith('/api/items', expect.objectContaining({
-      headers: expect.objectContaining({ Accept: 'application/json' })
+      headers: expect.objectContaining({ Accept: 'application/json' }),
+      credentials: 'include'
     }));
   });
 
@@ -153,7 +156,6 @@ describe('frontend API client', () => {
       purchaseDate: '2026-09-21T12:00:00Z'
     }]);
   });
-});
 
   test('loads and logs out the current authenticated user with cookies', async () => {
     global.fetch
@@ -180,4 +182,4 @@ describe('frontend API client', () => {
       credentials: 'include'
     }));
   });
-
+});
