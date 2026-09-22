@@ -49,7 +49,7 @@ func (handlerInstance *SettingsHandler) Update(ginContext *gin.Context) {
 		return
 	}
 
-	serviceError := handlerInstance.settingsService.UpdateSetting(
+	updatedSetting, serviceError := handlerInstance.settingsService.UpdateSetting(
 		ginContext.Request.Context(),
 		settingKey,
 		requestBody.Value,
@@ -64,7 +64,7 @@ func (handlerInstance *SettingsHandler) Update(ginContext *gin.Context) {
 	}
 
 	response.Success(ginContext, http.StatusOK, "setting updated successfully", gin.H{
-		"key":   settingKey,
-		"value": requestBody.Value,
+		"key":   updatedSetting.Key,
+		"value": updatedSetting.Value,
 	})
 }
