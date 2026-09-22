@@ -1,10 +1,10 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { LanguageProvider, useLanguage } from './LanguageContext';
-import { getSetting, updateSetting } from '../services/db';
+import { getSetting, updateSetting } from '../services/api';
 import i18n from '../i18n';
 
-jest.mock('../services/db', () => ({
+jest.mock('../services/api', () => ({
   getSetting: jest.fn(),
   updateSetting: jest.fn(),
 }));
