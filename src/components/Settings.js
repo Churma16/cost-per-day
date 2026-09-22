@@ -82,8 +82,10 @@ function Settings() {
 
   // 更新语言设置
   const handleLanguageChange = async (code) => {
+    setNotification(null);
     try {
       await changeLanguage(code);
+      setNotification(null);
     } catch (error) {
       console.error('Error updating language:', error);
       setNotification({
@@ -96,8 +98,10 @@ function Settings() {
 
   // 更新货币设置
   const handleCurrencyChange = async (selectedCurrencyCode) => {
+    setNotification(null);
     try {
       await changeCurrency(selectedCurrencyCode);
+      setNotification(null);
     } catch (error) {
       console.error('Error updating currency:', error);
       setNotification({
@@ -267,7 +271,7 @@ function Settings() {
     } catch (error) {
       console.error('Error importing data:', error);
       setNotification({
-        message: t('importError'),
+        message: error.message || t('importError'),
         type: 'error'
       });
       setTimeout(() => setNotification(null), 3000);
