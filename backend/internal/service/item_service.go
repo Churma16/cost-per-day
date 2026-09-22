@@ -199,7 +199,7 @@ func validateItem(item domain.Item) (domain.Item, error) {
 
 		parsedEndDate, endDateError := parseItemDate(strings.TrimSpace(*item.EndedAt))
 		if endDateError != nil {
-			return domain.Item{}, domain.ErrMissingItemEndDate
+			return domain.Item{}, domain.ErrInvalidItemEndDate
 		}
 		if parsedEndDate.Before(parsedPurchaseDate) {
 			return domain.Item{}, domain.ErrItemEndBeforePurchase
@@ -275,7 +275,7 @@ func enrichItem(item domain.Item, asOf time.Time) (domain.Item, error) {
 
 		parsedEndDate, endDateError := time.Parse(time.RFC3339, *item.EndedAt)
 		if endDateError != nil {
-			return domain.Item{}, domain.ErrMissingItemEndDate
+			return domain.Item{}, domain.ErrInvalidItemEndDate
 		}
 		ownershipEnd = parsedEndDate.UTC()
 	}
