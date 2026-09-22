@@ -24,6 +24,7 @@ const buildApiUrl = (path) => `${API_BASE_URL}${path}`;
 
 const request = async (path, options = {}) => {
   const requestOptions = {
+    credentials: 'include',
     ...options,
     headers: {
       Accept: 'application/json',
@@ -147,4 +148,12 @@ export const replaceAllItems = async (items) => {
 
   return replacedItems;
 };
-\n\nexport const getCurrentUser = () => request('/api/me');\n\nexport const logoutCurrentUser = () => request('/auth/logout', {\n  method: 'POST'\n});\n\nexport const getGoogleLoginUrl = () => buildApiUrl('/auth/google/login');\n
+
+
+export const getCurrentUser = () => request('/api/me');
+
+export const logoutCurrentUser = () => request('/auth/logout', {
+  method: 'POST'
+});
+
+export const getGoogleLoginUrl = () => buildApiUrl('/auth/google/login');
