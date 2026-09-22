@@ -1,6 +1,6 @@
 # Cost Per Day - Backend Service
 
-A lightweight Go HTTP service built with Gin that establishes the shared API boundary for items and application settings.
+A lightweight Go HTTP service built with Gin that establishes the shared API boundary for user-owned items and settings.
 
 ## Architecture
 
@@ -18,7 +18,7 @@ HTTP Transport (Gin router, handlers, DTOs, response envelope)
 - **Persistence Isolation**: SQLite queries live only in `internal/repository/sqlite`.
 - **Composition Root**: Concrete SQLite repositories are selected only in `cmd/server/main.go`.
 
-The in-memory repositories remain available for focused unit tests.
+The in-memory repositories remain available for focused unit tests. User-owned operations require a local user ID supplied by the transport/authentication boundary; provider identity and real session authentication are intentionally deferred to the Google OIDC work.
 
 ## SQLite Persistence
 
@@ -50,7 +50,7 @@ internal/repository/sqlite/migrations/
 
 Migrations run automatically during backend startup before the HTTP server begins accepting traffic. The current schema version is tracked with SQLite `PRAGMA user_version`.
 
-Each migration runs in its own transaction together with the schema-version update. If a migration fails, that migration is rolled back and backend startup fails rather than continuing with a partially upgraded schema.
+Each migration runs in its own transaction together with the schema-version update. If a migration fails, that migration is rolled back and backend startup fails rather than continuing with a partially upgraded schema.\n\nMigration v3 introduces the local `users` table plus `user_id` ownership for items and settings. Existing single-user rows are preserved and assigned to the deterministic `legacy` owner. Item IDs are preserved during the migration.
 
 For an upgrade that requires recovery, restore a known-good database backup and run the previous application version. Production backup/restore automation is tracked separately from this storage adapter.
 
@@ -88,7 +88,7 @@ cd backend
 go test -count=1 ./...
 ```
 
-SQLite repository integration tests use isolated temporary database files and cover item CRUD, settings persistence, operational PRAGMAs, repeatable migrations, and persistence after closing and reopening the same database file.
+SQLite repository integration tests use isolated temporary database files and cover item CRUD, settings persistence, operational PRAGMAs, repeatable migrations, persistence after reopen, legacy-data migration, and cross-user isolation for list/detail/update/delete/replace/settings operations.
 
 ## API Specifications
 
