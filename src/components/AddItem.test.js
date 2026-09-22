@@ -1,9 +1,10 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AddItem from './AddItem';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { addItem } from '../services/api';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -31,7 +32,7 @@ jest.mock('../contexts/CurrencyContext', () => ({
   useCurrency: jest.fn()
 }));
 
-jest.mock('../services/db', () => ({
+jest.mock('../services/api', () => ({
   addItem: jest.fn(),
   updateItem: jest.fn(),
   getAllItems: jest.fn().mockResolvedValue([]),
@@ -78,6 +79,33 @@ describe('AddItem component date localization', () => {
     expect(augustMonthOption).toBeInTheDocument();
     expect(marchMonthOption).toBeInTheDocument();
     expect(januaryMonthOption).toBeInTheDocument();
+  });
+
+  test('shows a user-facing API error when saving fails', async () => {
+    useLanguage.mockReturnValue({
+      language: 'en'
+    });
+    addItem.mockRejectedValueOnce(new Error('Unable to reach the server. Check the backend connection and try again.'));
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'Laptop' }
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), {
+      target: { value: '1200' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Unable to reach the server. Check the backend connection and try again.'
+      );
+    });
   });
 
   test('renders English month names in desktop date picker when language is set to en', () => {
