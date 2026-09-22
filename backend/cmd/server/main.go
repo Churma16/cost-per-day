@@ -40,6 +40,8 @@ func main() {
 		databasePath = "./data/cost-per-day.db"
 	}
 
+	staticDirectory := os.Getenv("STATIC_DIR")
+
 	startupContext, cancelStartupContext := context.WithTimeout(context.Background(), 10*time.Second)
 	databaseConnection, databaseError := sqliterepository.Open(startupContext, databasePath)
 	cancelStartupContext()
@@ -68,6 +70,7 @@ func main() {
 		ItemHandler:     itemHandler,
 		SettingsHandler: settingsHandler,
 		HealthHandler:   healthHandler,
+		StaticDir:       staticDirectory,
 	})
 
 	serverAddress := ":" + serverPort
