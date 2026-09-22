@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { IoTrashOutline, IoCalendarOutline } from "react-icons/io5";
-import { addItem, updateItem, getAllItems, deleteItem } from '../services/db';
+import { addItem, updateItem, getAllItems, deleteItem } from '../services/api';
 import { formatDate, getDateLocale } from '../utils/formatters';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -29,6 +29,9 @@ function AddItem() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editIndex, setEditIndex] = useState(-1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [itemLoaded, setItemLoaded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [month, setMonth] = useState(purchaseDate);
@@ -46,6 +49,9 @@ function AddItem() {
       setIsEditMode(false);
       setEditIndex(-1);
       setShowDeleteConfirm(false);
+      setErrorMessage(null);
+      setLoadFailed(false);
+      setItemLoaded(false);
     };
 
     if (location.pathname === '/add') {
@@ -53,40 +59,49 @@ function AddItem() {
     }
   }, [location.pathname]);
 
-  // Load item data for edit mode
+  // Load server-backed item data for edit mode
   useEffect(() => {
     const loadItem = async () => {
       const searchParams = new URLSearchParams(location.search);
       const editId = searchParams.get('id');
-      
       const isEdit = location.pathname === '/edit';
-      
-      if (isEdit) {
-        if (!editId) {
-          console.error('Edit mode requires an ID parameter');
+
+      if (!isEdit) {
+        return;
+      }
+
+      if (!editId) {
+        console.error('Edit mode requires an ID parameter');
+        navigate('/');
+        return;
+      }
+
+      setIsEditMode(true);
+      setEditIndex(editId);
+      setErrorMessage(null);
+      setLoadFailed(false);
+      setItemLoaded(false);
+
+      try {
+        const items = await getAllItems();
+        const item = items.find((candidateItem) => String(candidateItem.id) === String(editId));
+
+        if (!item) {
+          console.error('Invalid item ID:', editId);
           navigate('/');
           return;
         }
-        
-        try {
-          const items = await getAllItems();
-          const item = items.find(item => item.id === parseInt(editId));
-          
-          if (!item) {
-            console.error('Invalid item ID:', editId);
-            navigate('/');
-            return;
-          }
-          
-          setIsEditMode(true);
-          setEditIndex(item.id);
-          setName(item.name);
-          setPrice(item.price.toString());
-          setPurchaseDate(setToNoonUTC(parseISO(item.purchaseDate)));
-        } catch (error) {
-          console.error('Error loading item:', error);
-          navigate('/');
-        }
+
+        setEditIndex(item.id);
+        setName(item.name);
+        setPrice(item.price.toString());
+        setPurchaseDate(setToNoonUTC(parseISO(item.purchaseDate)));
+        setItemLoaded(true);
+      } catch (error) {
+        console.error('Error loading item:', error);
+        setLoadFailed(true);
+        setItemLoaded(false);
+        setErrorMessage(error.message || 'Failed to load the item from the server.');
       }
     };
 
@@ -118,6 +133,8 @@ function AddItem() {
       purchaseDate: setToNoonUTC(purchaseDate).toISOString(),
     };
 
+    setErrorMessage(null);
+
     try {
       if (isEditMode) {
         await updateItem(editIndex, itemData);
@@ -127,15 +144,24 @@ function AddItem() {
       navigate('/');
     } catch (error) {
       console.error('Error saving item:', error);
+      setErrorMessage(error.message || 'Failed to save the item. Please try again.');
     }
   };
 
   const handleDelete = async () => {
+    if (!itemLoaded) {
+      return;
+    }
+
+    setErrorMessage(null);
+
     try {
       await deleteItem(editIndex);
       navigate('/');
     } catch (error) {
       console.error('Error deleting item:', error);
+      setShowDeleteConfirm(false);
+      setErrorMessage(error.message || 'Failed to delete the item. Please try again.');
     }
   };
 
@@ -152,6 +178,12 @@ function AddItem() {
 
       {/* Form - main content */}
       <div className="px-4 py-6 space-y-6 page-content form-page-content">
+        {errorMessage && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
             <div className="space-y-2">
@@ -312,12 +344,12 @@ function AddItem() {
                 className="w-full py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium
                 hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg
                 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed"
-                disabled={!isFormValid}
+                disabled={!isFormValid || loadFailed || (isEditMode && !itemLoaded)}
               >
                 {t('save')}
               </button>
 
-              {isEditMode && (
+              {isEditMode && itemLoaded && (
                 <button 
                   type="button"
                   className="w-full py-3.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium

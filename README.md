@@ -15,9 +15,9 @@ A progressive web application that helps you track the daily cost of your purcha
   - Edit existing items
   - Delete items with confirmation
 - **Data Management**:
-  - Export data to JSON file
-  - Import data from JSON file
-  - Data persistence using IndexedDB
+  - Export server-backed data to a JSON file
+  - Import JSON data back through the shared API
+  - Shared SQLite persistence through the Go backend
 - **Customization**:
   - Multiple language support (English, French, Chinese, Indonesian)
   - Currency selection (USD, EUR, CNY, IDR)
@@ -56,13 +56,13 @@ npm start
 
 The app will open in your default browser at `http://localhost:3000`.
 
-4. Start the backend service (optional for local API development):
+4. Start the backend service in a second terminal:
 ```bash
 cd backend
 go run ./cmd/server
 ```
 
-The backend service will listen on `http://localhost:8080`.
+The backend service will listen on `http://localhost:8080`. In development, the frontend API client uses this address by default. Set `REACT_APP_API_BASE_URL` to override it when the backend is hosted elsewhere. Production builds default to same-origin `/api` requests.
 
 ### Building for Production
 
@@ -115,7 +115,7 @@ The build files will be created in the `build` folder.
 - **Frontend**: React, React Router
 - **State Management**: React Context API
 - **Styling**: Tailwind CSS
-- **Storage**: IndexedDB
+- **Storage**: SQLite behind the shared Go API
 - **Internationalization**: i18next
 - **Icons**: React Icons
 

@@ -4,6 +4,7 @@ import Settings from './Settings';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
+import { replaceAllItems } from '../services/api';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -36,10 +37,9 @@ jest.mock('../contexts/CurrencyContext', () => ({
   useCurrency: jest.fn()
 }));
 
-jest.mock('../services/db', () => ({
+jest.mock('../services/api', () => ({
   getAllItems: jest.fn(),
-  deleteAllItems: jest.fn(),
-  addItem: jest.fn()
+  replaceAllItems: jest.fn()
 }));
 
 describe('Settings component', () => {
@@ -48,6 +48,8 @@ describe('Settings component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    replaceAllItems.mockReset();
+    replaceAllItems.mockResolvedValue([]);
     useLanguage.mockReturnValue({
       language: 'en',
       changeLanguage: mockChangeLanguage
@@ -109,5 +111,58 @@ describe('Settings component', () => {
     fireEvent.click(indonesianRupiahOptionButton);
 
     expect(mockChangeCurrency).toHaveBeenCalledWith('IDR');
+  });
+
+  test('clears a previous settings error after a successful retry', async () => {
+    mockChangeCurrency
+      .mockRejectedValueOnce(new Error('Failed to save currency.'))
+      .mockResolvedValueOnce();
+
+    render(<Settings />);
+
+    const openCurrencyDropdown = () => {
+      fireEvent.click(screen.getByText(/\$ US Dollar \(USD\)/i));
+    };
+
+    openCurrencyDropdown();
+    fireEvent.click(screen.getByRole('button', {
+      name: /Rp Indonesian Rupiah \(IDR\)/i
+    }));
+
+    expect(await screen.findByText('Failed to save currency.')).toBeInTheDocument();
+
+    openCurrencyDropdown();
+    fireEvent.click(screen.getByRole('button', {
+      name: /Rp Indonesian Rupiah \(IDR\)/i
+    }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Failed to save currency.')).not.toBeInTheDocument();
+    });
+  });
+
+  test('surfaces the backend import error message', async () => {
+    replaceAllItems.mockRejectedValueOnce(
+      new Error('Import failed atomically. Existing server data is unchanged.')
+    );
+
+    const { container } = render(<Settings />);
+    const fileInput = container.querySelector('input[type="file"]');
+    const importFile = new File([
+      JSON.stringify([{
+        name: 'Imported',
+        price: 200,
+        purchaseDate: '2026-09-21T12:00:00Z'
+      }])
+    ], 'backup.json', { type: 'application/json' });
+
+    fireEvent.change(fileInput, { target: { files: [importFile] } });
+
+    const confirmButton = await screen.findByRole('button', { name: /confirm/i });
+    fireEvent.click(confirmButton);
+
+    expect(await screen.findByText(
+      'Import failed atomically. Existing server data is unchanged.'
+    )).toBeInTheDocument();
   });
 });

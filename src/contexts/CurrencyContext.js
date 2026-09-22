@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { getSetting, updateSetting } from '../services/db';
+import { getSetting, updateSetting } from '../services/api';
 
 import {
   CURRENCY_CONFIGURATIONS,
@@ -19,50 +19,52 @@ export {
   getSupportedCurrencies
 };
 
-
-// Create context
 const CurrencyContext = createContext();
 
-// Create provider component
 export const CurrencyProvider = ({ children }) => {
   const [currencyCode, setCurrencyCode] = useState('USD');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Load currency setting from database and migrate legacy symbols
   useEffect(() => {
     const loadCurrencySetting = async () => {
       try {
+        setError(null);
         const savedCurrency = await getSetting('currency');
+
         if (savedCurrency) {
           if (LEGACY_SYMBOL_TO_CODE_MAP[savedCurrency]) {
             const migratedCurrencyCode = LEGACY_SYMBOL_TO_CODE_MAP[savedCurrency];
-            setCurrencyCode(migratedCurrencyCode);
             await updateSetting('currency', migratedCurrencyCode);
+            setCurrencyCode(migratedCurrencyCode);
           } else {
-            const normalizedCode = normalizeCurrencyCode(savedCurrency);
-            setCurrencyCode(normalizedCode);
+            setCurrencyCode(normalizeCurrencyCode(savedCurrency));
           }
         } else {
           setCurrencyCode('USD');
         }
-      } catch (error) {
-        console.error('Error loading currency setting:', error);
+      } catch (loadError) {
+        console.error('Error loading currency setting:', loadError);
+        setError(loadError);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     loadCurrencySetting();
   }, []);
 
-  // Function to change currency
   const changeCurrency = async (newCurrencyInput) => {
+    const normalizedCode = normalizeCurrencyCode(newCurrencyInput);
+
     try {
-      const normalizedCode = normalizeCurrencyCode(newCurrencyInput);
-      setCurrencyCode(normalizedCode);
+      setError(null);
       await updateSetting('currency', normalizedCode);
-    } catch (error) {
-      console.error('Error updating currency:', error);
+      setCurrencyCode(normalizedCode);
+    } catch (updateError) {
+      console.error('Error updating currency:', updateError);
+      setError(updateError);
+      throw updateError;
     }
   };
 
@@ -74,12 +76,12 @@ export const CurrencyProvider = ({ children }) => {
       currencySymbol,
       currency: currencySymbol,
       changeCurrency,
-      isLoading
+      isLoading,
+      error
     }}>
       {children}
     </CurrencyContext.Provider>
   );
 };
 
-// Custom hook
 export const useCurrency = () => useContext(CurrencyContext);

@@ -8,9 +8,9 @@ import {
   getCurrencyConfig,
   getSupportedCurrencies
 } from './CurrencyContext';
-import { getSetting, updateSetting } from '../services/db';
+import { getSetting, updateSetting } from '../services/api';
 
-jest.mock('../services/db', () => ({
+jest.mock('../services/api', () => ({
   getSetting: jest.fn(),
   updateSetting: jest.fn(),
 }));

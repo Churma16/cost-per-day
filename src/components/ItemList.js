@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getAllItems, deleteItem } from '../services/db';
+import { getAllItems, deleteItem } from '../services/api';
 import { IoChevronDown, IoChevronForward, IoCalendar, IoCash } from 'react-icons/io5';
 import { formatCurrency } from '../utils/formatters';
 import { calculateDailyCost } from '../utils/costCalculator';
@@ -16,12 +16,17 @@ function ItemList() {
   const [activeIcon, setActiveIcon] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
   const { setTotalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
 
   useEffect(() => {
     const loadItems = async () => {
+      setIsLoading(true);
+      setErrorMessage(null);
+
       try {
         const storedItems = await getAllItems();
         setItems(storedItems);
@@ -33,6 +38,9 @@ function ItemList() {
         setTotalDailyCost(total);
       } catch (error) {
         console.error('Error loading items:', error);
+        setErrorMessage(error.message || 'Failed to load items from the server.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -44,10 +52,16 @@ function ItemList() {
   };
 
   const confirmDelete = async () => {
-    if (itemToDelete) {
+    if (!itemToDelete) {
+      return;
+    }
+
+    setErrorMessage(null);
+
+    try {
       await deleteItem(itemToDelete.id);
       setItems(items.filter(i => i.id !== itemToDelete.id));
-      
+
       // Recalculate total cost after deletion
       const newTotal = items
         .filter(i => i.id !== itemToDelete.id)
@@ -55,9 +69,12 @@ function ItemList() {
           return sum + Number(calculateDailyCost(item.price, item.purchaseDate));
         }, 0);
       setTotalDailyCost(newTotal);
-      
+
       setShowDeleteModal(false);
       setItemToDelete(null);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      setErrorMessage(error.message || 'Failed to delete the item. Please try again.');
     }
   };
 
@@ -67,7 +84,15 @@ function ItemList() {
 
   return (
     <div className="px-4 py-6 space-y-4 home-page-content">
-      {items.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-10 text-gray-500">
+          <p>{t('loading')}</p>
+        </div>
+      ) : errorMessage ? (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      ) : items.length === 0 ? (
         <div className="text-center py-10 text-gray-500">
           <p>{t('noItems')}</p>
         </div>
