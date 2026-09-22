@@ -4,13 +4,14 @@ import { MemoryRouter } from 'react-router-dom';
 import AddItem from './AddItem';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { addItem, getAllItems } from '../services/api';
+import { addItem, updateItem, getAllItems } from '../services/api';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (translationKey) => {
       const translationDictionary = {
         addNewItem: 'Add New Item',
+        editItem: 'Edit Item',
         itemName: 'Item Name',
         enterItemName: 'Enter item name',
         price: 'Price',
@@ -18,6 +19,14 @@ jest.mock('react-i18next', () => ({
         date: 'Purchase Date',
         save: 'Save',
         deleteItem: 'Delete Item',
+        itemStatus: 'Item status',
+        statusActive: 'Active',
+        statusRetired: 'Retired',
+        statusSold: 'Sold',
+        statusLost: 'Lost',
+        ownershipEndDate: 'Ownership end date',
+        salePrice: 'Sale price',
+        enterSalePrice: 'Enter sale price',
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -131,6 +140,48 @@ describe('AddItem component date localization', () => {
     expect(augustMonthOption).toBeInTheDocument();
     expect(marchMonthOption).toBeInTheDocument();
     expect(januaryMonthOption).toBeInTheDocument();
+  });
+
+  test('saves sold lifecycle facts from edit mode', async () => {
+    useLanguage.mockReturnValue({
+      language: 'en'
+    });
+    getAllItems.mockResolvedValueOnce([{
+      id: '42',
+      name: 'Phone',
+      price: 100,
+      purchaseDate: '2026-09-01T12:00:00Z',
+      status: 'active',
+      grossCostPerDay: 5
+    }]);
+    updateItem.mockResolvedValueOnce({});
+
+    render(
+      <MemoryRouter initialEntries={['/edit?id=42']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByDisplayValue('Phone')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Item status'), {
+      target: { value: 'sold' }
+    });
+    fireEvent.change(screen.getByLabelText('Ownership end date'), {
+      target: { value: '2026-09-11' }
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter sale price'), {
+      target: { value: '40' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(updateItem).toHaveBeenCalledWith('42', expect.objectContaining({
+        status: 'sold',
+        endedAt: '2026-09-11T12:00:00.000Z',
+        salePrice: 40
+      }));
+    });
   });
 
   test('does not expose delete when edit data fails to load', async () => {
