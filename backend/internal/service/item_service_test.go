@@ -86,6 +86,26 @@ func TestItemService_CreateItem(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects prices outside supported storage range", func(subTest *testing.T) {
+		itemRepository := memory.NewMemoryItemRepository()
+		itemService := service.NewItemService(itemRepository)
+
+		_, tinyPriceError := itemService.CreateItem(testContext, "Tiny", 0.0000004, "2026-09-20T12:00:00Z")
+		if tinyPriceError != domain.ErrUnsupportedItemPrice {
+			subTest.Errorf("expected ErrUnsupportedItemPrice for sub-micro price, got: %v", tinyPriceError)
+		}
+
+		_, boundaryPriceError := itemService.CreateItem(testContext, "Boundary", 9223372036854.7754, "2026-09-20T12:00:00Z")
+		if boundaryPriceError != domain.ErrUnsupportedItemPrice {
+			subTest.Errorf("expected ErrUnsupportedItemPrice at int64 boundary, got: %v", boundaryPriceError)
+		}
+
+		_, hugePriceError := itemService.CreateItem(testContext, "Huge", 10000000000000.0, "2026-09-20T12:00:00Z")
+		if hugePriceError != domain.ErrUnsupportedItemPrice {
+			subTest.Errorf("expected ErrUnsupportedItemPrice for oversized price, got: %v", hugePriceError)
+		}
+	})
+
 	t.Run("rejects invalid purchase date format", func(subTest *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)

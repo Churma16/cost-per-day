@@ -12,8 +12,11 @@ var (
 	// ErrEmptyItemName indicates that an item name was omitted or only contains whitespace.
 	ErrEmptyItemName = errors.New("item name cannot be empty")
 
-	// ErrInvalidItemPrice indicates that an item price is zero or negative.
+	// ErrInvalidItemPrice indicates that an item price is non-positive or non-finite.
 	ErrInvalidItemPrice = errors.New("item price must be greater than zero")
+
+	// ErrUnsupportedItemPrice indicates that an item price cannot be represented at supported precision or range.
+	ErrUnsupportedItemPrice = errors.New("item price is outside supported range")
 
 	// ErrInvalidPurchaseDate indicates that an item purchase date does not follow a valid ISO 8601 or RFC 3339 format.
 	ErrInvalidPurchaseDate = errors.New("invalid purchase date")

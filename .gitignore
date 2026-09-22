@@ -26,4 +26,7 @@ yarn-error.log*
 backend/.env
 backend/bin/
 backend/*.exe
-
+backend/data/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal

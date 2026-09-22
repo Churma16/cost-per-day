@@ -52,6 +52,7 @@ func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 	if serviceError != nil {
 		if errors.Is(serviceError, domain.ErrEmptyItemName) ||
 			errors.Is(serviceError, domain.ErrInvalidItemPrice) ||
+			errors.Is(serviceError, domain.ErrUnsupportedItemPrice) ||
 			errors.Is(serviceError, domain.ErrInvalidPurchaseDate) {
 			response.Error(ginContext, http.StatusBadRequest, serviceError.Error())
 			return
@@ -91,6 +92,7 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 		}
 		if errors.Is(serviceError, domain.ErrEmptyItemName) ||
 			errors.Is(serviceError, domain.ErrInvalidItemPrice) ||
+			errors.Is(serviceError, domain.ErrUnsupportedItemPrice) ||
 			errors.Is(serviceError, domain.ErrInvalidPurchaseDate) {
 			response.Error(ginContext, http.StatusBadRequest, serviceError.Error())
 			return
