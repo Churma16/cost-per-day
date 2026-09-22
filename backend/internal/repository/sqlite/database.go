@@ -53,7 +53,6 @@ func Open(ctx context.Context, databasePath string) (*sql.DB, error) {
 	queryValues := databaseURL.Query()
 	queryValues.Set("_busy_timeout", strconv.Itoa(busyTimeoutMilliseconds))
 	queryValues.Set("_foreign_keys", "1")
-	queryValues.Set("_journal_mode", "WAL")
 	databaseURL.RawQuery = queryValues.Encode()
 
 	databaseConnection, openError := sql.Open("sqlite", databaseURL.String())
@@ -69,6 +68,11 @@ func Open(ctx context.Context, databasePath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("ping sqlite database: %w", pingError)
 	}
 
+	if walError := enableWALMode(ctx, databaseConnection); walError != nil {
+		_ = databaseConnection.Close()
+		return nil, walError
+	}
+
 	if verificationError := verifyOperationalDefaults(ctx, databaseConnection); verificationError != nil {
 		_ = databaseConnection.Close()
 		return nil, verificationError
@@ -80,6 +84,17 @@ func Open(ctx context.Context, databasePath string) (*sql.DB, error) {
 	}
 
 	return databaseConnection, nil
+}
+
+func enableWALMode(ctx context.Context, databaseConnection *sql.DB) error {
+	var journalMode string
+	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA journal_mode = WAL").Scan(&journalMode); scanError != nil {
+		return fmt.Errorf("enable sqlite WAL mode: %w", scanError)
+	}
+	if !strings.EqualFold(journalMode, "wal") {
+		return fmt.Errorf("sqlite WAL mode is not enabled")
+	}
+	return nil
 }
 
 func verifyOperationalDefaults(ctx context.Context, databaseConnection *sql.DB) error {
