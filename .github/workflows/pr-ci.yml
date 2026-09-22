@@ -96,6 +96,10 @@ jobs:
               --name cost-per-day-smoke \
               -p 127.0.0.1:18080:8080 \
               -v "$data_dir:/var/lib/cost-per-day" \
+              -e GOOGLE_CLIENT_ID=ci-client-id \
+              -e GOOGLE_CLIENT_SECRET=ci-client-secret \
+              -e SESSION_SECRET=ci-session-secret-that-is-at-least-32-characters \
+              -e APP_BASE_URL=http://127.0.0.1:18080 \
               cost-per-day:pr >/dev/null
 
             for attempt in $(seq 1 20); do
@@ -115,7 +119,28 @@ jobs:
           curl --fail --silent http://127.0.0.1:18080/ \
             | grep --fixed-strings '<div id="root"></div>'
 
+          unauthenticated_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:18080/api/items)"
+          test "$unauthenticated_status" = "401"
+
+          cleanup
+
+          session_token="ci-smoke-session-token"
+          session_hash="$(printf '%s' "$session_token" | sha256sum | cut -d' ' -f1)"
+
+          docker run --rm \
+            -e SESSION_HASH="$session_hash" \
+            -v "$data_dir:/data" \
+            alpine:3.22 \
+            sh -ec 'apk add --no-cache sqlite >/dev/null; \
+              sqlite3 /data/cost-per-day.db "INSERT OR IGNORE INTO users (id, created_at, updated_at) VALUES ('"'"'ci-user'"'"', strftime('"'"'%Y-%m-%dT%H:%M:%fZ'"'"','"'"'now'"'"'), strftime('"'"'%Y-%m-%dT%H:%M:%fZ'"'"','"'"'now'"'"'));"; \
+              sqlite3 /data/cost-per-day.db "INSERT OR REPLACE INTO auth_sessions (token_hash, user_id, created_at, expires_at) VALUES ('"'"'$SESSION_HASH'"'"', '"'"'ci-user'"'"', strftime('"'"'%Y-%m-%dT%H:%M:%fZ'"'"','"'"'now'"'"'), strftime('"'"'%Y-%m-%dT%H:%M:%fZ'"'"','"'"'now'"'"','"'"'+30 days'"'"'));"'
+
+          prepare_data_owner
+          start_app
+
           curl --fail --silent \
+            --cookie "cost_per_day_session=$session_token" \
             -H 'Content-Type: application/json' \
             -d '{"name":"CI persistence item","price":123.45,"purchaseDate":"2026-09-22T00:00:00Z"}' \
             http://127.0.0.1:18080/api/items \
@@ -130,7 +155,9 @@ jobs:
           cleanup
           start_app
 
-          curl --fail --silent http://127.0.0.1:18080/api/items \
+          curl --fail --silent \
+            --cookie "cost_per_day_session=$session_token" \
+            http://127.0.0.1:18080/api/items \
             | grep --fixed-strings 'CI persistence item'
 
           cleanup
@@ -142,5 +169,7 @@ jobs:
 
           start_app
 
-          curl --fail --silent http://127.0.0.1:18080/api/items \
+          curl --fail --silent \
+            --cookie "cost_per_day_session=$session_token" \
+            http://127.0.0.1:18080/api/items \
             | grep --fixed-strings 'CI persistence item'

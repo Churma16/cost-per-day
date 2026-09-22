@@ -7,10 +7,15 @@ A lightweight Go HTTP service built with Gin that establishes the shared API bou
 The backend keeps HTTP, application behavior, repository contracts, and persistence details separate:
 
 ```text
-HTTP Transport (Gin router, handlers, DTOs, response envelope)
-    -> Application Service (ItemService, SettingsService, domain validation)
-        -> Repository Interfaces (ItemRepository, SettingsRepository)
+HTTP Transport (Gin router, auth middleware, handlers, DTOs, response envelope)
+    -> Application Services (AuthService, ItemService, SettingsService)
+        -> Repository Interfaces (User, Session, Item, Settings)
             -> SQLite Adapter (database/sql + explicit raw SQL)
+
+Google OIDC Adapter
+    -> verified Google identity (sub + profile)
+        -> AuthService
+            -> local User + application-owned Session
 ```
 
 - **Transport Decoupling**: Gin and `*gin.Context` remain strictly inside `internal/transport/http`.
@@ -18,7 +23,7 @@ HTTP Transport (Gin router, handlers, DTOs, response envelope)
 - **Persistence Isolation**: SQLite queries live only in `internal/repository/sqlite`.
 - **Composition Root**: Concrete SQLite repositories are selected only in `cmd/server/main.go`.
 
-The in-memory repositories remain available for focused unit tests. User-owned operations require a local user ID supplied by the transport/authentication boundary; provider identity and real session authentication are intentionally deferred to the Google OIDC work.
+The in-memory repositories remain available for focused unit tests. User-owned operations require a local user ID supplied by the transport authentication boundary. Google tokens and claims stop at the OIDC adapter; item and settings services receive only the application-owned local user ID.
 
 ## SQLite Persistence
 
@@ -65,6 +70,11 @@ For an upgrade that requires recovery, restore a known-good database backup and 
 | `ALLOWED_ORIGINS` | Allowed origins for CORS headers | `*` |
 | `DATABASE_PATH` | Filesystem path for the SQLite database | `./data/cost-per-day.db` |
 | `STATIC_DIR` | Optional compiled frontend directory served by the backend | empty |
+| `GOOGLE_CLIENT_ID` | Google OAuth/OIDC web client ID | required |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth/OIDC web client secret | required |
+| `SESSION_SECRET` | Secret used to sign short-lived OIDC state/nonce cookies; minimum 32 characters | required |
+| `APP_BASE_URL` | Public frontend origin used after authentication | required |
+| `GOOGLE_REDIRECT_URI` | Google callback URI; defaults to `APP_BASE_URL/auth/google/callback` | derived |
 
 Keep `DATABASE_PATH` on persistent storage in container or VPS deployments so application restarts and redeploys retain data. The production image sets `STATIC_DIR=/app/web`, which is a read-only application directory separate from the SQLite mount.
 
@@ -81,7 +91,7 @@ cd backend
 go run ./cmd/server
 ```
 
-The service will start on `http://localhost:8080` and create the configured SQLite database if it does not already exist.
+For local split frontend/backend development, configure a Google web OAuth client with `http://localhost:8080/auth/google/callback` as an authorized redirect URI, set `APP_BASE_URL=http://localhost:3000`, and provide the required secrets from `.env.example`. The service will start on `http://localhost:8080` and create the configured SQLite database if it does not already exist.
 
 ### Running Tests
 
@@ -141,3 +151,19 @@ Persistence failures remain internal and are translated by the existing HTTP err
 - `PUT /api/settings/:key`
   - Updates a specific preference.
   - Body: `{"value": "id"}`
+
+
+### Authentication API
+
+- `GET /auth/google/login`
+  - Creates short-lived signed state/nonce data and redirects the browser to Google.
+- `GET /auth/google/callback`
+  - Validates state, exchanges the authorization code, verifies the Google ID token signature/issuer/audience/expiry/nonce, maps Google `sub` to one local user, creates an opaque application session, and redirects to `APP_BASE_URL`.
+- `POST /auth/logout`
+  - Invalidates the application session and clears the session cookie.
+- `GET /api/me`
+  - Returns the authenticated local user's non-sensitive profile in the canonical JSON envelope.
+
+Item and settings endpoints require the application session cookie. Google access and ID tokens are never used as item/settings ownership identifiers.
+
+The application session cookie is `HttpOnly` and `SameSite=Lax`. It is also `Secure` whenever `APP_BASE_URL` uses HTTPS, which is required for internet-exposed deployments.
