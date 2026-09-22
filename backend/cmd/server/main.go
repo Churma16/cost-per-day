@@ -12,7 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"cost-per-day/backend/internal/repository/memory"
+	sqliterepository "cost-per-day/backend/internal/repository/sqlite"
 	"cost-per-day/backend/internal/service"
 	transportHttp "cost-per-day/backend/internal/transport/http"
 	"cost-per-day/backend/internal/transport/http/handler"
@@ -35,9 +35,26 @@ func main() {
 		allowedOrigins = "*"
 	}
 
+	databasePath := os.Getenv("DATABASE_PATH")
+	if databasePath == "" {
+		databasePath = "./data/cost-per-day.db"
+	}
+
+	startupContext, cancelStartupContext := context.WithTimeout(context.Background(), 10*time.Second)
+	databaseConnection, databaseError := sqliterepository.Open(startupContext, databasePath)
+	cancelStartupContext()
+	if databaseError != nil {
+		log.Fatalf("[error] Failed to initialize SQLite persistence: %v\n", databaseError)
+	}
+	defer func() {
+		if closeError := databaseConnection.Close(); closeError != nil {
+			log.Printf("[error] Failed to close SQLite database: %v\n", closeError)
+		}
+	}()
+
 	// Explicit dependency wiring (composition root)
-	itemRepository := memory.NewMemoryItemRepository()
-	settingsRepository := memory.NewMemorySettingsRepository()
+	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
 
 	itemService := service.NewItemService(itemRepository)
 	settingsService := service.NewSettingsService(settingsRepository)
@@ -60,7 +77,6 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	// Start server in background goroutine
 	go func() {
 		log.Printf("[info] Server is running on port %s (GIN_MODE=%s)\n", serverPort, ginMode)
 		if listenError := httpServer.ListenAndServe(); listenError != nil && !errors.Is(listenError, http.ErrServerClosed) {
@@ -68,7 +84,6 @@ func main() {
 		}
 	}()
 
-	// Graceful shutdown handling
 	shutdownSignalChannel := make(chan os.Signal, 1)
 	signal.Notify(shutdownSignalChannel, syscall.SIGINT, syscall.SIGTERM)
 	<-shutdownSignalChannel
