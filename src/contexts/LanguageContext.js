@@ -1,25 +1,26 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { getSetting, updateSetting } from '../services/db';
+import { getSetting, updateSetting } from '../services/api';
 import i18n from '../i18n';
 
-// Create context
 const LanguageContext = createContext();
 
-// Create provider component
 export const LanguageProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [error, setError] = useState(null);
 
-  // Load language settings from database
   useEffect(() => {
     const loadLanguage = async () => {
       try {
         setLoading(true);
+        setError(null);
         const language = await getSetting('language') || 'en';
         setCurrentLanguage(language);
         await i18n.changeLanguage(language);
-      } catch (error) {
-        console.error('Error loading language:', error);
+      } catch (loadError) {
+        console.error('Error loading language:', loadError);
+        setError(loadError);
+        await i18n.changeLanguage('en');
       } finally {
         setLoading(false);
       }
@@ -28,14 +29,16 @@ export const LanguageProvider = ({ children }) => {
     loadLanguage();
   }, []);
 
-  // Change language
   const changeLanguage = async (languageCode) => {
     try {
+      setError(null);
+      await updateSetting('language', languageCode);
       await i18n.changeLanguage(languageCode);
       setCurrentLanguage(languageCode);
-      await updateSetting('language', languageCode);
-    } catch (error) {
-      console.error('Error changing language:', error);
+    } catch (updateError) {
+      console.error('Error changing language:', updateError);
+      setError(updateError);
+      throw updateError;
     }
   };
 
@@ -46,11 +49,14 @@ export const LanguageProvider = ({ children }) => {
   }
 
   return (
-    <LanguageContext.Provider value={{ language: currentLanguage, changeLanguage }}>
+    <LanguageContext.Provider value={{
+      language: currentLanguage,
+      changeLanguage,
+      error
+    }}>
       {children}
     </LanguageContext.Provider>
   );
 };
 
-// Custom hook
-export const useLanguage = () => useContext(LanguageContext); 
+export const useLanguage = () => useContext(LanguageContext);
