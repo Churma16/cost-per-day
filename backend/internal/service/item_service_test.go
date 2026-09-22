@@ -95,6 +95,11 @@ func TestItemService_CreateItem(t *testing.T) {
 			subTest.Errorf("expected ErrUnsupportedItemPrice for sub-micro price, got: %v", tinyPriceError)
 		}
 
+		_, boundaryPriceError := itemService.CreateItem(testContext, "Boundary", 9223372036854.7754, "2026-09-20T12:00:00Z")
+		if boundaryPriceError != domain.ErrUnsupportedItemPrice {
+			subTest.Errorf("expected ErrUnsupportedItemPrice at int64 boundary, got: %v", boundaryPriceError)
+		}
+
 		_, hugePriceError := itemService.CreateItem(testContext, "Huge", 10000000000000.0, "2026-09-20T12:00:00Z")
 		if hugePriceError != domain.ErrUnsupportedItemPrice {
 			subTest.Errorf("expected ErrUnsupportedItemPrice for oversized price, got: %v", hugePriceError)
