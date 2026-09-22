@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"cost-per-day/backend/internal/domain"
 )
@@ -21,4 +22,17 @@ type SettingsRepository interface {
 	GetAll(ctx context.Context, userID string) (map[string]string, error)
 	GetByKey(ctx context.Context, userID string, key string) (string, error)
 	Set(ctx context.Context, userID string, key string, value string) error
+}
+
+// UserRepository maps Google identities to application-owned local users.
+type UserRepository interface {
+	GetByID(ctx context.Context, userID string) (domain.User, error)
+	FindOrCreateGoogleUser(ctx context.Context, candidate domain.User) (domain.User, error)
+}
+
+// SessionRepository stores opaque application sessions by token hash.
+type SessionRepository interface {
+	Create(ctx context.Context, session domain.Session) error
+	GetUserIDByTokenHash(ctx context.Context, tokenHash string, now time.Time) (string, error)
+	DeleteByTokenHash(ctx context.Context, tokenHash string) error
 }

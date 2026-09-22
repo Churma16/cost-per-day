@@ -6,6 +6,15 @@ var (
 	// ErrUserIdentityRequired indicates that a user-owned operation was attempted without an authenticated user identity.
 	ErrUserIdentityRequired = errors.New("authenticated user identity is required")
 
+	// ErrUserNotFound indicates that the requested local user does not exist.
+	ErrUserNotFound = errors.New("user not found")
+
+	// ErrSessionNotFound indicates that an application session is missing, expired, or invalid.
+	ErrSessionNotFound = errors.New("session not found")
+
+	// ErrInvalidExternalIdentity indicates that an external identity cannot be mapped to a local user.
+	ErrInvalidExternalIdentity = errors.New("invalid external identity")
+
 	// ErrItemNotFound indicates that the requested item does not exist for the current user.
 	ErrItemNotFound = errors.New("item not found")
 
