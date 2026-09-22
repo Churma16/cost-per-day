@@ -3,10 +3,13 @@ package domain
 import "errors"
 
 var (
-	// ErrItemNotFound indicates that the requested item does not exist.
+	// ErrUserIdentityRequired indicates that a user-owned operation was attempted without an authenticated user identity.
+	ErrUserIdentityRequired = errors.New("authenticated user identity is required")
+
+	// ErrItemNotFound indicates that the requested item does not exist for the current user.
 	ErrItemNotFound = errors.New("item not found")
 
-	// ErrSettingNotFound indicates that the requested setting key does not exist.
+	// ErrSettingNotFound indicates that the requested setting key does not exist for the current user.
 	ErrSettingNotFound = errors.New("setting not found")
 
 	// ErrEmptyItemName indicates that an item name was omitted or only contains whitespace.

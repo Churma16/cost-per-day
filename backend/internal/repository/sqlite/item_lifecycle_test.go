@@ -18,7 +18,7 @@ func TestSQLiteLifecyclePersistence(t *testing.T) {
 
 	endedAt := "2026-09-11T12:00:00Z"
 	salePrice := 40.25
-	createdItem, createError := itemRepository.Create(ctx, domain.Item{
+	createdItem, createError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Lifecycle Item",
 		Price:        100.75,
 		PurchaseDate: "2026-09-01T12:00:00Z",
@@ -41,7 +41,7 @@ func TestSQLiteLifecyclePersistence(t *testing.T) {
 	defer reopenedConnection.Close()
 
 	reopenedRepository := sqliterepository.NewItemRepository(reopenedConnection)
-	persistedItem, getError := reopenedRepository.GetByID(ctx, createdItem.ID)
+	persistedItem, getError := reopenedRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID)
 	if getError != nil {
 		t.Fatalf("get lifecycle item: %v", getError)
 	}
@@ -74,6 +74,15 @@ func TestLifecycleMigrationTreatsLegacyRowsAsActive(t *testing.T) {
 			created_at TEXT NOT NULL,
 			updated_at TEXT NOT NULL
 		);
+		CREATE TABLE settings (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		);
+		INSERT INTO settings (key, value, updated_at)
+		VALUES
+			('language', 'en', '2026-09-01T12:00:00Z'),
+			('currency', 'USD', '2026-09-01T12:00:00Z');
 		PRAGMA user_version = 1;
 	`
 	if _, schemaError := legacyDatabase.ExecContext(ctx, legacySchema); schemaError != nil {
@@ -102,12 +111,12 @@ func TestLifecycleMigrationTreatsLegacyRowsAsActive(t *testing.T) {
 	if scanError := migratedDatabase.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("read schema version: %v", scanError)
 	}
-	if schemaVersion != 2 {
-		t.Fatalf("expected schema version 2, got %d", schemaVersion)
+	if schemaVersion != 3 {
+		t.Fatalf("expected schema version 3, got %d", schemaVersion)
 	}
 
 	itemRepository := sqliterepository.NewItemRepository(migratedDatabase)
-	migratedItem, getError := itemRepository.GetByID(ctx, "1")
+	migratedItem, getError := itemRepository.GetByID(ctx, domain.LegacyUserID, "1")
 	if getError != nil {
 		t.Fatalf("get migrated item: %v", getError)
 	}

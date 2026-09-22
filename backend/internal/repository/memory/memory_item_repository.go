@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,30 +14,35 @@ import (
 
 // MemoryItemRepository implements repository.ItemRepository in memory.
 type MemoryItemRepository struct {
-	mutex            sync.RWMutex
-	itemsByID        map[string]domain.Item
-	autoIncrementID  int64
+	mutex           sync.RWMutex
+	itemsByUserID   map[string]map[string]domain.Item
+	autoIncrementID int64
 }
 
 // NewMemoryItemRepository creates a new thread-safe in-memory item repository.
 func NewMemoryItemRepository() repository.ItemRepository {
 	return &MemoryItemRepository{
-		itemsByID:       make(map[string]domain.Item),
+		itemsByUserID:   make(map[string]map[string]domain.Item),
 		autoIncrementID: 0,
 	}
 }
 
-// List returns all stored items sorted chronologically by creation timestamp or ID.
-func (repositoryInstance *MemoryItemRepository) List(_ context.Context) ([]domain.Item, error) {
+// List returns only the current user's items in deterministic identifier order.
+func (repositoryInstance *MemoryItemRepository) List(_ context.Context, userID string) ([]domain.Item, error) {
+	normalizedUserID, identityError := requireUserID(userID)
+	if identityError != nil {
+		return nil, identityError
+	}
+
 	repositoryInstance.mutex.RLock()
 	defer repositoryInstance.mutex.RUnlock()
 
-	itemList := make([]domain.Item, 0, len(repositoryInstance.itemsByID))
-	for _, storedItem := range repositoryInstance.itemsByID {
+	userItems := repositoryInstance.itemsByUserID[normalizedUserID]
+	itemList := make([]domain.Item, 0, len(userItems))
+	for _, storedItem := range userItems {
 		itemList = append(itemList, storedItem)
 	}
 
-	// Sort items by ID for deterministic list ordering
 	sort.Slice(itemList, func(firstIndex, secondIndex int) bool {
 		firstID, firstErr := strconv.ParseInt(itemList[firstIndex].ID, 10, 64)
 		secondID, secondErr := strconv.ParseInt(itemList[secondIndex].ID, 10, 64)
@@ -49,12 +55,17 @@ func (repositoryInstance *MemoryItemRepository) List(_ context.Context) ([]domai
 	return itemList, nil
 }
 
-// GetByID finds and returns an item by its unique identifier.
-func (repositoryInstance *MemoryItemRepository) GetByID(_ context.Context, itemID string) (domain.Item, error) {
+// GetByID finds an item only when it belongs to the current user.
+func (repositoryInstance *MemoryItemRepository) GetByID(_ context.Context, userID string, itemID string) (domain.Item, error) {
+	normalizedUserID, identityError := requireUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	repositoryInstance.mutex.RLock()
 	defer repositoryInstance.mutex.RUnlock()
 
-	foundItem, exists := repositoryInstance.itemsByID[itemID]
+	foundItem, exists := repositoryInstance.itemsByUserID[normalizedUserID][itemID]
 	if !exists {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
@@ -62,8 +73,13 @@ func (repositoryInstance *MemoryItemRepository) GetByID(_ context.Context, itemI
 	return foundItem, nil
 }
 
-// Create generates a new identifier and stores the item.
-func (repositoryInstance *MemoryItemRepository) Create(_ context.Context, itemToCreate domain.Item) (domain.Item, error) {
+// Create generates a new identifier and stores the item under the current user.
+func (repositoryInstance *MemoryItemRepository) Create(_ context.Context, userID string, itemToCreate domain.Item) (domain.Item, error) {
+	normalizedUserID, identityError := requireUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	repositoryInstance.mutex.Lock()
 	defer repositoryInstance.mutex.Unlock()
 
@@ -71,42 +87,65 @@ func (repositoryInstance *MemoryItemRepository) Create(_ context.Context, itemTo
 	currentTimestamp := time.Now().UTC()
 
 	itemToCreate.ID = strconv.FormatInt(repositoryInstance.autoIncrementID, 10)
+	itemToCreate.UserID = normalizedUserID
 	if itemToCreate.CreatedAt.IsZero() {
 		itemToCreate.CreatedAt = currentTimestamp
 	}
 	itemToCreate.UpdatedAt = currentTimestamp
 
-	repositoryInstance.itemsByID[itemToCreate.ID] = itemToCreate
+	if repositoryInstance.itemsByUserID[normalizedUserID] == nil {
+		repositoryInstance.itemsByUserID[normalizedUserID] = make(map[string]domain.Item)
+	}
+	repositoryInstance.itemsByUserID[normalizedUserID][itemToCreate.ID] = itemToCreate
 	return itemToCreate, nil
 }
 
-// Update replaces an existing item with the provided details.
-func (repositoryInstance *MemoryItemRepository) Update(_ context.Context, itemToUpdate domain.Item) (domain.Item, error) {
+// Update replaces an item only when it belongs to the current user.
+func (repositoryInstance *MemoryItemRepository) Update(_ context.Context, userID string, itemToUpdate domain.Item) (domain.Item, error) {
+	normalizedUserID, identityError := requireUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	repositoryInstance.mutex.Lock()
 	defer repositoryInstance.mutex.Unlock()
 
-	existingItem, exists := repositoryInstance.itemsByID[itemToUpdate.ID]
+	existingItem, exists := repositoryInstance.itemsByUserID[normalizedUserID][itemToUpdate.ID]
 	if !exists {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
 
+	itemToUpdate.UserID = normalizedUserID
 	itemToUpdate.CreatedAt = existingItem.CreatedAt
 	itemToUpdate.UpdatedAt = time.Now().UTC()
 
-	repositoryInstance.itemsByID[itemToUpdate.ID] = itemToUpdate
+	repositoryInstance.itemsByUserID[normalizedUserID][itemToUpdate.ID] = itemToUpdate
 	return itemToUpdate, nil
 }
 
-// Delete removes an item by its identifier.
-func (repositoryInstance *MemoryItemRepository) Delete(_ context.Context, itemID string) error {
+// Delete removes an item only when it belongs to the current user.
+func (repositoryInstance *MemoryItemRepository) Delete(_ context.Context, userID string, itemID string) error {
+	normalizedUserID, identityError := requireUserID(userID)
+	if identityError != nil {
+		return identityError
+	}
+
 	repositoryInstance.mutex.Lock()
 	defer repositoryInstance.mutex.Unlock()
 
-	_, exists := repositoryInstance.itemsByID[itemID]
-	if !exists {
+	userItems := repositoryInstance.itemsByUserID[normalizedUserID]
+	if _, exists := userItems[itemID]; !exists {
 		return domain.ErrItemNotFound
 	}
 
-	delete(repositoryInstance.itemsByID, itemID)
+	delete(userItems, itemID)
 	return nil
+}
+
+func requireUserID(userID string) (string, error) {
+	normalizedUserID := strings.TrimSpace(userID)
+	if normalizedUserID == "" {
+		return "", domain.ErrUserIdentityRequired
+	}
+	return normalizedUserID, nil
 }

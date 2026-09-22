@@ -12,10 +12,11 @@ const (
 	ItemStatusLost    ItemStatus = "lost"
 )
 
-// Item represents an item whose ownership cost is tracked by the user.
-// Lifecycle facts are persisted while derived ownership metrics are calculated by the application layer.
+// Item represents an item whose ownership cost is tracked by one user.
+// UserID is an internal ownership boundary and is intentionally not exposed in API JSON.
 type Item struct {
 	ID               string     `json:"id"`
+	UserID           string     `json:"-"`
 	Name             string     `json:"name"`
 	Price            float64    `json:"price"`
 	PurchaseDate     string     `json:"purchaseDate"`

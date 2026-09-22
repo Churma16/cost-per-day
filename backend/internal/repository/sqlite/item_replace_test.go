@@ -13,7 +13,7 @@ func TestItemRepositoryReplaceAllRollsBackOnMidReplacementFailure(t *testing.T) 
 	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
 	ctx := context.Background()
 
-	originalItem, createError := itemRepository.Create(ctx, domain.Item{
+	originalItem, createError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Original",
 		Price:        100,
 		PurchaseDate: "2026-09-20T12:00:00Z",
@@ -22,7 +22,7 @@ func TestItemRepositoryReplaceAllRollsBackOnMidReplacementFailure(t *testing.T) 
 		t.Fatalf("failed to seed original item: %v", createError)
 	}
 
-	_, replaceError := itemRepository.ReplaceAll(ctx, []domain.Item{
+	_, replaceError := itemRepository.ReplaceAll(ctx, domain.LegacyUserID, []domain.Item{
 		{
 			Name:         "Valid replacement",
 			Price:        200,
@@ -38,7 +38,7 @@ func TestItemRepositoryReplaceAllRollsBackOnMidReplacementFailure(t *testing.T) 
 		t.Fatal("expected replacement to fail")
 	}
 
-	storedItems, listError := itemRepository.List(ctx)
+	storedItems, listError := itemRepository.List(ctx, domain.LegacyUserID)
 	if listError != nil {
 		t.Fatalf("failed to list items after rollback: %v", listError)
 	}
@@ -55,7 +55,7 @@ func TestItemRepositoryReplaceAllCommitsCompleteReplacement(t *testing.T) {
 	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
 	ctx := context.Background()
 
-	if _, createError := itemRepository.Create(ctx, domain.Item{
+	if _, createError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Original",
 		Price:        100,
 		PurchaseDate: "2026-09-20T12:00:00Z",
@@ -63,7 +63,7 @@ func TestItemRepositoryReplaceAllCommitsCompleteReplacement(t *testing.T) {
 		t.Fatalf("failed to seed original item: %v", createError)
 	}
 
-	replacedItems, replaceError := itemRepository.ReplaceAll(ctx, []domain.Item{
+	replacedItems, replaceError := itemRepository.ReplaceAll(ctx, domain.LegacyUserID, []domain.Item{
 		{
 			Name:         "First",
 			Price:        200,
@@ -82,7 +82,7 @@ func TestItemRepositoryReplaceAllCommitsCompleteReplacement(t *testing.T) {
 		t.Fatalf("expected two replacement items, got %d", len(replacedItems))
 	}
 
-	storedItems, listError := itemRepository.List(ctx)
+	storedItems, listError := itemRepository.List(ctx, domain.LegacyUserID)
 	if listError != nil {
 		t.Fatalf("failed to list replacement items: %v", listError)
 	}

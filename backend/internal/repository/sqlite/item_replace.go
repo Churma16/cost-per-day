@@ -9,8 +9,13 @@ import (
 	"cost-per-day/backend/internal/domain"
 )
 
-// ReplaceAll atomically replaces every stored item in one SQLite transaction.
-func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, items []domain.Item) ([]domain.Item, error) {
+// ReplaceAll atomically replaces only the current user's stored items.
+func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, userID string, items []domain.Item) ([]domain.Item, error) {
+	normalizedUserID, identityError := requireSQLiteUserID(userID)
+	if identityError != nil {
+		return nil, identityError
+	}
+
 	transaction, beginError := repositoryInstance.databaseConnection.BeginTx(ctx, nil)
 	if beginError != nil {
 		return nil, fmt.Errorf("begin item replacement: %w", beginError)
@@ -19,7 +24,7 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, items 
 		_ = transaction.Rollback()
 	}()
 
-	if _, deleteError := transaction.ExecContext(ctx, "DELETE FROM items"); deleteError != nil {
+	if _, deleteError := transaction.ExecContext(ctx, "DELETE FROM items WHERE user_id = ?", normalizedUserID); deleteError != nil {
 		return nil, fmt.Errorf("clear items for replacement: %w", deleteError)
 	}
 
@@ -45,11 +50,13 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, items 
 		}
 
 		currentTimestamp := time.Now().UTC()
+		itemToCreate.UserID = normalizedUserID
 		itemToCreate.CreatedAt = currentTimestamp
 		itemToCreate.UpdatedAt = currentTimestamp
 
 		insertResult, insertError := transaction.ExecContext(ctx, `
 			INSERT INTO items (
+				user_id,
 				name,
 				price_micros,
 				purchase_date,
@@ -59,8 +66,9 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, items 
 				created_at,
 				updated_at
 			)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
+			normalizedUserID,
 			itemToCreate.Name,
 			priceMicros,
 			itemToCreate.PurchaseDate,

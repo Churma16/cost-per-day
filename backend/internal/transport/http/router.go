@@ -10,17 +10,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/transport/http/handler"
 	"cost-per-day/backend/internal/transport/http/middleware"
 )
 
 // RouterConfig contains dependencies and configuration needed to assemble the HTTP router.
 type RouterConfig struct {
-	AllowedOrigins  string
-	ItemHandler     *handler.ItemHandler
-	SettingsHandler *handler.SettingsHandler
-	HealthHandler   *handler.HealthHandler
-	StaticDir       string
+	AllowedOrigins         string
+	ItemHandler            *handler.ItemHandler
+	SettingsHandler        *handler.SettingsHandler
+	HealthHandler          *handler.HealthHandler
+	StaticDir              string
+	UserIdentityMiddleware gin.HandlerFunc
 }
 
 // SetupRouter initializes Gin middleware, registers API route definitions, and returns the engine.
@@ -32,11 +34,18 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 
 	routerEngine.GET("/health", config.HealthHandler.Check)
 
+	userIdentityMiddleware := config.UserIdentityMiddleware
+	if userIdentityMiddleware == nil {
+		userIdentityMiddleware = middleware.StaticUserIdentity(domain.LegacyUserID)
+	}
+
 	apiRouteGroup := routerEngine.Group("/api")
+	apiRouteGroup.Use(userIdentityMiddleware, middleware.RequireAuthenticatedUser())
 	{
 		itemRouteGroup := apiRouteGroup.Group("/items")
 		{
 			itemRouteGroup.GET("", config.ItemHandler.List)
+			itemRouteGroup.GET("/:id", config.ItemHandler.Get)
 			itemRouteGroup.POST("", config.ItemHandler.Create)
 			itemRouteGroup.PUT("/replace", config.ItemHandler.ReplaceAll)
 			itemRouteGroup.PUT("/:id", config.ItemHandler.Update)

@@ -10,13 +10,14 @@ import (
 	"cost-per-day/backend/internal/repository"
 )
 
-// ItemService defines the application operations available for items.
+// ItemService defines the application operations available for user-owned items.
 type ItemService interface {
-	ListItems(ctx context.Context) ([]domain.Item, error)
-	GetItemByID(ctx context.Context, itemID string) (domain.Item, error)
-	CreateItem(ctx context.Context, name string, price float64, purchaseDate string) (domain.Item, error)
+	ListItems(ctx context.Context, userID string) ([]domain.Item, error)
+	GetItemByID(ctx context.Context, userID string, itemID string) (domain.Item, error)
+	CreateItem(ctx context.Context, userID string, name string, price float64, purchaseDate string) (domain.Item, error)
 	UpdateItem(
 		ctx context.Context,
+		userID string,
 		itemID string,
 		name string,
 		price float64,
@@ -25,8 +26,8 @@ type ItemService interface {
 		endedAt *string,
 		salePrice *float64,
 	) (domain.Item, error)
-	DeleteItem(ctx context.Context, itemID string) error
-	ReplaceItems(ctx context.Context, items []domain.Item) ([]domain.Item, error)
+	DeleteItem(ctx context.Context, userID string, itemID string) error
+	ReplaceItems(ctx context.Context, userID string, items []domain.Item) ([]domain.Item, error)
 }
 
 const itemPricePrecisionScale = 1_000_000
@@ -42,9 +43,14 @@ func NewItemService(itemRepository repository.ItemRepository) ItemService {
 	}
 }
 
-// ListItems retrieves all items and calculates current or final ownership metrics.
-func (serviceInstance *itemServiceImpl) ListItems(ctx context.Context) ([]domain.Item, error) {
-	items, repositoryError := serviceInstance.itemRepository.List(ctx)
+// ListItems retrieves only the current user's items and calculates ownership metrics.
+func (serviceInstance *itemServiceImpl) ListItems(ctx context.Context, userID string) ([]domain.Item, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return nil, identityError
+	}
+
+	items, repositoryError := serviceInstance.itemRepository.List(ctx, normalizedUserID)
 	if repositoryError != nil {
 		return nil, repositoryError
 	}
@@ -52,14 +58,19 @@ func (serviceInstance *itemServiceImpl) ListItems(ctx context.Context) ([]domain
 	return enrichItems(items, time.Now().UTC())
 }
 
-// GetItemByID retrieves an item by its unique identifier and calculates ownership metrics.
-func (serviceInstance *itemServiceImpl) GetItemByID(ctx context.Context, itemID string) (domain.Item, error) {
+// GetItemByID retrieves an item only when it belongs to the current user.
+func (serviceInstance *itemServiceImpl) GetItemByID(ctx context.Context, userID string, itemID string) (domain.Item, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	trimmedItemID := strings.TrimSpace(itemID)
 	if trimmedItemID == "" {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
 
-	item, repositoryError := serviceInstance.itemRepository.GetByID(ctx, trimmedItemID)
+	item, repositoryError := serviceInstance.itemRepository.GetByID(ctx, normalizedUserID, trimmedItemID)
 	if repositoryError != nil {
 		return domain.Item{}, repositoryError
 	}
@@ -67,8 +78,13 @@ func (serviceInstance *itemServiceImpl) GetItemByID(ctx context.Context, itemID 
 	return enrichItem(item, time.Now().UTC())
 }
 
-// CreateItem validates and creates a new active item.
-func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, name string, price float64, purchaseDate string) (domain.Item, error) {
+// CreateItem validates and creates a new active item for the current user.
+func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, userID string, name string, price float64, purchaseDate string) (domain.Item, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	validatedItem, validationError := validateItem(domain.Item{
 		Name:         name,
 		Price:        price,
@@ -79,7 +95,7 @@ func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, name str
 		return domain.Item{}, validationError
 	}
 
-	createdItem, repositoryError := serviceInstance.itemRepository.Create(ctx, validatedItem)
+	createdItem, repositoryError := serviceInstance.itemRepository.Create(ctx, normalizedUserID, validatedItem)
 	if repositoryError != nil {
 		return domain.Item{}, repositoryError
 	}
@@ -87,9 +103,10 @@ func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, name str
 	return enrichItem(createdItem, time.Now().UTC())
 }
 
-// UpdateItem validates and updates the item, including lifecycle facts.
+// UpdateItem validates and updates an item only when it belongs to the current user.
 func (serviceInstance *itemServiceImpl) UpdateItem(
 	ctx context.Context,
+	userID string,
 	itemID string,
 	name string,
 	price float64,
@@ -98,6 +115,11 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 	endedAt *string,
 	salePrice *float64,
 ) (domain.Item, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	trimmedItemID := strings.TrimSpace(itemID)
 	if trimmedItemID == "" {
 		return domain.Item{}, domain.ErrItemNotFound
@@ -116,7 +138,7 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		return domain.Item{}, validationError
 	}
 
-	updatedItem, repositoryError := serviceInstance.itemRepository.Update(ctx, validatedItem)
+	updatedItem, repositoryError := serviceInstance.itemRepository.Update(ctx, normalizedUserID, validatedItem)
 	if repositoryError != nil {
 		return domain.Item{}, repositoryError
 	}
@@ -124,19 +146,28 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 	return enrichItem(updatedItem, time.Now().UTC())
 }
 
-// DeleteItem removes an existing item by its identifier.
-func (serviceInstance *itemServiceImpl) DeleteItem(ctx context.Context, itemID string) error {
+// DeleteItem removes an item only when it belongs to the current user.
+func (serviceInstance *itemServiceImpl) DeleteItem(ctx context.Context, userID string, itemID string) error {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return identityError
+	}
+
 	trimmedItemID := strings.TrimSpace(itemID)
 	if trimmedItemID == "" {
 		return domain.ErrItemNotFound
 	}
-	return serviceInstance.itemRepository.Delete(ctx, trimmedItemID)
+	return serviceInstance.itemRepository.Delete(ctx, normalizedUserID, trimmedItemID)
 }
 
-// ReplaceItems validates the full replacement set before asking the repository to swap it atomically.
-func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, items []domain.Item) ([]domain.Item, error) {
-	validatedItems := make([]domain.Item, 0, len(items))
+// ReplaceItems validates the replacement set and atomically replaces only the current user's items.
+func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, userID string, items []domain.Item) ([]domain.Item, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return nil, identityError
+	}
 
+	validatedItems := make([]domain.Item, 0, len(items))
 	for _, item := range items {
 		validatedItem, validationError := validateItem(item)
 		if validationError != nil {
@@ -145,7 +176,7 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, items 
 		validatedItems = append(validatedItems, validatedItem)
 	}
 
-	replacedItems, repositoryError := serviceInstance.itemRepository.ReplaceAll(ctx, validatedItems)
+	replacedItems, repositoryError := serviceInstance.itemRepository.ReplaceAll(ctx, normalizedUserID, validatedItems)
 	if repositoryError != nil {
 		return nil, repositoryError
 	}

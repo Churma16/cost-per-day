@@ -15,7 +15,7 @@ func TestItemServiceReplaceItemsRejectsInvalidSetWithoutChangingData(t *testing.
 	itemService := service.NewItemService(itemRepository)
 
 	originalItem, createError := itemService.CreateItem(
-		ctx,
+		ctx, domain.LegacyUserID,
 		"Original",
 		100,
 		"2026-09-20T12:00:00Z",
@@ -24,7 +24,7 @@ func TestItemServiceReplaceItemsRejectsInvalidSetWithoutChangingData(t *testing.
 		t.Fatalf("failed to seed original item: %v", createError)
 	}
 
-	_, replaceError := itemService.ReplaceItems(ctx, []domain.Item{
+	_, replaceError := itemService.ReplaceItems(ctx, domain.LegacyUserID, []domain.Item{
 		{
 			Name:         "Valid",
 			Price:        200,
@@ -40,7 +40,7 @@ func TestItemServiceReplaceItemsRejectsInvalidSetWithoutChangingData(t *testing.
 		t.Fatalf("expected ErrInvalidItemPrice, got: %v", replaceError)
 	}
 
-	storedItems, listError := itemService.ListItems(ctx)
+	storedItems, listError := itemService.ListItems(ctx, domain.LegacyUserID)
 	if listError != nil {
 		t.Fatalf("failed to list items: %v", listError)
 	}

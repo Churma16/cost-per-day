@@ -12,7 +12,7 @@ import (
 	"cost-per-day/backend/internal/transport/http/response"
 )
 
-// SettingsHandler handles HTTP requests related to application configuration settings.
+// SettingsHandler handles HTTP requests related to user-owned application configuration settings.
 type SettingsHandler struct {
 	settingsService service.SettingsService
 }
@@ -24,9 +24,14 @@ func NewSettingsHandler(settingsService service.SettingsService) *SettingsHandle
 	}
 }
 
-// GetAll handles GET /api/settings to retrieve all configuration preferences.
+// GetAll handles GET /api/settings to retrieve only the current user's preferences.
 func (handlerInstance *SettingsHandler) GetAll(ginContext *gin.Context) {
-	allSettings, serviceError := handlerInstance.settingsService.GetAllSettings(ginContext.Request.Context())
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
+	allSettings, serviceError := handlerInstance.settingsService.GetAllSettings(ginContext.Request.Context(), userID)
 	if serviceError != nil {
 		response.Error(ginContext, http.StatusInternalServerError, "failed to retrieve settings")
 		return
@@ -35,8 +40,13 @@ func (handlerInstance *SettingsHandler) GetAll(ginContext *gin.Context) {
 	response.Success(ginContext, http.StatusOK, "settings retrieved successfully", allSettings)
 }
 
-// Update handles PUT /api/settings/:key to update a specific configuration preference.
+// Update handles PUT /api/settings/:key to update only the current user's preference.
 func (handlerInstance *SettingsHandler) Update(ginContext *gin.Context) {
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
 	settingKey := ginContext.Param("key")
 	if settingKey == "" {
 		response.Error(ginContext, http.StatusBadRequest, "setting key is required")
@@ -51,6 +61,7 @@ func (handlerInstance *SettingsHandler) Update(ginContext *gin.Context) {
 
 	updatedSetting, serviceError := handlerInstance.settingsService.UpdateSetting(
 		ginContext.Request.Context(),
+		userID,
 		settingKey,
 		requestBody.Value,
 	)
