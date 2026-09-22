@@ -153,6 +153,16 @@ func TestItemsAPI_CRUD(t *testing.T) {
 				expectedMessage: "item price must be greater than zero",
 			},
 			{
+				testName:        "price below supported precision",
+				jsonPayload:     `{"name":"Monitor","price":0.0000004,"purchaseDate":"2026-09-18T10:00:00Z"}`,
+				expectedMessage: "item price is outside supported range",
+			},
+			{
+				testName:        "price above supported range",
+				jsonPayload:     `{"name":"Monitor","price":10000000000000,"purchaseDate":"2026-09-18T10:00:00Z"}`,
+				expectedMessage: "item price is outside supported range",
+			},
+			{
 				testName:        "invalid purchase date",
 				jsonPayload:     `{"name":"Monitor","price":150.0,"purchaseDate":"invalid-date"}`,
 				expectedMessage: "invalid purchase date",
