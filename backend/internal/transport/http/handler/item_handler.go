@@ -35,7 +35,7 @@ func (handlerInstance *ItemHandler) List(ginContext *gin.Context) {
 	response.Success(ginContext, http.StatusOK, "items retrieved successfully", itemList)
 }
 
-// Create handles POST /api/items to add a new item.
+// Create handles POST /api/items to add a new active item.
 func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 	var requestBody dto.CreateItemRequestDTO
 	if bindError := ginContext.ShouldBindJSON(&requestBody); bindError != nil {
@@ -50,10 +50,7 @@ func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 		requestBody.PurchaseDate,
 	)
 	if serviceError != nil {
-		if errors.Is(serviceError, domain.ErrEmptyItemName) ||
-			errors.Is(serviceError, domain.ErrInvalidItemPrice) ||
-			errors.Is(serviceError, domain.ErrUnsupportedItemPrice) ||
-			errors.Is(serviceError, domain.ErrInvalidPurchaseDate) {
+		if isItemValidationError(serviceError) {
 			response.Error(ginContext, http.StatusBadRequest, serviceError.Error())
 			return
 		}
@@ -64,7 +61,7 @@ func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 	response.Success(ginContext, http.StatusCreated, "item created successfully", createdItem)
 }
 
-// Update handles PUT /api/items/:id to modify an existing item.
+// Update handles PUT /api/items/:id to modify an existing item and its lifecycle.
 func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 	itemID := ginContext.Param("id")
 	if itemID == "" {
@@ -84,16 +81,16 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 		requestBody.Name,
 		requestBody.Price,
 		requestBody.PurchaseDate,
+		domain.ItemStatus(requestBody.Status),
+		requestBody.EndedAt,
+		requestBody.SalePrice,
 	)
 	if serviceError != nil {
 		if errors.Is(serviceError, domain.ErrItemNotFound) {
 			response.Error(ginContext, http.StatusNotFound, "item not found")
 			return
 		}
-		if errors.Is(serviceError, domain.ErrEmptyItemName) ||
-			errors.Is(serviceError, domain.ErrInvalidItemPrice) ||
-			errors.Is(serviceError, domain.ErrUnsupportedItemPrice) ||
-			errors.Is(serviceError, domain.ErrInvalidPurchaseDate) {
+		if isItemValidationError(serviceError) {
 			response.Error(ginContext, http.StatusBadRequest, serviceError.Error())
 			return
 		}
@@ -123,4 +120,16 @@ func (handlerInstance *ItemHandler) Delete(ginContext *gin.Context) {
 	}
 
 	response.SuccessWithoutData(ginContext, http.StatusOK, "item deleted successfully")
+}
+
+func isItemValidationError(serviceError error) bool {
+	return errors.Is(serviceError, domain.ErrEmptyItemName) ||
+		errors.Is(serviceError, domain.ErrInvalidItemPrice) ||
+		errors.Is(serviceError, domain.ErrUnsupportedItemPrice) ||
+		errors.Is(serviceError, domain.ErrInvalidPurchaseDate) ||
+		errors.Is(serviceError, domain.ErrInvalidItemStatus) ||
+		errors.Is(serviceError, domain.ErrMissingItemEndDate) ||
+		errors.Is(serviceError, domain.ErrItemEndBeforePurchase) ||
+		errors.Is(serviceError, domain.ErrInvalidSalePrice) ||
+		errors.Is(serviceError, domain.ErrUnexpectedSalePrice)
 }
