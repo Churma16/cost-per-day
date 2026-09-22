@@ -129,6 +129,7 @@ func isItemValidationError(serviceError error) bool {
 		errors.Is(serviceError, domain.ErrInvalidPurchaseDate) ||
 		errors.Is(serviceError, domain.ErrInvalidItemStatus) ||
 		errors.Is(serviceError, domain.ErrMissingItemEndDate) ||
+		errors.Is(serviceError, domain.ErrInvalidItemEndDate) ||
 		errors.Is(serviceError, domain.ErrItemEndBeforePurchase) ||
 		errors.Is(serviceError, domain.ErrInvalidSalePrice) ||
 		errors.Is(serviceError, domain.ErrUnexpectedSalePrice)
