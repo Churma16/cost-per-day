@@ -36,10 +36,9 @@ jest.mock('../contexts/CurrencyContext', () => ({
   useCurrency: jest.fn()
 }));
 
-jest.mock('../services/db', () => ({
+jest.mock('../services/api', () => ({
   getAllItems: jest.fn(),
-  deleteAllItems: jest.fn(),
-  addItem: jest.fn()
+  replaceAllItems: jest.fn()
 }));
 
 describe('Settings component', () => {
