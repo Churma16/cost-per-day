@@ -80,6 +80,28 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	}
 }
 
+func TestOpenRejectsDatabaseFromNewerSchema(t *testing.T) {
+	ctx := context.Background()
+	databasePath := filepath.Join(t.TempDir(), "newer-schema.db")
+
+	databaseConnection, openError := sqliterepository.Open(ctx, databasePath)
+	if openError != nil {
+		t.Fatalf("failed to open test database: %v", openError)
+	}
+	if _, versionError := databaseConnection.ExecContext(ctx, "PRAGMA user_version = 99"); versionError != nil {
+		t.Fatalf("failed to set newer schema version: %v", versionError)
+	}
+	if closeError := databaseConnection.Close(); closeError != nil {
+		t.Fatalf("failed to close test database: %v", closeError)
+	}
+
+	reopenedConnection, reopenError := sqliterepository.Open(ctx, databasePath)
+	if reopenError == nil {
+		_ = reopenedConnection.Close()
+		t.Fatal("expected opening a newer schema to fail")
+	}
+}
+
 func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
