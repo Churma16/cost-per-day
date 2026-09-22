@@ -82,37 +82,33 @@ describe('frontend API client', () => {
     );
   });
 
-  test('rolls back newly imported items if replacement fails before originals are removed', async () => {
-    const original = {
-      id: '1',
-      name: 'Original',
-      price: 100,
-      purchaseDate: '2026-09-20T12:00:00Z'
-    };
-    const imported = {
+  test('replaces all items with one backend request and strips server-owned fields', async () => {
+    const imported = [{
+      id: 'legacy-id',
+      name: 'Imported',
+      price: 200,
+      purchaseDate: '2026-09-21T12:00:00Z',
+      createdAt: 'ignored',
+      updatedAt: 'ignored'
+    }];
+    const replaced = [{
+      id: '2',
       name: 'Imported',
       price: 200,
       purchaseDate: '2026-09-21T12:00:00Z'
-    };
+    }];
+    global.fetch.mockResolvedValue(response(200, replaced, 'items replaced successfully'));
 
-    global.fetch
-      .mockResolvedValueOnce(response(200, [original]))
-      .mockResolvedValueOnce(response(201, { ...imported, id: '2' }))
-      .mockResolvedValueOnce(response(500, null, 'delete failed'))
-      .mockResolvedValueOnce(response(200, null, 'item deleted successfully'));
+    await expect(replaceAllItems(imported)).resolves.toEqual(replaced);
 
-    await expect(replaceAllItems([imported])).rejects.toThrow(
-      'delete failed Existing server data was restored.'
-    );
-
-    expect(global.fetch.mock.calls.map(([url, options]) => [
-      url,
-      options.method || 'GET'
-    ])).toEqual([
-      ['/api/items', 'GET'],
-      ['/api/items', 'POST'],
-      ['/api/items/1', 'DELETE'],
-      ['/api/items/2', 'DELETE']
-    ]);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = global.fetch.mock.calls[0];
+    expect(url).toBe('/api/items/replace');
+    expect(options.method).toBe('PUT');
+    expect(JSON.parse(options.body)).toEqual([{
+      name: 'Imported',
+      price: 200,
+      purchaseDate: '2026-09-21T12:00:00Z'
+    }]);
   });
 });
