@@ -36,6 +36,10 @@ function ItemList() {
         setItems(storedItems);
 
         const total = storedItems.reduce((sum, item) => {
+          const itemStatus = item.status || 'active';
+          if (itemStatus !== 'active') {
+            return sum;
+          }
           return sum + Number(item.grossCostPerDay || 0);
         }, 0);
         setTotalDailyCost(total);
