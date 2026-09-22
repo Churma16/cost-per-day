@@ -1,0 +1,118 @@
+import {
+  addItem,
+  getAllItems,
+  getSetting,
+  replaceAllItems
+} from './api';
+
+const response = (status, data, message = 'ok') => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: jest.fn().mockResolvedValue({
+    meta: { code: status, message },
+    data
+  })
+});
+
+describe('frontend API client', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn();
+  });
+
+  afterEach(() => {
+    delete global.fetch;
+  });
+
+  test('loads server-backed items through the centralized API boundary', async () => {
+    const items = [{ id: '1', name: 'Laptop', price: 1200, purchaseDate: '2026-09-22T12:00:00Z' }];
+    global.fetch.mockResolvedValue(response(200, items, 'items retrieved successfully'));
+
+    await expect(getAllItems()).resolves.toEqual(items);
+    expect(global.fetch).toHaveBeenCalledWith('/api/items', expect.objectContaining({
+      headers: expect.objectContaining({ Accept: 'application/json' })
+    }));
+  });
+
+  test('creates items without sending server-owned identity fields', async () => {
+    global.fetch.mockResolvedValue(response(201, {
+      id: '9',
+      name: 'Headphones',
+      price: 300,
+      purchaseDate: '2026-09-22T12:00:00Z'
+    }));
+
+    await addItem({
+      id: 'legacy-id',
+      name: 'Headphones',
+      price: 300,
+      purchaseDate: '2026-09-22T12:00:00Z',
+      createdAt: 'ignored',
+      updatedAt: 'ignored'
+    });
+
+    const [, options] = global.fetch.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({
+      name: 'Headphones',
+      price: 300,
+      purchaseDate: '2026-09-22T12:00:00Z'
+    });
+  });
+
+  test('loads shared settings from the backend', async () => {
+    global.fetch.mockResolvedValue(response(200, {
+      language: 'id',
+      currency: 'IDR'
+    }));
+
+    await expect(getSetting('language')).resolves.toBe('id');
+    expect(global.fetch).toHaveBeenCalledWith('/api/settings', expect.any(Object));
+  });
+
+  test('surfaces backend error messages', async () => {
+    global.fetch.mockResolvedValue(response(500, null, 'failed to retrieve items'));
+
+    await expect(getAllItems()).rejects.toThrow('failed to retrieve items');
+  });
+
+  test('turns network failures into a clear connection error', async () => {
+    global.fetch.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(getAllItems()).rejects.toThrow(
+      'Unable to reach the server. Check the backend connection and try again.'
+    );
+  });
+
+  test('rolls back newly imported items if replacement fails before originals are removed', async () => {
+    const original = {
+      id: '1',
+      name: 'Original',
+      price: 100,
+      purchaseDate: '2026-09-20T12:00:00Z'
+    };
+    const imported = {
+      name: 'Imported',
+      price: 200,
+      purchaseDate: '2026-09-21T12:00:00Z'
+    };
+
+    global.fetch
+      .mockResolvedValueOnce(response(200, [original]))
+      .mockResolvedValueOnce(response(201, { ...imported, id: '2' }))
+      .mockResolvedValueOnce(response(500, null, 'delete failed'))
+      .mockResolvedValueOnce(response(200, null, 'item deleted successfully'));
+
+    await expect(replaceAllItems([imported])).rejects.toThrow(
+      'delete failed Existing server data was restored.'
+    );
+
+    expect(global.fetch.mock.calls.map(([url, options]) => [
+      url,
+      options.method || 'GET'
+    ])).toEqual([
+      ['/api/items', 'GET'],
+      ['/api/items', 'POST'],
+      ['/api/items/1', 'DELETE'],
+      ['/api/items/2', 'DELETE']
+    ]);
+  });
+});
