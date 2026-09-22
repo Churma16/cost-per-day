@@ -105,7 +105,7 @@ func (serviceInstance *itemServiceImpl) validateItemInput(name string, price flo
 	}
 
 	scaledPrice := price * itemPricePrecisionScale
-	if scaledPrice > float64(math.MaxInt64) || math.Round(scaledPrice) <= 0 {
+	if scaledPrice >= float64(math.MaxInt64) || math.Round(scaledPrice) <= 0 {
 		return "", "", domain.ErrUnsupportedItemPrice
 	}
 
