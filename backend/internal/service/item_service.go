@@ -17,6 +17,7 @@ type ItemService interface {
 	CreateItem(ctx context.Context, name string, price float64, purchaseDate string) (domain.Item, error)
 	UpdateItem(ctx context.Context, itemID string, name string, price float64, purchaseDate string) (domain.Item, error)
 	DeleteItem(ctx context.Context, itemID string) error
+	ReplaceItems(ctx context.Context, items []domain.Item) ([]domain.Item, error)
 }
 
 const itemPricePrecisionScale = 1_000_000
@@ -93,6 +94,30 @@ func (serviceInstance *itemServiceImpl) DeleteItem(ctx context.Context, itemID s
 	return serviceInstance.itemRepository.Delete(ctx, trimmedItemID)
 }
 
+// ReplaceItems validates the full replacement set before asking the repository to swap it atomically.
+func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, items []domain.Item) ([]domain.Item, error) {
+	validatedItems := make([]domain.Item, 0, len(items))
+
+	for _, item := range items {
+		validatedName, validatedPurchaseDate, validationError := serviceInstance.validateItemInput(
+			item.Name,
+			item.Price,
+			item.PurchaseDate,
+		)
+		if validationError != nil {
+			return nil, validationError
+		}
+
+		validatedItems = append(validatedItems, domain.Item{
+			Name:         validatedName,
+			Price:        item.Price,
+			PurchaseDate: validatedPurchaseDate,
+		})
+	}
+
+	return serviceInstance.itemRepository.ReplaceAll(ctx, validatedItems)
+}
+
 // validateItemInput validates the item fields according to domain rules.
 func (serviceInstance *itemServiceImpl) validateItemInput(name string, price float64, purchaseDate string) (string, string, error) {
 	trimmedName := strings.TrimSpace(name)
@@ -119,7 +144,6 @@ func (serviceInstance *itemServiceImpl) validateItemInput(name string, price flo
 		return "", "", domain.ErrInvalidPurchaseDate
 	}
 
-	// Format consistently as RFC3339 string
 	formattedPurchaseDate := parsedDate.Format(time.RFC3339)
 	return trimmedName, formattedPurchaseDate, nil
 }
