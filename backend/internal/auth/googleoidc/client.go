@@ -12,7 +12,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -344,5 +343,3 @@ func containsAudience(audiences []string, expectedAudience string) bool {
 	return false
 }
 
-// Keep strconv linked only where exponent conversion diagnostics need it in future changes.
-var _ = strconv.IntSize
