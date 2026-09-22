@@ -120,40 +120,14 @@ export const replaceAllItems = async (items) => {
     throw new ApiError('Import data must be an array of items.');
   }
 
-  const originalItems = await getAllItems();
-  const createdImportedItems = [];
-  const deletedOriginalItems = [];
+  const replacedItems = await request('/api/items/replace', {
+    method: 'PUT',
+    body: JSON.stringify(items.map(toItemPayload))
+  });
 
-  try {
-    for (const item of items) {
-      createdImportedItems.push(await addItem(item));
-    }
-
-    for (const originalItem of originalItems) {
-      await deleteItem(originalItem.id);
-      deletedOriginalItems.push(originalItem);
-    }
-  } catch (error) {
-    const rollbackResults = await Promise.allSettled([
-      ...createdImportedItems.map((item) => deleteItem(item.id)),
-      ...deletedOriginalItems.map((item) => addItem(item))
-    ]);
-
-    const rollbackFailed = rollbackResults.some((result) => result.status === 'rejected');
-    if (rollbackFailed) {
-      throw new ApiError(
-        `${error.message || 'Import failed.'} The rollback was incomplete; reload the page before retrying.`,
-        error.status || null,
-        error
-      );
-    }
-
-    throw new ApiError(
-      `${error.message || 'Import failed.'} Existing server data was restored.`,
-      error.status || null,
-      error
-    );
+  if (!Array.isArray(replacedItems)) {
+    throw new ApiError('The server returned invalid item data.');
   }
 
-  return getAllItems();
+  return replacedItems;
 };
