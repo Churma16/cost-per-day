@@ -1,5 +1,18 @@
-import { formatCurrency } from './formatters';
+import { formatCurrency, getDateLocale } from './formatters';
 import * as currencyConfigModule from './currencyConfig';
+
+describe('date locale selection', () => {
+  test('maps Indonesian to the date-fns Indonesian locale', () => {
+    expect(getDateLocale('id').code).toBe('id');
+  });
+
+  test('preserves existing locale mappings and English fallback', () => {
+    expect(getDateLocale('en').code).toBe('en-US');
+    expect(getDateLocale('fr').code).toBe('fr');
+    expect(getDateLocale('zh').code).toBe('zh-CN');
+    expect(getDateLocale('unknown').code).toBe('en-US');
+  });
+});
 
 describe('formatCurrency utility function', () => {
   describe('Indonesian Rupiah (IDR) formatting', () => {

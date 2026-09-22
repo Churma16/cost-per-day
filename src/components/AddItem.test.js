@@ -1,0 +1,107 @@
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import AddItem from './AddItem';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useCurrency } from '../contexts/CurrencyContext';
+
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (translationKey) => {
+      const translationDictionary = {
+        addNewItem: 'Add New Item',
+        itemName: 'Item Name',
+        enterItemName: 'Enter item name',
+        price: 'Price',
+        enterPrice: 'Enter price',
+        date: 'Purchase Date',
+        save: 'Save',
+        deleteItem: 'Delete Item',
+      };
+      return translationDictionary[translationKey] || translationKey;
+    }
+  })
+}));
+
+jest.mock('../contexts/LanguageContext', () => ({
+  useLanguage: jest.fn()
+}));
+
+jest.mock('../contexts/CurrencyContext', () => ({
+  useCurrency: jest.fn()
+}));
+
+jest.mock('../services/db', () => ({
+  addItem: jest.fn(),
+  updateItem: jest.fn(),
+  getAllItems: jest.fn().mockResolvedValue([]),
+  deleteItem: jest.fn()
+}));
+
+describe('AddItem component date localization', () => {
+  const mockNavigate = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useCurrency.mockReturnValue({
+      currencySymbol: 'Rp',
+      currencyCode: 'IDR'
+    });
+  });
+
+  test('renders Indonesian month names in desktop date picker when language is set to id', () => {
+    useLanguage.mockReturnValue({
+      language: 'id'
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    // Desktop view by default in JSDOM (window.innerWidth > 768)
+    // Find the date picker trigger button
+    const datePickerTriggerButton = screen.getByRole('button', {
+      name: /\d{4}-\d{2}-\d{2}/i
+    });
+    expect(datePickerTriggerButton).toBeInTheDocument();
+
+    // Open desktop custom date picker
+    fireEvent.click(datePickerTriggerButton);
+
+    // Month dropdown should contain Indonesian month names such as 'Agustus' and 'Maret'
+    const augustMonthOption = screen.getByRole('option', { name: 'Agustus' });
+    const marchMonthOption = screen.getByRole('option', { name: 'Maret' });
+    const januaryMonthOption = screen.getByRole('option', { name: 'Januari' });
+
+    expect(augustMonthOption).toBeInTheDocument();
+    expect(marchMonthOption).toBeInTheDocument();
+    expect(januaryMonthOption).toBeInTheDocument();
+  });
+
+  test('renders English month names in desktop date picker when language is set to en', () => {
+    useLanguage.mockReturnValue({
+      language: 'en'
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    const datePickerTriggerButton = screen.getByRole('button', {
+      name: /\d{4}-\d{2}-\d{2}/i
+    });
+    fireEvent.click(datePickerTriggerButton);
+
+    const augustMonthOption = screen.getByRole('option', { name: 'August' });
+    const marchMonthOption = screen.getByRole('option', { name: 'March' });
+    const januaryMonthOption = screen.getByRole('option', { name: 'January' });
+
+    expect(augustMonthOption).toBeInTheDocument();
+    expect(marchMonthOption).toBeInTheDocument();
+    expect(januaryMonthOption).toBeInTheDocument();
+  });
+});

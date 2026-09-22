@@ -4,11 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { IoTrashOutline, IoCalendarOutline } from "react-icons/io5";
-import { zhCN } from 'date-fns/locale/zh-CN';
-import { enUS } from 'date-fns/locale/en-US';
-import { fr } from 'date-fns/locale/fr';
 import { addItem, updateItem, getAllItems, deleteItem } from '../services/db';
-import { formatDate } from '../utils/formatters';
+import { formatDate, getDateLocale } from '../utils/formatters';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { parseISO } from 'date-fns';
@@ -37,18 +34,8 @@ function AddItem() {
   const [month, setMonth] = useState(purchaseDate);
   const { currencySymbol } = useCurrency();
   
-  // Get locale matching the current language
-  const getLocale = () => {
-    switch (language) {
-      case 'zh':
-        return zhCN;
-      case 'fr':
-        return fr;
-      case 'en':
-      default:
-        return enUS;
-    }
-  };
+  // Get date-fns locale matching the current application language
+  const getLocale = () => getDateLocale(language);
 
   // Reset form when pathname changes
   useEffect(() => {
