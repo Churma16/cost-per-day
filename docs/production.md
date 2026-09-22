@@ -143,13 +143,13 @@ pre_restore="backups/pre-restore-$(date +%Y%m%d-%H%M%S).db"
 sqlite3 data/cost-per-day.db ".backup '$pre_restore'"
 sqlite3 "$pre_restore" "PRAGMA integrity_check;"
 
-rm -f data/cost-per-day.db data/cost-per-day.db-wal data/cost-per-day.db-shm
-cp backups/KNOWN-GOOD.db data/cost-per-day.db
+restore_file="$PWD/backups/KNOWN-GOOD.db"
 
 docker run --rm \
   -v "$PWD/data:/data" \
+  -v "$restore_file:/restore/backup.db:ro" \
   alpine:3.22 \
-  chown -R 10001:10001 /data
+  sh -ec 'rm -f /data/cost-per-day.db /data/cost-per-day.db-wal /data/cost-per-day.db-shm; cp /restore/backup.db /data/cost-per-day.db; chown -R 10001:10001 /data'
 
 docker compose up -d app
 ```
