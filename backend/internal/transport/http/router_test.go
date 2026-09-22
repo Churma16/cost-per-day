@@ -158,6 +158,11 @@ func TestItemsAPI_CRUD(t *testing.T) {
 				expectedMessage: "item price is outside supported range",
 			},
 			{
+				testName:        "price at int64 boundary",
+				jsonPayload:     `{"name":"Monitor","price":9223372036854.7754,"purchaseDate":"2026-09-18T10:00:00Z"}`,
+				expectedMessage: "item price is outside supported range",
+			},
+			{
 				testName:        "price above supported range",
 				jsonPayload:     `{"name":"Monitor","price":10000000000000,"purchaseDate":"2026-09-18T10:00:00Z"}`,
 				expectedMessage: "item price is outside supported range",
