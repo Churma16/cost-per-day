@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"cost-per-day/backend/internal/domain"
@@ -19,7 +20,7 @@ type itemScanner interface {
 	Scan(destinations ...any) error
 }
 
-// ItemRepository implements repository.ItemRepository using explicit SQLite queries.
+// ItemRepository implements repository.ItemRepository using user-scoped SQLite queries.
 type ItemRepository struct {
 	databaseConnection *sql.DB
 }
@@ -31,13 +32,19 @@ func NewItemRepository(databaseConnection *sql.DB) repository.ItemRepository {
 	}
 }
 
-// List returns all items in deterministic identifier order.
-func (repositoryInstance *ItemRepository) List(ctx context.Context) ([]domain.Item, error) {
+// List returns only the current user's items in deterministic identifier order.
+func (repositoryInstance *ItemRepository) List(ctx context.Context, userID string) ([]domain.Item, error) {
+	normalizedUserID, identityError := requireSQLiteUserID(userID)
+	if identityError != nil {
+		return nil, identityError
+	}
+
 	rows, queryError := repositoryInstance.databaseConnection.QueryContext(ctx, `
-		SELECT id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, created_at, updated_at
+		SELECT user_id, id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, created_at, updated_at
 		FROM items
+		WHERE user_id = ?
 		ORDER BY id ASC
-	`)
+	`, normalizedUserID)
 	if queryError != nil {
 		return nil, fmt.Errorf("list items: %w", queryError)
 	}
@@ -59,13 +66,18 @@ func (repositoryInstance *ItemRepository) List(ctx context.Context) ([]domain.It
 	return items, nil
 }
 
-// GetByID returns a single item by identifier.
-func (repositoryInstance *ItemRepository) GetByID(ctx context.Context, itemID string) (domain.Item, error) {
+// GetByID returns an item only when both its identifier and owner match.
+func (repositoryInstance *ItemRepository) GetByID(ctx context.Context, userID string, itemID string) (domain.Item, error) {
+	normalizedUserID, identityError := requireSQLiteUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	item, scanError := scanItem(repositoryInstance.databaseConnection.QueryRowContext(ctx, `
-		SELECT id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, created_at, updated_at
+		SELECT user_id, id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, created_at, updated_at
 		FROM items
-		WHERE id = ?
-	`, itemID))
+		WHERE user_id = ? AND id = ?
+	`, normalizedUserID, itemID))
 	if errors.Is(scanError, sql.ErrNoRows) {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
@@ -76,8 +88,13 @@ func (repositoryInstance *ItemRepository) GetByID(ctx context.Context, itemID st
 	return item, nil
 }
 
-// Create persists a new item and assigns its SQLite-generated identifier.
-func (repositoryInstance *ItemRepository) Create(ctx context.Context, itemToCreate domain.Item) (domain.Item, error) {
+// Create persists a new item under the current user and assigns its SQLite-generated identifier.
+func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID string, itemToCreate domain.Item) (domain.Item, error) {
+	normalizedUserID, identityError := requireSQLiteUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	priceMicros, conversionError := convertPriceToMicros(itemToCreate.Price)
 	if conversionError != nil {
 		return domain.Item{}, conversionError
@@ -104,9 +121,11 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, itemToCrea
 		itemToCreate.CreatedAt = itemToCreate.CreatedAt.UTC()
 	}
 	itemToCreate.UpdatedAt = currentTimestamp
+	itemToCreate.UserID = normalizedUserID
 
 	insertResult, insertError := repositoryInstance.databaseConnection.ExecContext(ctx, `
 		INSERT INTO items (
+			user_id,
 			name,
 			price_micros,
 			purchase_date,
@@ -116,8 +135,9 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, itemToCrea
 			created_at,
 			updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
+		normalizedUserID,
 		itemToCreate.Name,
 		priceMicros,
 		itemToCreate.PurchaseDate,
@@ -140,8 +160,13 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, itemToCrea
 	return itemToCreate, nil
 }
 
-// Update replaces mutable item fields while preserving the original creation timestamp.
-func (repositoryInstance *ItemRepository) Update(ctx context.Context, itemToUpdate domain.Item) (domain.Item, error) {
+// Update replaces mutable item fields only when the item belongs to the current user.
+func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID string, itemToUpdate domain.Item) (domain.Item, error) {
+	normalizedUserID, identityError := requireSQLiteUserID(userID)
+	if identityError != nil {
+		return domain.Item{}, identityError
+	}
+
 	priceMicros, conversionError := convertPriceToMicros(itemToUpdate.Price)
 	if conversionError != nil {
 		return domain.Item{}, conversionError
@@ -161,6 +186,7 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, itemToUpda
 		itemToUpdate.Status = domain.ItemStatusActive
 	}
 
+	itemToUpdate.UserID = normalizedUserID
 	itemToUpdate.UpdatedAt = time.Now().UTC()
 
 	var createdAtText string
@@ -174,7 +200,7 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, itemToUpda
 			ended_at = ?,
 			sale_price_micros = ?,
 			updated_at = ?
-		WHERE id = ?
+		WHERE user_id = ? AND id = ?
 		RETURNING created_at
 	`,
 		itemToUpdate.Name,
@@ -184,6 +210,7 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, itemToUpda
 		nullableString(itemToUpdate.EndedAt),
 		nullableInt64(salePriceMicros),
 		itemToUpdate.UpdatedAt.Format(time.RFC3339Nano),
+		normalizedUserID,
 		itemToUpdate.ID,
 	).Scan(&createdAtText)
 	if errors.Is(updateError, sql.ErrNoRows) {
@@ -202,12 +229,17 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, itemToUpda
 	return itemToUpdate, nil
 }
 
-// Delete removes an item by identifier.
-func (repositoryInstance *ItemRepository) Delete(ctx context.Context, itemID string) error {
+// Delete removes an item only when it belongs to the current user.
+func (repositoryInstance *ItemRepository) Delete(ctx context.Context, userID string, itemID string) error {
+	normalizedUserID, identityError := requireSQLiteUserID(userID)
+	if identityError != nil {
+		return identityError
+	}
+
 	deleteResult, deleteError := repositoryInstance.databaseConnection.ExecContext(ctx, `
 		DELETE FROM items
-		WHERE id = ?
-	`, itemID)
+		WHERE user_id = ? AND id = ?
+	`, normalizedUserID, itemID)
 	if deleteError != nil {
 		return fmt.Errorf("delete item: %w", deleteError)
 	}
@@ -225,17 +257,18 @@ func (repositoryInstance *ItemRepository) Delete(ctx context.Context, itemID str
 
 func scanItem(scanner itemScanner) (domain.Item, error) {
 	var (
-		itemIdentifier int64
-		priceMicros    int64
-		statusText     string
-		endedAtText    sql.NullString
+		itemIdentifier  int64
+		priceMicros     int64
+		statusText      string
+		endedAtText     sql.NullString
 		salePriceMicros sql.NullInt64
-		createdAtText  string
-		updatedAtText  string
-		item           domain.Item
+		createdAtText   string
+		updatedAtText   string
+		item            domain.Item
 	)
 
 	scanError := scanner.Scan(
+		&item.UserID,
 		&itemIdentifier,
 		&item.Name,
 		&priceMicros,
@@ -277,6 +310,14 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 	item.UpdatedAt = updatedAt.UTC()
 
 	return item, nil
+}
+
+func requireSQLiteUserID(userID string) (string, error) {
+	normalizedUserID := strings.TrimSpace(userID)
+	if normalizedUserID == "" {
+		return "", domain.ErrUserIdentityRequired
+	}
+	return normalizedUserID, nil
 }
 
 func nullableString(value *string) any {

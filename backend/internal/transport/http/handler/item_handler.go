@@ -24,9 +24,14 @@ func NewItemHandler(itemService service.ItemService) *ItemHandler {
 	}
 }
 
-// List handles GET /api/items to retrieve all items.
+// List handles GET /api/items to retrieve only the current user's items.
 func (handlerInstance *ItemHandler) List(ginContext *gin.Context) {
-	itemList, serviceError := handlerInstance.itemService.ListItems(ginContext.Request.Context())
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
+	itemList, serviceError := handlerInstance.itemService.ListItems(ginContext.Request.Context(), userID)
 	if serviceError != nil {
 		response.Error(ginContext, http.StatusInternalServerError, "failed to retrieve items")
 		return
@@ -35,8 +40,39 @@ func (handlerInstance *ItemHandler) List(ginContext *gin.Context) {
 	response.Success(ginContext, http.StatusOK, "items retrieved successfully", itemList)
 }
 
-// Create handles POST /api/items to add a new active item.
+// Get handles GET /api/items/:id without revealing whether another user owns the identifier.
+func (handlerInstance *ItemHandler) Get(ginContext *gin.Context) {
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
+	itemID := ginContext.Param("id")
+	if itemID == "" {
+		response.Error(ginContext, http.StatusBadRequest, "item identifier is required")
+		return
+	}
+
+	item, serviceError := handlerInstance.itemService.GetItemByID(ginContext.Request.Context(), userID, itemID)
+	if serviceError != nil {
+		if errors.Is(serviceError, domain.ErrItemNotFound) {
+			response.Error(ginContext, http.StatusNotFound, "item not found")
+			return
+		}
+		response.Error(ginContext, http.StatusInternalServerError, "failed to retrieve item")
+		return
+	}
+
+	response.Success(ginContext, http.StatusOK, "item retrieved successfully", item)
+}
+
+// Create handles POST /api/items to add a new active item for the current user.
 func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
 	var requestBody dto.CreateItemRequestDTO
 	if bindError := ginContext.ShouldBindJSON(&requestBody); bindError != nil {
 		response.Error(ginContext, http.StatusBadRequest, "invalid request body format")
@@ -45,6 +81,7 @@ func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 
 	createdItem, serviceError := handlerInstance.itemService.CreateItem(
 		ginContext.Request.Context(),
+		userID,
 		requestBody.Name,
 		requestBody.Price,
 		requestBody.PurchaseDate,
@@ -61,8 +98,13 @@ func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 	response.Success(ginContext, http.StatusCreated, "item created successfully", createdItem)
 }
 
-// Update handles PUT /api/items/:id to modify an existing item and its lifecycle.
+// Update handles PUT /api/items/:id only when the item belongs to the current user.
 func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
 	itemID := ginContext.Param("id")
 	if itemID == "" {
 		response.Error(ginContext, http.StatusBadRequest, "item identifier is required")
@@ -77,6 +119,7 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 
 	updatedItem, serviceError := handlerInstance.itemService.UpdateItem(
 		ginContext.Request.Context(),
+		userID,
 		itemID,
 		requestBody.Name,
 		requestBody.Price,
@@ -101,15 +144,20 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 	response.Success(ginContext, http.StatusOK, "item updated successfully", updatedItem)
 }
 
-// Delete handles DELETE /api/items/:id to remove an item.
+// Delete handles DELETE /api/items/:id only when the item belongs to the current user.
 func (handlerInstance *ItemHandler) Delete(ginContext *gin.Context) {
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
 	itemID := ginContext.Param("id")
 	if itemID == "" {
 		response.Error(ginContext, http.StatusBadRequest, "item identifier is required")
 		return
 	}
 
-	serviceError := handlerInstance.itemService.DeleteItem(ginContext.Request.Context(), itemID)
+	serviceError := handlerInstance.itemService.DeleteItem(ginContext.Request.Context(), userID, itemID)
 	if serviceError != nil {
 		if errors.Is(serviceError, domain.ErrItemNotFound) {
 			response.Error(ginContext, http.StatusNotFound, "item not found")

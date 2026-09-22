@@ -10,8 +10,13 @@ import (
 	"cost-per-day/backend/internal/transport/http/response"
 )
 
-// ReplaceAll handles PUT /api/items/replace to replace the complete item collection atomically.
+// ReplaceAll handles PUT /api/items/replace to replace only the current user's item collection atomically.
 func (handlerInstance *ItemHandler) ReplaceAll(ginContext *gin.Context) {
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
 	var requestBody dto.ReplaceItemsRequestDTO
 	if bindError := ginContext.ShouldBindJSON(&requestBody); bindError != nil {
 		response.Error(ginContext, http.StatusBadRequest, "invalid request body format")
@@ -36,6 +41,7 @@ func (handlerInstance *ItemHandler) ReplaceAll(ginContext *gin.Context) {
 
 	replacedItems, serviceError := handlerInstance.itemService.ReplaceItems(
 		ginContext.Request.Context(),
+		userID,
 		replacementItems,
 	)
 	if serviceError != nil {
