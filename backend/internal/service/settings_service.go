@@ -12,7 +12,7 @@ import (
 type SettingsService interface {
 	GetAllSettings(ctx context.Context) (map[string]string, error)
 	GetSettingByKey(ctx context.Context, settingKey string) (string, error)
-	UpdateSetting(ctx context.Context, settingKey string, settingValue string) error
+	UpdateSetting(ctx context.Context, settingKey string, settingValue string) (domain.Setting, error)
 }
 
 type settingsServiceImpl struct {
@@ -41,16 +41,23 @@ func (serviceInstance *settingsServiceImpl) GetSettingByKey(ctx context.Context,
 }
 
 // UpdateSetting validates and stores an updated setting value.
-func (serviceInstance *settingsServiceImpl) UpdateSetting(ctx context.Context, settingKey string, settingValue string) error {
+func (serviceInstance *settingsServiceImpl) UpdateSetting(ctx context.Context, settingKey string, settingValue string) (domain.Setting, error) {
 	trimmedKey := strings.TrimSpace(settingKey)
 	if trimmedKey == "" {
-		return domain.ErrEmptySettingKey
+		return domain.Setting{}, domain.ErrEmptySettingKey
 	}
 
 	trimmedValue := strings.TrimSpace(settingValue)
 	if trimmedValue == "" {
-		return domain.ErrEmptySettingValue
+		return domain.Setting{}, domain.ErrEmptySettingValue
 	}
 
-	return serviceInstance.settingsRepository.Set(ctx, trimmedKey, trimmedValue)
+	if repositoryError := serviceInstance.settingsRepository.Set(ctx, trimmedKey, trimmedValue); repositoryError != nil {
+		return domain.Setting{}, repositoryError
+	}
+
+	return domain.Setting{
+		Key:   trimmedKey,
+		Value: trimmedValue,
+	}, nil
 }
