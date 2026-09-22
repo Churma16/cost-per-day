@@ -52,19 +52,30 @@ describe('ItemList lifecycle display', () => {
   });
 
   test('uses backend-derived final and net costs for sold history', async () => {
-    getAllItems.mockResolvedValueOnce([{
-      id: '1',
-      name: 'Phone',
-      price: 100,
-      purchaseDate: '2026-09-01T12:00:00Z',
-      status: 'sold',
-      endedAt: '2026-09-11T12:00:00Z',
-      salePrice: 40,
-      ownershipDays: 10,
-      grossCostPerDay: 10,
-      netOwnershipCost: 60,
-      netCostPerDay: 6
-    }]);
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: '1',
+        name: 'Phone',
+        price: 100,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'sold',
+        endedAt: '2026-09-11T12:00:00Z',
+        salePrice: 40,
+        ownershipDays: 10,
+        grossCostPerDay: 10,
+        netOwnershipCost: 60,
+        netCostPerDay: 6
+      },
+      {
+        id: '2',
+        name: 'Laptop',
+        price: 200,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        ownershipDays: 50,
+        grossCostPerDay: 4
+      }
+    ]);
 
     render(
       <MemoryRouter>
@@ -77,8 +88,12 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('Final gross cost per day')).toBeInTheDocument();
     expect(screen.getByText('$10.00/day')).toBeInTheDocument();
 
+    expect(screen.getByText('Laptop')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('$4.00/day')).toBeInTheDocument();
+
     await waitFor(() => {
-      expect(setTotalDailyCost).toHaveBeenCalledWith(10);
+      expect(setTotalDailyCost).toHaveBeenCalledWith(4);
     });
 
     fireEvent.click(screen.getByText('Phone'));
