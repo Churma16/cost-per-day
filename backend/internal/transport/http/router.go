@@ -22,22 +22,19 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 	routerEngine.Use(gin.Recovery())
 	routerEngine.Use(middleware.CORSMiddleware(config.AllowedOrigins))
 
-	// Health check route
 	routerEngine.GET("/health", config.HealthHandler.Check)
 
-	// API Group
 	apiRouteGroup := routerEngine.Group("/api")
 	{
-		// Item CRUD endpoints
 		itemRouteGroup := apiRouteGroup.Group("/items")
 		{
 			itemRouteGroup.GET("", config.ItemHandler.List)
 			itemRouteGroup.POST("", config.ItemHandler.Create)
+			itemRouteGroup.PUT("/replace", config.ItemHandler.ReplaceAll)
 			itemRouteGroup.PUT("/:id", config.ItemHandler.Update)
 			itemRouteGroup.DELETE("/:id", config.ItemHandler.Delete)
 		}
 
-		// Settings endpoints
 		settingsRouteGroup := apiRouteGroup.Group("/settings")
 		{
 			settingsRouteGroup.GET("", config.SettingsHandler.GetAll)
