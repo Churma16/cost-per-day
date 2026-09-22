@@ -180,6 +180,15 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 				expected: domain.ErrInvalidItemEndDate,
 			},
 			{
+				name:   "end date in future",
+				status: domain.ItemStatusRetired,
+				endedAt: func() *string {
+					value := "2999-01-01T12:00:00Z"
+					return &value
+				}(),
+				expected: domain.ErrItemEndInFuture,
+			},
+			{
 				name:   "sold without sale price",
 				status: domain.ItemStatusSold,
 				endedAt: func() *string {
