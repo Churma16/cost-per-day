@@ -18,6 +18,10 @@ func (handlerInstance *ItemHandler) ReplaceAll(ginContext *gin.Context) {
 		response.Error(ginContext, http.StatusBadRequest, "invalid request body format")
 		return
 	}
+	if requestBody == nil {
+		response.Error(ginContext, http.StatusBadRequest, "invalid request body format")
+		return
+	}
 
 	replacementItems := make([]domain.Item, 0, len(requestBody))
 	for _, requestItem := range requestBody {
