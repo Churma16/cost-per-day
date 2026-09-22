@@ -33,6 +33,9 @@ var (
 	// ErrItemEndBeforePurchase indicates that an ownership end date predates purchase.
 	ErrItemEndBeforePurchase = errors.New("ended_at cannot be earlier than purchase_date")
 
+	// ErrItemEndInFuture indicates that a completed lifecycle has an end date after today.
+	ErrItemEndInFuture = errors.New("ended_at cannot be in the future")
+
 	// ErrInvalidSalePrice indicates that a sold item is missing a valid non-negative sale price.
 	ErrInvalidSalePrice = errors.New("sold items require a valid non-negative sale price")
 
