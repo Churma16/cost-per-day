@@ -139,7 +139,10 @@ cd "$HOME/cost-per-day"
 
 docker compose stop app
 
-cp data/cost-per-day.db "backups/pre-restore-$(date +%Y%m%d-%H%M%S).db" 2>/dev/null || true
+pre_restore="backups/pre-restore-$(date +%Y%m%d-%H%M%S).db"
+sqlite3 data/cost-per-day.db ".backup '$pre_restore'"
+sqlite3 "$pre_restore" "PRAGMA integrity_check;"
+
 rm -f data/cost-per-day.db data/cost-per-day.db-wal data/cost-per-day.db-shm
 cp backups/KNOWN-GOOD.db data/cost-per-day.db
 
@@ -180,7 +183,9 @@ Pull request CI builds the production Docker image and verifies:
 - `GET /health` reaches the backend;
 - the compiled React application is served from `/`;
 - data can be created through the backend API;
-- recreating the container with the same mounted data directory preserves that data.
+- recreating the container with the same mounted data directory preserves that data;
+- SQLite online backup produces a database that passes `PRAGMA integrity_check`;
+- restoring that backup into a clean data directory preserves the previously created data.
 
 After #9 and #10 land, extend this smoke check to cover Google login/session behavior and authenticated user-scoped item access.
 
