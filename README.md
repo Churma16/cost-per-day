@@ -34,6 +34,7 @@ A progressive web application that helps you track the daily cost of your purcha
 
 - Node.js (v22 or higher)
 - npm (comes with Node.js)
+- Go (v1.22 or higher, for backend service)
 
 ### Installation
 
@@ -48,12 +49,20 @@ cd cost-per-day
 npm install
 ```
 
-3. Start the development server:
+3. Start the frontend development server:
 ```bash
 npm start
 ```
 
 The app will open in your default browser at `http://localhost:3000`.
+
+4. Start the backend service (optional for local API development):
+```bash
+cd backend
+go run ./cmd/server
+```
+
+The backend service will listen on `http://localhost:8080`.
 
 ### Building for Production
 
