@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoChevronDown, IoCloudDownloadOutline, IoCloudUploadOutline, IoWarningOutline } from 'react-icons/io5';
-import { getAllItems, deleteAllItems, addItem } from '../services/db';
+import { getAllItems, replaceAllItems } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 
 function Settings() {
   const { t } = useTranslation();
-  const { language, changeLanguage } = useLanguage();
-  const { currencyCode, changeCurrency } = useCurrency();
+  const { language, changeLanguage, error: languageError } = useLanguage();
+  const { currencyCode, changeCurrency, error: currencyError } = useCurrency();
   
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
@@ -46,6 +46,16 @@ function Settings() {
   };
 
   useEffect(() => {
+    const settingsError = languageError || currencyError;
+    if (settingsError) {
+      setNotification({
+        message: settingsError.message || 'Failed to load shared settings from the server.',
+        type: 'error'
+      });
+    }
+  }, [languageError, currencyError]);
+
+  useEffect(() => {
     // Just check for loading state
     const checkLoading = async () => {
       setIsLoading(false);
@@ -72,7 +82,15 @@ function Settings() {
 
   // 更新语言设置
   const handleLanguageChange = async (code) => {
-    await changeLanguage(code);
+    try {
+      await changeLanguage(code);
+    } catch (error) {
+      console.error('Error updating language:', error);
+      setNotification({
+        message: error.message || 'Failed to update the language setting.',
+        type: 'error'
+      });
+    }
     setShowLanguageDropdown(false);
   };
 
@@ -82,6 +100,10 @@ function Settings() {
       await changeCurrency(selectedCurrencyCode);
     } catch (error) {
       console.error('Error updating currency:', error);
+      setNotification({
+        message: error.message || 'Failed to update the currency setting.',
+        type: 'error'
+      });
     }
     setShowCurrencyDropdown(false);
   };
@@ -89,7 +111,7 @@ function Settings() {
   // Export data function
   const handleExportData = async () => {
     try {
-      // Get all items from database
+      // Get all items from the shared backend
       const items = await getAllItems();
       
       // Check if there's any data to export
@@ -212,7 +234,7 @@ function Settings() {
     
     // Check if each item has required fields
     for (const item of data) {
-      if (!item.id || !item.name || !item.price || !item.purchaseDate) {
+      if (!item.name || !Number.isFinite(Number(item.price)) || Number(item.price) <= 0 || !item.purchaseDate) {
         setNotification({
           message: t('invalidDataFormat'),
           type: 'error'
@@ -220,17 +242,6 @@ function Settings() {
         setTimeout(() => setNotification(null), 3000);
         return;
       }
-    }
-    
-    // Check for duplicate IDs
-    const ids = data.map(item => item.id);
-    if (new Set(ids).size !== ids.length) {
-      setNotification({
-        message: t('duplicateIds'),
-        type: 'error'
-      });
-      setTimeout(() => setNotification(null), 3000);
-      return;
     }
     
     // Data is valid, store it and show confirmation dialog
@@ -241,13 +252,8 @@ function Settings() {
   // Perform the actual import
   const confirmImport = async () => {
     try {
-      // Clear existing data
-      await deleteAllItems();
-      
-      // Import new data
-      for (const item of importData) {
-        await addItem(item);
-      }
+      // Replace server-backed data through the centralized API boundary.
+      await replaceAllItems(importData);
       
       // Show success notification
       setNotification({
