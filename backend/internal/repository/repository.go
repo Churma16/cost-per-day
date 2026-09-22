@@ -13,6 +13,7 @@ type ItemRepository interface {
 	Create(ctx context.Context, item domain.Item) (domain.Item, error)
 	Update(ctx context.Context, item domain.Item) (domain.Item, error)
 	Delete(ctx context.Context, id string) error
+	ReplaceAll(ctx context.Context, items []domain.Item) ([]domain.Item, error)
 }
 
 // SettingsRepository defines the persistence contract for application preferences.
