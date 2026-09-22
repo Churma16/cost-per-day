@@ -16,7 +16,7 @@ func TestSettingsService(t *testing.T) {
 		settingsRepository := memory.NewMemorySettingsRepository()
 		settingsService := service.NewSettingsService(settingsRepository)
 
-		settingsMap, serviceError := settingsService.GetAllSettings(testContext)
+		settingsMap, serviceError := settingsService.GetAllSettings(testContext, domain.LegacyUserID)
 		if serviceError != nil {
 			subTest.Fatalf("expected no error, got: %v", serviceError)
 		}
@@ -33,7 +33,7 @@ func TestSettingsService(t *testing.T) {
 		settingsRepository := memory.NewMemorySettingsRepository()
 		settingsService := service.NewSettingsService(settingsRepository)
 
-		updatedSetting, updateError := settingsService.UpdateSetting(testContext, " language ", " id ")
+		updatedSetting, updateError := settingsService.UpdateSetting(testContext, domain.LegacyUserID, " language ", " id ")
 		if updateError != nil {
 			subTest.Fatalf("expected no error, got: %v", updateError)
 		}
@@ -44,7 +44,7 @@ func TestSettingsService(t *testing.T) {
 			subTest.Errorf("expected normalized value 'id', got: %s", updatedSetting.Value)
 		}
 
-		retrievedValue, getError := settingsService.GetSettingByKey(testContext, "language")
+		retrievedValue, getError := settingsService.GetSettingByKey(testContext, domain.LegacyUserID, "language")
 		if getError != nil {
 			subTest.Fatalf("expected to get setting, got error: %v", getError)
 		}
@@ -57,7 +57,7 @@ func TestSettingsService(t *testing.T) {
 		settingsRepository := memory.NewMemorySettingsRepository()
 		settingsService := service.NewSettingsService(settingsRepository)
 
-		_, updateError := settingsService.UpdateSetting(testContext, "   ", "EUR")
+		_, updateError := settingsService.UpdateSetting(testContext, domain.LegacyUserID, "   ", "EUR")
 		if updateError != domain.ErrEmptySettingKey {
 			subTest.Errorf("expected ErrEmptySettingKey, got: %v", updateError)
 		}
@@ -67,7 +67,7 @@ func TestSettingsService(t *testing.T) {
 		settingsRepository := memory.NewMemorySettingsRepository()
 		settingsService := service.NewSettingsService(settingsRepository)
 
-		_, updateError := settingsService.UpdateSetting(testContext, "currency", "   ")
+		_, updateError := settingsService.UpdateSetting(testContext, domain.LegacyUserID, "currency", "   ")
 		if updateError != domain.ErrEmptySettingValue {
 			subTest.Errorf("expected ErrEmptySettingValue, got: %v", updateError)
 		}

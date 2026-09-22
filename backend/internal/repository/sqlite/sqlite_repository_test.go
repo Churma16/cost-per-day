@@ -59,8 +59,8 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
-	if schemaVersion != 2 {
-		t.Fatalf("expected schema version 2, got %d", schemaVersion)
+	if schemaVersion != 3 {
+		t.Fatalf("expected schema version 3, got %d", schemaVersion)
 	}
 
 	if migrationError := sqliterepository.ApplyMigrations(ctx, databaseConnection); migrationError != nil {
@@ -126,7 +126,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
 	ctx := context.Background()
 
-	createdItem, createError := itemRepository.Create(ctx, domain.Item{
+	createdItem, createError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Laptop",
 		Price:        1.23456789,
 		PurchaseDate: "2026-09-20T10:00:00Z",
@@ -144,7 +144,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatalf("expected created price to be canonicalized to 1.234568, got %.9f", createdItem.Price)
 	}
 
-	fetchedItem, getError := itemRepository.GetByID(ctx, createdItem.ID)
+	fetchedItem, getError := itemRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID)
 	if getError != nil {
 		t.Fatalf("failed to get created item: %v", getError)
 	}
@@ -163,7 +163,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatalf("expected fixed-point price 1234568 micros, got %d", storedPriceMicros)
 	}
 
-	secondItem, secondCreateError := itemRepository.Create(ctx, domain.Item{
+	secondItem, secondCreateError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Monitor",
 		Price:        450.25,
 		PurchaseDate: "2026-09-21T10:00:00Z",
@@ -172,7 +172,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatalf("failed to create second item: %v", secondCreateError)
 	}
 
-	items, listError := itemRepository.List(ctx)
+	items, listError := itemRepository.List(ctx, domain.LegacyUserID)
 	if listError != nil {
 		t.Fatalf("failed to list items: %v", listError)
 	}
@@ -183,7 +183,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatalf("expected deterministic ID order, got %q then %q", items[0].ID, items[1].ID)
 	}
 
-	updatedItem, updateError := itemRepository.Update(ctx, domain.Item{
+	updatedItem, updateError := itemRepository.Update(ctx, domain.LegacyUserID, domain.Item{
 		ID:           createdItem.ID,
 		Name:         "Laptop Pro",
 		Price:        2.34567891,
@@ -198,7 +198,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 	if math.Abs(updatedItem.Price-2.345679) > 0.0000001 {
 		t.Fatalf("expected updated price to be canonicalized to 2.345679, got %.9f", updatedItem.Price)
 	}
-	persistedUpdatedItem, getUpdatedError := itemRepository.GetByID(ctx, createdItem.ID)
+	persistedUpdatedItem, getUpdatedError := itemRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID)
 	if getUpdatedError != nil {
 		t.Fatalf("failed to read updated item: %v", getUpdatedError)
 	}
@@ -209,7 +209,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatal("expected update to preserve creation timestamp")
 	}
 
-	if _, tinyPriceError := itemRepository.Create(ctx, domain.Item{
+	if _, tinyPriceError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Too Small",
 		Price:        0.0000004,
 		PurchaseDate: "2026-09-22T10:00:00Z",
@@ -217,7 +217,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatal("expected price smaller than six-decimal storage precision to fail")
 	}
 
-	if _, boundaryPriceError := itemRepository.Create(ctx, domain.Item{
+	if _, boundaryPriceError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Boundary",
 		Price:        9223372036854.7754,
 		PurchaseDate: "2026-09-22T10:00:00Z",
@@ -225,7 +225,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatal("expected price at int64 micro-unit boundary to fail")
 	}
 
-	if _, missingUpdateError := itemRepository.Update(ctx, domain.Item{
+	if _, missingUpdateError := itemRepository.Update(ctx, domain.LegacyUserID, domain.Item{
 		ID:           "999999",
 		Name:         "Missing",
 		Price:        1,
@@ -234,13 +234,13 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatalf("expected ErrItemNotFound for missing update, got %v", missingUpdateError)
 	}
 
-	if deleteError := itemRepository.Delete(ctx, createdItem.ID); deleteError != nil {
+	if deleteError := itemRepository.Delete(ctx, domain.LegacyUserID, createdItem.ID); deleteError != nil {
 		t.Fatalf("failed to delete item: %v", deleteError)
 	}
-	if _, missingGetError := itemRepository.GetByID(ctx, createdItem.ID); !errors.Is(missingGetError, domain.ErrItemNotFound) {
+	if _, missingGetError := itemRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID); !errors.Is(missingGetError, domain.ErrItemNotFound) {
 		t.Fatalf("expected ErrItemNotFound after deletion, got %v", missingGetError)
 	}
-	if missingDeleteError := itemRepository.Delete(ctx, createdItem.ID); !errors.Is(missingDeleteError, domain.ErrItemNotFound) {
+	if missingDeleteError := itemRepository.Delete(ctx, domain.LegacyUserID, createdItem.ID); !errors.Is(missingDeleteError, domain.ErrItemNotFound) {
 		t.Fatalf("expected ErrItemNotFound for repeated delete, got %v", missingDeleteError)
 	}
 }
@@ -250,7 +250,7 @@ func TestSQLiteSettingsRepositoryReadAndUpdate(t *testing.T) {
 	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
 	ctx := context.Background()
 
-	settings, getAllError := settingsRepository.GetAll(ctx)
+	settings, getAllError := settingsRepository.GetAll(ctx, domain.LegacyUserID)
 	if getAllError != nil {
 		t.Fatalf("failed to read settings: %v", getAllError)
 	}
@@ -261,10 +261,10 @@ func TestSQLiteSettingsRepositoryReadAndUpdate(t *testing.T) {
 		t.Fatalf("expected default currency USD, got %q", settings["currency"])
 	}
 
-	if setError := settingsRepository.Set(ctx, "language", "id"); setError != nil {
+	if setError := settingsRepository.Set(ctx, domain.LegacyUserID, "language", "id"); setError != nil {
 		t.Fatalf("failed to update language: %v", setError)
 	}
-	language, getError := settingsRepository.GetByKey(ctx, "language")
+	language, getError := settingsRepository.GetByKey(ctx, domain.LegacyUserID, "language")
 	if getError != nil {
 		t.Fatalf("failed to read updated language: %v", getError)
 	}
@@ -272,10 +272,10 @@ func TestSQLiteSettingsRepositoryReadAndUpdate(t *testing.T) {
 		t.Fatalf("expected updated language id, got %q", language)
 	}
 
-	if setError := settingsRepository.Set(ctx, "theme", "dark"); setError != nil {
+	if setError := settingsRepository.Set(ctx, domain.LegacyUserID, "theme", "dark"); setError != nil {
 		t.Fatalf("failed to create new setting: %v", setError)
 	}
-	theme, themeError := settingsRepository.GetByKey(ctx, "theme")
+	theme, themeError := settingsRepository.GetByKey(ctx, domain.LegacyUserID, "theme")
 	if themeError != nil {
 		t.Fatalf("failed to read new setting: %v", themeError)
 	}
@@ -283,7 +283,7 @@ func TestSQLiteSettingsRepositoryReadAndUpdate(t *testing.T) {
 		t.Fatalf("expected theme dark, got %q", theme)
 	}
 
-	if _, missingError := settingsRepository.GetByKey(ctx, "missing"); !errors.Is(missingError, domain.ErrSettingNotFound) {
+	if _, missingError := settingsRepository.GetByKey(ctx, domain.LegacyUserID, "missing"); !errors.Is(missingError, domain.ErrSettingNotFound) {
 		t.Fatalf("expected ErrSettingNotFound, got %v", missingError)
 	}
 }
@@ -300,7 +300,7 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 	firstItemRepository := sqliterepository.NewItemRepository(firstConnection)
 	firstSettingsRepository := sqliterepository.NewSettingsRepository(firstConnection)
 
-	createdItem, createError := firstItemRepository.Create(ctx, domain.Item{
+	createdItem, createError := firstItemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Orthopedic Pillow",
 		Price:        675000,
 		PurchaseDate: "2026-09-22T00:00:00Z",
@@ -308,7 +308,7 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 	if createError != nil {
 		t.Fatalf("failed to create persistent item: %v", createError)
 	}
-	if setError := firstSettingsRepository.Set(ctx, "currency", "IDR"); setError != nil {
+	if setError := firstSettingsRepository.Set(ctx, domain.LegacyUserID, "currency", "IDR"); setError != nil {
 		t.Fatalf("failed to update persistent setting: %v", setError)
 	}
 
@@ -325,7 +325,7 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 	secondItemRepository := sqliterepository.NewItemRepository(secondConnection)
 	secondSettingsRepository := sqliterepository.NewSettingsRepository(secondConnection)
 
-	persistedItem, getItemError := secondItemRepository.GetByID(ctx, createdItem.ID)
+	persistedItem, getItemError := secondItemRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID)
 	if getItemError != nil {
 		t.Fatalf("failed to read persisted item: %v", getItemError)
 	}
@@ -333,7 +333,7 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 		t.Fatalf("unexpected persisted item: %+v", persistedItem)
 	}
 
-	persistedCurrency, getSettingError := secondSettingsRepository.GetByKey(ctx, "currency")
+	persistedCurrency, getSettingError := secondSettingsRepository.GetByKey(ctx, domain.LegacyUserID, "currency")
 	if getSettingError != nil {
 		t.Fatalf("failed to read persisted currency: %v", getSettingError)
 	}

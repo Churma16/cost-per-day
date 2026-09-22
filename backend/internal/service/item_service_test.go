@@ -18,7 +18,7 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemService := service.NewItemService(itemRepository)
 
 		createdItem, serviceError := itemService.CreateItem(
-			testContext,
+			testContext, domain.LegacyUserID,
 			"Espresso Machine",
 			599.99,
 			"2026-09-20T12:00:00Z",
@@ -46,7 +46,7 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemService := service.NewItemService(itemRepository)
 
 		createdItem, serviceError := itemService.CreateItem(
-			testContext,
+			testContext, domain.LegacyUserID,
 			"Mechanical Keyboard",
 			149.50,
 			"2026-09-15",
@@ -65,7 +65,7 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)
 
-		_, serviceError := itemService.CreateItem(testContext, "   ", 100.0, "2026-09-20T12:00:00Z")
+		_, serviceError := itemService.CreateItem(testContext, domain.LegacyUserID, "   ", 100.0, "2026-09-20T12:00:00Z")
 		if serviceError != domain.ErrEmptyItemName {
 			subTest.Errorf("expected ErrEmptyItemName, got: %v", serviceError)
 		}
@@ -75,12 +75,12 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)
 
-		_, zeroPriceError := itemService.CreateItem(testContext, "Book", 0.0, "2026-09-20T12:00:00Z")
+		_, zeroPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Book", 0.0, "2026-09-20T12:00:00Z")
 		if zeroPriceError != domain.ErrInvalidItemPrice {
 			subTest.Errorf("expected ErrInvalidItemPrice for zero price, got: %v", zeroPriceError)
 		}
 
-		_, negativePriceError := itemService.CreateItem(testContext, "Book", -15.5, "2026-09-20T12:00:00Z")
+		_, negativePriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Book", -15.5, "2026-09-20T12:00:00Z")
 		if negativePriceError != domain.ErrInvalidItemPrice {
 			subTest.Errorf("expected ErrInvalidItemPrice for negative price, got: %v", negativePriceError)
 		}
@@ -90,17 +90,17 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)
 
-		_, tinyPriceError := itemService.CreateItem(testContext, "Tiny", 0.0000004, "2026-09-20T12:00:00Z")
+		_, tinyPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Tiny", 0.0000004, "2026-09-20T12:00:00Z")
 		if tinyPriceError != domain.ErrUnsupportedItemPrice {
 			subTest.Errorf("expected ErrUnsupportedItemPrice for sub-micro price, got: %v", tinyPriceError)
 		}
 
-		_, boundaryPriceError := itemService.CreateItem(testContext, "Boundary", 9223372036854.7754, "2026-09-20T12:00:00Z")
+		_, boundaryPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Boundary", 9223372036854.7754, "2026-09-20T12:00:00Z")
 		if boundaryPriceError != domain.ErrUnsupportedItemPrice {
 			subTest.Errorf("expected ErrUnsupportedItemPrice at int64 boundary, got: %v", boundaryPriceError)
 		}
 
-		_, hugePriceError := itemService.CreateItem(testContext, "Huge", 10000000000000.0, "2026-09-20T12:00:00Z")
+		_, hugePriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Huge", 10000000000000.0, "2026-09-20T12:00:00Z")
 		if hugePriceError != domain.ErrUnsupportedItemPrice {
 			subTest.Errorf("expected ErrUnsupportedItemPrice for oversized price, got: %v", hugePriceError)
 		}
@@ -110,7 +110,7 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)
 
-		_, invalidDateError := itemService.CreateItem(testContext, "Chair", 80.0, "not-a-valid-date")
+		_, invalidDateError := itemService.CreateItem(testContext, domain.LegacyUserID, "Chair", 80.0, "not-a-valid-date")
 		if invalidDateError != domain.ErrInvalidPurchaseDate {
 			subTest.Errorf("expected ErrInvalidPurchaseDate, got: %v", invalidDateError)
 		}
@@ -123,7 +123,7 @@ func TestItemService_GetUpdateDelete(t *testing.T) {
 	itemService := service.NewItemService(itemRepository)
 
 	createdItem, serviceError := itemService.CreateItem(
-		testContext,
+		testContext, domain.LegacyUserID,
 		"Smart Watch",
 		299.00,
 		"2026-09-01T08:00:00Z",
@@ -133,7 +133,7 @@ func TestItemService_GetUpdateDelete(t *testing.T) {
 	}
 
 	t.Run("retrieves item by ID", func(subTest *testing.T) {
-		foundItem, getError := itemService.GetItemByID(testContext, createdItem.ID)
+		foundItem, getError := itemService.GetItemByID(testContext, domain.LegacyUserID, createdItem.ID)
 		if getError != nil {
 			subTest.Fatalf("expected to find item, got error: %v", getError)
 		}
@@ -143,7 +143,7 @@ func TestItemService_GetUpdateDelete(t *testing.T) {
 	})
 
 	t.Run("returns not found for non-existent ID", func(subTest *testing.T) {
-		_, getError := itemService.GetItemByID(testContext, "999999")
+		_, getError := itemService.GetItemByID(testContext, domain.LegacyUserID, "999999")
 		if getError != domain.ErrItemNotFound {
 			subTest.Errorf("expected ErrItemNotFound, got: %v", getError)
 		}
@@ -151,7 +151,7 @@ func TestItemService_GetUpdateDelete(t *testing.T) {
 
 	t.Run("updates item successfully", func(subTest *testing.T) {
 		updatedItem, updateError := itemService.UpdateItem(
-			testContext,
+			testContext, domain.LegacyUserID,
 			createdItem.ID,
 			"Smart Watch Series 2",
 			349.00,
@@ -172,19 +172,19 @@ func TestItemService_GetUpdateDelete(t *testing.T) {
 	})
 
 	t.Run("deletes item successfully", func(subTest *testing.T) {
-		deleteError := itemService.DeleteItem(testContext, createdItem.ID)
+		deleteError := itemService.DeleteItem(testContext, domain.LegacyUserID, createdItem.ID)
 		if deleteError != nil {
 			subTest.Fatalf("expected successful delete, got: %v", deleteError)
 		}
 
-		_, getAfterDeleteError := itemService.GetItemByID(testContext, createdItem.ID)
+		_, getAfterDeleteError := itemService.GetItemByID(testContext, domain.LegacyUserID, createdItem.ID)
 		if getAfterDeleteError != domain.ErrItemNotFound {
 			subTest.Errorf("expected ErrItemNotFound after deletion, got: %v", getAfterDeleteError)
 		}
 	})
 
 	t.Run("deleting non-existent item returns not found error", func(subTest *testing.T) {
-		deleteError := itemService.DeleteItem(testContext, "999999")
+		deleteError := itemService.DeleteItem(testContext, domain.LegacyUserID, "999999")
 		if deleteError != domain.ErrItemNotFound {
 			subTest.Errorf("expected ErrItemNotFound, got: %v", deleteError)
 		}
