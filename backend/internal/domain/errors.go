@@ -27,6 +27,9 @@ var (
 	// ErrMissingItemEndDate indicates that a completed lifecycle is missing its required end date.
 	ErrMissingItemEndDate = errors.New("ended_at is required for non-active items")
 
+	// ErrInvalidItemEndDate indicates that an ownership end date is not a supported date.
+	ErrInvalidItemEndDate = errors.New("invalid ended_at")
+
 	// ErrItemEndBeforePurchase indicates that an ownership end date predates purchase.
 	ErrItemEndBeforePurchase = errors.New("ended_at cannot be earlier than purchase_date")
 
