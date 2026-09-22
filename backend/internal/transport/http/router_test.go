@@ -9,10 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"cost-per-day/backend/internal/repository/memory"
+	"cost-per-day/backend/internal/domain"\n\t"cost-per-day/backend/internal/repository/memory"
 	"cost-per-day/backend/internal/service"
 	transportHttp "cost-per-day/backend/internal/transport/http"
-	"cost-per-day/backend/internal/transport/http/handler"
+	"cost-per-day/backend/internal/transport/http/handler"\n\t"cost-per-day/backend/internal/transport/http/middleware"
 	"cost-per-day/backend/internal/transport/http/response"
 )
 
