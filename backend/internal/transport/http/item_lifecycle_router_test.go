@@ -102,4 +102,27 @@ func TestItemsAPILifecycle(t *testing.T) {
 	if invalidEnvelope.Meta.Message != "ended_at cannot be earlier than purchase_date" {
 		t.Fatalf("unexpected lifecycle validation message: %s", invalidEnvelope.Meta.Message)
 	}
+
+	futureRequest, _ := http.NewRequest(
+		http.MethodPut,
+		"/api/items/"+itemID,
+		bytes.NewBufferString(`{
+			"name":"Phone",
+			"price":100,
+			"purchaseDate":"2026-09-01T12:00:00Z",
+			"status":"retired",
+			"endedAt":"2999-01-01T12:00:00Z"
+		}`),
+	)
+	futureRequest.Header.Set("Content-Type", "application/json")
+	futureRecorder := httptest.NewRecorder()
+	routerInstance.ServeHTTP(futureRecorder, futureRequest)
+	if futureRecorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected future lifecycle end date status 400, got %d body %s", futureRecorder.Code, futureRecorder.Body.String())
+	}
+
+	futureEnvelope := parseResponseBody(t, futureRecorder)
+	if futureEnvelope.Meta.Message != "ended_at cannot be in the future" {
+		t.Fatalf("unexpected future lifecycle validation message: %s", futureEnvelope.Meta.Message)
+	}
 }
