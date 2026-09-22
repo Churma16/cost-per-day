@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import AddItem from './AddItem';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { addItem } from '../services/api';
+import { addItem, getAllItems } from '../services/api';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -131,5 +131,22 @@ describe('AddItem component date localization', () => {
     expect(augustMonthOption).toBeInTheDocument();
     expect(marchMonthOption).toBeInTheDocument();
     expect(januaryMonthOption).toBeInTheDocument();
+  });
+
+  test('does not expose delete when edit data fails to load', async () => {
+    useLanguage.mockReturnValue({
+      language: 'en'
+    });
+    getAllItems.mockRejectedValueOnce(new Error('Unable to load item.'));
+
+    render(
+      <MemoryRouter initialEntries={['/edit?id=42']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load item.');
+    expect(screen.queryByRole('button', { name: 'Delete Item' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 });
