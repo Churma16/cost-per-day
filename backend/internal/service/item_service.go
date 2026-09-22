@@ -204,6 +204,9 @@ func validateItem(item domain.Item) (domain.Item, error) {
 		if parsedEndDate.Before(parsedPurchaseDate) {
 			return domain.Item{}, domain.ErrItemEndBeforePurchase
 		}
+		if isAfterUTCDate(parsedEndDate, time.Now().UTC()) {
+			return domain.Item{}, domain.ErrItemEndInFuture
+		}
 
 		formattedEndDate := parsedEndDate.Format(time.RFC3339)
 		validatedItem.EndedAt = &formattedEndDate
@@ -301,6 +304,16 @@ func enrichItem(item domain.Item, asOf time.Time) (domain.Item, error) {
 	}
 
 	return item, nil
+}
+
+func isAfterUTCDate(candidate time.Time, reference time.Time) bool {
+	candidateYear, candidateMonth, candidateDay := candidate.UTC().Date()
+	referenceYear, referenceMonth, referenceDay := reference.UTC().Date()
+
+	candidateDate := time.Date(candidateYear, candidateMonth, candidateDay, 0, 0, 0, 0, time.UTC)
+	referenceDate := time.Date(referenceYear, referenceMonth, referenceDay, 0, 0, 0, 0, time.UTC)
+
+	return candidateDate.After(referenceDate)
 }
 
 // parseItemDate attempts to parse supported ISO 8601 and RFC 3339 date formats.
