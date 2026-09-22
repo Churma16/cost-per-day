@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,6 +28,9 @@ func (handlerInstance *ItemHandler) ReplaceAll(ginContext *gin.Context) {
 			Name:         requestItem.Name,
 			Price:        requestItem.Price,
 			PurchaseDate: requestItem.PurchaseDate,
+			Status:       domain.ItemStatus(requestItem.Status),
+			EndedAt:      requestItem.EndedAt,
+			SalePrice:    requestItem.SalePrice,
 		})
 	}
 
@@ -37,10 +39,7 @@ func (handlerInstance *ItemHandler) ReplaceAll(ginContext *gin.Context) {
 		replacementItems,
 	)
 	if serviceError != nil {
-		if errors.Is(serviceError, domain.ErrEmptyItemName) ||
-			errors.Is(serviceError, domain.ErrInvalidItemPrice) ||
-			errors.Is(serviceError, domain.ErrUnsupportedItemPrice) ||
-			errors.Is(serviceError, domain.ErrInvalidPurchaseDate) {
+		if isItemValidationError(serviceError) {
 			response.Error(ginContext, http.StatusBadRequest, serviceError.Error())
 			return
 		}
