@@ -223,7 +223,7 @@ func convertPriceToMicros(price float64) (int64, error) {
 	}
 
 	scaledPrice := price * float64(priceMicrosPerUnit)
-	if scaledPrice > float64(math.MaxInt64) {
+	if scaledPrice >= float64(math.MaxInt64) {
 		return 0, fmt.Errorf("price exceeds sqlite storage range")
 	}
 
