@@ -1,5 +1,6 @@
 import {
   addItem,
+  updateItem,
   getAllItems,
   getSetting,
   replaceAllItems
@@ -55,6 +56,47 @@ describe('frontend API client', () => {
       name: 'Headphones',
       price: 300,
       purchaseDate: '2026-09-22T12:00:00Z'
+    });
+  });
+
+  test('updates lifecycle facts without sending derived ownership metrics', async () => {
+    global.fetch.mockResolvedValue(response(200, {
+      id: '9',
+      name: 'Headphones',
+      price: 300,
+      purchaseDate: '2026-09-01T12:00:00Z',
+      status: 'sold',
+      endedAt: '2026-09-11T12:00:00Z',
+      salePrice: 100,
+      ownershipDays: 10,
+      grossCostPerDay: 30,
+      netOwnershipCost: 200,
+      netCostPerDay: 20
+    }));
+
+    await updateItem('9', {
+      name: 'Headphones',
+      price: 300,
+      purchaseDate: '2026-09-01T12:00:00Z',
+      status: 'sold',
+      endedAt: '2026-09-11T12:00:00Z',
+      salePrice: 100,
+      ownershipDays: 10,
+      grossCostPerDay: 30,
+      netOwnershipCost: 200,
+      netCostPerDay: 20
+    });
+
+    const [url, options] = global.fetch.mock.calls[0];
+    expect(url).toBe('/api/items/9');
+    expect(options.method).toBe('PUT');
+    expect(JSON.parse(options.body)).toEqual({
+      name: 'Headphones',
+      price: 300,
+      purchaseDate: '2026-09-01T12:00:00Z',
+      status: 'sold',
+      endedAt: '2026-09-11T12:00:00Z',
+      salePrice: 100
     });
   });
 

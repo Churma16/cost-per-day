@@ -156,6 +156,9 @@ func TestItemService_GetUpdateDelete(t *testing.T) {
 			"Smart Watch Series 2",
 			349.00,
 			"2026-09-02T08:00:00Z",
+			domain.ItemStatusActive,
+			nil,
+			nil,
 		)
 		if updateError != nil {
 			subTest.Fatalf("expected successful update, got: %v", updateError)

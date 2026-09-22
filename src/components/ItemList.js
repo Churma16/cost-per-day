@@ -1,21 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getAllItems, deleteItem } from '../services/api';
+import { getAllItems } from '../services/api';
 import { IoChevronDown, IoChevronForward, IoCalendar, IoCash } from 'react-icons/io5';
 import { formatCurrency } from '../utils/formatters';
-import { calculateDailyCost } from '../utils/costCalculator';
-import { format, differenceInDays } from 'date-fns';
+import { format } from 'date-fns';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+
+const STATUS_TRANSLATION_KEYS = {
+  active: 'statusActive',
+  retired: 'statusRetired',
+  sold: 'statusSold',
+  lost: 'statusLost'
+};
 
 function ItemList() {
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [expandedItem, setExpandedItem] = useState(null);
   const [activeIcon, setActiveIcon] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
@@ -30,10 +34,13 @@ function ItemList() {
       try {
         const storedItems = await getAllItems();
         setItems(storedItems);
-        
-        // Calculate total daily cost
+
         const total = storedItems.reduce((sum, item) => {
-          return sum + Number(calculateDailyCost(item.price, item.purchaseDate));
+          const itemStatus = item.status || 'active';
+          if (itemStatus !== 'active') {
+            return sum;
+          }
+          return sum + Number(item.grossCostPerDay || 0);
         }, 0);
         setTotalDailyCost(total);
       } catch (error) {
@@ -51,36 +58,11 @@ function ItemList() {
     navigate(`/edit?id=${item.id}`);
   };
 
-  const confirmDelete = async () => {
-    if (!itemToDelete) {
-      return;
-    }
-
-    setErrorMessage(null);
-
-    try {
-      await deleteItem(itemToDelete.id);
-      setItems(items.filter(i => i.id !== itemToDelete.id));
-
-      // Recalculate total cost after deletion
-      const newTotal = items
-        .filter(i => i.id !== itemToDelete.id)
-        .reduce((sum, item) => {
-          return sum + Number(calculateDailyCost(item.price, item.purchaseDate));
-        }, 0);
-      setTotalDailyCost(newTotal);
-
-      setShowDeleteModal(false);
-      setItemToDelete(null);
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      setErrorMessage(error.message || 'Failed to delete the item. Please try again.');
-    }
-  };
-
   const toggleItem = (id) => {
     setExpandedItem(expandedItem === id ? null : id);
   };
+
+  const getItemStatus = (item) => item.status || 'active';
 
   return (
     <div className="px-4 py-6 space-y-4 home-page-content">
@@ -97,101 +79,115 @@ function ItemList() {
           <p>{t('noItems')}</p>
         </div>
       ) : (
-        items.map((item) => (
-          <div 
-            key={item.id}
-            className="bg-white rounded-xl shadow-md overflow-hidden border border-purple-100"
-          >
-            <div 
-              className="p-4 flex items-center justify-between cursor-pointer"
-              onClick={() => toggleItem(item.id)}
+        items.map((item) => {
+          const itemStatus = getItemStatus(item);
+          const isActive = itemStatus === 'active';
+          const statusTranslationKey = STATUS_TRANSLATION_KEYS[itemStatus] || STATUS_TRANSLATION_KEYS.active;
+
+          return (
+            <div
+              key={item.id}
+              className="bg-white rounded-xl shadow-md overflow-hidden border border-purple-100"
             >
-              <div>
-                <h3 className="font-medium text-gray-900">{item.name}</h3>
-                <p className="text-sm text-gray-500">
-                  {formatCurrency(calculateDailyCost(item.price, item.purchaseDate), currencyCode)}{t('perDay')}
-                </p>
-              </div>
-              <div className="flex items-center">
-                <IoChevronDown 
-                  className={`text-purple-500 transition-transform ${expandedItem === item.id ? 'rotate-180' : ''}`} 
-                />
-              </div>
-            </div>
-            
-            {expandedItem === item.id && (
-              <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-                <div className="space-y-3">
-                  <div className="flex items-start">
-                    <div 
-                      className={`p-2 rounded-lg ${activeIcon === 'price' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}
-                      onMouseEnter={() => setActiveIcon('price')}
-                      onMouseLeave={() => setActiveIcon(null)}
-                    >
-                      <IoCash className="text-lg" />
-                    </div>
-                    <div className="ml-3">
-                      <div className="text-xs text-gray-500">{t('purchaseAmount')}</div>
-                      <div className="font-medium">{formatCurrency(item.price, currencyCode)}</div>
-                    </div>
+              <div
+                className="p-4 flex items-center justify-between cursor-pointer"
+                onClick={() => toggleItem(item.id)}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-gray-900">{item.name}</h3>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                      {t(statusTranslationKey)}
+                    </span>
                   </div>
-                  
-                  <div className="flex items-start">
-                    <div 
-                      className={`p-2 rounded-lg ${activeIcon === 'date' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}
-                      onMouseEnter={() => setActiveIcon('date')}
-                      onMouseLeave={() => setActiveIcon(null)}
-                    >
-                      <IoCalendar className="text-lg" />
-                    </div>
-                    <div className="ml-3">
-                      <div className="text-xs text-gray-500">{t('purchaseDate')}</div>
-                      <div className="font-medium">
-                        {format(new Date(item.purchaseDate), 'yyyy-MM-dd')} 
-                        <span className="text-sm text-gray-500 ml-2">
-                          ({differenceInDays(new Date(), new Date(item.purchaseDate))} {t('daysAgo')})
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <button
-                    className="w-full mt-3 flex items-center justify-center gap-2 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
-                    onClick={() => handleEditItem(item)}
-                  >
-                    {t('edit')} <IoChevronForward />
-                  </button>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {t(isActive ? 'currentCostPerDay' : 'finalGrossCostPerDay')}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    {formatCurrency(Number(item.grossCostPerDay || 0), currencyCode)}{t('perDay')}
+                  </p>
+                </div>
+                <div className="flex items-center">
+                  <IoChevronDown
+                    className={`text-purple-500 transition-transform ${expandedItem === item.id ? 'rotate-180' : ''}`}
+                  />
                 </div>
               </div>
-            )}
-          </div>
-        ))
-      )}
-      
-      {/* Delete confirmation modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl p-4 max-w-xs w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('confirmDelete')}</h3>
-            <p className="text-gray-600 mb-4">
-              {t('deleteConfirmation')}
-            </p>
-            <div className="flex gap-2">
-              <button 
-                className="flex-1 py-2 rounded-lg bg-gray-200 text-gray-800 font-medium"
-                onClick={() => setShowDeleteModal(false)}
-              >
-                {t('cancel')}
-              </button>
-              <button 
-                className="flex-1 py-2 rounded-lg bg-red-500 text-white font-medium"
-                onClick={confirmDelete}
-              >
-                {t('confirm')}
-              </button>
+
+              {expandedItem === item.id && (
+                <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                  <div className="space-y-3">
+                    <div className="flex items-start">
+                      <div
+                        className={`p-2 rounded-lg ${activeIcon === 'price' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}
+                        onMouseEnter={() => setActiveIcon('price')}
+                        onMouseLeave={() => setActiveIcon(null)}
+                      >
+                        <IoCash className="text-lg" />
+                      </div>
+                      <div className="ml-3">
+                        <div className="text-xs text-gray-500">{t('purchaseAmount')}</div>
+                        <div className="font-medium">{formatCurrency(item.price, currencyCode)}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start">
+                      <div
+                        className={`p-2 rounded-lg ${activeIcon === 'date' ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}
+                        onMouseEnter={() => setActiveIcon('date')}
+                        onMouseLeave={() => setActiveIcon(null)}
+                      >
+                        <IoCalendar className="text-lg" />
+                      </div>
+                      <div className="ml-3">
+                        <div className="text-xs text-gray-500">{t('purchaseDate')}</div>
+                        <div className="font-medium">
+                          {format(new Date(item.purchaseDate), 'yyyy-MM-dd')}
+                          <span className="text-sm text-gray-500 ml-2">
+                            ({item.ownershipDays || 1} {t('ownershipDays')})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {!isActive && item.endedAt && (
+                      <div className="rounded-lg bg-gray-50 p-3">
+                        <div className="text-xs text-gray-500">{t('ownershipEndDate')}</div>
+                        <div className="font-medium">{format(new Date(item.endedAt), 'yyyy-MM-dd')}</div>
+                      </div>
+                    )}
+
+                    {itemStatus === 'sold' && (
+                      <div className="grid gap-3 rounded-lg bg-gray-50 p-3 sm:grid-cols-3">
+                        <div>
+                          <div className="text-xs text-gray-500">{t('salePrice')}</div>
+                          <div className="font-medium">{formatCurrency(Number(item.salePrice || 0), currencyCode)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">{t('netOwnershipCost')}</div>
+                          <div className="font-medium">{formatCurrency(Number(item.netOwnershipCost || 0), currencyCode)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500">{t('netCostPerDay')}</div>
+                          <div className="font-medium">
+                            {formatCurrency(Number(item.netCostPerDay || 0), currencyCode)}{t('perDay')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      className="w-full mt-3 flex items-center justify-center gap-2 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+                      onClick={() => handleEditItem(item)}
+                    >
+                      {t('edit')} <IoChevronForward />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          );
+        })
       )}
     </div>
   );

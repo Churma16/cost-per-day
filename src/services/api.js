@@ -66,11 +66,27 @@ const request = async (path, options = {}) => {
   return envelope.data;
 };
 
-const toItemPayload = (item) => ({
-  name: item.name,
-  price: Number(item.price),
-  purchaseDate: item.purchaseDate
-});
+const toItemPayload = (item) => {
+  const payload = {
+    name: item.name,
+    price: Number(item.price),
+    purchaseDate: item.purchaseDate
+  };
+
+  if (Object.prototype.hasOwnProperty.call(item, 'status')) {
+    payload.status = item.status;
+  }
+  if (Object.prototype.hasOwnProperty.call(item, 'endedAt')) {
+    payload.endedAt = item.endedAt ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(item, 'salePrice')) {
+    payload.salePrice = item.salePrice === null || item.salePrice === undefined || item.salePrice === ''
+      ? null
+      : Number(item.salePrice);
+  }
+
+  return payload;
+};
 
 export const getAllItems = async () => {
   const items = await request('/api/items');

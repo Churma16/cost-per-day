@@ -1,6 +1,6 @@
 # Cost Per Day
 
-A progressive web application that helps you track the daily cost of your purchased items. Calculate how much your possessions cost you per day from the purchase date until now.
+A progressive web application that helps you track the daily cost of your purchased items across their ownership lifecycle. Active items use the current date, while retired, sold, or lost items keep a frozen final cost per day based on their recorded ownership end date.
 
 <div style="text-align: center;">
   <img src="./public/preview.png" alt="drawing" width="200"/>
@@ -8,8 +8,9 @@ A progressive web application that helps you track the daily cost of your purcha
 
 ## Features
 
-- **Daily Cost Calculation**: Automatically calculates the cost per day for each item
-- **Total Daily Spending**: Shows the sum of all daily costs at a glance
+- **Lifecycle-Aware Daily Cost**: Calculates current cost per day for active items and freezes final cost per day when an item is retired, sold, or lost
+- **Sold Item Net Cost**: Tracks sale price, net ownership cost, and net cost per day for sold items
+- **Total Daily Cost**: Shows the combined current daily cost of active items at a glance
 - **Item Management**: 
   - Add new items with name, price, and purchase date
   - Edit existing items
@@ -90,9 +91,10 @@ See [docs/production.md](./docs/production.md) for the supported single-VPS topo
 5. Click "Save"
 
 ### Viewing Items
-1. The home screen displays all your items with their daily cost
-2. The total daily cost is shown at the top
-3. Click on any item to expand and see details
+1. The home screen displays active and historical items with their current or final daily cost
+2. The total daily cost at the top includes active items only
+3. Retired, sold, and lost items remain visible with frozen final ownership metrics
+4. Click on any item to expand and see details
 
 ### Editing Items
 1. Click on an item to expand it

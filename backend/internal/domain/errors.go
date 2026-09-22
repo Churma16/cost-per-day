@@ -21,6 +21,27 @@ var (
 	// ErrInvalidPurchaseDate indicates that an item purchase date does not follow a valid ISO 8601 or RFC 3339 format.
 	ErrInvalidPurchaseDate = errors.New("invalid purchase date")
 
+	// ErrInvalidItemStatus indicates that the requested lifecycle state is unsupported.
+	ErrInvalidItemStatus = errors.New("invalid item status")
+
+	// ErrMissingItemEndDate indicates that a completed lifecycle is missing its required end date.
+	ErrMissingItemEndDate = errors.New("ended_at is required for non-active items")
+
+	// ErrInvalidItemEndDate indicates that an ownership end date is not a supported date.
+	ErrInvalidItemEndDate = errors.New("invalid ended_at")
+
+	// ErrItemEndBeforePurchase indicates that an ownership end date predates purchase.
+	ErrItemEndBeforePurchase = errors.New("ended_at cannot be earlier than purchase_date")
+
+	// ErrItemEndInFuture indicates that a completed lifecycle has an end date after today.
+	ErrItemEndInFuture = errors.New("ended_at cannot be in the future")
+
+	// ErrInvalidSalePrice indicates that a sold item is missing a valid non-negative sale price.
+	ErrInvalidSalePrice = errors.New("sold items require a valid non-negative sale price")
+
+	// ErrUnexpectedSalePrice indicates that sale price was supplied for a state where it is not meaningful.
+	ErrUnexpectedSalePrice = errors.New("sale price is only allowed for sold items")
+
 	// ErrEmptySettingKey indicates that a setting key was empty or whitespace.
 	ErrEmptySettingKey = errors.New("setting key cannot be empty")
 

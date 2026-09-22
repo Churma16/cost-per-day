@@ -25,6 +25,9 @@ function AddItem() {
   const [purchaseDate, setPurchaseDate] = useState(() => {
     return setToNoonUTC(new Date());
   });
+  const [status, setStatus] = useState('active');
+  const [endedAt, setEndedAt] = useState('');
+  const [salePrice, setSalePrice] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editIndex, setEditIndex] = useState(-1);
@@ -45,7 +48,10 @@ function AddItem() {
     const resetForm = () => {
       setName('');
       setPrice('');
-      setPurchaseDate(new Date());
+      setPurchaseDate(setToNoonUTC(new Date()));
+      setStatus('active');
+      setEndedAt('');
+      setSalePrice('');
       setIsEditMode(false);
       setEditIndex(-1);
       setShowDeleteConfirm(false);
@@ -96,6 +102,9 @@ function AddItem() {
         setName(item.name);
         setPrice(item.price.toString());
         setPurchaseDate(setToNoonUTC(parseISO(item.purchaseDate)));
+        setStatus(item.status || 'active');
+        setEndedAt(item.endedAt ? item.endedAt.slice(0, 10) : '');
+        setSalePrice(item.salePrice === null || item.salePrice === undefined ? '' : String(item.salePrice));
         setItemLoaded(true);
       } catch (error) {
         console.error('Error loading item:', error);
@@ -120,9 +129,25 @@ function AddItem() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showDatePicker]);
 
-  const isFormValid = name.trim() !== '' && 
-                     Number(price) > 0 && 
-                     purchaseDate instanceof Date;
+  const purchaseDateValue = purchaseDate instanceof Date && !Number.isNaN(purchaseDate.getTime())
+    ? purchaseDate.toISOString().split('T')[0]
+    : '';
+  const currentDateValue = new Date().toISOString().split('T')[0];
+  const lifecycleFormValid = !isEditMode ||
+    status === 'active' ||
+    (
+      endedAt !== '' &&
+      endedAt >= purchaseDateValue &&
+      endedAt <= currentDateValue &&
+      (
+        status !== 'sold' ||
+        (salePrice !== '' && Number.isFinite(Number(salePrice)) && Number(salePrice) >= 0)
+      )
+    );
+  const isFormValid = name.trim() !== '' &&
+                     Number(price) > 0 &&
+                     purchaseDateValue !== '' &&
+                     lifecycleFormValid;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -132,6 +157,14 @@ function AddItem() {
       price: Number(price),
       purchaseDate: setToNoonUTC(purchaseDate).toISOString(),
     };
+
+    if (isEditMode) {
+      itemData.status = status;
+      itemData.endedAt = status === 'active'
+        ? null
+        : new Date(`${endedAt}T12:00:00.000Z`).toISOString();
+      itemData.salePrice = status === 'sold' ? Number(salePrice) : null;
+    }
 
     setErrorMessage(null);
 
@@ -338,6 +371,79 @@ function AddItem() {
               </div>
             </div>
             
+            {isEditMode && itemLoaded && (
+              <div className="space-y-4 rounded-xl border border-purple-100 bg-purple-50/40 p-4">
+                <div className="space-y-2">
+                  <label htmlFor="item-status" className="text-sm text-gray-600 font-medium">
+                    {t('itemStatus')}
+                  </label>
+                  <select
+                    id="item-status"
+                    value={status}
+                    onChange={(event) => {
+                      const nextStatus = event.target.value;
+                      setStatus(nextStatus);
+                      if (nextStatus === 'active') {
+                        setEndedAt('');
+                        setSalePrice('');
+                      } else if (nextStatus !== 'sold') {
+                        setSalePrice('');
+                      }
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-purple-100 bg-white focus:border-purple-300
+                    focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200"
+                  >
+                    <option value="active">{t('statusActive')}</option>
+                    <option value="retired">{t('statusRetired')}</option>
+                    <option value="sold">{t('statusSold')}</option>
+                    <option value="lost">{t('statusLost')}</option>
+                  </select>
+                </div>
+
+                {status !== 'active' && (
+                  <div className="space-y-2">
+                    <label htmlFor="ownership-end-date" className="text-sm text-gray-600 font-medium">
+                      {t('ownershipEndDate')}
+                    </label>
+                    <input
+                      id="ownership-end-date"
+                      type="date"
+                      value={endedAt}
+                      min={purchaseDateValue}
+                      max={currentDateValue}
+                      onChange={(event) => setEndedAt(event.target.value)}
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-purple-100 bg-white focus:border-purple-300
+                      focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200"
+                    />
+                  </div>
+                )}
+
+                {status === 'sold' && (
+                  <div className="space-y-2">
+                    <label htmlFor="sale-price" className="text-sm text-gray-600 font-medium">
+                      {t('salePrice')}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">{currencySymbol}</div>
+                      <input
+                        id="sale-price"
+                        type="number"
+                        value={salePrice}
+                        onChange={(event) => setSalePrice(event.target.value)}
+                        required
+                        min="0"
+                        step="0.01"
+                        placeholder={t('enterSalePrice')}
+                        className={`w-full px-4 py-3 ${currencySymbol.length > 1 ? 'pl-11' : 'pl-8'} rounded-xl border border-purple-100 bg-white focus:border-purple-300
+                        focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200`}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-4 pt-4">
               <button 
                 type="submit" 

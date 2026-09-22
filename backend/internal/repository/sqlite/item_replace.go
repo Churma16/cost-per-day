@@ -31,17 +31,42 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, items 
 		}
 		itemToCreate.Price = convertMicrosToPrice(priceMicros)
 
+		salePriceMicros, saleConversionError := convertOptionalSalePriceToMicros(itemToCreate.SalePrice)
+		if saleConversionError != nil {
+			return nil, saleConversionError
+		}
+		if itemToCreate.SalePrice != nil {
+			normalizedSalePrice := convertMicrosToPrice(*salePriceMicros)
+			itemToCreate.SalePrice = &normalizedSalePrice
+		}
+
+		if itemToCreate.Status == "" {
+			itemToCreate.Status = domain.ItemStatusActive
+		}
+
 		currentTimestamp := time.Now().UTC()
 		itemToCreate.CreatedAt = currentTimestamp
 		itemToCreate.UpdatedAt = currentTimestamp
 
 		insertResult, insertError := transaction.ExecContext(ctx, `
-			INSERT INTO items (name, price_micros, purchase_date, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?)
+			INSERT INTO items (
+				name,
+				price_micros,
+				purchase_date,
+				status,
+				ended_at,
+				sale_price_micros,
+				created_at,
+				updated_at
+			)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		`,
 			itemToCreate.Name,
 			priceMicros,
 			itemToCreate.PurchaseDate,
+			string(itemToCreate.Status),
+			nullableString(itemToCreate.EndedAt),
+			nullableInt64(salePriceMicros),
 			itemToCreate.CreatedAt.Format(time.RFC3339Nano),
 			itemToCreate.UpdatedAt.Format(time.RFC3339Nano),
 		)

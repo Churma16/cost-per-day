@@ -15,7 +15,16 @@ type ItemService interface {
 	ListItems(ctx context.Context) ([]domain.Item, error)
 	GetItemByID(ctx context.Context, itemID string) (domain.Item, error)
 	CreateItem(ctx context.Context, name string, price float64, purchaseDate string) (domain.Item, error)
-	UpdateItem(ctx context.Context, itemID string, name string, price float64, purchaseDate string) (domain.Item, error)
+	UpdateItem(
+		ctx context.Context,
+		itemID string,
+		name string,
+		price float64,
+		purchaseDate string,
+		status domain.ItemStatus,
+		endedAt *string,
+		salePrice *float64,
+	) (domain.Item, error)
 	DeleteItem(ctx context.Context, itemID string) error
 	ReplaceItems(ctx context.Context, items []domain.Item) ([]domain.Item, error)
 }
@@ -33,56 +42,86 @@ func NewItemService(itemRepository repository.ItemRepository) ItemService {
 	}
 }
 
-// ListItems retrieves all items from the persistence layer.
+// ListItems retrieves all items and calculates current or final ownership metrics.
 func (serviceInstance *itemServiceImpl) ListItems(ctx context.Context) ([]domain.Item, error) {
-	return serviceInstance.itemRepository.List(ctx)
+	items, repositoryError := serviceInstance.itemRepository.List(ctx)
+	if repositoryError != nil {
+		return nil, repositoryError
+	}
+
+	return enrichItems(items, time.Now().UTC())
 }
 
-// GetItemByID retrieves an item by its unique identifier.
+// GetItemByID retrieves an item by its unique identifier and calculates ownership metrics.
 func (serviceInstance *itemServiceImpl) GetItemByID(ctx context.Context, itemID string) (domain.Item, error) {
 	trimmedItemID := strings.TrimSpace(itemID)
 	if trimmedItemID == "" {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
-	return serviceInstance.itemRepository.GetByID(ctx, trimmedItemID)
+
+	item, repositoryError := serviceInstance.itemRepository.GetByID(ctx, trimmedItemID)
+	if repositoryError != nil {
+		return domain.Item{}, repositoryError
+	}
+
+	return enrichItem(item, time.Now().UTC())
 }
 
-// CreateItem validates and creates a new item.
+// CreateItem validates and creates a new active item.
 func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, name string, price float64, purchaseDate string) (domain.Item, error) {
-	validatedName, validatedPurchaseDate, validationError := serviceInstance.validateItemInput(name, price, purchaseDate)
+	validatedItem, validationError := validateItem(domain.Item{
+		Name:         name,
+		Price:        price,
+		PurchaseDate: purchaseDate,
+		Status:       domain.ItemStatusActive,
+	})
 	if validationError != nil {
 		return domain.Item{}, validationError
 	}
 
-	itemToCreate := domain.Item{
-		Name:         validatedName,
-		Price:        price,
-		PurchaseDate: validatedPurchaseDate,
+	createdItem, repositoryError := serviceInstance.itemRepository.Create(ctx, validatedItem)
+	if repositoryError != nil {
+		return domain.Item{}, repositoryError
 	}
 
-	return serviceInstance.itemRepository.Create(ctx, itemToCreate)
+	return enrichItem(createdItem, time.Now().UTC())
 }
 
-// UpdateItem validates and updates an existing item.
-func (serviceInstance *itemServiceImpl) UpdateItem(ctx context.Context, itemID string, name string, price float64, purchaseDate string) (domain.Item, error) {
+// UpdateItem validates and updates the item, including lifecycle facts.
+func (serviceInstance *itemServiceImpl) UpdateItem(
+	ctx context.Context,
+	itemID string,
+	name string,
+	price float64,
+	purchaseDate string,
+	status domain.ItemStatus,
+	endedAt *string,
+	salePrice *float64,
+) (domain.Item, error) {
 	trimmedItemID := strings.TrimSpace(itemID)
 	if trimmedItemID == "" {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
 
-	validatedName, validatedPurchaseDate, validationError := serviceInstance.validateItemInput(name, price, purchaseDate)
+	validatedItem, validationError := validateItem(domain.Item{
+		ID:           trimmedItemID,
+		Name:         name,
+		Price:        price,
+		PurchaseDate: purchaseDate,
+		Status:       status,
+		EndedAt:      endedAt,
+		SalePrice:    salePrice,
+	})
 	if validationError != nil {
 		return domain.Item{}, validationError
 	}
 
-	itemToUpdate := domain.Item{
-		ID:           trimmedItemID,
-		Name:         validatedName,
-		Price:        price,
-		PurchaseDate: validatedPurchaseDate,
+	updatedItem, repositoryError := serviceInstance.itemRepository.Update(ctx, validatedItem)
+	if repositoryError != nil {
+		return domain.Item{}, repositoryError
 	}
 
-	return serviceInstance.itemRepository.Update(ctx, itemToUpdate)
+	return enrichItem(updatedItem, time.Now().UTC())
 }
 
 // DeleteItem removes an existing item by its identifier.
@@ -99,57 +138,186 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, items 
 	validatedItems := make([]domain.Item, 0, len(items))
 
 	for _, item := range items {
-		validatedName, validatedPurchaseDate, validationError := serviceInstance.validateItemInput(
-			item.Name,
-			item.Price,
-			item.PurchaseDate,
-		)
+		validatedItem, validationError := validateItem(item)
 		if validationError != nil {
 			return nil, validationError
 		}
-
-		validatedItems = append(validatedItems, domain.Item{
-			Name:         validatedName,
-			Price:        item.Price,
-			PurchaseDate: validatedPurchaseDate,
-		})
+		validatedItems = append(validatedItems, validatedItem)
 	}
 
-	return serviceInstance.itemRepository.ReplaceAll(ctx, validatedItems)
+	replacedItems, repositoryError := serviceInstance.itemRepository.ReplaceAll(ctx, validatedItems)
+	if repositoryError != nil {
+		return nil, repositoryError
+	}
+
+	return enrichItems(replacedItems, time.Now().UTC())
 }
 
-// validateItemInput validates the item fields according to domain rules.
-func (serviceInstance *itemServiceImpl) validateItemInput(name string, price float64, purchaseDate string) (string, string, error) {
-	trimmedName := strings.TrimSpace(name)
+func validateItem(item domain.Item) (domain.Item, error) {
+	trimmedName := strings.TrimSpace(item.Name)
 	if trimmedName == "" {
-		return "", "", domain.ErrEmptyItemName
+		return domain.Item{}, domain.ErrEmptyItemName
 	}
 
-	if price <= 0 || math.IsNaN(price) || math.IsInf(price, 0) {
-		return "", "", domain.ErrInvalidItemPrice
+	if item.Price <= 0 || math.IsNaN(item.Price) || math.IsInf(item.Price, 0) {
+		return domain.Item{}, domain.ErrInvalidItemPrice
 	}
 
-	scaledPrice := price * itemPricePrecisionScale
+	scaledPrice := item.Price * itemPricePrecisionScale
 	if scaledPrice >= float64(math.MaxInt64) || math.Round(scaledPrice) <= 0 {
-		return "", "", domain.ErrUnsupportedItemPrice
+		return domain.Item{}, domain.ErrUnsupportedItemPrice
 	}
 
-	trimmedPurchaseDate := strings.TrimSpace(purchaseDate)
+	trimmedPurchaseDate := strings.TrimSpace(item.PurchaseDate)
 	if trimmedPurchaseDate == "" {
-		return "", "", domain.ErrInvalidPurchaseDate
+		return domain.Item{}, domain.ErrInvalidPurchaseDate
 	}
 
-	parsedDate, parseError := parsePurchaseDate(trimmedPurchaseDate)
+	parsedPurchaseDate, parseError := parseItemDate(trimmedPurchaseDate)
 	if parseError != nil {
-		return "", "", domain.ErrInvalidPurchaseDate
+		return domain.Item{}, domain.ErrInvalidPurchaseDate
 	}
 
-	formattedPurchaseDate := parsedDate.Format(time.RFC3339)
-	return trimmedName, formattedPurchaseDate, nil
+	status := domain.ItemStatus(strings.ToLower(strings.TrimSpace(string(item.Status))))
+	if status == "" {
+		status = domain.ItemStatusActive
+	}
+
+	validatedItem := item
+	validatedItem.Name = trimmedName
+	validatedItem.PurchaseDate = parsedPurchaseDate.Format(time.RFC3339)
+	validatedItem.Status = status
+
+	switch status {
+	case domain.ItemStatusActive:
+		validatedItem.EndedAt = nil
+		validatedItem.SalePrice = nil
+	case domain.ItemStatusRetired, domain.ItemStatusLost, domain.ItemStatusSold:
+		if item.EndedAt == nil || strings.TrimSpace(*item.EndedAt) == "" {
+			return domain.Item{}, domain.ErrMissingItemEndDate
+		}
+
+		parsedEndDate, endDateError := parseItemDate(strings.TrimSpace(*item.EndedAt))
+		if endDateError != nil {
+			return domain.Item{}, domain.ErrInvalidItemEndDate
+		}
+		if parsedEndDate.Before(parsedPurchaseDate) {
+			return domain.Item{}, domain.ErrItemEndBeforePurchase
+		}
+		if isAfterUTCDate(parsedEndDate, time.Now().UTC()) {
+			return domain.Item{}, domain.ErrItemEndInFuture
+		}
+
+		formattedEndDate := parsedEndDate.Format(time.RFC3339)
+		validatedItem.EndedAt = &formattedEndDate
+
+		if status == domain.ItemStatusSold {
+			if item.SalePrice == nil || !isSupportedSalePrice(*item.SalePrice) {
+				return domain.Item{}, domain.ErrInvalidSalePrice
+			}
+			validatedSalePrice := *item.SalePrice
+			validatedItem.SalePrice = &validatedSalePrice
+		} else {
+			if item.SalePrice != nil {
+				return domain.Item{}, domain.ErrUnexpectedSalePrice
+			}
+			validatedItem.SalePrice = nil
+		}
+	default:
+		return domain.Item{}, domain.ErrInvalidItemStatus
+	}
+
+	return validatedItem, nil
 }
 
-// parsePurchaseDate attempts to parse various supported ISO 8601 and RFC 3339 date formats.
-func parsePurchaseDate(dateString string) (time.Time, error) {
+func isSupportedSalePrice(salePrice float64) bool {
+	if salePrice < 0 || math.IsNaN(salePrice) || math.IsInf(salePrice, 0) {
+		return false
+	}
+
+	scaledPrice := salePrice * itemPricePrecisionScale
+	if scaledPrice >= float64(math.MaxInt64) {
+		return false
+	}
+	if salePrice > 0 && math.Round(scaledPrice) <= 0 {
+		return false
+	}
+
+	return true
+}
+
+func enrichItems(items []domain.Item, asOf time.Time) ([]domain.Item, error) {
+	enrichedItems := make([]domain.Item, 0, len(items))
+	for _, item := range items {
+		enrichedItem, enrichmentError := enrichItem(item, asOf)
+		if enrichmentError != nil {
+			return nil, enrichmentError
+		}
+		enrichedItems = append(enrichedItems, enrichedItem)
+	}
+	return enrichedItems, nil
+}
+
+func enrichItem(item domain.Item, asOf time.Time) (domain.Item, error) {
+	status := item.Status
+	if status == "" {
+		status = domain.ItemStatusActive
+	}
+	item.Status = status
+
+	purchaseDate, purchaseDateError := time.Parse(time.RFC3339, item.PurchaseDate)
+	if purchaseDateError != nil {
+		return domain.Item{}, domain.ErrInvalidPurchaseDate
+	}
+
+	ownershipEnd := asOf.UTC()
+	if status != domain.ItemStatusActive {
+		if item.EndedAt == nil {
+			return domain.Item{}, domain.ErrMissingItemEndDate
+		}
+
+		parsedEndDate, endDateError := time.Parse(time.RFC3339, *item.EndedAt)
+		if endDateError != nil {
+			return domain.Item{}, domain.ErrInvalidItemEndDate
+		}
+		ownershipEnd = parsedEndDate.UTC()
+	}
+
+	ownershipDays := int(math.Ceil(ownershipEnd.Sub(purchaseDate.UTC()).Hours() / 24))
+	if ownershipDays < 1 {
+		ownershipDays = 1
+	}
+
+	item.OwnershipDays = ownershipDays
+	item.GrossCostPerDay = item.Price / float64(ownershipDays)
+	item.NetOwnershipCost = nil
+	item.NetCostPerDay = nil
+
+	if status == domain.ItemStatusSold {
+		if item.SalePrice == nil {
+			return domain.Item{}, domain.ErrInvalidSalePrice
+		}
+		netOwnershipCost := item.Price - *item.SalePrice
+		netCostPerDay := netOwnershipCost / float64(ownershipDays)
+		item.NetOwnershipCost = &netOwnershipCost
+		item.NetCostPerDay = &netCostPerDay
+	}
+
+	return item, nil
+}
+
+func isAfterUTCDate(candidate time.Time, reference time.Time) bool {
+	candidateYear, candidateMonth, candidateDay := candidate.UTC().Date()
+	referenceYear, referenceMonth, referenceDay := reference.UTC().Date()
+
+	candidateDate := time.Date(candidateYear, candidateMonth, candidateDay, 0, 0, 0, 0, time.UTC)
+	referenceDate := time.Date(referenceYear, referenceMonth, referenceDay, 0, 0, 0, 0, time.UTC)
+
+	return candidateDate.After(referenceDate)
+}
+
+// parseItemDate attempts to parse supported ISO 8601 and RFC 3339 date formats.
+func parseItemDate(dateString string) (time.Time, error) {
 	supportedLayouts := []string{
 		time.RFC3339Nano,
 		time.RFC3339,
