@@ -184,6 +184,41 @@ describe('AddItem component date localization', () => {
     });
   });
 
+  test('prevents future ownership end dates in edit mode', async () => {
+    useLanguage.mockReturnValue({
+      language: 'en'
+    });
+    getAllItems.mockResolvedValueOnce([{
+      id: '42',
+      name: 'Phone',
+      price: 100,
+      purchaseDate: '2026-09-01T12:00:00Z',
+      status: 'active',
+      grossCostPerDay: 5
+    }]);
+
+    render(
+      <MemoryRouter initialEntries={['/edit?id=42']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByDisplayValue('Phone')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Item status'), {
+      target: { value: 'retired' }
+    });
+
+    const endDateInput = screen.getByLabelText('Ownership end date');
+    expect(endDateInput).toHaveAttribute('max', new Date().toISOString().split('T')[0]);
+
+    fireEvent.change(endDateInput, {
+      target: { value: '2999-01-01' }
+    });
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
   test('does not expose delete when edit data fails to load', async () => {
     useLanguage.mockReturnValue({
       language: 'en'
