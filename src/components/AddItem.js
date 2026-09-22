@@ -31,6 +31,7 @@ function AddItem() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [itemLoaded, setItemLoaded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [month, setMonth] = useState(purchaseDate);
@@ -50,6 +51,7 @@ function AddItem() {
       setShowDeleteConfirm(false);
       setErrorMessage(null);
       setLoadFailed(false);
+      setItemLoaded(false);
     };
 
     if (location.pathname === '/add') {
@@ -78,6 +80,7 @@ function AddItem() {
       setEditIndex(editId);
       setErrorMessage(null);
       setLoadFailed(false);
+      setItemLoaded(false);
 
       try {
         const items = await getAllItems();
@@ -93,9 +96,11 @@ function AddItem() {
         setName(item.name);
         setPrice(item.price.toString());
         setPurchaseDate(setToNoonUTC(parseISO(item.purchaseDate)));
+        setItemLoaded(true);
       } catch (error) {
         console.error('Error loading item:', error);
         setLoadFailed(true);
+        setItemLoaded(false);
         setErrorMessage(error.message || 'Failed to load the item from the server.');
       }
     };
@@ -144,6 +149,10 @@ function AddItem() {
   };
 
   const handleDelete = async () => {
+    if (!itemLoaded) {
+      return;
+    }
+
     setErrorMessage(null);
 
     try {
@@ -335,12 +344,12 @@ function AddItem() {
                 className="w-full py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium
                 hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg
                 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed"
-                disabled={!isFormValid || loadFailed}
+                disabled={!isFormValid || loadFailed || (isEditMode && !itemLoaded)}
               >
                 {t('save')}
               </button>
 
-              {isEditMode && (
+              {isEditMode && itemLoaded && (
                 <button 
                   type="button"
                   className="w-full py-3.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium
