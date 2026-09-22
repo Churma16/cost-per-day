@@ -217,6 +217,14 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 		t.Fatal("expected price smaller than six-decimal storage precision to fail")
 	}
 
+	if _, boundaryPriceError := itemRepository.Create(ctx, domain.Item{
+		Name:         "Boundary",
+		Price:        9223372036854.7754,
+		PurchaseDate: "2026-09-22T10:00:00Z",
+	}); boundaryPriceError == nil {
+		t.Fatal("expected price at int64 micro-unit boundary to fail")
+	}
+
 	if _, missingUpdateError := itemRepository.Update(ctx, domain.Item{
 		ID:           "999999",
 		Name:         "Missing",
