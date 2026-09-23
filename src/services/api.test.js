@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import {
   addItem,
   updateItem,
@@ -5,13 +6,15 @@ import {
   getSetting,
   replaceAllItems,
   getCurrentUser,
-  logoutCurrentUser
+  logoutCurrentUser,
+  getGoogleLoginUrl,
+  resolveApiBaseUrl
 } from './api';
 
 const response = (status, data, message = 'ok') => ({
   ok: status >= 200 && status < 300,
   status,
-  json: jest.fn().mockResolvedValue({
+  json: vi.fn().mockResolvedValue({
     meta: { code: status, message },
     data
   })
@@ -19,7 +22,7 @@ const response = (status, data, message = 'ok') => ({
 
 describe('frontend API client', () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
@@ -181,5 +184,23 @@ describe('frontend API client', () => {
       method: 'POST',
       credentials: 'include'
     }));
+  });
+
+  test('uses static VITE_API_BASE_URL when configured and handles trailing slashes', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com/');
+
+    expect(resolveApiBaseUrl()).toBe('https://api.example.com');
+    expect(getGoogleLoginUrl()).toBe('https://api.example.com/auth/google/login');
+
+    global.fetch.mockResolvedValue(response(200, [], 'items retrieved successfully'));
+    await getAllItems();
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.example.com/api/items',
+      expect.objectContaining({ credentials: 'include' })
+    );
+
+    vi.unstubAllEnvs();
+    expect(resolveApiBaseUrl()).toBe('');
   });
 });

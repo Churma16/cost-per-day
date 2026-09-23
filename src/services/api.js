@@ -3,33 +3,15 @@ export const DEFAULT_SETTINGS = {
   currency: 'USD'
 };
 
-const getEnvironmentVariable = (variableName) => {
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[variableName] !== undefined) {
-    return import.meta.env[variableName];
+export const resolveApiBaseUrl = () => {
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (configuredBaseUrl && configuredBaseUrl.trim() !== '') {
+    return configuredBaseUrl.trim().replace(/\/+$/, '');
   }
-  if (typeof process !== 'undefined' && process.env && process.env[variableName] !== undefined) {
-    return process.env[variableName];
-  }
-  return undefined;
+  return import.meta.env.MODE === 'development' ? 'http://localhost:8080' : '';
 };
 
-const isDevelopmentMode = () => {
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.MODE === 'development';
-  }
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env.NODE_ENV === 'development';
-  }
-  return false;
-};
-
-const DEFAULT_API_BASE_URL = isDevelopmentMode() ? 'http://localhost:8080' : '';
-
-const configuredApiBaseUrl = getEnvironmentVariable('VITE_API_BASE_URL')
-  || getEnvironmentVariable('REACT_APP_API_BASE_URL')
-  || DEFAULT_API_BASE_URL;
-
-const API_BASE_URL = configuredApiBaseUrl.trim().replace(/\/+$/, '');
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(message, status = null, cause = null) {
@@ -40,7 +22,7 @@ export class ApiError extends Error {
   }
 }
 
-const buildApiUrl = (path) => `${API_BASE_URL}${path}`;
+export const buildApiUrl = (path) => `${resolveApiBaseUrl()}${path}`;
 
 const request = async (path, options = {}) => {
   const requestOptions = {
