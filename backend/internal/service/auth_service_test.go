@@ -11,8 +11,9 @@ import (
 )
 
 type fakeUserRepository struct {
-	byID  map[string]domain.User
-	bySub map[string]string
+	byID                    map[string]domain.User
+	bySub                   map[string]string
+	legacyBootstrapRequired bool
 }
 
 func newFakeUserRepository() *fakeUserRepository {
@@ -28,6 +29,10 @@ func (repositoryInstance *fakeUserRepository) GetByID(_ context.Context, userID 
 		return domain.User{}, domain.ErrUserNotFound
 	}
 	return user, nil
+}
+
+func (repositoryInstance *fakeUserRepository) NeedsLegacyOwnerBootstrap(_ context.Context) (bool, error) {
+	return repositoryInstance.legacyBootstrapRequired, nil
 }
 
 func (repositoryInstance *fakeUserRepository) BindGoogleIdentity(_ context.Context, userID string, candidate domain.User) (domain.User, error) {
@@ -47,6 +52,7 @@ func (repositoryInstance *fakeUserRepository) BindGoogleIdentity(_ context.Conte
 	existing.AvatarURL = candidate.AvatarURL
 	repositoryInstance.byID[userID] = existing
 	repositoryInstance.bySub[candidate.GoogleSub] = userID
+	repositoryInstance.legacyBootstrapRequired = false
 	return existing, nil
 }
 
@@ -186,6 +192,7 @@ func TestAuthServiceMapsGoogleSubjectToOneLocalUserAndOwnsSessions(t *testing.T)
 func TestAuthServiceControlledLegacyOwnerBootstrapBindsVerifiedSubject(t *testing.T) {
 	userRepository := newFakeUserRepository()
 	userRepository.byID[domain.LegacyUserID] = domain.User{ID: domain.LegacyUserID}
+	userRepository.legacyBootstrapRequired = true
 	sessionRepository := newFakeSessionRepository()
 	provider := &fakeGoogleIdentityProvider{
 		identity: service.GoogleIdentity{
@@ -220,5 +227,41 @@ func TestAuthServiceControlledLegacyOwnerBootstrapBindsVerifiedSubject(t *testin
 	}
 	if otherUser.ID == domain.LegacyUserID {
 		t.Fatal("unconfigured subject must not adopt legacy ownership")
+	}
+}
+
+
+func TestAuthServiceRejectsUnsafeLoginAndConfigurationWhenLegacyDataIsUnclaimed(t *testing.T) {
+	userRepository := newFakeUserRepository()
+	userRepository.byID[domain.LegacyUserID] = domain.User{ID: domain.LegacyUserID}
+	userRepository.legacyBootstrapRequired = true
+	sessionRepository := newFakeSessionRepository()
+	provider := &fakeGoogleIdentityProvider{
+		identity: service.GoogleIdentity{
+			Subject: "owner-sub",
+			Email:   "owner@example.com",
+		},
+	}
+
+	withoutBootstrap := service.NewAuthService(userRepository, sessionRepository, provider, "")
+	if validationError := withoutBootstrap.ValidateConfiguration(context.Background()); !errors.Is(validationError, domain.ErrLegacyOwnerBootstrapRequired) {
+		t.Fatalf("expected startup validation to require legacy bootstrap, got %v", validationError)
+	}
+	if _, _, _, loginError := withoutBootstrap.CompleteGoogleLogin(context.Background(), "code", "nonce"); !errors.Is(loginError, domain.ErrLegacyOwnerBootstrapRequired) {
+		t.Fatalf("expected unsafe first login to be rejected, got %v", loginError)
+	}
+	if len(userRepository.bySub) != 0 {
+		t.Fatalf("unsafe login must not create a competing Google user: %v", userRepository.bySub)
+	}
+
+	withWrongBootstrap := service.NewAuthService(userRepository, sessionRepository, provider, "different-owner-sub")
+	if validationError := withWrongBootstrap.ValidateConfiguration(context.Background()); validationError != nil {
+		t.Fatalf("configured bootstrap should allow startup validation, got %v", validationError)
+	}
+	if _, _, _, loginError := withWrongBootstrap.CompleteGoogleLogin(context.Background(), "code", "nonce"); !errors.Is(loginError, domain.ErrLegacyOwnerBootstrapRequired) {
+		t.Fatalf("expected non-matching subject to be rejected while legacy data is unclaimed, got %v", loginError)
+	}
+	if len(userRepository.bySub) != 0 {
+		t.Fatalf("mismatched bootstrap login must not create a competing user: %v", userRepository.bySub)
 	}
 }

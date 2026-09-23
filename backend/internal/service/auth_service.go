@@ -54,6 +54,18 @@ func NewAuthService(
 	}
 }
 
+// ValidateConfiguration prevents startup with meaningful unclaimed legacy data and no explicit verified-sub bootstrap mapping.
+func (serviceInstance *AuthService) ValidateConfiguration(ctx context.Context) error {
+	bootstrapRequired, bootstrapError := serviceInstance.userRepository.NeedsLegacyOwnerBootstrap(ctx)
+	if bootstrapError != nil {
+		return bootstrapError
+	}
+	if bootstrapRequired && serviceInstance.legacyOwnerGoogleSub == "" {
+		return domain.ErrLegacyOwnerBootstrapRequired
+	}
+	return nil
+}
+
 // GoogleAuthorizationURL builds the provider redirect without exposing provider tokens to domain code.
 func (serviceInstance *AuthService) GoogleAuthorizationURL(state string, nonce string) string {
 	return serviceInstance.googleProvider.AuthorizationURL(state, nonce)
@@ -80,6 +92,16 @@ func (serviceInstance *AuthService) CompleteGoogleLogin(
 		Email:       strings.TrimSpace(identity.Email),
 		DisplayName: strings.TrimSpace(identity.DisplayName),
 		AvatarURL:   strings.TrimSpace(identity.AvatarURL),
+	}
+
+	bootstrapRequired, bootstrapError := serviceInstance.userRepository.NeedsLegacyOwnerBootstrap(ctx)
+	if bootstrapError != nil {
+		return domain.User{}, "", time.Time{}, bootstrapError
+	}
+	if bootstrapRequired {
+		if serviceInstance.legacyOwnerGoogleSub == "" || identity.Subject != serviceInstance.legacyOwnerGoogleSub {
+			return domain.User{}, "", time.Time{}, domain.ErrLegacyOwnerBootstrapRequired
+		}
 	}
 
 	var (

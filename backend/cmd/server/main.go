@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"cost-per-day/backend/internal/auth/googleoidc"
+	"cost-per-day/backend/internal/domain"
 	sqliterepository "cost-per-day/backend/internal/repository/sqlite"
 	"cost-per-day/backend/internal/service"
 	transportHttp "cost-per-day/backend/internal/transport/http"
@@ -103,6 +104,15 @@ func main() {
 		log.Fatalf("[error] Failed to initialize Google OIDC client: %v\n", googleProviderError)
 	}
 	authService := service.NewAuthService(userRepository, sessionRepository, googleProvider, legacyOwnerGoogleSub)
+	configurationContext, cancelConfigurationContext := context.WithTimeout(context.Background(), 5*time.Second)
+	configurationError := authService.ValidateConfiguration(configurationContext)
+	cancelConfigurationContext()
+	if configurationError != nil {
+		if errors.Is(configurationError, domain.ErrLegacyOwnerBootstrapRequired) {
+			log.Fatal("[error] Existing pre-auth data requires LEGACY_OWNER_GOOGLE_SUB before authentication can be enabled")
+		}
+		log.Fatalf("[error] Failed to validate authentication configuration: %v\n", configurationError)
+	}
 
 	itemHandler := handler.NewItemHandler(itemService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)

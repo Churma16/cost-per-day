@@ -44,6 +44,51 @@ func (repositoryInstance *UserRepository) GetByID(ctx context.Context, userID st
 	return user, nil
 }
 
+// NeedsLegacyOwnerBootstrap reports whether meaningful pre-auth data is still owned by an unclaimed legacy user.
+// Untouched built-in language/currency defaults do not require adoption because they contain no user-specific state.
+func (repositoryInstance *UserRepository) NeedsLegacyOwnerBootstrap(ctx context.Context) (bool, error) {
+	var googleSub sql.NullString
+	scanError := repositoryInstance.databaseConnection.QueryRowContext(ctx,
+		"SELECT google_sub FROM users WHERE id = ?",
+		domain.LegacyUserID,
+	).Scan(&googleSub)
+	if errors.Is(scanError, sql.ErrNoRows) {
+		return false, nil
+	}
+	if scanError != nil {
+		return false, fmt.Errorf("read legacy user binding: %w", scanError)
+	}
+	if googleSub.Valid && strings.TrimSpace(googleSub.String) != "" {
+		return false, nil
+	}
+
+	var meaningfulDataExists int
+	if queryError := repositoryInstance.databaseConnection.QueryRowContext(ctx, `
+		SELECT CASE WHEN
+			EXISTS (
+				SELECT 1
+				FROM items
+				WHERE user_id = ?
+				LIMIT 1
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM settings
+				WHERE user_id = ?
+				  AND NOT (
+					(key = 'language' AND value = 'en')
+					OR (key = 'currency' AND value = 'USD')
+				  )
+				LIMIT 1
+			)
+		THEN 1 ELSE 0 END
+	`, domain.LegacyUserID, domain.LegacyUserID).Scan(&meaningfulDataExists); queryError != nil {
+		return false, fmt.Errorf("inspect legacy-owned data: %w", queryError)
+	}
+
+	return meaningfulDataExists == 1, nil
+}
+
 // BindGoogleIdentity attaches a verified Google subject to a specific existing local user.
 // It refuses to overwrite a different binding or steal a subject that already belongs to another user.
 func (repositoryInstance *UserRepository) BindGoogleIdentity(ctx context.Context, userID string, candidate domain.User) (domain.User, error) {
