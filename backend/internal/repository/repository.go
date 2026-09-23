@@ -38,3 +38,13 @@ type SessionRepository interface {
 	GetUserIDByTokenHash(ctx context.Context, tokenHash string, now time.Time) (string, error)
 	DeleteByTokenHash(ctx context.Context, tokenHash string) error
 }
+
+// ValueEquivalentRepository defines the persistence contract for user-owned value equivalents.
+type ValueEquivalentRepository interface {
+	List(ctx context.Context, userID string) ([]domain.ValueEquivalent, error)
+	GetByID(ctx context.Context, userID string, id string) (domain.ValueEquivalent, error)
+	Create(ctx context.Context, userID string, equivalent domain.ValueEquivalent) (domain.ValueEquivalent, error)
+	Update(ctx context.Context, userID string, equivalent domain.ValueEquivalent) (domain.ValueEquivalent, error)
+	Delete(ctx context.Context, userID string, id string) error
+}
+

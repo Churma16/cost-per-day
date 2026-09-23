@@ -159,3 +159,38 @@ export const logoutCurrentUser = () => request('/auth/logout', {
 });
 
 export const getGoogleLoginUrl = () => buildApiUrl('/auth/google/login');
+
+const toValueEquivalentPayload = (equivalent) => ({
+  name: String(equivalent?.name || '').trim(),
+  amount: Number(equivalent?.amount),
+  currencyCode: String(equivalent?.currencyCode || '').trim().toUpperCase()
+});
+
+export const getAllValueEquivalents = async () => {
+  const valueEquivalents = await request('/api/value-equivalents');
+  if (!Array.isArray(valueEquivalents)) {
+    throw new ApiError('The server returned invalid value equivalent data.');
+  }
+  return valueEquivalents;
+};
+
+export const createValueEquivalent = (equivalent) => request('/api/value-equivalents', {
+  method: 'POST',
+  body: JSON.stringify(toValueEquivalentPayload(equivalent))
+});
+
+export const updateValueEquivalent = (id, equivalent) => request(
+  `/api/value-equivalents/${encodeURIComponent(String(id))}`,
+  {
+    method: 'PUT',
+    body: JSON.stringify(toValueEquivalentPayload(equivalent))
+  }
+);
+
+export const deleteValueEquivalent = (id) => request(
+  `/api/value-equivalents/${encodeURIComponent(String(id))}`,
+  {
+    method: 'DELETE'
+  }
+);
+

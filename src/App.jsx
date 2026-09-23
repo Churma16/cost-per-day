@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { LanguageProvider } from './contexts/LanguageContext';
 import { CurrencyProvider, useCurrency } from './contexts/CurrencyContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ValueEquivalentsProvider } from './contexts/ValueEquivalentsContext';
 import ItemList from './components/ItemList';
 import AddItem from './components/AddItem';
 import Settings from './components/Settings';
@@ -80,16 +81,18 @@ function AuthenticatedApp() {
   return (
     <LanguageProvider>
       <CurrencyProvider>
-        <PageMetadata />
-        <TotalCostProvider>
-          <Router>
-            <div className="mx-auto max-w-[1024px] sm:border-x sm:border-gray-200 h-full bg-gray-50 flex flex-col">
-              <Header />
-              <MainContent />
-              <Footer />
-            </div>
-          </Router>
-        </TotalCostProvider>
+        <ValueEquivalentsProvider>
+          <PageMetadata />
+          <TotalCostProvider>
+            <Router>
+              <div className="mx-auto max-w-[1024px] sm:border-x sm:border-gray-200 h-full bg-gray-50 flex flex-col">
+                <Header />
+                <MainContent />
+                <Footer />
+              </div>
+            </Router>
+          </TotalCostProvider>
+        </ValueEquivalentsProvider>
       </CurrencyProvider>
     </LanguageProvider>
   );

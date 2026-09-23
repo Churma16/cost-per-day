@@ -228,8 +228,8 @@ func TestUserOwnershipMigrationPreservesLegacyData(t *testing.T) {
 	if scanError := migratedDatabase.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("read schema version: %v", scanError)
 	}
-	if schemaVersion != 4 {
-		t.Fatalf("expected schema version 4, got %d", schemaVersion)
+	if schemaVersion != 5 {
+		t.Fatalf("expected schema version 5, got %d", schemaVersion)
 	}
 
 	var legacyUserCount int

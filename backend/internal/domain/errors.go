@@ -62,4 +62,19 @@ var (
 
 	// ErrEmptySettingValue indicates that a setting value was empty or whitespace.
 	ErrEmptySettingValue = errors.New("setting value cannot be empty")
+
+	// ErrValueEquivalentNotFound indicates that the requested value equivalent was not found for the user.
+	ErrValueEquivalentNotFound = errors.New("value equivalent not found")
+
+	// ErrEmptyValueEquivalentName indicates that a value equivalent name was empty or whitespace.
+	ErrEmptyValueEquivalentName = errors.New("value equivalent name cannot be empty")
+
+	// ErrInvalidValueEquivalentAmount indicates that a value equivalent amount is non-positive or non-finite.
+	ErrInvalidValueEquivalentAmount = errors.New("value equivalent amount must be greater than zero")
+
+	// ErrUnsupportedValueEquivalentAmount indicates that a value equivalent amount is outside supported range or precision.
+	ErrUnsupportedValueEquivalentAmount = errors.New("value equivalent amount is outside supported range")
+
+	// ErrInvalidValueEquivalentCurrency indicates that a value equivalent currency code is missing or unsupported.
+	ErrInvalidValueEquivalentCurrency = errors.New("value equivalent currency code is invalid")
 )

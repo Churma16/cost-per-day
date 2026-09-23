@@ -80,7 +80,23 @@ const translation = {
   "importWarning": "导入警告",
   "importConfirmation": "导入数据会完全覆盖现有数据，是否继续？",
   "importSuccess": "数据导入成功",
-  "importError": "数据导入失败"
+  "importError": "数据导入失败",
+
+  // Value Equivalents
+  "valueEquivalents": "价值等价物",
+  "valueEquivalentsDescription": "将每日成本换算为日常熟悉的消费对比。",
+  "addEquivalent": "添加等价物",
+  "editEquivalent": "编辑等价物",
+  "deleteEquivalent": "删除等价物",
+  "equivalentName": "名称",
+  "enterEquivalentName": "例如：咖啡、奶茶",
+  "equivalentAmount": "价格",
+  "enterEquivalentAmount": "输入价格",
+  "noEquivalents": "尚未添加价值等价物",
+  "confirmDeleteEquivalent": "确定要删除该价值等价物吗？",
+  "equivalentPerDay": "{{count}} {{name}}/天",
+  "equivalentEveryNDays": "每 {{count}} 天 1 个 {{name}}",
+  "equivalentPerMonth": "{{count}} {{name}}/月"
 };
 
 export default translation;

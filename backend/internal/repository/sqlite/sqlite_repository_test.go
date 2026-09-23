@@ -59,8 +59,8 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
-	if schemaVersion != 4 {
-		t.Fatalf("expected schema version 4, got %d", schemaVersion)
+	if schemaVersion != 5 {
+		t.Fatalf("expected schema version 5, got %d", schemaVersion)
 	}
 
 	if migrationError := sqliterepository.ApplyMigrations(ctx, databaseConnection); migrationError != nil {
@@ -77,6 +77,18 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	}
 	if itemTableCount != 1 {
 		t.Fatalf("expected items table to exist exactly once, got %d", itemTableCount)
+	}
+
+	var equivalentTableCount int
+	if scanError := databaseConnection.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM sqlite_master
+		WHERE type = 'table' AND name = 'value_equivalents'
+	`).Scan(&equivalentTableCount); scanError != nil {
+		t.Fatalf("failed to inspect value_equivalents table: %v", scanError)
+	}
+	if equivalentTableCount != 1 {
+		t.Fatalf("expected value_equivalents table to exist exactly once, got %d", equivalentTableCount)
 	}
 }
 
@@ -341,3 +353,94 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 		t.Fatalf("expected persisted currency IDR, got %q", persistedCurrency)
 	}
 }
+
+func TestValueEquivalentRepositoryCRUDAndIsolation(t *testing.T) {
+	databaseConnection, _ := openTestDatabase(t)
+	ctx := context.Background()
+
+	userRepository := sqliterepository.NewUserRepository(databaseConnection)
+	firstUser, firstUserError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
+		ID:          "user-first",
+		GoogleSub:   "sub-first",
+		Email:       "first@example.com",
+		DisplayName: "First User",
+	})
+	if firstUserError != nil {
+		t.Fatalf("create first user: %v", firstUserError)
+	}
+
+	secondUser, secondUserError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
+		ID:          "user-second",
+		GoogleSub:   "sub-second",
+		Email:       "second@example.com",
+		DisplayName: "Second User",
+	})
+	if secondUserError != nil {
+		t.Fatalf("create second user: %v", secondUserError)
+	}
+
+	equivalentRepository := sqliterepository.NewValueEquivalentRepository(databaseConnection)
+
+	createdEquivalent, createError := equivalentRepository.Create(ctx, firstUser.ID, domain.ValueEquivalent{
+		Name:         "Gorengan",
+		Amount:       2500,
+		CurrencyCode: "IDR",
+	})
+	if createError != nil {
+		t.Fatalf("failed to create equivalent: %v", createError)
+	}
+	if createdEquivalent.ID == "" {
+		t.Fatal("expected non-empty created equivalent identifier")
+	}
+	if createdEquivalent.Name != "Gorengan" || createdEquivalent.Amount != 2500 || createdEquivalent.CurrencyCode != "IDR" {
+		t.Fatalf("unexpected created equivalent: %+v", createdEquivalent)
+	}
+
+	// Isolation: second user cannot access first user's equivalent
+	_, isolationGetError := equivalentRepository.GetByID(ctx, secondUser.ID, createdEquivalent.ID)
+	if !errors.Is(isolationGetError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected ErrValueEquivalentNotFound for other user, got: %v", isolationGetError)
+	}
+
+	firstUserList, listError := equivalentRepository.List(ctx, firstUser.ID)
+	if listError != nil {
+		t.Fatalf("failed to list first user equivalents: %v", listError)
+	}
+	if len(firstUserList) != 1 {
+		t.Fatalf("expected 1 equivalent for first user, got %d", len(firstUserList))
+	}
+
+	secondUserList, listError2 := equivalentRepository.List(ctx, secondUser.ID)
+	if listError2 != nil {
+		t.Fatalf("failed to list second user equivalents: %v", listError2)
+	}
+	if len(secondUserList) != 0 {
+		t.Fatalf("expected 0 equivalents for second user, got %d", len(secondUserList))
+	}
+
+	// Update
+	updatedEquivalent, updateError := equivalentRepository.Update(ctx, firstUser.ID, domain.ValueEquivalent{
+		ID:           createdEquivalent.ID,
+		Name:         "Gorengan Hangat",
+		Amount:       3000,
+		CurrencyCode: "IDR",
+	})
+	if updateError != nil {
+		t.Fatalf("failed to update equivalent: %v", updateError)
+	}
+	if updatedEquivalent.Name != "Gorengan Hangat" || updatedEquivalent.Amount != 3000 {
+		t.Fatalf("unexpected updated equivalent: %+v", updatedEquivalent)
+	}
+
+	// Delete
+	deleteError := equivalentRepository.Delete(ctx, firstUser.ID, createdEquivalent.ID)
+	if deleteError != nil {
+		t.Fatalf("failed to delete equivalent: %v", deleteError)
+	}
+
+	_, afterDeleteGetError := equivalentRepository.GetByID(ctx, firstUser.ID, createdEquivalent.ID)
+	if !errors.Is(afterDeleteGetError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected ErrValueEquivalentNotFound after delete, got: %v", afterDeleteGetError)
+	}
+}
+

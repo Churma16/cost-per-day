@@ -21,6 +21,7 @@ type RouterConfig struct {
 	SettingsHandler        *handler.SettingsHandler
 	HealthHandler          *handler.HealthHandler
 	AuthHandler            *handler.AuthHandler
+	ValueEquivalentHandler *handler.ValueEquivalentHandler
 	StaticDir              string
 	UserIdentityMiddleware gin.HandlerFunc
 }
@@ -67,6 +68,17 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 		{
 			settingsRouteGroup.GET("", config.SettingsHandler.GetAll)
 			settingsRouteGroup.PUT("/:key", config.SettingsHandler.Update)
+		}
+
+		if config.ValueEquivalentHandler != nil {
+			valueEquivalentRouteGroup := apiRouteGroup.Group("/value-equivalents")
+			{
+				valueEquivalentRouteGroup.GET("", config.ValueEquivalentHandler.List)
+				valueEquivalentRouteGroup.GET("/:id", config.ValueEquivalentHandler.Get)
+				valueEquivalentRouteGroup.POST("", config.ValueEquivalentHandler.Create)
+				valueEquivalentRouteGroup.PUT("/:id", config.ValueEquivalentHandler.Update)
+				valueEquivalentRouteGroup.DELETE("/:id", config.ValueEquivalentHandler.Delete)
+			}
 		}
 	}
 
