@@ -11,6 +11,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { useInvalidateDashboard } from '../hooks/useDashboard';
 import { parseISO } from 'date-fns';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
+import { deriveOwnershipTargetEquivalent } from '../utils/ownershipTargetCalculator';
 
 // Helper function to set time to noon UTC
 const setToNoonUTC = (date) => {
@@ -186,17 +187,19 @@ function AddItem() {
                      lifecycleFormValid &&
                      targetFormValid;
 
+  const equivalentTarget = deriveOwnershipTargetEquivalent({
+    price: numericPrice,
+    targetType,
+    targetValue: numericTargetValue
+  });
+
   let equivalentTargetNote = null;
-  if (numericPrice > 0 && numericTargetValue > 0) {
-    if (targetType === 'cost_per_day') {
-      const equivalentDurationDays = Math.ceil(numericPrice / numericTargetValue);
-      equivalentTargetNote = t('targetEquivalentDuration', { days: equivalentDurationDays });
-    } else if (targetType === 'duration') {
-      const equivalentCostPerDay = numericPrice / numericTargetValue;
-      equivalentTargetNote = t('targetEquivalentCostPerDay', {
-        amount: formatCurrency(equivalentCostPerDay, currencyCode)
-      });
-    }
+  if (equivalentTarget?.type === 'duration') {
+    equivalentTargetNote = t('targetEquivalentDuration', { days: equivalentTarget.value });
+  } else if (equivalentTarget?.type === 'cost_per_day') {
+    equivalentTargetNote = t('targetEquivalentCostPerDay', {
+      amount: formatCurrency(equivalentTarget.value, currencyCode)
+    });
   }
 
   const handleApplyBenchmark = (benchmarkResult) => {
