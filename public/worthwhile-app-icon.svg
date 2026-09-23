@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">Worthwhile app icon</title>
+<desc id="desc">Worthwhile app icon with a calm slate and teal hourglass-W mark.</desc>
+
+<defs>
+  <linearGradient id="topGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#A9BED8"/>
+    <stop offset="100%" stop-color="#7F9BBE"/>
+  </linearGradient>
+  <linearGradient id="bottomGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#78B5B0"/>
+    <stop offset="100%" stop-color="#4F8F8E"/>
+  </linearGradient>
+  <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#667A9B"/>
+    <stop offset="100%" stop-color="#3D536E"/>
+  </linearGradient>
+  <linearGradient id="appBg" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#F7F9F9"/>
+    <stop offset="100%" stop-color="#E8EEEE"/>
+  </linearGradient>
+</defs>
+
+<rect x="28" y="28" width="456" height="456" rx="108" fill="url(#appBg)"/>
+<g transform="translate(22 22) scale(0.914)">
+
+<!-- outer W wings -->
+<path d="M86 184
+         C108 198, 132 220, 146 246
+         C160 272, 160 321, 180 350
+         C199 377, 224 377, 244 356
+         L256 343
+         L268 356
+         C288 377, 313 377, 332 350
+         C352 321, 352 272, 366 246
+         C380 220, 404 198, 426 184
+         C419 235, 414 287, 401 326
+         C386 371, 359 403, 322 409
+         C296 413, 276 399, 256 377
+         C236 399, 216 413, 190 409
+         C153 403, 126 371, 111 326
+         C98 287, 93 235, 86 184 Z"
+      fill="url(#wingGrad)"/>
+
+<!-- upper hourglass bowl -->
+<path d="M107 88
+         C142 70, 195 62, 256 62
+         C317 62, 370 70, 405 88
+         C397 131, 368 164, 327 190
+         C295 210, 274 220, 256 238
+         C238 220, 217 210, 185 190
+         C144 164, 115 131, 107 88 Z"
+      fill="url(#topGrad)"/>
+
+<!-- lower hourglass / inner W -->
+<path d="M256 238
+         C235 253, 210 275, 189 299
+         C169 322, 157 343, 151 364
+         C158 386, 177 398, 196 398
+         C217 398, 235 382, 256 359
+         C277 382, 295 398, 316 398
+         C335 398, 354 386, 361 364
+         C355 343, 343 322, 323 299
+         C302 275, 277 253, 256 238 Z"
+      fill="url(#bottomGrad)"/>
+
+</g>
+</svg>
