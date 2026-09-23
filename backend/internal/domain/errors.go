@@ -110,4 +110,29 @@ var (
 
 	// ErrMissingContributionAmount indicates that a contribution cadence was supplied without an amount.
 	ErrMissingContributionAmount = errors.New("contribution amount is required when contribution cadence is provided")
+
+	// ErrMissingOwnershipTargetType indicates that target value was supplied without target type.
+	ErrMissingOwnershipTargetType = errors.New("ownership target type is required when target value is provided")
+
+	// ErrMissingOwnershipTargetValue indicates that target type was supplied without target value.
+	ErrMissingOwnershipTargetValue = errors.New("ownership target value is required when target type is provided")
+
+	// ErrInvalidOwnershipTargetType indicates that target type is neither cost_per_day nor duration.
+	ErrInvalidOwnershipTargetType = errors.New("invalid ownership target type")
+
+	// ErrInvalidOwnershipTargetValue indicates that target value is non-positive or non-finite.
+	ErrInvalidOwnershipTargetValue = errors.New("ownership target value must be greater than zero")
+
+	// ErrUnsupportedOwnershipTargetValue indicates that target value is outside supported range or precision.
+	ErrUnsupportedOwnershipTargetValue = errors.New("ownership target value is outside supported range")
+
+	// ErrInvalidBenchmarkPrice indicates that candidate replacement price is non-positive or non-finite.
+	ErrInvalidBenchmarkPrice = errors.New("replacement benchmark price must be greater than zero")
+
+	// ErrUnsupportedBenchmarkPrice indicates that candidate replacement price is outside supported range or precision.
+	ErrUnsupportedBenchmarkPrice = errors.New("replacement benchmark price is outside supported range")
+
+	// ErrBenchmarkItemNotCompleted indicates that benchmark was attempted on an active item.
+	ErrBenchmarkItemNotCompleted = errors.New("replacement benchmark requires a completed historical item")
 )
+

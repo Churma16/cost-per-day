@@ -20,6 +20,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			"Laptop",
 			100,
 			"2026-09-01T12:00:00Z",
+			nil,
+			nil,
 		)
 		if createError != nil {
 			t.Fatalf("create item: %v", createError)
@@ -34,6 +36,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			createdItem.PurchaseDate,
 			domain.ItemStatusRetired,
 			&endedAt,
+			nil,
+			nil,
 			nil,
 		)
 		if updateError != nil {
@@ -69,6 +73,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			"Phone",
 			100,
 			"2026-09-01T12:00:00Z",
+			nil,
+			nil,
 		)
 		if createError != nil {
 			t.Fatalf("create item: %v", createError)
@@ -85,6 +91,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			domain.ItemStatusSold,
 			&endedAt,
 			&salePrice,
+			nil,
+			nil,
 		)
 		if updateError != nil {
 			t.Fatalf("sell item: %v", updateError)
@@ -100,7 +108,7 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 
 	t.Run("reactivating clears stale lifecycle fields", func(t *testing.T) {
 		itemService := service.NewItemService(memory.NewMemoryItemRepository())
-		createdItem, createError := itemService.CreateItem(ctx, domain.LegacyUserID, "Camera", 120, "2026-09-01T12:00:00Z")
+		createdItem, createError := itemService.CreateItem(ctx, domain.LegacyUserID, "Camera", 120, "2026-09-01T12:00:00Z", nil, nil)
 		if createError != nil {
 			t.Fatalf("create item: %v", createError)
 		}
@@ -116,6 +124,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			domain.ItemStatusSold,
 			&endedAt,
 			&salePrice,
+			nil,
+			nil,
 		)
 		if sellError != nil {
 			t.Fatalf("sell item: %v", sellError)
@@ -130,6 +140,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			domain.ItemStatusActive,
 			&endedAt,
 			&salePrice,
+			nil,
+			nil,
 		)
 		if reactivateError != nil {
 			t.Fatalf("reactivate item: %v", reactivateError)
@@ -228,7 +240,7 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 		for _, testCase := range testCases {
 			t.Run(testCase.name, func(t *testing.T) {
 				itemService := service.NewItemService(memory.NewMemoryItemRepository())
-				createdItem, createError := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100, "2026-09-01T12:00:00Z")
+				createdItem, createError := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100, "2026-09-01T12:00:00Z", nil, nil)
 				if createError != nil {
 					t.Fatalf("create item: %v", createError)
 				}
@@ -242,6 +254,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 					testCase.status,
 					testCase.endedAt,
 					testCase.salePrice,
+					nil,
+					nil,
 				)
 				if updateError != testCase.expected {
 					t.Fatalf("expected %v, got %v", testCase.expected, updateError)

@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -79,12 +80,20 @@ func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 		return
 	}
 
+	var targetType *domain.OwnershipTargetType
+	if requestBody.TargetType != nil {
+		t := domain.OwnershipTargetType(*requestBody.TargetType)
+		targetType = &t
+	}
+
 	createdItem, serviceError := handlerInstance.itemService.CreateItem(
 		ginContext.Request.Context(),
 		userID,
 		requestBody.Name,
 		requestBody.Price,
 		requestBody.PurchaseDate,
+		targetType,
+		requestBody.TargetValue,
 	)
 	if serviceError != nil {
 		if isItemValidationError(serviceError) {
@@ -117,6 +126,12 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 		return
 	}
 
+	var targetType *domain.OwnershipTargetType
+	if requestBody.TargetType != nil {
+		t := domain.OwnershipTargetType(*requestBody.TargetType)
+		targetType = &t
+	}
+
 	updatedItem, serviceError := handlerInstance.itemService.UpdateItem(
 		ginContext.Request.Context(),
 		userID,
@@ -127,6 +142,8 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 		domain.ItemStatus(requestBody.Status),
 		requestBody.EndedAt,
 		requestBody.SalePrice,
+		targetType,
+		requestBody.TargetValue,
 	)
 	if serviceError != nil {
 		if errors.Is(serviceError, domain.ErrItemNotFound) {
@@ -170,6 +187,70 @@ func (handlerInstance *ItemHandler) Delete(ginContext *gin.Context) {
 	response.SuccessWithoutData(ginContext, http.StatusOK, "item deleted successfully")
 }
 
+// GetReplacementBenchmark handles GET /api/items/:id/replacement-benchmark?price=...
+func (handlerInstance *ItemHandler) GetReplacementBenchmark(ginContext *gin.Context) {
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
+	itemID := ginContext.Param("id")
+	if itemID == "" {
+		response.Error(ginContext, http.StatusBadRequest, "item identifier is required")
+		return
+	}
+
+	priceParam := ginContext.Query("price")
+	if priceParam == "" {
+		response.Error(ginContext, http.StatusBadRequest, "replacement price is required")
+		return
+	}
+
+	candidatePrice, parseError := strconv.ParseFloat(priceParam, 64)
+	if parseError != nil {
+		response.Error(ginContext, http.StatusBadRequest, "invalid replacement price format")
+		return
+	}
+
+	benchmark, serviceError := handlerInstance.itemService.CalculateReplacementBenchmark(
+		ginContext.Request.Context(),
+		userID,
+		itemID,
+		candidatePrice,
+	)
+	if serviceError != nil {
+		if errors.Is(serviceError, domain.ErrItemNotFound) {
+			response.Error(ginContext, http.StatusNotFound, "item not found")
+			return
+		}
+		if isItemValidationError(serviceError) {
+			response.Error(ginContext, http.StatusBadRequest, serviceError.Error())
+			return
+		}
+		response.Error(ginContext, http.StatusInternalServerError, "failed to calculate replacement benchmark")
+		return
+	}
+
+	responseDTO := dto.ReplacementBenchmarkResponseDTO{
+		ItemID:              benchmark.ItemID,
+		ItemName:            benchmark.ItemName,
+		ItemStatus:          string(benchmark.ItemStatus),
+		PreviousPrice:       benchmark.PreviousPrice,
+		FinalOwnershipDays:  benchmark.FinalOwnershipDays,
+		FinalCostPerDay:     benchmark.FinalCostPerDay,
+		CandidatePrice:      benchmark.CandidatePrice,
+		DaysToMatchPrevious: benchmark.DaysToMatchPrevious,
+		DaysToBeatPrevious:  benchmark.DaysToBeatPrevious,
+		HasTarget:           benchmark.HasTarget,
+		TargetCostPerDay:    benchmark.TargetCostPerDay,
+		DaysToMatchTarget:   benchmark.DaysToMatchTarget,
+		IsUnmatchable:       benchmark.IsUnmatchable,
+		UnmatchableReason:   benchmark.UnmatchableReason,
+	}
+
+	response.Success(ginContext, http.StatusOK, "replacement benchmark calculated successfully", responseDTO)
+}
+
 func isItemValidationError(serviceError error) bool {
 	return errors.Is(serviceError, domain.ErrEmptyItemName) ||
 		errors.Is(serviceError, domain.ErrInvalidItemPrice) ||
@@ -181,5 +262,13 @@ func isItemValidationError(serviceError error) bool {
 		errors.Is(serviceError, domain.ErrItemEndBeforePurchase) ||
 		errors.Is(serviceError, domain.ErrItemEndInFuture) ||
 		errors.Is(serviceError, domain.ErrInvalidSalePrice) ||
-		errors.Is(serviceError, domain.ErrUnexpectedSalePrice)
+		errors.Is(serviceError, domain.ErrUnexpectedSalePrice) ||
+		errors.Is(serviceError, domain.ErrMissingOwnershipTargetType) ||
+		errors.Is(serviceError, domain.ErrMissingOwnershipTargetValue) ||
+		errors.Is(serviceError, domain.ErrInvalidOwnershipTargetType) ||
+		errors.Is(serviceError, domain.ErrInvalidOwnershipTargetValue) ||
+		errors.Is(serviceError, domain.ErrUnsupportedOwnershipTargetValue) ||
+		errors.Is(serviceError, domain.ErrInvalidBenchmarkPrice) ||
+		errors.Is(serviceError, domain.ErrUnsupportedBenchmarkPrice) ||
+		errors.Is(serviceError, domain.ErrBenchmarkItemNotCompleted)
 }

@@ -6,10 +6,17 @@ import AddItem from './AddItem';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { addItem, updateItem, getAllItems } from '../services/api';
+import { useReplacementBenchmark } from '../hooks/useBenchmark';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (translationKey) => {
+    t: (translationKey, options) => {
+      if (translationKey === 'targetEquivalentDuration') {
+        return `Equivalent duration: ~${options?.days} days`;
+      }
+      if (translationKey === 'targetEquivalentCostPerDay') {
+        return `Equivalent cost per day: ${options?.amount}/day`;
+      }
       const translationDictionary = {
         addNewItem: 'Add New Item',
         editItem: 'Edit Item',
@@ -28,6 +35,22 @@ vi.mock('react-i18next', () => ({
         ownershipEndDate: 'Ownership end date',
         salePrice: 'Sale price',
         enterSalePrice: 'Enter sale price',
+        ownershipTargetOptional: 'Ownership Target (Optional)',
+        targetType: 'Target type',
+        targetTypeNone: 'None',
+        targetTypeCostPerDay: 'Target cost per day',
+        targetTypeDuration: 'Target duration (days)',
+        enterTargetCostPerDay: 'Enter target cost per day',
+        enterTargetDuration: 'Enter target duration in days',
+        benchmarkFromPriorItem: 'Benchmark from completed item',
+        benchmarkSelectPrompt: 'Select a completed item to calculate how long this replacement must last to match or beat its value.',
+        selectCompletedItem: 'Select a completed item...',
+        replacementBenchmark: 'Replacement Benchmark',
+        candidatePrice: 'Planned replacement price',
+        enterCandidatePrice: 'Enter replacement price',
+        useBenchmarkAsTarget: 'Apply to Target',
+        benchmarkResultDays: `~${options?.days} days`,
+        benchmarkResultRequiredDuration: `Required duration to match prior final rate (${options?.rate}/day)`,
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -40,6 +63,14 @@ vi.mock('../contexts/LanguageContext', () => ({
 
 vi.mock('../contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
+}));
+
+vi.mock('../hooks/useBenchmark', () => ({
+  useReplacementBenchmark: vi.fn().mockReturnValue({
+    data: null,
+    isLoading: false,
+    error: null,
+  })
 }));
 
 vi.mock('../services/api', () => ({
@@ -147,14 +178,16 @@ describe('AddItem component date localization', () => {
     useLanguage.mockReturnValue({
       language: 'en'
     });
-    getAllItems.mockResolvedValueOnce([{
+    const phoneItem = {
       id: '42',
       name: 'Phone',
       price: 100,
       purchaseDate: '2026-09-01T12:00:00Z',
       status: 'active',
       grossCostPerDay: 5
-    }]);
+    };
+    // First call: completedItems loader effect; second call: loadItem edit-mode effect
+    getAllItems.mockResolvedValueOnce([phoneItem]).mockResolvedValueOnce([phoneItem]);
     updateItem.mockResolvedValueOnce({});
 
     render(
@@ -189,14 +222,16 @@ describe('AddItem component date localization', () => {
     useLanguage.mockReturnValue({
       language: 'en'
     });
-    getAllItems.mockResolvedValueOnce([{
+    const phoneItem = {
       id: '42',
       name: 'Phone',
       price: 100,
       purchaseDate: '2026-09-01T12:00:00Z',
       status: 'active',
       grossCostPerDay: 5
-    }]);
+    };
+    // First call: completedItems loader; second call: loadItem edit-mode effect
+    getAllItems.mockResolvedValueOnce([phoneItem]).mockResolvedValueOnce([phoneItem]);
 
     render(
       <MemoryRouter initialEntries={['/edit?id=42']}>
@@ -224,7 +259,8 @@ describe('AddItem component date localization', () => {
     useLanguage.mockReturnValue({
       language: 'en'
     });
-    getAllItems.mockRejectedValueOnce(new Error('Unable to load item.'));
+    // Use persistent rejection so both getAllItems calls (completedItems + loadItem) fail/reject
+    getAllItems.mockRejectedValue(new Error('Unable to load item.'));
 
     render(
       <MemoryRouter initialEntries={['/edit?id=42']}>
@@ -236,4 +272,231 @@ describe('AddItem component date localization', () => {
     expect(screen.queryByRole('button', { name: 'Delete Item' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
+
+  test('creates a new item with ownership target configured', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    addItem.mockResolvedValueOnce({ id: '100' });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'Keyboard' }
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), {
+      target: { value: '150' }
+    });
+
+    const targetTypeSelect = screen.getByLabelText('Target type');
+    fireEvent.change(targetTypeSelect, { target: { value: 'cost_per_day' } });
+
+    const targetValueInput = screen.getByPlaceholderText('Enter target cost per day');
+    fireEvent.change(targetValueInput, { target: { value: '1.5' } });
+
+    expect(screen.getByText('Equivalent duration: ~100 days')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(addItem).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'Keyboard',
+        price: 150,
+        targetType: 'cost_per_day',
+        targetValue: 1.5
+      }));
+    });
+  });
+
+  test('populates and updates existing ownership target in edit mode', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const monitorItem = {
+      id: '50',
+      name: 'Monitor',
+      price: 365,
+      purchaseDate: '2026-01-01T12:00:00Z',
+      status: 'active',
+      targetType: 'duration',
+      targetValue: 365
+    };
+    // First call: completedItems loader; second call: loadItem edit-mode effect
+    getAllItems.mockResolvedValueOnce([monitorItem]).mockResolvedValueOnce([monitorItem]);
+    updateItem.mockResolvedValueOnce({});
+
+    render(
+      <MemoryRouter initialEntries={['/edit?id=50']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByDisplayValue('Monitor')).toBeInTheDocument();
+
+    const targetTypeSelect = screen.getByLabelText('Target type');
+    expect(targetTypeSelect.value).toBe('duration');
+
+    const targetValueInput = screen.getByPlaceholderText('Enter target duration in days');
+    expect(targetValueInput.value).toBe('365');
+
+    fireEvent.change(targetValueInput, { target: { value: '400' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(updateItem).toHaveBeenCalledWith('50', expect.objectContaining({
+        targetType: 'duration',
+        targetValue: 400
+      }));
+    });
+  });
+
+  test('allows explicit selection of completed item to benchmark and applies result as duration target', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const completedPhone = {
+      id: 'old-phone-1',
+      name: 'Old Phone',
+      price: 200,
+      purchaseDate: '2025-01-01T12:00:00Z',
+      status: 'retired',
+      grossCostPerDay: 2.0,
+      netCostPerDay: 2.0,
+      ownershipDays: 100
+    };
+    getAllItems.mockResolvedValueOnce([completedPhone]);
+    useReplacementBenchmark.mockReturnValue({
+      data: {
+        itemId: 'old-phone-1',
+        itemName: 'Old Phone',
+        itemStatus: 'retired',
+        previousPrice: 200,
+        finalOwnershipDays: 100,
+        finalCostPerDay: 2.0,
+        candidatePrice: 300,
+        daysToMatchPrevious: 150,
+        daysToBeatPrevious: 151,
+        hasTarget: false
+      },
+      isLoading: false,
+      error: null
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    // Enter new item details
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'New Phone' }
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), {
+      target: { value: '300' }
+    });
+
+    // The benchmark button should initially be disabled until a completed item is explicitly selected
+    const benchmarkButton = await screen.findByRole('button', { name: /Replacement Benchmark/i });
+    expect(benchmarkButton).toBeDisabled();
+
+    // Select the completed item from the dropdown
+    const selectDropdown = screen.getByLabelText('Benchmark from completed item');
+    fireEvent.change(selectDropdown, { target: { value: 'old-phone-1' } });
+
+    expect(benchmarkButton).toBeEnabled();
+
+    // Click to open modal
+    fireEvent.click(benchmarkButton);
+
+    // Modal opens, showing the calculation
+    expect(screen.getByText('~150 days')).toBeInTheDocument();
+
+    // Click Apply to Target
+    const applyButton = screen.getByRole('button', { name: 'Apply to Target' });
+    fireEvent.click(applyButton);
+
+    // Target type should now be 'duration' and value '150'
+    const targetTypeSelect = screen.getByLabelText('Target type');
+    expect(targetTypeSelect.value).toBe('duration');
+
+    const targetValueInput = screen.getByPlaceholderText('Enter target duration in days');
+    expect(targetValueInput.value).toBe('150');
+  });
+
+  test('synchronizes candidate price from modal and saves matching price and target duration', async () => {
+    addItem.mockResolvedValue({ id: 'new-phone-2' });
+    getAllItems.mockResolvedValue([
+      {
+        id: 'old-phone-2',
+        name: 'Old Phone 2',
+        price: 200,
+        purchaseDate: '2025-01-01T12:00:00Z',
+        status: 'retired',
+        ownershipDays: 100,
+        grossCostPerDay: 2.0,
+        netCostPerDay: 2.0
+      }
+    ]);
+
+    useReplacementBenchmark.mockReturnValue({
+      data: {
+        itemId: 'old-phone-2',
+        itemName: 'Old Phone 2',
+        itemStatus: 'retired',
+        previousPrice: 200,
+        finalOwnershipDays: 100,
+        finalCostPerDay: 2.0,
+        candidatePrice: 500,
+        daysToMatchPrevious: 250,
+        daysToBeatPrevious: 251,
+        hasTarget: false
+      },
+      isLoading: false,
+      error: null
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'New Phone 2' }
+    });
+    const priceInput = screen.getByPlaceholderText('Enter price');
+    fireEvent.change(priceInput, {
+      target: { value: '300' }
+    });
+
+    const benchmarkButton = await screen.findByRole('button', { name: /Replacement Benchmark/i });
+    const selectDropdown = screen.getByLabelText('Benchmark from completed item');
+    fireEvent.change(selectDropdown, { target: { value: 'old-phone-2' } });
+
+    fireEvent.click(benchmarkButton);
+
+    const modalPriceInput = screen.getByLabelText('Planned replacement price');
+    fireEvent.change(modalPriceInput, { target: { value: '500' } });
+
+    expect(priceInput.value).toBe('500');
+
+    const applyButton = screen.getByRole('button', { name: 'Apply to Target' });
+    fireEvent.click(applyButton);
+
+    expect(priceInput.value).toBe('500');
+    expect(screen.getByLabelText('Target type').value).toBe('duration');
+    expect(screen.getByPlaceholderText('Enter target duration in days').value).toBe('250');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(addItem).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'New Phone 2',
+        price: 500,
+        targetType: 'duration',
+        targetValue: 250
+      }));
+    });
+  });
 });
+

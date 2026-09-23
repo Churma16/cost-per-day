@@ -63,10 +63,12 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, userID
 				status,
 				ended_at,
 				sale_price_micros,
+				target_type,
+				target_value,
 				created_at,
 				updated_at
 			)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`,
 			normalizedUserID,
 			itemToCreate.Name,
@@ -75,6 +77,8 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, userID
 			string(itemToCreate.Status),
 			nullableString(itemToCreate.EndedAt),
 			nullableInt64(salePriceMicros),
+			nullableTargetType(itemToCreate.TargetType),
+			nullableFloat64(itemToCreate.TargetValue),
 			itemToCreate.CreatedAt.Format(time.RFC3339Nano),
 			itemToCreate.UpdatedAt.Format(time.RFC3339Nano),
 		)

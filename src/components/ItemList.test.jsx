@@ -20,6 +20,18 @@ vi.mock('react-i18next', () => ({
       if (key === 'equivalentPerMonth') {
         return `${options?.count} ${options?.name}/month`;
       }
+      if (key === 'targetStateInProgress') {
+        return `In progress (${options?.percent}%)`;
+      }
+      if (key === 'targetStateBeyond') {
+        return `Beyond target (+${options?.days}d)`;
+      }
+      if (key === 'remainingDaysToTarget') {
+        return `${options?.days} days remaining`;
+      }
+      if (key === 'daysBeyondTarget') {
+        return `${options?.days} days beyond target`;
+      }
       return {
         loading: 'Loading...',
         noItems: 'No items yet',
@@ -37,6 +49,9 @@ vi.mock('react-i18next', () => ({
         salePrice: 'Sale price',
         netOwnershipCost: 'Net ownership cost',
         netCostPerDay: 'Net cost per day',
+        targetMilestone: 'Target milestone',
+        targetStateNew: 'New',
+        targetStateReached: 'Target reached',
         edit: 'Edit'
       }[key] || key;
     }
@@ -215,5 +230,77 @@ describe('ItemList lifecycle display', () => {
 
     expect(await screen.findByText('Tablet')).toBeInTheDocument();
     expect(screen.queryByText(/≈/)).not.toBeInTheDocument();
+  });
+
+  test('renders target progress percentage and remaining days using canonical backend field names', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'item-target-1',
+        name: 'Standing Desk',
+        price: 300,
+        purchaseDate: '2026-06-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 3.0,
+        targetType: 'cost_per_day',
+        targetValue: 2.0,
+        targetCostPerDay: 2.0,
+        targetDurationDays: 150,
+        progressPercentage: 65.5,
+        remainingDays: 35,
+        daysBeyond: 0,
+        targetState: 'in_progress'
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    // Header badge should display rounded percentage
+    expect(await screen.findByText('In progress (66%)')).toBeInTheDocument();
+
+    // Expand item to view milestone details
+    fireEvent.click(screen.getByText('Standing Desk'));
+
+    expect(screen.getByText('Target milestone')).toBeInTheDocument();
+    expect(screen.getByText(/\$2\.00\/day/)).toBeInTheDocument();
+    expect(screen.getByText(/~150 days/)).toBeInTheDocument();
+    expect(screen.getByText('35 days remaining')).toBeInTheDocument();
+    expect(screen.getByText('66%')).toBeInTheDocument();
+  });
+
+  test('renders beyond target milestone with daysBeyond from canonical backend response', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'item-target-2',
+        name: 'Mechanical Keyboard',
+        price: 150,
+        purchaseDate: '2026-01-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 1.0,
+        targetType: 'duration',
+        targetValue: 100,
+        targetDurationDays: 100,
+        progressPercentage: 114,
+        remainingDays: 0,
+        daysBeyond: 14,
+        targetState: 'beyond_target'
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Beyond target (+14d)')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Mechanical Keyboard'));
+
+    expect(screen.getByText('14 days beyond target')).toBeInTheDocument();
+    expect(screen.getByText('114%')).toBeInTheDocument();
   });
 });

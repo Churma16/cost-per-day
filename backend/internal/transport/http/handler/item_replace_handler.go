@@ -29,6 +29,11 @@ func (handlerInstance *ItemHandler) ReplaceAll(ginContext *gin.Context) {
 
 	replacementItems := make([]domain.Item, 0, len(requestBody))
 	for _, requestItem := range requestBody {
+		var targetType *domain.OwnershipTargetType
+		if requestItem.TargetType != nil {
+			t := domain.OwnershipTargetType(*requestItem.TargetType)
+			targetType = &t
+		}
 		replacementItems = append(replacementItems, domain.Item{
 			Name:         requestItem.Name,
 			Price:        requestItem.Price,
@@ -36,6 +41,8 @@ func (handlerInstance *ItemHandler) ReplaceAll(ginContext *gin.Context) {
 			Status:       domain.ItemStatus(requestItem.Status),
 			EndedAt:      requestItem.EndedAt,
 			SalePrice:    requestItem.SalePrice,
+			TargetType:   targetType,
+			TargetValue:  requestItem.TargetValue,
 		})
 	}
 

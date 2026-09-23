@@ -3,13 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { IoTrashOutline, IoCalendarOutline } from "react-icons/io5";
+import { IoTrashOutline, IoCalendarOutline, IoScaleOutline } from "react-icons/io5";
 import { addItem, updateItem, getAllItems, deleteItem } from '../services/api';
-import { formatDate, getDateLocale } from '../utils/formatters';
+import { formatDate, getDateLocale, formatCurrency } from '../utils/formatters';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useInvalidateDashboard } from '../hooks/useDashboard';
 import { parseISO } from 'date-fns';
+import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
+import { deriveOwnershipTargetEquivalent } from '../utils/ownershipTargetCalculator';
 
 // Helper function to set time to noon UTC
 const setToNoonUTC = (date) => {
@@ -29,6 +31,12 @@ function AddItem() {
   const [status, setStatus] = useState('active');
   const [endedAt, setEndedAt] = useState('');
   const [salePrice, setSalePrice] = useState('');
+  const [targetType, setTargetType] = useState('none');
+  const [targetValue, setTargetValue] = useState('');
+  const [completedItems, setCompletedItems] = useState([]);
+  const [selectedBenchmarkItemId, setSelectedBenchmarkItemId] = useState('');
+  const [benchmarkModalOpen, setBenchmarkModalOpen] = useState(false);
+  const [benchmarkSourceItem, setBenchmarkSourceItem] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editIndex, setEditIndex] = useState(-1);
@@ -39,7 +47,7 @@ function AddItem() {
   const navigate = useNavigate();
   const location = useLocation();
   const [month, setMonth] = useState(purchaseDate);
-  const { currencySymbol } = useCurrency();
+  const { currencyCode, currencySymbol } = useCurrency();
   const invalidateDashboard = useInvalidateDashboard();
   
   // Get date-fns locale matching the current application language
@@ -54,6 +62,11 @@ function AddItem() {
       setStatus('active');
       setEndedAt('');
       setSalePrice('');
+      setTargetType('none');
+      setTargetValue('');
+      setSelectedBenchmarkItemId('');
+      setBenchmarkModalOpen(false);
+      setBenchmarkSourceItem(null);
       setIsEditMode(false);
       setEditIndex(-1);
       setShowDeleteConfirm(false);
@@ -66,6 +79,21 @@ function AddItem() {
       resetForm();
     }
   }, [location.pathname]);
+
+  // Load completed items for optional repeat-buy benchmarking
+  useEffect(() => {
+    let isMounted = true;
+    getAllItems().then((allItems) => {
+      if (!isMounted || !Array.isArray(allItems)) return;
+      const completed = allItems.filter((candidate) => candidate.status && candidate.status !== 'active');
+      setCompletedItems(completed);
+    }).catch(() => {
+      // Non-blocking
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Load server-backed item data for edit mode
   useEffect(() => {
@@ -107,6 +135,8 @@ function AddItem() {
         setStatus(item.status || 'active');
         setEndedAt(item.endedAt ? item.endedAt.slice(0, 10) : '');
         setSalePrice(item.salePrice === null || item.salePrice === undefined ? '' : String(item.salePrice));
+        setTargetType(item.targetType || 'none');
+        setTargetValue(item.targetValue !== null && item.targetValue !== undefined ? String(item.targetValue) : '');
         setItemLoaded(true);
       } catch (error) {
         console.error('Error loading item:', error);
@@ -146,10 +176,41 @@ function AddItem() {
         (salePrice !== '' && Number.isFinite(Number(salePrice)) && Number(salePrice) >= 0)
       )
     );
+  const numericPrice = Number(price);
+  const numericTargetValue = Number(targetValue);
+  const targetFormValid = targetType === 'none' ||
+    (targetValue !== '' && Number.isFinite(numericTargetValue) && numericTargetValue > 0);
+
   const isFormValid = name.trim() !== '' &&
-                     Number(price) > 0 &&
+                     numericPrice > 0 &&
                      purchaseDateValue !== '' &&
-                     lifecycleFormValid;
+                     lifecycleFormValid &&
+                     targetFormValid;
+
+  const equivalentTarget = deriveOwnershipTargetEquivalent({
+    price: numericPrice,
+    targetType,
+    targetValue: numericTargetValue
+  });
+
+  let equivalentTargetNote = null;
+  if (equivalentTarget?.type === 'duration') {
+    equivalentTargetNote = t('targetEquivalentDuration', { days: equivalentTarget.value });
+  } else if (equivalentTarget?.type === 'cost_per_day') {
+    equivalentTargetNote = t('targetEquivalentCostPerDay', {
+      amount: formatCurrency(equivalentTarget.value, currencyCode)
+    });
+  }
+
+  const handleApplyBenchmark = (benchmarkResult) => {
+    if (benchmarkResult?.candidatePrice) {
+      setPrice(String(benchmarkResult.candidatePrice));
+    }
+    if (benchmarkResult?.daysToMatchPrevious) {
+      setTargetType('duration');
+      setTargetValue(String(benchmarkResult.daysToMatchPrevious));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -166,6 +227,14 @@ function AddItem() {
         ? null
         : new Date(`${endedAt}T12:00:00.000Z`).toISOString();
       itemData.salePrice = status === 'sold' ? Number(salePrice) : null;
+    }
+
+    if (targetType !== 'none' && targetValue !== '') {
+      itemData.targetType = targetType;
+      itemData.targetValue = Number(targetValue);
+    } else {
+      itemData.targetType = null;
+      itemData.targetValue = null;
     }
 
     setErrorMessage(null);
@@ -448,6 +517,117 @@ function AddItem() {
               </div>
             )}
 
+            {/* Ownership Target Section */}
+            <div className="space-y-4 rounded-xl border border-purple-100 bg-purple-50/40 p-4">
+              <div>
+                <label htmlFor="item-target-type" className="text-sm text-gray-700 font-medium block">
+                  {t('ownershipTargetOptional')}
+                </label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {t('ownershipTargetDescription')}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="item-target-type" className="text-xs text-gray-600 font-medium">
+                  {t('targetType')}
+                </label>
+                <select
+                  id="item-target-type"
+                  value={targetType}
+                  onChange={(event) => {
+                    const nextTargetType = event.target.value;
+                    setTargetType(nextTargetType);
+                    if (nextTargetType === 'none') {
+                      setTargetValue('');
+                    }
+                  }}
+                  className="w-full px-4 py-3 rounded-xl border border-purple-100 bg-white focus:border-purple-300
+                  focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200"
+                >
+                  <option value="none">{t('targetTypeNone')}</option>
+                  <option value="cost_per_day">{t('targetTypeCostPerDay')}</option>
+                  <option value="duration">{t('targetTypeDuration')}</option>
+                </select>
+              </div>
+
+              {targetType !== 'none' && (
+                <div className="space-y-2">
+                  <label htmlFor="item-target-value" className="text-xs text-gray-600 font-medium">
+                    {targetType === 'cost_per_day' ? t('targetTypeCostPerDay') : t('targetTypeDuration')}
+                  </label>
+                  <div className="relative">
+                    {targetType === 'cost_per_day' && (
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                        {currencySymbol}
+                      </div>
+                    )}
+                    <input
+                      id="item-target-value"
+                      type="number"
+                      value={targetValue}
+                      onChange={(event) => setTargetValue(event.target.value)}
+                      required
+                      min={targetType === 'duration' ? '1' : '0.01'}
+                      step={targetType === 'duration' ? '1' : '0.01'}
+                      placeholder={targetType === 'cost_per_day' ? t('enterTargetCostPerDay') : t('enterTargetDuration')}
+                      className={`w-full px-4 py-3 ${targetType === 'cost_per_day' ? (currencySymbol.length > 1 ? 'pl-11' : 'pl-8') : ''} rounded-xl border border-purple-100 bg-white focus:border-purple-300
+                      focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200`}
+                    />
+                  </div>
+                  {equivalentTargetNote && (
+                    <p className="text-xs font-medium text-purple-600 pt-1">
+                      {equivalentTargetNote}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {completedItems.length > 0 && (
+                <div className="border-t border-purple-100 pt-3 space-y-2">
+                  <div>
+                    <label htmlFor="benchmark-completed-item" className="text-xs text-gray-600 font-medium block">
+                      {t('benchmarkFromPriorItem')}
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      {t('benchmarkSelectPrompt')}
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <select
+                      id="benchmark-completed-item"
+                      aria-label={t('benchmarkFromPriorItem')}
+                      value={selectedBenchmarkItemId}
+                      onChange={(event) => setSelectedBenchmarkItemId(event.target.value)}
+                      className="flex-1 px-3 py-2 text-xs rounded-xl border border-purple-100 bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 outline-none"
+                    >
+                      <option value="">{t('selectCompletedItem')}</option>
+                      {completedItems.map((candidateItem) => (
+                        <option key={candidateItem.id} value={candidateItem.id}>
+                          {candidateItem.name} ({formatCurrency(Number(candidateItem.netCostPerDay ?? candidateItem.grossCostPerDay ?? 0), currencyCode)}/day)
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={!selectedBenchmarkItemId}
+                      onClick={() => {
+                        const chosen = completedItems.find((candidate) => String(candidate.id) === String(selectedBenchmarkItemId));
+                        if (chosen) {
+                          setBenchmarkSourceItem(chosen);
+                          setBenchmarkModalOpen(true);
+                        }
+                      }}
+                      className="px-3 py-2 text-xs bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1 shrink-0 shadow-sm"
+                    >
+                      <IoScaleOutline className="text-sm" />
+                      {t('replacementBenchmark')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-4 pt-4">
               <button 
                 type="submit" 
@@ -500,6 +680,18 @@ function AddItem() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Replacement Benchmark Modal */}
+      {benchmarkModalOpen && benchmarkSourceItem && (
+        <ReplacementBenchmarkModal
+          isOpen={benchmarkModalOpen}
+          onClose={() => setBenchmarkModalOpen(false)}
+          completedItem={benchmarkSourceItem}
+          initialCandidatePrice={price}
+          onCandidatePriceChange={(updatedPrice) => setPrice(updatedPrice)}
+          onApplyBenchmark={handleApplyBenchmark}
+        />
       )}
     </>
   );

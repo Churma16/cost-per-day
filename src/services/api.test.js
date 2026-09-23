@@ -12,7 +12,8 @@ import {
   getAllValueEquivalents,
   createValueEquivalent,
   updateValueEquivalent,
-  deleteValueEquivalent
+  deleteValueEquivalent,
+  getReplacementBenchmark
 } from './api';
 
 const response = (status, data, message = 'ok') => ({
@@ -246,4 +247,50 @@ describe('frontend API client', () => {
       method: 'DELETE'
     }));
   });
+
+  test('serializes ownership target fields when provided in item payload', async () => {
+    global.fetch.mockResolvedValue(response(201, {
+      id: '20',
+      name: 'Tablet',
+      price: 500,
+      purchaseDate: '2026-09-22T12:00:00Z',
+      targetType: 'cost_per_day',
+      targetValue: 2.5
+    }));
+
+    await addItem({
+      name: 'Tablet',
+      price: 500,
+      purchaseDate: '2026-09-22T12:00:00Z',
+      targetType: 'cost_per_day',
+      targetValue: 2.5
+    });
+
+    const [, options] = global.fetch.mock.calls[0];
+    expect(JSON.parse(options.body)).toEqual({
+      name: 'Tablet',
+      price: 500,
+      purchaseDate: '2026-09-22T12:00:00Z',
+      targetType: 'cost_per_day',
+      targetValue: 2.5
+    });
+  });
+
+  test('fetches replacement benchmark via centralized API request with encoded parameters', async () => {
+    const mockBenchmark = {
+      itemId: 'item-1',
+      candidatePrice: 200,
+      daysToMatchPrevious: 100
+    };
+    global.fetch.mockResolvedValue(response(200, mockBenchmark));
+
+    const result = await getReplacementBenchmark('item-1', 200);
+
+    expect(result).toEqual(mockBenchmark);
+    expect(global.fetch).toHaveBeenCalledWith('/api/items/item-1/replacement-benchmark?price=200', expect.objectContaining({
+      headers: expect.objectContaining({ Accept: 'application/json' }),
+      credentials: 'include'
+    }));
+  });
 });
+

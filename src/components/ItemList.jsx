@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getAllItems } from '../services/api';
-import { IoChevronDown, IoChevronForward, IoCalendar, IoCash } from 'react-icons/io5';
+import { IoChevronDown, IoChevronForward, IoCalendar, IoCash, IoScaleOutline } from 'react-icons/io5';
 import { formatCurrency } from '../utils/formatters';
 import { format } from 'date-fns';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { selectBestEquivalent } from '../utils/equivalentCalculator';
+import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 
 const STATUS_TRANSLATION_KEYS = {
   active: 'statusActive',
@@ -17,11 +18,49 @@ const STATUS_TRANSLATION_KEYS = {
   lost: 'statusLost'
 };
 
+const getTargetBadgeStyle = (targetState) => {
+  switch (targetState) {
+    case 'new':
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'in_progress':
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'target_reached':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'beyond_target':
+      return 'bg-purple-50 text-purple-700 border-purple-200';
+    default:
+      return 'bg-gray-100 text-gray-600 border-gray-200';
+  }
+};
+
+const formatTargetBadgeText = (item, t) => {
+  const percentage = Math.round(item.progressPercentage ?? item.targetProgressPercentage ?? 0);
+  const beyondDays = item.daysBeyond ?? item.daysBeyondTarget ?? 0;
+
+  switch (item.targetState) {
+    case 'new':
+      return t('targetStateNew');
+    case 'in_progress':
+      return t('targetStateInProgress', {
+        percent: percentage
+      });
+    case 'target_reached':
+      return t('targetStateReached');
+    case 'beyond_target':
+      return t('targetStateBeyond', {
+        days: beyondDays
+      });
+    default:
+      return '';
+  }
+};
+
 function ItemList() {
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [expandedItem, setExpandedItem] = useState(null);
   const [activeIcon, setActiveIcon] = useState(null);
+  const [benchmarkModalItem, setBenchmarkModalItem] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
@@ -104,11 +143,16 @@ function ItemList() {
                 onClick={() => toggleItem(item.id)}
               >
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-medium text-gray-900">{item.name}</h3>
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                       {t(statusTranslationKey)}
                     </span>
+                    {item.targetState && (
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium border ${getTargetBadgeStyle(item.targetState)}`}>
+                        {formatTargetBadgeText(item, t)}
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
                     {t(isActive ? 'currentCostPerDay' : 'finalGrossCostPerDay')}
@@ -191,6 +235,53 @@ function ItemList() {
                       </div>
                     )}
 
+                    {item.targetType && (
+                      <div className="rounded-lg bg-purple-50/50 border border-purple-100 p-3 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-gray-700">{t('targetMilestone')}</span>
+                          <span className="text-gray-500">
+                            {item.targetCostPerDay && `${formatCurrency(item.targetCostPerDay, currencyCode)}/day`}
+                            {item.targetDurationDays && ` (~${item.targetDurationDays} days)`}
+                          </span>
+                        </div>
+
+                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              item.targetState === 'beyond_target'
+                                ? 'bg-purple-600'
+                                : item.targetState === 'target_reached'
+                                  ? 'bg-emerald-500'
+                                  : 'bg-amber-500'
+                            }`}
+                            style={{ width: `${Math.min(100, Math.max(0, item.progressPercentage ?? item.targetProgressPercentage ?? 0))}%` }}
+                          ></div>
+                        </div>
+
+                        <div className="text-xs text-gray-500 flex justify-between items-center">
+                          <span>
+                            {item.targetState === 'in_progress' && t('remainingDaysToTarget', { days: item.remainingDays ?? item.remainingDaysToTarget ?? 0 })}
+                            {item.targetState === 'beyond_target' && t('daysBeyondTarget', { days: item.daysBeyond ?? item.daysBeyondTarget ?? 0 })}
+                            {item.targetState === 'target_reached' && t('targetStateReached')}
+                            {item.targetState === 'new' && t('targetStateNew')}
+                          </span>
+                          <span className="font-medium text-gray-700">
+                            {Math.round(item.progressPercentage ?? item.targetProgressPercentage ?? 0)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {!isActive && (
+                      <button
+                        type="button"
+                        className="w-full mt-2 flex items-center justify-center gap-2 p-2 bg-purple-50 hover:bg-purple-100 rounded-lg text-sm font-medium text-purple-700 transition-colors border border-purple-200"
+                        onClick={() => setBenchmarkModalItem(item)}
+                      >
+                        <IoScaleOutline className="text-base" /> {t('benchmarkReplacement')}
+                      </button>
+                    )}
+
                     <button
                       className="w-full mt-3 flex items-center justify-center gap-2 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
                       onClick={() => handleEditItem(item)}
@@ -203,6 +294,14 @@ function ItemList() {
             </div>
           );
         })
+      )}
+
+      {benchmarkModalItem && (
+        <ReplacementBenchmarkModal
+          isOpen={Boolean(benchmarkModalItem)}
+          onClose={() => setBenchmarkModalItem(null)}
+          completedItem={benchmarkModalItem}
+        />
       )}
     </div>
   );

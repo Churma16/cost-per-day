@@ -87,6 +87,14 @@ const toItemPayload = (item) => {
       ? null
       : Number(item.salePrice);
   }
+  if (Object.prototype.hasOwnProperty.call(item, 'targetType')) {
+    payload.targetType = item.targetType === '' || item.targetType === undefined ? null : item.targetType;
+  }
+  if (Object.prototype.hasOwnProperty.call(item, 'targetValue')) {
+    payload.targetValue = item.targetValue === null || item.targetValue === undefined || item.targetValue === ''
+      ? null
+      : Number(item.targetValue);
+  }
 
   return payload;
 };
@@ -112,6 +120,10 @@ export const updateItem = (id, item) => request(`/api/items/${encodeURIComponent
 export const deleteItem = (id) => request(`/api/items/${encodeURIComponent(String(id))}`, {
   method: 'DELETE'
 });
+
+export const getReplacementBenchmark = (id, price) => request(
+  `/api/items/${encodeURIComponent(String(id))}/replacement-benchmark?price=${encodeURIComponent(String(price))}`
+);
 
 export const getAllSettings = async () => {
   const settings = await request('/api/settings');
