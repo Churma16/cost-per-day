@@ -99,17 +99,19 @@ npm run dev
 ```
 The runner detects Air automatically and enables hot reload, or falls back to standard Go execution if Air is not installed.
 
-#### Option B: Standalone with Air (Hot Reload)
-From the `backend/` directory:
+#### Option B: Backend Only with Air (Hot Reload)
+From the repository root:
 ```bash
-air
+npm run server:air
 ```
 
-#### Option C: Standalone Standard Go
-From the `backend/` directory:
+#### Option C: Backend Only with Standard Go
+From the repository root:
 ```bash
-go run ./cmd/server
+npm run server:build
 ```
+
+Both backend-only commands use the shared runner, which loads `backend/.env` before starting the selected backend mode.
 
 For local split frontend/backend development, configure a Google web OAuth client with `http://localhost:8080/auth/google/callback` as an authorized redirect URI, set `APP_BASE_URL=http://localhost:3000`, and provide the required secrets from `.env.example`. The service will start on `http://127.0.0.1:8080` and create the configured SQLite database if it does not already exist.
 
