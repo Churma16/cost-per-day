@@ -14,9 +14,9 @@ import (
 	"cost-per-day/backend/internal/repository"
 	"cost-per-day/backend/internal/repository/memory"
 	"cost-per-day/backend/internal/service"
-	transportHttp "cost-per-day/backend/internal/transport/http"
-	"cost-per-day/backend/internal/transport/http/handler"
-	"cost-per-day/backend/internal/transport/http/middleware"
+	appHttp "cost-per-day/backend/internal/http"
+	"cost-per-day/backend/internal/http/handler"
+	"cost-per-day/backend/internal/http/middleware"
 )
 
 type dashboardTestRouterEnvironment struct {
@@ -49,7 +49,7 @@ func setupDashboardTestRouter(userID string) dashboardTestRouterEnvironment {
 		identityMiddleware = middleware.StaticUserIdentity(userID)
 	}
 
-	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
+	routerEngine := appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         "http://app.test",
 		ItemHandler:            itemHandler,
 		SettingsHandler:        settingsHandler,

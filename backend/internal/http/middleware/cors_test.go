@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"cost-per-day/backend/internal/transport/http/middleware"
+	"cost-per-day/backend/internal/http/middleware"
 )
 
 func TestCORSMiddlewareAllowsOnlyConfiguredCredentialedOrigins(t *testing.T) {

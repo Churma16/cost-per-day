@@ -8,8 +8,8 @@ import (
 
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/service"
-	"cost-per-day/backend/internal/transport/http/dto"
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/dto"
+	"cost-per-day/backend/internal/http/response"
 )
 
 // SettingsHandler handles HTTP requests related to user-owned application configuration settings.

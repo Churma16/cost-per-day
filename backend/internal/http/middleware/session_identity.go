@@ -9,7 +9,7 @@ import (
 
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/service"
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/response"
 )
 
 // DefaultSessionCookieName is the opaque application session cookie shared by auth handlers and middleware.

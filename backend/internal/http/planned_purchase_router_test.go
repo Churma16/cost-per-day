@@ -12,10 +12,10 @@ import (
 
 	"cost-per-day/backend/internal/repository/memory"
 	"cost-per-day/backend/internal/service"
-	transportHttp "cost-per-day/backend/internal/transport/http"
-	"cost-per-day/backend/internal/transport/http/dto"
-	"cost-per-day/backend/internal/transport/http/handler"
-	"cost-per-day/backend/internal/transport/http/middleware"
+	appHttp "cost-per-day/backend/internal/http"
+	"cost-per-day/backend/internal/http/dto"
+	"cost-per-day/backend/internal/http/handler"
+	"cost-per-day/backend/internal/http/middleware"
 )
 
 func setupPlannedPurchaseTestRouter(userID string) (*gin.Engine, service.PlannedPurchaseService) {
@@ -34,7 +34,7 @@ func setupPlannedPurchaseTestRouter(userID string) (*gin.Engine, service.Planned
 	healthHandler := handler.NewHealthHandler()
 	plannedPurchaseHandler := handler.NewPlannedPurchaseHandler(plannedPurchaseService)
 
-	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
+	routerEngine := appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         "http://app.test",
 		ItemHandler:            itemHandler,
 		SettingsHandler:        settingsHandler,
@@ -214,7 +214,7 @@ func TestPlannedPurchaseUserIsolation(t *testing.T) {
 	healthHandler := handler.NewHealthHandler()
 	plannedPurchaseHandler := handler.NewPlannedPurchaseHandler(plannedPurchaseService)
 
-	userAlphaEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
+	userAlphaEngine := appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         "http://app.test",
 		ItemHandler:            itemHandler,
 		SettingsHandler:        settingsHandler,
@@ -223,7 +223,7 @@ func TestPlannedPurchaseUserIsolation(t *testing.T) {
 		UserIdentityMiddleware: middleware.StaticUserIdentity("user-alpha"),
 	})
 
-	userBetaEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
+	userBetaEngine := appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         "http://app.test",
 		ItemHandler:            itemHandler,
 		SettingsHandler:        settingsHandler,

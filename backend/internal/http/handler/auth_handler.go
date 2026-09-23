@@ -17,8 +17,8 @@ import (
 
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/service"
-	"cost-per-day/backend/internal/transport/http/middleware"
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/middleware"
+	"cost-per-day/backend/internal/http/response"
 )
 
 const (
@@ -26,7 +26,7 @@ const (
 	oidcStateLifetime   = 10 * time.Minute
 )
 
-// AuthHandlerConfig contains transport-only cookie and redirect settings.
+// AuthHandlerConfig contains HTTP cookie and redirect settings.
 type AuthHandlerConfig struct {
 	AuthService    *service.AuthService
 	SessionSecret  string

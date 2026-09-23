@@ -7,7 +7,7 @@ A lightweight Go HTTP service built with Gin that establishes the shared API bou
 The backend keeps HTTP, application behavior, repository contracts, and persistence details separate:
 
 ```text
-HTTP Transport (Gin router, auth middleware, handlers, DTOs, response envelope)
+HTTP Layer (Gin router, auth middleware, handlers, DTOs, response envelope)
     -> Application Services (AuthService, ItemService, SettingsService)
         -> Repository Interfaces (User, Session, Item, Settings)
             -> SQLite Adapter (database/sql + explicit raw SQL)
@@ -18,12 +18,12 @@ Google OIDC Adapter
             -> local User + application-owned Session
 ```
 
-- **Transport Decoupling**: Gin and `*gin.Context` remain strictly inside `internal/transport/http`.
+- **HTTP Decoupling**: Gin and `*gin.Context` remain strictly inside `internal/http`.
 - **Domain Independence**: Domain models and application services depend on repository interfaces, not SQLite.
 - **Persistence Isolation**: SQLite queries live only in `internal/repository/sqlite`.
 - **Composition Root**: Concrete SQLite repositories are selected only in `cmd/server/main.go`.
 
-The in-memory repositories remain available for focused unit tests. User-owned operations require a local user ID supplied by the transport authentication boundary. Google tokens and claims stop at the OIDC adapter; item and settings services receive only the application-owned local user ID.
+The in-memory repositories remain available for focused unit tests. User-owned operations require a local user ID supplied by the HTTP authentication boundary. Google tokens and claims stop at the OIDC adapter; item and settings services receive only the application-owned local user ID.
 
 ## SQLite Persistence
 

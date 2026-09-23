@@ -10,9 +10,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"cost-per-day/backend/internal/transport/http/handler"
-	"cost-per-day/backend/internal/transport/http/middleware"
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/handler"
+	"cost-per-day/backend/internal/http/middleware"
+	"cost-per-day/backend/internal/http/response"
 )
 
 // RouterConfig contains dependencies and configuration needed to assemble the HTTP router.
