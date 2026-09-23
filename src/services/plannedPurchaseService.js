@@ -99,3 +99,21 @@ export const deletePlannedPurchase = async (plannedPurchaseId) => {
     return handlePlannedPurchaseHttpError(error, 'Unable to delete the planned purchase.');
   }
 };
+
+export const convertPlannedPurchase = async (plannedPurchaseId, conversionPayload) => {
+  try {
+    const httpResponse = await plannedPurchaseHttpClient.post(
+      `/api/planned-purchases/${encodeURIComponent(String(plannedPurchaseId))}/convert`,
+      conversionPayload
+    );
+    const responsePayload = httpResponse.data;
+
+    if (!responsePayload || typeof responsePayload !== 'object' || !responsePayload.data) {
+      throw new Error('The server returned an unexpected planned purchase conversion response structure.');
+    }
+
+    return responsePayload.data;
+  } catch (error) {
+    return handlePlannedPurchaseHttpError(error, 'Unable to convert the planned purchase.');
+  }
+};

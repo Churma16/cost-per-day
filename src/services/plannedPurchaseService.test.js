@@ -6,6 +6,7 @@ import {
   createPlannedPurchase,
   updatePlannedPurchase,
   deletePlannedPurchase,
+  convertPlannedPurchase,
 } from './plannedPurchaseService';
 
 describe('plannedPurchaseService', () => {
@@ -105,6 +106,31 @@ describe('plannedPurchaseService', () => {
 
     const result = await deletePlannedPurchase('2');
     expect(result).toEqual({ meta: { code: 200, message: 'Deleted' }, data: null });
+  });
+
+  it('successfully converts a planned purchase into an owned item', async () => {
+    const payload = {
+      purchasePrice: 1150000,
+      currencyCode: 'IDR',
+      purchaseDate: '2026-09-24',
+    };
+    const ownedItem = {
+      id: '9',
+      name: 'Camera',
+      price: 1150000,
+      purchaseDate: '2026-09-24T00:00:00Z',
+      status: 'active',
+    };
+
+    const postSpy = vi.spyOn(plannedPurchaseHttpClient, 'post').mockResolvedValueOnce({
+      data: {
+        meta: { code: 201, message: 'planned purchase converted successfully' },
+        data: ownedItem,
+      },
+    });
+
+    await expect(convertPlannedPurchase('3', payload)).resolves.toEqual(ownedItem);
+    expect(postSpy).toHaveBeenCalledWith('/api/planned-purchases/3/convert', payload);
   });
 
   it('surfaces backend error message on failure', async () => {

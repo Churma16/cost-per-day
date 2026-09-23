@@ -20,6 +20,10 @@ type itemScanner interface {
 	Scan(destinations ...any) error
 }
 
+type itemCommandExecutor interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
 // ItemRepository implements repository.ItemRepository using user-scoped SQLite queries.
 type ItemRepository struct {
 	databaseConnection *sql.DB
@@ -95,6 +99,15 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 		return domain.Item{}, identityError
 	}
 
+	return createItemWithExecutor(ctx, repositoryInstance.databaseConnection, normalizedUserID, itemToCreate)
+}
+
+func createItemWithExecutor(
+	ctx context.Context,
+	executor itemCommandExecutor,
+	normalizedUserID string,
+	itemToCreate domain.Item,
+) (domain.Item, error) {
 	priceMicros, conversionError := convertPriceToMicros(itemToCreate.Price)
 	if conversionError != nil {
 		return domain.Item{}, conversionError
@@ -123,7 +136,7 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 	itemToCreate.UpdatedAt = currentTimestamp
 	itemToCreate.UserID = normalizedUserID
 
-	insertResult, insertError := repositoryInstance.databaseConnection.ExecContext(ctx, `
+	insertResult, insertError := executor.ExecContext(ctx, `
 		INSERT INTO items (
 			user_id,
 			name,

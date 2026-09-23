@@ -151,6 +151,12 @@ const translation = {
   "exploreFraming": "Coba tempo lain",
   "explorePaceDescription": "Sesuaikan nominal atau frekuensi untuk melihat bagaimana jangka waktu berubah.",
   "daysRemaining": "{{days}} hari tersisa",
+  "markAsPurchased": "Tandai Sudah Dibeli",
+  "markAsPurchasedDescription": "Tinjau detail pembelian aktual sebelum memindahkan rencana ini menjadi barang yang dimiliki.",
+  "actualPurchasePrice": "Harga pembelian aktual",
+  "plannedPriceReference": "Harga rencana: {{amount}}",
+  "createOwnedItem": "Buat Barang Dimiliki",
+  "conversionFailed": "Gagal mengubah pembelian terencana. Silakan coba lagi.",
 
   // Ownership Targets & Benchmarks
   "ownershipTarget": "Target Kepemilikan",

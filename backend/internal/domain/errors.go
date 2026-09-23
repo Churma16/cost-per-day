@@ -111,6 +111,9 @@ var (
 	// ErrMissingContributionAmount indicates that a contribution cadence was supplied without an amount.
 	ErrMissingContributionAmount = errors.New("contribution amount is required when contribution cadence is provided")
 
+	// ErrPlannedPurchaseCurrencyMismatch indicates that conversion currency does not match the source plan.
+	ErrPlannedPurchaseCurrencyMismatch = errors.New("purchase currency must match the planned purchase currency")
+
 	// ErrMissingOwnershipTargetType indicates that target value was supplied without target type.
 	ErrMissingOwnershipTargetType = errors.New("ownership target type is required when target value is provided")
 

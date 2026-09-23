@@ -109,14 +109,7 @@ func (serviceInstance *itemServiceImpl) CreateItem(
 		return domain.Item{}, identityError
 	}
 
-	validatedItem, validationError := validateItem(domain.Item{
-		Name:         name,
-		Price:        price,
-		PurchaseDate: purchaseDate,
-		Status:       domain.ItemStatusActive,
-		TargetType:   targetType,
-		TargetValue:  targetValue,
-	})
+	validatedItem, validationError := newActiveItem(name, price, purchaseDate, targetType, targetValue)
 	if validationError != nil {
 		return domain.Item{}, validationError
 	}
@@ -296,6 +289,23 @@ func (serviceInstance *itemServiceImpl) CalculateReplacementBenchmark(
 	return benchmark, nil
 }
 
+
+func newActiveItem(
+	name string,
+	price float64,
+	purchaseDate string,
+	targetType *domain.OwnershipTargetType,
+	targetValue *float64,
+) (domain.Item, error) {
+	return validateItem(domain.Item{
+		Name:         name,
+		Price:        price,
+		PurchaseDate: purchaseDate,
+		Status:       domain.ItemStatusActive,
+		TargetType:   targetType,
+		TargetValue:  targetValue,
+	})
+}
 
 func validateItem(item domain.Item) (domain.Item, error) {
 	trimmedName := strings.TrimSpace(item.Name)

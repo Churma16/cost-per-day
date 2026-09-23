@@ -5,6 +5,7 @@ import {
   createPlannedPurchase,
   updatePlannedPurchase,
   deletePlannedPurchase,
+  convertPlannedPurchase,
 } from '../services/plannedPurchaseService';
 
 export const PLANNED_PURCHASES_QUERY_KEY = ['planned-purchases'];
@@ -67,6 +68,18 @@ export const useDeletePlannedPurchase = () => {
 
   return useMutation({
     mutationFn: (plannedPurchaseId) => deletePlannedPurchase(plannedPurchaseId),
+    onSuccess: () => {
+      invalidatePlannedPurchasesQuery(queryClient);
+    },
+  });
+};
+
+export const useConvertPlannedPurchase = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ plannedPurchaseId, conversionPayload }) =>
+      convertPlannedPurchase(plannedPurchaseId, conversionPayload),
     onSuccess: () => {
       invalidatePlannedPurchasesQuery(queryClient);
     },

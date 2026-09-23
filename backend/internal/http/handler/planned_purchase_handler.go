@@ -14,13 +14,22 @@ import (
 
 // PlannedPurchaseHandler handles HTTP requests related to user-owned planned purchases.
 type PlannedPurchaseHandler struct {
-	plannedPurchaseService service.PlannedPurchaseService
+	plannedPurchaseService           service.PlannedPurchaseService
+	plannedPurchaseConversionService service.PlannedPurchaseConversionService
 }
 
 // NewPlannedPurchaseHandler creates a new PlannedPurchaseHandler instance.
-func NewPlannedPurchaseHandler(plannedPurchaseService service.PlannedPurchaseService) *PlannedPurchaseHandler {
+func NewPlannedPurchaseHandler(
+	plannedPurchaseService service.PlannedPurchaseService,
+	conversionServices ...service.PlannedPurchaseConversionService,
+) *PlannedPurchaseHandler {
+	var conversionService service.PlannedPurchaseConversionService
+	if len(conversionServices) > 0 {
+		conversionService = conversionServices[0]
+	}
 	return &PlannedPurchaseHandler{
-		plannedPurchaseService: plannedPurchaseService,
+		plannedPurchaseService:           plannedPurchaseService,
+		plannedPurchaseConversionService: conversionService,
 	}
 }
 
@@ -187,6 +196,53 @@ func (handlerInstance *PlannedPurchaseHandler) Delete(ginContext *gin.Context) {
 	}
 
 	response.Success(ginContext, http.StatusOK, "planned purchase deleted successfully", nil)
+}
+
+// Convert handles POST /api/planned-purchases/:id/convert and returns the newly created owned item.
+func (handlerInstance *PlannedPurchaseHandler) Convert(ginContext *gin.Context) {
+	userID, authenticated := authenticatedUserID(ginContext)
+	if !authenticated {
+		return
+	}
+
+	id := ginContext.Param("id")
+	if id == "" {
+		response.Error(ginContext, http.StatusBadRequest, "planned purchase identifier is required")
+		return
+	}
+	if handlerInstance.plannedPurchaseConversionService == nil {
+		response.Error(ginContext, http.StatusInternalServerError, "planned purchase conversion is unavailable")
+		return
+	}
+
+	var requestBody dto.ConvertPlannedPurchaseRequestDTO
+	if bindError := ginContext.ShouldBindJSON(&requestBody); bindError != nil {
+		response.Error(ginContext, http.StatusBadRequest, "invalid request body format")
+		return
+	}
+
+	createdItem, serviceError := handlerInstance.plannedPurchaseConversionService.ConvertPlannedPurchase(
+		ginContext.Request.Context(),
+		userID,
+		id,
+		requestBody.PurchasePrice,
+		requestBody.CurrencyCode,
+		requestBody.PurchaseDate,
+	)
+	if serviceError != nil {
+		if errors.Is(serviceError, domain.ErrPlannedPurchaseNotFound) {
+			response.Error(ginContext, http.StatusNotFound, "planned purchase not found")
+			return
+		}
+		if isItemValidationError(serviceError) || errors.Is(serviceError, domain.ErrPlannedPurchaseCurrencyMismatch) {
+			response.Error(ginContext, http.StatusBadRequest, serviceError.Error())
+			return
+		}
+		response.Error(ginContext, http.StatusInternalServerError, "failed to convert planned purchase")
+		return
+	}
+
+	response.Success(ginContext, http.StatusCreated, "planned purchase converted successfully", createdItem)
 }
 
 func isPlannedPurchaseValidationError(candidate error) bool {

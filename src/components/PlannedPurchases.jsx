@@ -5,9 +5,11 @@ import {
   useCreatePlannedPurchase,
   useUpdatePlannedPurchase,
   useDeletePlannedPurchase,
+  useConvertPlannedPurchase,
 } from '../hooks/usePlannedPurchases';
 import PlannedPurchaseCard from './PlannedPurchaseCard';
 import PlannedPurchaseForm from './PlannedPurchaseForm';
+import PlannedPurchaseConversionModal from './PlannedPurchaseConversionModal';
 import { IoAddOutline, IoTimeOutline } from 'react-icons/io5';
 
 function PlannedPurchases() {
@@ -17,11 +19,14 @@ function PlannedPurchases() {
   const createMutation = useCreatePlannedPurchase();
   const updateMutation = useUpdatePlannedPurchase();
   const deleteMutation = useDeletePlannedPurchase();
+  const convertMutation = useConvertPlannedPurchase();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [convertingItem, setConvertingItem] = useState(null);
+  const [conversionError, setConversionError] = useState(null);
 
   const handleOpenCreate = () => {
     setEditingItem(null);
@@ -58,6 +63,21 @@ function PlannedPurchases() {
     }
   };
 
+  const handleConvertConfirm = async (conversionPayload) => {
+    if (!convertingItem) return;
+
+    setConversionError(null);
+    try {
+      await convertMutation.mutateAsync({
+        plannedPurchaseId: convertingItem.id,
+        conversionPayload,
+      });
+      setConvertingItem(null);
+    } catch (err) {
+      setConversionError(err.message || t('conversionFailed'));
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deletingId) return;
     try {
@@ -69,7 +89,10 @@ function PlannedPurchases() {
   };
 
   const isMutating =
-    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    deleteMutation.isPending ||
+    convertMutation.isPending;
 
   return (
     <div className="px-4 pb-8 space-y-5 max-w-3xl mx-auto planning-page-content">
@@ -163,9 +186,27 @@ function PlannedPurchases() {
               plannedPurchase={plannedPurchase}
               onEdit={handleOpenEdit}
               onDelete={(id) => setDeletingId(id)}
+              onConvert={(item) => {
+                setConvertingItem(item);
+                setConversionError(null);
+              }}
             />
           ))}
         </div>
+      )}
+
+      {convertingItem && (
+        <PlannedPurchaseConversionModal
+          plannedPurchase={convertingItem}
+          onConfirm={handleConvertConfirm}
+          onCancel={() => {
+            if (convertMutation.isPending) return;
+            setConvertingItem(null);
+            setConversionError(null);
+          }}
+          isSubmitting={convertMutation.isPending}
+          errorMessage={conversionError}
+        />
       )}
 
       {/* Delete Confirmation Modal */}

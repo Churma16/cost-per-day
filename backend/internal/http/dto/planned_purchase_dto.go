@@ -19,3 +19,10 @@ type UpdatePlannedPurchaseRequestDTO struct {
 	ContributionAmount  *float64 `json:"contributionAmount,omitempty"`
 	ContributionCadence *string  `json:"contributionCadence,omitempty"`
 }
+
+// ConvertPlannedPurchaseRequestDTO represents actual purchase details used to transition a plan into ownership.
+type ConvertPlannedPurchaseRequestDTO struct {
+	PurchasePrice float64 `json:"purchasePrice"`
+	CurrencyCode  string  `json:"currencyCode"`
+	PurchaseDate  string  `json:"purchaseDate"`
+}
