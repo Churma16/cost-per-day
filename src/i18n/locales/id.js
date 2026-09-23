@@ -185,8 +185,10 @@ const translation = {
   "benchmarkResultRequiredDuration": "Durasi yang dibutuhkan untuk menyamai biaya akhir sebelumnya ({{rate}}/hari)",
   "benchmarkResultTargetDuration": "Durasi yang dibutuhkan untuk menyamai target sebelumnya ({{rate}}/hari)",
   "benchmarkResultDays": "~{{days}} hari",
+  "benchmarkResultDaysToBeat": "Perlu bertahan setidaknya {{days}} hari untuk melampaui efisiensi sebelumnya",
   "close": "Tutup",
   "benchmarkFromPriorItem": "Gunakan tolok ukur barang sebelumnya",
+  "benchmarkSelectPrompt": "Pilih barang selesai untuk menghitung durasi yang dibutuhkan agar barang pengganti ini menyamai atau melampaui nilainya.",
   "selectCompletedItem": "Pilih barang yang sudah selesai...",
   "useBenchmarkAsTarget": "Terapkan ke Target"
 };

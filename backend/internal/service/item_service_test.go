@@ -388,11 +388,11 @@ func TestItemService_CalculateReplacementBenchmark(t *testing.T) {
 		t.Fatalf("expected ErrInvalidBenchmarkPrice, got %v", badPriceErr)
 	}
 
-	// 4. Valid benchmark calculation
+	// 4. Valid benchmark calculation with exact integer ratio
 	// Previous: final cost/day = 100 / 10 = 10.0. Target cost/day = 5.0.
 	// Candidate replacement price = 150.0
 	// Match previous: ceil(150 / 10) = 15 days
-	// Beat previous: 16 days
+	// Beat previous: floor(150 / 10) + 1 = 16 days
 	// Match target: ceil(150 / 5) = 30 days
 	benchmark, calcErr := itemService.CalculateReplacementBenchmark(ctx, domain.LegacyUserID, retiredItem.ID, 150.0)
 	if calcErr != nil {
@@ -413,6 +413,22 @@ func TestItemService_CalculateReplacementBenchmark(t *testing.T) {
 	}
 	if benchmark.DaysToMatchTarget == nil || *benchmark.DaysToMatchTarget != 30 {
 		t.Fatalf("expected 30 days to match target, got %v", benchmark.DaysToMatchTarget)
+	}
+
+	// 5. Valid benchmark calculation with non-integer ratio
+	// Candidate replacement price = 125.0
+	// 125.0 / 10.0 = 12.5
+	// Match previous: ceil(12.5) = 13 days (125 / 13 ~= 9.615 <= 10.0)
+	// Beat previous: floor(12.5) + 1 = 13 days (125 / 13 ~= 9.615 < 10.0, already beats!)
+	nonIntegerBenchmark, nonIntegerErr := itemService.CalculateReplacementBenchmark(ctx, domain.LegacyUserID, retiredItem.ID, 125.0)
+	if nonIntegerErr != nil {
+		t.Fatalf("calculate non-integer benchmark error: %v", nonIntegerErr)
+	}
+	if nonIntegerBenchmark.DaysToMatchPrevious == nil || *nonIntegerBenchmark.DaysToMatchPrevious != 13 {
+		t.Fatalf("expected 13 days to match previous, got %v", nonIntegerBenchmark.DaysToMatchPrevious)
+	}
+	if nonIntegerBenchmark.DaysToBeatPrevious == nil || *nonIntegerBenchmark.DaysToBeatPrevious != 13 {
+		t.Fatalf("expected 13 days to beat previous, got %v", nonIntegerBenchmark.DaysToBeatPrevious)
 	}
 }
 

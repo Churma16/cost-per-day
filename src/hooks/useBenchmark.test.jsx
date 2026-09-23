@@ -20,9 +20,10 @@ describe('useReplacementBenchmark hook', () => {
 
   it('fetches benchmark data when itemId and positive price are provided', async () => {
     const mockData = {
-      benchmarkItemId: 'item-1',
-      requiredDaysToMatchFinalRate: 100,
-      benchmarkCostPerDay: 4.5,
+      itemId: 'item-1',
+      finalCostPerDay: 4.5,
+      daysToMatchPrevious: 100,
+      daysToBeatPrevious: 101,
     };
     benchmarkService.fetchReplacementBenchmark.mockResolvedValueOnce(mockData);
 

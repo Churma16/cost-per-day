@@ -34,18 +34,21 @@ const getTargetBadgeStyle = (targetState) => {
 };
 
 const formatTargetBadgeText = (item, t) => {
+  const percentage = Math.round(item.progressPercentage ?? item.targetProgressPercentage ?? 0);
+  const beyondDays = item.daysBeyond ?? item.daysBeyondTarget ?? 0;
+
   switch (item.targetState) {
     case 'new':
       return t('targetStateNew');
     case 'in_progress':
       return t('targetStateInProgress', {
-        percent: Math.round(item.targetProgressPercentage || 0)
+        percent: percentage
       });
     case 'target_reached':
       return t('targetStateReached');
     case 'beyond_target':
       return t('targetStateBeyond', {
-        days: item.daysBeyondTarget || 0
+        days: beyondDays
       });
     default:
       return '';
@@ -251,19 +254,19 @@ function ItemList() {
                                   ? 'bg-emerald-500'
                                   : 'bg-amber-500'
                             }`}
-                            style={{ width: `${Math.min(100, Math.max(0, item.targetProgressPercentage || 0))}%` }}
+                            style={{ width: `${Math.min(100, Math.max(0, item.progressPercentage ?? item.targetProgressPercentage ?? 0))}%` }}
                           ></div>
                         </div>
 
                         <div className="text-xs text-gray-500 flex justify-between items-center">
                           <span>
-                            {item.targetState === 'in_progress' && t('remainingDaysToTarget', { days: item.remainingDaysToTarget || 0 })}
-                            {item.targetState === 'beyond_target' && t('daysBeyondTarget', { days: item.daysBeyondTarget || 0 })}
+                            {item.targetState === 'in_progress' && t('remainingDaysToTarget', { days: item.remainingDays ?? item.remainingDaysToTarget ?? 0 })}
+                            {item.targetState === 'beyond_target' && t('daysBeyondTarget', { days: item.daysBeyond ?? item.daysBeyondTarget ?? 0 })}
                             {item.targetState === 'target_reached' && t('targetStateReached')}
                             {item.targetState === 'new' && t('targetStateNew')}
                           </span>
                           <span className="font-medium text-gray-700">
-                            {Math.round(item.targetProgressPercentage || 0)}%
+                            {Math.round(item.progressPercentage ?? item.targetProgressPercentage ?? 0)}%
                           </span>
                         </div>
                       </div>

@@ -9,11 +9,20 @@ function ReplacementBenchmarkModal({
   isOpen,
   onClose,
   completedItem,
+  initialCandidatePrice = '',
   onApplyBenchmark,
 }) {
   const { t } = useTranslation();
   const { currencyCode, currencySymbol } = useCurrency();
-  const [candidatePriceInput, setCandidatePriceInput] = useState('');
+  const [candidatePriceInput, setCandidatePriceInput] = useState(
+    initialCandidatePrice ? String(initialCandidatePrice) : ''
+  );
+
+  React.useEffect(() => {
+    if (isOpen && initialCandidatePrice) {
+      setCandidatePriceInput(String(initialCandidatePrice));
+    }
+  }, [isOpen, initialCandidatePrice]);
 
   const numericCandidatePrice = Number(candidatePriceInput);
   const isValidCandidatePrice = Number.isFinite(numericCandidatePrice) && numericCandidatePrice > 0;
@@ -136,15 +145,20 @@ function ReplacementBenchmarkModal({
             <div>
               <p className="text-xs text-gray-500">
                 {t('benchmarkResultRequiredDuration', {
-                  rate: formatCurrency(benchmarkData.benchmarkCostPerDay, currencyCode)
+                  rate: formatCurrency(benchmarkData.finalCostPerDay, currencyCode)
                 })}
               </p>
               <p className="text-base font-semibold text-gray-900 mt-0.5">
-                {t('benchmarkResultDays', { days: benchmarkData.requiredDaysToMatchFinalRate })}
+                {t('benchmarkResultDays', { days: benchmarkData.daysToMatchPrevious })}
               </p>
+              {benchmarkData.daysToBeatPrevious && (
+                <p className="text-xs text-purple-600 mt-1 font-medium">
+                  {t('benchmarkResultDaysToBeat', { days: benchmarkData.daysToBeatPrevious })}
+                </p>
+              )}
             </div>
 
-            {benchmarkData.requiredDaysToMatchTargetRate && (
+            {benchmarkData.hasTarget && benchmarkData.daysToMatchTarget && (
               <div className="border-t border-gray-200 pt-2">
                 <p className="text-xs text-gray-500">
                   {t('benchmarkResultTargetDuration', {
@@ -152,7 +166,7 @@ function ReplacementBenchmarkModal({
                   })}
                 </p>
                 <p className="text-base font-semibold text-gray-900 mt-0.5">
-                  {t('benchmarkResultDays', { days: benchmarkData.requiredDaysToMatchTargetRate })}
+                  {t('benchmarkResultDays', { days: benchmarkData.daysToMatchTarget })}
                 </p>
               </div>
             )}

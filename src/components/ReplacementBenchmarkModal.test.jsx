@@ -19,6 +19,7 @@ vi.mock('react-i18next', () => ({
         benchmarkResultRequiredDuration: `Required duration to match prior final rate (${options?.rate}/day)`,
         benchmarkResultTargetDuration: `Required duration to match prior target (${options?.rate}/day)`,
         benchmarkResultDays: `~${options?.days} days`,
+        benchmarkResultDaysToBeat: `Must last at least ${options?.days} days to beat prior rate`,
         useBenchmarkAsTarget: 'Use as Target',
         close: 'Close',
         loading: 'Loading...'
@@ -72,12 +73,13 @@ describe('ReplacementBenchmarkModal component', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders completed item details and accepts candidate price', () => {
+  it('renders completed item details and accepts candidate price or initial candidate price', () => {
     render(
       <ReplacementBenchmarkModal
         isOpen={true}
         onClose={vi.fn()}
         completedItem={mockCompletedItem}
+        initialCandidatePrice={250}
       />
     );
 
@@ -86,21 +88,30 @@ describe('ReplacementBenchmarkModal component', () => {
     expect(screen.getByText('Duration: 200 days')).toBeInTheDocument();
 
     const priceInput = screen.getByPlaceholderText('Enter replacement price');
+    expect(priceInput.value).toBe('250');
+
     fireEvent.change(priceInput, { target: { value: '300' } });
     expect(priceInput.value).toBe('300');
   });
 
-  it('displays benchmark results and calls onApplyBenchmark when clicked', () => {
+  it('displays benchmark results with canonical backend contract and calls onApplyBenchmark', () => {
     const onApplyBenchmark = vi.fn();
     const onClose = vi.fn();
 
     useReplacementBenchmark.mockReturnValue({
       data: {
-        benchmarkItemId: 'item-10',
-        benchmarkCostPerDay: 1.5,
-        requiredDaysToMatchFinalRate: 200,
+        itemId: 'item-10',
+        itemName: 'Old Headphones',
+        itemStatus: 'retired',
+        previousPrice: 300,
+        finalOwnershipDays: 200,
+        finalCostPerDay: 1.5,
+        candidatePrice: 300,
+        daysToMatchPrevious: 200,
+        daysToBeatPrevious: 201,
+        hasTarget: true,
         targetCostPerDay: 1.0,
-        requiredDaysToMatchTargetRate: 300
+        daysToMatchTarget: 300
       },
       isLoading: false,
       error: null
@@ -116,13 +127,14 @@ describe('ReplacementBenchmarkModal component', () => {
     );
 
     expect(screen.getByText('~200 days')).toBeInTheDocument();
+    expect(screen.getByText('Must last at least 201 days to beat prior rate')).toBeInTheDocument();
     expect(screen.getByText('~300 days')).toBeInTheDocument();
 
     const applyButton = screen.getByRole('button', { name: 'Use as Target' });
     fireEvent.click(applyButton);
 
     expect(onApplyBenchmark).toHaveBeenCalledWith(expect.objectContaining({
-      requiredDaysToMatchFinalRate: 200
+      daysToMatchPrevious: 200
     }));
     expect(onClose).toHaveBeenCalled();
   });

@@ -166,8 +166,10 @@ const translation = {
   "benchmarkResultRequiredDuration": "达到上一件最终每日费率（{{rate}}/天）所需天数",
   "benchmarkResultTargetDuration": "达到上一件目标费率（{{rate}}/天）所需天数",
   "benchmarkResultDays": "~{{days}} 天",
+  "benchmarkResultDaysToBeat": "至少需使用 {{days}} 天以超越前置效益",
   "close": "关闭",
   "benchmarkFromPriorItem": "根据已完结物品对标",
+  "benchmarkSelectPrompt": "选择已结束的物品以计算新物品需使用多久才能达到或超越其价值。",
   "selectCompletedItem": "选择已完结物品...",
   "useBenchmarkAsTarget": "应用为目标"
 };

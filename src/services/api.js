@@ -121,10 +121,6 @@ export const deleteItem = (id) => request(`/api/items/${encodeURIComponent(Strin
   method: 'DELETE'
 });
 
-export const getReplacementBenchmark = (id, price) => request(
-  `/api/items/${encodeURIComponent(String(id))}/replacement-benchmark?price=${encodeURIComponent(String(price))}`
-);
-
 export const getAllSettings = async () => {
   const settings = await request('/api/settings');
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {

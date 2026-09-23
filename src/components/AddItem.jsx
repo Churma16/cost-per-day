@@ -33,6 +33,7 @@ function AddItem() {
   const [targetType, setTargetType] = useState('none');
   const [targetValue, setTargetValue] = useState('');
   const [completedItems, setCompletedItems] = useState([]);
+  const [selectedBenchmarkItemId, setSelectedBenchmarkItemId] = useState('');
   const [benchmarkModalOpen, setBenchmarkModalOpen] = useState(false);
   const [benchmarkSourceItem, setBenchmarkSourceItem] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -62,6 +63,7 @@ function AddItem() {
       setSalePrice('');
       setTargetType('none');
       setTargetValue('');
+      setSelectedBenchmarkItemId('');
       setBenchmarkModalOpen(false);
       setBenchmarkSourceItem(null);
       setIsEditMode(false);
@@ -198,9 +200,9 @@ function AddItem() {
   }
 
   const handleApplyBenchmark = (benchmarkResult) => {
-    if (benchmarkResult?.requiredDaysToMatchFinalRate) {
+    if (benchmarkResult?.daysToMatchPrevious) {
       setTargetType('duration');
-      setTargetValue(String(benchmarkResult.requiredDaysToMatchFinalRate));
+      setTargetValue(String(benchmarkResult.daysToMatchPrevious));
     }
   };
 
@@ -576,20 +578,44 @@ function AddItem() {
               )}
 
               {completedItems.length > 0 && (
-                <div className="border-t border-purple-100 pt-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600 font-medium">
+                <div className="border-t border-purple-100 pt-3 space-y-2">
+                  <div>
+                    <label htmlFor="benchmark-completed-item" className="text-xs text-gray-600 font-medium block">
                       {t('benchmarkFromPriorItem')}
-                    </span>
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      {t('benchmarkSelectPrompt')}
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <select
+                      id="benchmark-completed-item"
+                      aria-label={t('benchmarkFromPriorItem')}
+                      value={selectedBenchmarkItemId}
+                      onChange={(event) => setSelectedBenchmarkItemId(event.target.value)}
+                      className="flex-1 px-3 py-2 text-xs rounded-xl border border-purple-100 bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-500/20 outline-none"
+                    >
+                      <option value="">{t('selectCompletedItem')}</option>
+                      {completedItems.map((candidateItem) => (
+                        <option key={candidateItem.id} value={candidateItem.id}>
+                          {candidateItem.name} ({formatCurrency(Number(candidateItem.netCostPerDay ?? candidateItem.grossCostPerDay ?? 0), currencyCode)}/day)
+                        </option>
+                      ))}
+                    </select>
                     <button
                       type="button"
+                      disabled={!selectedBenchmarkItemId}
                       onClick={() => {
-                        setBenchmarkSourceItem(completedItems[0]);
-                        setBenchmarkModalOpen(true);
+                        const chosen = completedItems.find((candidate) => String(candidate.id) === String(selectedBenchmarkItemId));
+                        if (chosen) {
+                          setBenchmarkSourceItem(chosen);
+                          setBenchmarkModalOpen(true);
+                        }
                       }}
-                      className="text-xs text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
+                      className="px-3 py-2 text-xs bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1 shrink-0 shadow-sm"
                     >
-                      <IoScaleOutline /> {t('replacementBenchmark')}
+                      <IoScaleOutline className="text-sm" />
+                      {t('replacementBenchmark')}
                     </button>
                   </div>
                 </div>
@@ -656,6 +682,7 @@ function AddItem() {
           isOpen={benchmarkModalOpen}
           onClose={() => setBenchmarkModalOpen(false)}
           completedItem={benchmarkSourceItem}
+          initialCandidatePrice={price}
           onApplyBenchmark={handleApplyBenchmark}
         />
       )}

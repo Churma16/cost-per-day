@@ -106,8 +106,8 @@ func TestItemsAPIOwnershipTargetsAndBenchmarks(t *testing.T) {
 	if benchmarkData["daysToMatchPrevious"].(float64) != 13 {
 		t.Fatalf("expected 13 days to match previous, got %v", benchmarkData["daysToMatchPrevious"])
 	}
-	if benchmarkData["daysToBeatPrevious"].(float64) != 14 {
-		t.Fatalf("expected 14 days to beat previous, got %v", benchmarkData["daysToBeatPrevious"])
+	if benchmarkData["daysToBeatPrevious"].(float64) != 13 {
+		t.Fatalf("expected 13 days to beat previous, got %v", benchmarkData["daysToBeatPrevious"])
 	}
 	if benchmarkData["hasTarget"] != true {
 		t.Fatalf("expected hasTarget true, got %v", benchmarkData["hasTarget"])

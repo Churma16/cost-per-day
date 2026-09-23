@@ -270,7 +270,10 @@ func (serviceInstance *itemServiceImpl) CalculateReplacementBenchmark(
 		if matchDays < 1 {
 			matchDays = 1
 		}
-		beatDays := matchDays + 1
+		beatDays := int(math.Floor(candidatePrice / finalCostPerDay)) + 1
+		if beatDays < 1 {
+			beatDays = 1
+		}
 		benchmark.DaysToMatchPrevious = &matchDays
 		benchmark.DaysToBeatPrevious = &beatDays
 	}

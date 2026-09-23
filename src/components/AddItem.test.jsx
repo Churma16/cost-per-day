@@ -6,6 +6,7 @@ import AddItem from './AddItem';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { addItem, updateItem, getAllItems } from '../services/api';
+import { useReplacementBenchmark } from '../hooks/useBenchmark';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -41,6 +42,13 @@ vi.mock('react-i18next', () => ({
         targetTypeDuration: 'Target duration (days)',
         enterTargetCostPerDay: 'Enter target cost per day',
         enterTargetDuration: 'Enter target duration in days',
+        benchmarkFromPriorItem: 'Benchmark from completed item',
+        benchmarkSelectPrompt: 'Select a completed item to calculate how long this replacement must last to match or beat its value.',
+        selectCompletedItem: 'Select a completed item...',
+        replacementBenchmark: 'Replacement Benchmark',
+        useBenchmarkAsTarget: 'Apply to Target',
+        benchmarkResultDays: `~${options?.days} days`,
+        benchmarkResultRequiredDuration: `Required duration to match prior final rate (${options?.rate}/day)`,
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -53,6 +61,14 @@ vi.mock('../contexts/LanguageContext', () => ({
 
 vi.mock('../contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
+}));
+
+vi.mock('../hooks/useBenchmark', () => ({
+  useReplacementBenchmark: vi.fn().mockReturnValue({
+    data: null,
+    isLoading: false,
+    error: null,
+  })
 }));
 
 vi.mock('../services/api', () => ({
@@ -331,6 +347,78 @@ describe('AddItem component date localization', () => {
         targetValue: 400
       }));
     });
+  });
+
+  test('allows explicit selection of completed item to benchmark and applies result as duration target', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const completedPhone = {
+      id: 'old-phone-1',
+      name: 'Old Phone',
+      price: 200,
+      purchaseDate: '2025-01-01T12:00:00Z',
+      status: 'retired',
+      grossCostPerDay: 2.0,
+      netCostPerDay: 2.0,
+      ownershipDays: 100
+    };
+    getAllItems.mockResolvedValueOnce([completedPhone]);
+    useReplacementBenchmark.mockReturnValue({
+      data: {
+        itemId: 'old-phone-1',
+        itemName: 'Old Phone',
+        itemStatus: 'retired',
+        previousPrice: 200,
+        finalOwnershipDays: 100,
+        finalCostPerDay: 2.0,
+        candidatePrice: 300,
+        daysToMatchPrevious: 150,
+        daysToBeatPrevious: 151,
+        hasTarget: false
+      },
+      isLoading: false,
+      error: null
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    // Enter new item details
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'New Phone' }
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), {
+      target: { value: '300' }
+    });
+
+    // The benchmark button should initially be disabled until a completed item is explicitly selected
+    const benchmarkButton = await screen.findByRole('button', { name: /Replacement Benchmark/i });
+    expect(benchmarkButton).toBeDisabled();
+
+    // Select the completed item from the dropdown
+    const selectDropdown = screen.getByLabelText('Benchmark from completed item');
+    fireEvent.change(selectDropdown, { target: { value: 'old-phone-1' } });
+
+    expect(benchmarkButton).toBeEnabled();
+
+    // Click to open modal
+    fireEvent.click(benchmarkButton);
+
+    // Modal opens, showing the calculation
+    expect(screen.getByText('~150 days')).toBeInTheDocument();
+
+    // Click Apply to Target
+    const applyButton = screen.getByRole('button', { name: 'Apply to Target' });
+    fireEvent.click(applyButton);
+
+    // Target type should now be 'duration' and value '150'
+    const targetTypeSelect = screen.getByLabelText('Target type');
+    expect(targetTypeSelect.value).toBe('duration');
+
+    const targetValueInput = screen.getByPlaceholderText('Enter target duration in days');
+    expect(targetValueInput.value).toBe('150');
   });
 });
 

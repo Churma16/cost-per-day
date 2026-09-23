@@ -185,8 +185,10 @@ const translation = {
   "benchmarkResultRequiredDuration": "Required duration to match prior final rate ({{rate}}/day)",
   "benchmarkResultTargetDuration": "Required duration to match prior target ({{rate}}/day)",
   "benchmarkResultDays": "~{{days}} days",
+  "benchmarkResultDaysToBeat": "Must last at least {{days}} days to beat prior rate",
   "close": "Close",
   "benchmarkFromPriorItem": "Benchmark from completed item",
+  "benchmarkSelectPrompt": "Select a completed item to calculate how long this replacement must last to match or beat its value.",
   "selectCompletedItem": "Select a completed item...",
   "useBenchmarkAsTarget": "Apply to Target"
 };

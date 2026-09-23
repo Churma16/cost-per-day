@@ -166,8 +166,10 @@ const translation = {
   "benchmarkResultRequiredDuration": "Durée requise pour égaler le taux final précédent ({{rate}}/jour)",
   "benchmarkResultTargetDuration": "Durée requise pour égaler l'objectif précédent ({{rate}}/jour)",
   "benchmarkResultDays": "~{{days}} jours",
+  "benchmarkResultDaysToBeat": "Doit durer au moins {{days}} jours pour dépasser le taux précédent",
   "close": "Fermer",
   "benchmarkFromPriorItem": "Repère à partir d'un article terminé",
+  "benchmarkSelectPrompt": "Sélectionnez un article terminé pour calculer la durée nécessaire.",
   "selectCompletedItem": "Sélectionner un article terminé...",
   "useBenchmarkAsTarget": "Appliquer à l'objectif"
 };

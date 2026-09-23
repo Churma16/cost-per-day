@@ -8,16 +8,18 @@ describe('benchmarkService', () => {
 
   it('successfully fetches replacement benchmark payload', async () => {
     const mockBenchmarkData = {
-      benchmarkItemId: 'item-1',
-      benchmarkItemName: 'Old Phone',
-      benchmarkItemStatus: 'retired',
-      benchmarkOwnershipDays: 100,
-      benchmarkCostPerDay: 5.0,
+      itemId: 'item-1',
+      itemName: 'Old Phone',
+      itemStatus: 'retired',
+      previousPrice: 500.0,
+      finalOwnershipDays: 100,
+      finalCostPerDay: 5.0,
       candidatePrice: 600.0,
-      requiredDaysToMatchFinalRate: 120,
+      daysToMatchPrevious: 120,
+      daysToBeatPrevious: 121,
+      hasTarget: true,
       targetCostPerDay: 3.0,
-      targetDurationDays: 150,
-      requiredDaysToMatchTargetRate: 200,
+      daysToMatchTarget: 200,
     };
 
     vi.spyOn(benchmarkHttpClient, 'get').mockResolvedValueOnce({
