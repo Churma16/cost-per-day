@@ -1,7 +1,19 @@
 const { spawn, spawnSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 const backendDirectoryPath = path.resolve(__dirname, '..', 'backend');
+const backendEnvironmentFilePath = path.join(backendDirectoryPath, '.env');
+
+function loadBackendEnvironmentFile() {
+  if (fs.existsSync(backendEnvironmentFilePath) && typeof process.loadEnvFile === 'function') {
+    try {
+      process.loadEnvFile(backendEnvironmentFilePath);
+    } catch (loadError) {
+      console.warn('[backend-runner] [warn] Failed to load backend/.env:', loadError.message);
+    }
+  }
+}
 
 function checkAirAvailability() {
   if (process.env.DISABLE_AIR === 'true' || process.env.DISABLE_AIR === '1') {
@@ -19,6 +31,8 @@ function checkAirAvailability() {
 }
 
 function startBackendServer() {
+  loadBackendEnvironmentFile();
+
   const isAirInstalled = checkAirAvailability();
 
   const runnerEnvironment = {
