@@ -57,3 +57,8 @@ type PlannedPurchaseRepository interface {
 	Delete(ctx context.Context, userID string, id string) error
 }
 
+// PlannedPurchaseConversionRepository atomically creates an owned item and removes its source plan.
+type PlannedPurchaseConversionRepository interface {
+	Convert(ctx context.Context, userID string, plannedPurchaseID string, item domain.Item) (domain.Item, error)
+}
+
