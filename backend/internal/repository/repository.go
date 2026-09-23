@@ -28,6 +28,7 @@ type SettingsRepository interface {
 type UserRepository interface {
 	GetByID(ctx context.Context, userID string) (domain.User, error)
 	FindOrCreateGoogleUser(ctx context.Context, candidate domain.User) (domain.User, error)
+	BindGoogleIdentity(ctx context.Context, userID string, candidate domain.User) (domain.User, error)
 }
 
 // SessionRepository stores opaque application sessions by token hash.

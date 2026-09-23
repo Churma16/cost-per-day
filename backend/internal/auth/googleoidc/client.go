@@ -225,8 +225,11 @@ func (client *Client) verifyIDToken(
 	if audienceError != nil || !containsAudience(audiences, client.clientID) {
 		return service.GoogleIdentity{}, fmt.Errorf("invalid google id token audience")
 	}
-	if len(audiences) > 1 && claims.AuthorizedParty != client.clientID {
+	if claims.AuthorizedParty != "" && claims.AuthorizedParty != client.clientID {
 		return service.GoogleIdentity{}, fmt.Errorf("invalid google id token authorized party")
+	}
+	if len(audiences) > 1 && claims.AuthorizedParty == "" {
+		return service.GoogleIdentity{}, fmt.Errorf("google id token authorized party is required for multiple audiences")
 	}
 
 	now := client.now().UTC()

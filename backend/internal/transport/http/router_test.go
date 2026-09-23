@@ -32,7 +32,7 @@ func setupTestRouter() *gin.Engine {
 	healthHandler := handler.NewHealthHandler()
 
 	return transportHttp.SetupRouter(transportHttp.RouterConfig{
-		AllowedOrigins:  "*",
+		AllowedOrigins:  "http://app.test",
 		ItemHandler:     itemHandler,
 		SettingsHandler: settingsHandler,
 		HealthHandler:          healthHandler,

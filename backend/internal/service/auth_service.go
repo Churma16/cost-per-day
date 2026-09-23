@@ -33,8 +33,9 @@ type GoogleIdentityProvider interface {
 type AuthService struct {
 	userRepository    repository.UserRepository
 	sessionRepository repository.SessionRepository
-	googleProvider    GoogleIdentityProvider
-	now               func() time.Time
+	googleProvider        GoogleIdentityProvider
+	legacyOwnerGoogleSub string
+	now                   func() time.Time
 }
 
 // NewAuthService creates the authentication application service.
@@ -42,12 +43,14 @@ func NewAuthService(
 	userRepository repository.UserRepository,
 	sessionRepository repository.SessionRepository,
 	googleProvider GoogleIdentityProvider,
+	legacyOwnerGoogleSub string,
 ) *AuthService {
 	return &AuthService{
-		userRepository:    userRepository,
-		sessionRepository: sessionRepository,
-		googleProvider:    googleProvider,
-		now:               func() time.Time { return time.Now().UTC() },
+		userRepository:       userRepository,
+		sessionRepository:    sessionRepository,
+		googleProvider:       googleProvider,
+		legacyOwnerGoogleSub: strings.TrimSpace(legacyOwnerGoogleSub),
+		now:                  func() time.Time { return time.Now().UTC() },
 	}
 }
 
@@ -72,18 +75,27 @@ func (serviceInstance *AuthService) CompleteGoogleLogin(
 		return domain.User{}, "", time.Time{}, domain.ErrInvalidExternalIdentity
 	}
 
-	userID, identifierError := randomToken(18)
-	if identifierError != nil {
-		return domain.User{}, "", time.Time{}, identifierError
-	}
-
-	user, userError := serviceInstance.userRepository.FindOrCreateGoogleUser(ctx, domain.User{
-		ID:          "usr_" + userID,
+	candidate := domain.User{
 		GoogleSub:   identity.Subject,
 		Email:       strings.TrimSpace(identity.Email),
 		DisplayName: strings.TrimSpace(identity.DisplayName),
 		AvatarURL:   strings.TrimSpace(identity.AvatarURL),
-	})
+	}
+
+	var (
+		user      domain.User
+		userError error
+	)
+	if serviceInstance.legacyOwnerGoogleSub != "" && identity.Subject == serviceInstance.legacyOwnerGoogleSub {
+		user, userError = serviceInstance.userRepository.BindGoogleIdentity(ctx, domain.LegacyUserID, candidate)
+	} else {
+		userID, identifierError := randomToken(18)
+		if identifierError != nil {
+			return domain.User{}, "", time.Time{}, identifierError
+		}
+		candidate.ID = "usr_" + userID
+		user, userError = serviceInstance.userRepository.FindOrCreateGoogleUser(ctx, candidate)
+	}
 	if userError != nil {
 		return domain.User{}, "", time.Time{}, userError
 	}

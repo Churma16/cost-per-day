@@ -17,7 +17,7 @@ const Header = () => {
   const { t } = useTranslation();
   const { totalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
-  const { user, signOut } = useAuth();
+  const { user, error, signOut } = useAuth();
 
   const getTitle = () => {
     switch(location.pathname) {
@@ -44,15 +44,22 @@ const Header = () => {
           </p>
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => signOut()}
-        className="absolute right-3 top-3 text-xs text-white/90 hover:text-white"
-        aria-label="Sign out"
-        title={user?.displayName || user?.email || 'Sign out'}
-      >
-        Sign out
-      </button>
+      <div className="absolute right-3 top-3 text-right">
+        <button
+          type="button"
+          onClick={signOut}
+          className="text-xs text-white/90 hover:text-white"
+          aria-label="Sign out"
+          title={user?.displayName || user?.email || 'Sign out'}
+        >
+          Sign out
+        </button>
+        {error && (
+          <p role="alert" className="mt-1 max-w-40 text-xs text-red-100">
+            Sign out failed. Please try again.
+          </p>
+        )}
+      </div>
     </div>
   );
 };

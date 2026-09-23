@@ -34,11 +34,6 @@ func main() {
 	}
 	gin.SetMode(ginMode)
 
-	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-	if allowedOrigins == "" {
-		allowedOrigins = "*"
-	}
-
 	databasePath := os.Getenv("DATABASE_PATH")
 	if databasePath == "" {
 		databasePath = "./data/cost-per-day.db"
@@ -55,9 +50,20 @@ func main() {
 		log.Fatal("[error] APP_BASE_URL must be an absolute http or https URL")
 	}
 
+	allowedOrigins := strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))
+	if allowedOrigins == "" {
+		allowedOrigins = parsedBaseURL.Scheme + "://" + parsedBaseURL.Host
+	}
+	for _, configuredOrigin := range strings.Split(allowedOrigins, ",") {
+		if strings.TrimSpace(configuredOrigin) == "*" {
+			log.Fatal("[error] ALLOWED_ORIGINS cannot contain wildcard origins when cookie authentication is enabled")
+		}
+	}
+
 	googleClientID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
 	googleClientSecret := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET"))
 	sessionSecret := strings.TrimSpace(os.Getenv("SESSION_SECRET"))
+	legacyOwnerGoogleSub := strings.TrimSpace(os.Getenv("LEGACY_OWNER_GOOGLE_SUB"))
 	if googleClientID == "" || googleClientSecret == "" || sessionSecret == "" {
 		log.Fatal("[error] GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and SESSION_SECRET are required")
 	}
@@ -96,7 +102,7 @@ func main() {
 	if googleProviderError != nil {
 		log.Fatalf("[error] Failed to initialize Google OIDC client: %v\n", googleProviderError)
 	}
-	authService := service.NewAuthService(userRepository, sessionRepository, googleProvider)
+	authService := service.NewAuthService(userRepository, sessionRepository, googleProvider, legacyOwnerGoogleSub)
 
 	itemHandler := handler.NewItemHandler(itemService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)

@@ -44,6 +44,82 @@ func (repositoryInstance *UserRepository) GetByID(ctx context.Context, userID st
 	return user, nil
 }
 
+// BindGoogleIdentity attaches a verified Google subject to a specific existing local user.
+// It refuses to overwrite a different binding or steal a subject that already belongs to another user.
+func (repositoryInstance *UserRepository) BindGoogleIdentity(ctx context.Context, userID string, candidate domain.User) (domain.User, error) {
+	normalizedUserID := strings.TrimSpace(userID)
+	candidate.GoogleSub = strings.TrimSpace(candidate.GoogleSub)
+	candidate.Email = strings.TrimSpace(candidate.Email)
+	candidate.DisplayName = strings.TrimSpace(candidate.DisplayName)
+	candidate.AvatarURL = strings.TrimSpace(candidate.AvatarURL)
+	if normalizedUserID == "" || candidate.GoogleSub == "" {
+		return domain.User{}, domain.ErrInvalidExternalIdentity
+	}
+
+	transaction, beginError := repositoryInstance.databaseConnection.BeginTx(ctx, nil)
+	if beginError != nil {
+		return domain.User{}, fmt.Errorf("begin google identity binding: %w", beginError)
+	}
+	defer transaction.Rollback()
+
+	var existingSubject sql.NullString
+	if scanError := transaction.QueryRowContext(ctx,
+		"SELECT google_sub FROM users WHERE id = ?",
+		normalizedUserID,
+	).Scan(&existingSubject); errors.Is(scanError, sql.ErrNoRows) {
+		return domain.User{}, domain.ErrUserNotFound
+	} else if scanError != nil {
+		return domain.User{}, fmt.Errorf("read local user binding: %w", scanError)
+	}
+
+	if existingSubject.Valid && strings.TrimSpace(existingSubject.String) != "" && existingSubject.String != candidate.GoogleSub {
+		return domain.User{}, domain.ErrInvalidExternalIdentity
+	}
+
+	var conflictingUserID string
+	conflictError := transaction.QueryRowContext(ctx,
+		"SELECT id FROM users WHERE google_sub = ? AND id <> ?",
+		candidate.GoogleSub,
+		normalizedUserID,
+	).Scan(&conflictingUserID)
+	if conflictError == nil {
+		return domain.User{}, domain.ErrInvalidExternalIdentity
+	}
+	if !errors.Is(conflictError, sql.ErrNoRows) {
+		return domain.User{}, fmt.Errorf("check google subject binding: %w", conflictError)
+	}
+
+	updatedAt := time.Now().UTC()
+	if _, updateError := transaction.ExecContext(ctx, `
+		UPDATE users
+		SET google_sub = ?, email = ?, display_name = ?, avatar_url = ?, updated_at = ?
+		WHERE id = ?
+	`,
+		candidate.GoogleSub,
+		candidate.Email,
+		candidate.DisplayName,
+		candidate.AvatarURL,
+		updatedAt.Format(time.RFC3339Nano),
+		normalizedUserID,
+	); updateError != nil {
+		return domain.User{}, fmt.Errorf("bind google identity: %w", updateError)
+	}
+
+	user, scanError := scanUser(transaction.QueryRowContext(ctx, `
+		SELECT id, google_sub, email, display_name, avatar_url, created_at, updated_at
+		FROM users
+		WHERE id = ?
+	`, normalizedUserID))
+	if scanError != nil {
+		return domain.User{}, fmt.Errorf("read bound local user: %w", scanError)
+	}
+
+	if commitError := transaction.Commit(); commitError != nil {
+		return domain.User{}, fmt.Errorf("commit google identity binding: %w", commitError)
+	}
+	return user, nil
+}
+
 // FindOrCreateGoogleUser atomically reuses the local user mapped to a Google subject or creates it on first login.
 func (repositoryInstance *UserRepository) FindOrCreateGoogleUser(ctx context.Context, candidate domain.User) (domain.User, error) {
 	candidate.ID = strings.TrimSpace(candidate.ID)

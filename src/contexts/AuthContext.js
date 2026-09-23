@@ -60,7 +60,6 @@ export const AuthProvider = ({ children }) => {
       setError(null);
     } catch (logoutError) {
       setError(logoutError);
-      throw logoutError;
     }
   };
 
