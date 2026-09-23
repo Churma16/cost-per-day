@@ -494,4 +494,112 @@ func TestDashboardService_GetDashboard(t *testing.T) {
 			subTest.Errorf("expected recent impact item 'Mechanical Keyboard', got: %s", recentImpactInsight.Primary)
 		}
 	})
+
+	t.Run("OwnershipCostTrendProvider does not misattribute lifecycle removals as continued-use aging improvement", func(subTest *testing.T) {
+		itemRepository := memory.NewMemoryItemRepository()
+		settingsRepository := memory.NewMemorySettingsRepository()
+		equivalentRepository := memory.NewMemoryValueEquivalentRepository()
+
+		now := time.Now().UTC()
+
+		// Continuing active item: 100 days old, $1000 -> $10/day today
+		_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+			Name:         "Laptop",
+			Price:        1000.0,
+			PurchaseDate: now.AddDate(0, 0, -100).Format(time.RFC3339),
+			Status:       domain.ItemStatusActive,
+		})
+
+		// Item retired 10 days ago (inside 30-day window): 100 days old, $5000
+		// 30 days ago, it contributed $5000/70 = $71.43/day
+		endedAtString := now.AddDate(0, 0, -10).Format(time.RFC3339)
+		_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+			Name:         "Motorcycle",
+			Price:        5000.0,
+			PurchaseDate: now.AddDate(0, 0, -100).Format(time.RFC3339),
+			Status:       domain.ItemStatusRetired,
+			EndedAt:      &endedAtString,
+		})
+
+		dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
+
+		dashboardData, serviceError := dashboardService.GetDashboard(testContext, testUserID)
+		if serviceError != nil {
+			subTest.Fatalf("expected no error, got: %v", serviceError)
+		}
+
+		for _, insight := range dashboardData.Insights {
+			if insight.Kind == "ownership_cost_trend" {
+				subTest.Fatalf("expected ownership_cost_trend to be suppressed when drop was caused by lifecycle removal, got: %+v", insight)
+			}
+		}
+	})
+
+	t.Run("PortfolioMilestoneProvider never presents 17 active items as 10 Items Tracked", func(subTest *testing.T) {
+		itemRepository := memory.NewMemoryItemRepository()
+		settingsRepository := memory.NewMemorySettingsRepository()
+		equivalentRepository := memory.NewMemoryValueEquivalentRepository()
+
+		now := time.Now().UTC()
+
+		// Create exactly 17 active items
+		for index := 1; index <= 17; index++ {
+			_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+				Name:         "Item",
+				Price:        100.0,
+				PurchaseDate: now.AddDate(0, 0, -100).Format(time.RFC3339),
+				Status:       domain.ItemStatusActive,
+			})
+		}
+
+		dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
+
+		dashboardData, serviceError := dashboardService.GetDashboard(testContext, testUserID)
+		if serviceError != nil {
+			subTest.Fatalf("expected no error, got: %v", serviceError)
+		}
+
+		// Must never present 17 items as "10 Items Tracked"
+		for _, insight := range dashboardData.Insights {
+			if insight.Kind == "portfolio_milestone" {
+				subTest.Fatalf("portfolio_milestone should only emit on exact milestone thresholds, not for 17 items: %+v", insight)
+			}
+			if insight.Primary == "10 Items Tracked" {
+				subTest.Fatalf("17 active items must never be presented as '10 Items Tracked'")
+			}
+		}
+
+		// When collection has exactly 10 active items, milestone does emit
+		itemRepository10 := memory.NewMemoryItemRepository()
+		for index := 1; index <= 10; index++ {
+			_, _ = itemRepository10.Create(testContext, testUserID, domain.Item{
+				Name:         "Item",
+				Price:        100.0,
+				PurchaseDate: now.AddDate(0, 0, -100).Format(time.RFC3339),
+				Status:       domain.ItemStatusActive,
+			})
+		}
+
+		dashboardService10 := service.NewDashboardService(itemRepository10, settingsRepository, equivalentRepository)
+		dashboardData10, serviceError10 := dashboardService10.GetDashboard(testContext, testUserID)
+		if serviceError10 != nil {
+			subTest.Fatalf("expected no error, got: %v", serviceError10)
+		}
+
+		var milestoneInsight *domain.DashboardInsight
+		for _, insight := range dashboardData10.Insights {
+			if insight.Kind == "portfolio_milestone" {
+				copyInsight := insight
+				milestoneInsight = &copyInsight
+				break
+			}
+		}
+
+		if milestoneInsight == nil {
+			subTest.Fatalf("expected portfolio_milestone insight when exactly reaching 10 items")
+		}
+		if milestoneInsight.Primary != "10 Items Tracked" {
+			subTest.Errorf("expected '10 Items Tracked', got: %s", milestoneInsight.Primary)
+		}
+	})
 }

@@ -300,6 +300,7 @@ func (provider *OwnershipCostTrendProvider) Generate(_ context.Context, data Das
 	comparisonDate := data.Now.UTC().AddDate(0, 0, -30)
 	var priorDailyCost float64
 	var priorActiveCount int
+	var lifecycleExitedCount int
 	var newlyAddedHighestCostItem *domain.Item
 
 	for index := range data.Items {
@@ -328,6 +329,10 @@ func (provider *OwnershipCostTrendProvider) Generate(_ context.Context, data Das
 					daysAsOfComparison = 1
 				}
 				priorDailyCost += item.Price / float64(daysAsOfComparison)
+
+				if item.Status != domain.ItemStatusActive {
+					lifecycleExitedCount++
+				}
 			}
 		} else {
 			// Item was purchased within the last 30 days
@@ -358,6 +363,12 @@ func (provider *OwnershipCostTrendProvider) Generate(_ context.Context, data Das
 	}
 
 	if delta < 0 {
+		// If items were retired, sold, or lost inside the comparison window,
+		// suppress presenting the collection drop as a continued-use aging improvement.
+		if lifecycleExitedCount > 0 {
+			return nil, nil
+		}
+
 		// Collection became cheaper to own over the comparison period
 		decreaseAmount := math.Abs(delta)
 		primary := "Your collection is getting cheaper to own"
@@ -486,17 +497,14 @@ func (provider *PortfolioMilestoneProvider) ID() string {
 	return "portfolio_milestone"
 }
 
-var portfolioCountMilestones = []int{50, 25, 10, 5}
+var portfolioCountMilestones = []int{100, 50, 25, 10, 5}
 
 func (provider *PortfolioMilestoneProvider) Generate(_ context.Context, data DashboardContext) (*domain.DashboardInsight, error) {
 	activeCount := len(data.ActiveItems)
-	if activeCount < 5 {
-		return nil, nil
-	}
 
 	matchedMilestone := 0
 	for _, milestone := range portfolioCountMilestones {
-		if activeCount >= milestone {
+		if activeCount == milestone {
 			matchedMilestone = milestone
 			break
 		}
