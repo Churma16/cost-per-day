@@ -12,6 +12,7 @@ import (
 
 	"cost-per-day/backend/internal/transport/http/handler"
 	"cost-per-day/backend/internal/transport/http/middleware"
+	"cost-per-day/backend/internal/transport/http/response"
 )
 
 // RouterConfig contains dependencies and configuration needed to assemble the HTTP router.
@@ -36,13 +37,15 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 
 	routerEngine.GET("/health", config.HealthHandler.Check)
 
+	authRouteGroup := routerEngine.Group("/auth")
 	if config.AuthHandler != nil {
-		authRouteGroup := routerEngine.Group("/auth")
-		{
-			authRouteGroup.GET("/google/login", config.AuthHandler.Login)
-			authRouteGroup.GET("/google/callback", config.AuthHandler.Callback)
-			authRouteGroup.POST("/logout", config.AuthHandler.Logout)
-		}
+		authRouteGroup.GET("/google/login", config.AuthHandler.Login)
+		authRouteGroup.GET("/google/callback", config.AuthHandler.Callback)
+		authRouteGroup.POST("/logout", config.AuthHandler.Logout)
+	} else {
+		authRouteGroup.POST("/logout", func(ginContext *gin.Context) {
+			response.SuccessWithoutData(ginContext, 200, "logged out successfully")
+		})
 	}
 
 	apiRouteGroup := routerEngine.Group("/api")
@@ -53,6 +56,16 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 	{
 		if config.AuthHandler != nil {
 			apiRouteGroup.GET("/me", config.AuthHandler.Me)
+		} else {
+			apiRouteGroup.GET("/me", func(ginContext *gin.Context) {
+				userID, _ := middleware.AuthenticatedUserID(ginContext)
+				response.Success(ginContext, 200, "development user active", gin.H{
+					"id":          userID,
+					"email":       "dev@local",
+					"displayName": "Local Developer",
+					"avatarUrl":   "",
+				})
+			})
 		}
 
 		if config.DashboardHandler != nil {
