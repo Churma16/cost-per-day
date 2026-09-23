@@ -109,6 +109,20 @@ func TestClientAuthorizationURLAndIDTokenVerificationWithoutGoogleNetwork(t *tes
 		!strings.Contains(nonceError.Error(), "nonce mismatch") {
 		t.Fatalf("expected nonce mismatch to be rejected, got %v", nonceError)
 	}
+
+	idToken = signTestIDToken(t, privateKey, "test-key", map[string]any{
+		"iss":   googleIssuerHTTPS,
+		"aud":   "test-client-id",
+		"azp":   "different-client-id",
+		"sub":   "google-subject-verified",
+		"exp":   fixedNow.Add(time.Hour).Unix(),
+		"iat":   fixedNow.Add(-time.Minute).Unix(),
+		"nonce": "expected-nonce",
+	})
+	if _, azpError := client.ExchangeAndVerify(context.Background(), "valid-code", "expected-nonce"); azpError == nil ||
+		!strings.Contains(azpError.Error(), "authorized party") {
+		t.Fatalf("expected mismatched azp to be rejected even for a single audience, got %v", azpError)
+	}
 }
 
 func signTestIDToken(t *testing.T, privateKey *rsa.PrivateKey, keyID string, claims map[string]any) string {

@@ -42,12 +42,12 @@ Current application configuration:
 | `GIN_MODE` | Gin runtime mode | `release` |
 | `DATABASE_PATH` | SQLite file path | `/var/lib/cost-per-day/cost-per-day.db` |
 | `STATIC_DIR` | Compiled React directory | `/app/web` |
-| `ALLOWED_ORIGINS` | CORS policy | same production origin when cross-origin access is required |
+| `ALLOWED_ORIGINS` | Exact credentialed CORS allowlist | defaults to the `APP_BASE_URL` origin |
 | `GOOGLE_CLIENT_ID` | Google OAuth/OIDC web client ID | secret/config value |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth/OIDC web client secret | secret value |
 | `SESSION_SECRET` | HMAC secret for OIDC state/nonce cookie | at least 32 random characters |
 | `APP_BASE_URL` | Public application URL | `https://worthwhile.example.com` |
-| `GOOGLE_REDIRECT_URI` | Google callback URI | defaults to `APP_BASE_URL/auth/google/callback` |
+| `GOOGLE_REDIRECT_URI` | Google callback URI | defaults to `APP_BASE_URL/auth/google/callback` |\n| `LEGACY_OWNER_GOOGLE_SUB` | One-time verified-sub mapping for pre-auth legacy data | set only during an upgrade that has legacy-owned data |
 
 The compiled frontend directory and SQLite directory are separate by construction. The HTTP static-file fallback only reads from `STATIC_DIR`, so database files, environment files, repository metadata, and runtime secrets are not part of the public static root.
 
@@ -96,7 +96,9 @@ Do not register an HTTP callback for an internet-exposed deployment.
 
 Production session cookies are `HttpOnly`, `Secure`, and `SameSite=Lax` when `APP_BASE_URL` uses HTTPS. Do not set an HTTP `APP_BASE_URL` for an internet-exposed deployment.
 
-The callback validates signed state/nonce data and the Google ID token before creating a local application session. Google provider tokens are not passed into item, settings, domain, or persistence ownership APIs.
+The callback validates signed state/nonce data and the Google ID token before creating a local application session. Google provider tokens are not passed into item, settings, domain, or persistence ownership APIs. Credentialed CORS never reflects arbitrary origins; wildcard origins are rejected and only exact configured origins receive CORS authorization.
+
+For a database upgraded from the pre-authentication version, set `LEGACY_OWNER_GOOGLE_SUB` to the intended existing owner's verified Google OIDC subject before that owner signs in. That verified subject is allowed to bind the existing `legacy` local user so its items/settings remain reachable. After the successful bootstrap login, the subject is persisted in SQLite and the environment variable can be removed.
 
 ## Health Check
 

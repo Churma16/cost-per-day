@@ -67,14 +67,14 @@ For an upgrade that requires recovery, restore a known-good database backup and 
 | --- | --- | --- |
 | `PORT` | Port on which the HTTP server listens | `8080` |
 | `GIN_MODE` | Gin operational mode (`debug`, `release`, `test`) | `release` |
-| `ALLOWED_ORIGINS` | Allowed origins for CORS headers | `*` |
+| `ALLOWED_ORIGINS` | Comma-separated exact origins allowed for credentialed CORS | `APP_BASE_URL` origin |
 | `DATABASE_PATH` | Filesystem path for the SQLite database | `./data/cost-per-day.db` |
 | `STATIC_DIR` | Optional compiled frontend directory served by the backend | empty |
 | `GOOGLE_CLIENT_ID` | Google OAuth/OIDC web client ID | required |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth/OIDC web client secret | required |
 | `SESSION_SECRET` | Secret used to sign short-lived OIDC state/nonce cookies; minimum 32 characters | required |
 | `APP_BASE_URL` | Public frontend origin used after authentication | required |
-| `GOOGLE_REDIRECT_URI` | Google callback URI; defaults to `APP_BASE_URL/auth/google/callback` | derived |
+| `GOOGLE_REDIRECT_URI` | Google callback URI; defaults to `APP_BASE_URL/auth/google/callback` | derived |\n| `LEGACY_OWNER_GOOGLE_SUB` | Optional verified Google subject allowed to adopt the pre-auth `legacy` user during upgrade | empty |
 
 Keep `DATABASE_PATH` on persistent storage in container or VPS deployments so application restarts and redeploys retain data. The production image sets `STATIC_DIR=/app/web`, which is a read-only application directory separate from the SQLite mount.
 
@@ -166,4 +166,10 @@ Persistence failures remain internal and are translated by the existing HTTP err
 
 Item and settings endpoints require the application session cookie. Google access and ID tokens are never used as item/settings ownership identifiers.
 
-The application session cookie is `HttpOnly` and `SameSite=Lax`. It is also `Secure` whenever `APP_BASE_URL` uses HTTPS, which is required for internet-exposed deployments.
+The application session cookie is `HttpOnly` and `SameSite=Lax`. It is also `Secure` whenever `APP_BASE_URL` uses HTTPS, which is required for internet-exposed deployments. Credentialed CORS uses exact origin matching; wildcard origins are rejected when the authenticated server starts.
+
+### Upgrading Existing Single-User Data
+
+Migration v3 preserves pre-authentication items and settings under the deterministic local user `legacy`. Before the first authenticated login on an upgraded database, set `LEGACY_OWNER_GOOGLE_SUB` to the existing owner's verified Google OIDC `sub`. Only a token verified by Google with that exact subject can adopt the `legacy` user. The subject is then persisted on that local user, so the environment variable may be removed after a successful bootstrap login.
+
+Do not use email as the bootstrap identity key and do not set this value to a subject that is not the intended existing data owner.
