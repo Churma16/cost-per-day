@@ -1,10 +1,10 @@
 const translation = {
   // General
-  "appName": "Cost Per Day",
+  "appName": "Worthwhile",
   "loading": "Loading...",
   "version": "Version",
-  "appTitle": "Cost Per Day",
-  "appDescription": "Calculate the daily cost of your items",
+  "appTitle": "Worthwhile",
+  "appDescription": "Understand big purchases through time, before buying and after ownership.",
   
   // Header
   "totalDailyCost": "Total Daily Cost",

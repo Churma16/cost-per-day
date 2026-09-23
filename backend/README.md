@@ -1,4 +1,4 @@
-# Cost Per Day - Backend Service
+# Worthwhile - Backend Service
 
 A lightweight Go HTTP service built with Gin that establishes the shared API boundary for user-owned items and settings.
 

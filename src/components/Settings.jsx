@@ -17,6 +17,7 @@ import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { formatCurrency } from '../utils/formatters';
 import { useInvalidateDashboard } from '../hooks/useDashboard';
+import { PRODUCT_EXPORT_PREFIX } from '../constants/branding';
 
 function Settings() {
   const { t } = useTranslation();
@@ -168,7 +169,7 @@ function Settings() {
       const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
       
       // Create download link and trigger click
-      const exportFileDefaultName = `cost-per-day-export-${new Date().toISOString().split('T')[0]}.json`;
+      const exportFileDefaultName = `${PRODUCT_EXPORT_PREFIX}-${new Date().toISOString().split('T')[0]}.json`;
       
       const linkElement = document.createElement('a');
       linkElement.setAttribute('href', dataUri);

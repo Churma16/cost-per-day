@@ -8,7 +8,7 @@ This document defines the supported production boundary for a small single-VPS d
 Browser
    -> HTTPS reverse proxy
        -> 127.0.0.1:8080
-           -> Cost Per Day container
+           -> Worthwhile container
                -> Go HTTP server
                    -> React static build
                    -> /api

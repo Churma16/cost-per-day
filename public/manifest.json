@@ -1,6 +1,7 @@
 {
-  "short_name": "CostPerDay",
-  "name": "Cost Per Day",
+  "short_name": "Worthwhile",
+  "name": "Worthwhile",
+  "description": "Understand big purchases through time, before buying and after ownership.",
   "icons": [
     {
       "src": "favicon.ico",
