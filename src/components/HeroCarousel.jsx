@@ -41,18 +41,18 @@ export const GenericInsightSlide = ({ insight }) => {
   const IconComponent = getInsightIcon(insight.kind);
 
   return (
-    <div className="flex flex-col items-center justify-center text-center px-4 py-3 min-h-[140px]">
-      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/20 text-white text-xs font-semibold uppercase tracking-wider mb-2">
+    <div className="flex flex-col items-center justify-center text-center px-10 py-2 h-[155px]">
+      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.14] border border-white/10 text-white text-xs font-medium uppercase tracking-wider mb-2">
         {IconComponent && <IconComponent className="text-sm" aria-hidden="true" />}
         <span>{insight.eyebrow}</span>
       </div>
-      <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight line-clamp-1">
+      <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight line-clamp-2 max-w-sm">
         {insight.primary}
       </h2>
-      <p className="text-lg sm:text-xl font-semibold text-white/95 mt-1 font-orbitron">
+      <p className="text-base sm:text-lg font-semibold text-white/95 mt-1 tracking-tight tabular-nums font-sans">
         {insight.secondary}
       </p>
-      <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-md line-clamp-2">
+      <p className="text-xs sm:text-sm text-white/75 mt-1 max-w-sm line-clamp-2">
         {insight.caption}
       </p>
     </div>
@@ -156,7 +156,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
 
   if (isLoading && !insightsOverride) {
     return (
-      <div className="flex items-center justify-center p-6 text-white/70 min-h-[140px]">
+      <div className="flex items-center justify-center p-6 text-white/70 h-[155px]">
         <p className="text-sm animate-pulse">{t('loading')}</p>
       </div>
     );
@@ -168,15 +168,15 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
 
   if (insights.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center px-4 py-3 min-h-[140px]">
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/20 text-white text-xs font-semibold uppercase tracking-wider mb-2">
+      <div className="flex flex-col items-center justify-center text-center px-10 py-2 h-[155px]">
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.14] border border-white/10 text-white text-xs font-medium uppercase tracking-wider mb-2">
           <IoSparkles className="text-sm" aria-hidden="true" />
           <span>{t('insights')}</span>
         </div>
-        <h2 className="text-xl font-bold text-white">
+        <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
           {t('insightsWelcomeTitle')}
         </h2>
-        <p className="text-xs sm:text-sm text-white/80 mt-1 max-w-md">
+        <p className="text-xs sm:text-sm text-white/75 mt-1 max-w-sm">
           {t('insightsWelcomeCaption')}
         </p>
       </div>
@@ -216,9 +216,9 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
             type="button"
             onClick={handlePreviousSlide}
             aria-label={t('previousInsight')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
+            className="absolute left-1 top-1/2 -translate-y-1/2 p-2 rounded-full text-white/75 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40 z-10"
           >
-            <IoChevronBack className="text-xl" aria-hidden="true" />
+            <IoChevronBack className="text-lg" aria-hidden="true" />
           </button>
 
           {/* Next Slide Button */}
@@ -226,9 +226,9 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
             type="button"
             onClick={handleNextSlide}
             aria-label={t('nextInsight')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
+            className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full text-white/75 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40 z-10"
           >
-            <IoChevronForward className="text-xl" aria-hidden="true" />
+            <IoChevronForward className="text-lg" aria-hidden="true" />
           </button>
 
           {/* Dot Indicators */}
