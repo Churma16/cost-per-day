@@ -200,13 +200,33 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <div
-        role="group"
-        aria-roledescription="slide"
-        aria-label={t('slideOf', { current: activeSlideIndex + 1, total: insights.length })}
-        className="transition-opacity duration-300"
-      >
-        <SlideComponent insight={currentInsight} />
+      {/* Sliding Viewport & Track */}
+      <div className="overflow-hidden w-full">
+        <div
+          className={`flex ${
+            prefersReducedMotion ? '' : 'transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]'
+          }`}
+          style={{
+            transform: `translateX(-${activeSlideIndex * 100}%)`,
+          }}
+        >
+          {insights.map((insightItem, slideIndex) => {
+            const SlideItemComponent = insightRenderers[insightItem.kind] || GenericInsightSlide;
+            const isCurrent = slideIndex === activeSlideIndex;
+            return (
+              <div
+                key={insightItem.id || `${insightItem.kind}-${slideIndex}`}
+                role="group"
+                aria-roledescription="slide"
+                aria-label={t('slideOf', { current: slideIndex + 1, total: insights.length })}
+                aria-hidden={!isCurrent}
+                className="w-full flex-shrink-0"
+              >
+                <SlideItemComponent insight={insightItem} />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {insights.length > 1 && (
