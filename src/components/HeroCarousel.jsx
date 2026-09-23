@@ -42,17 +42,17 @@ export const GenericInsightSlide = ({ insight }) => {
 
   return (
     <div className="flex flex-col items-center justify-center text-center px-10 py-2 h-[155px]">
-      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.14] border border-white/10 text-white text-xs font-medium uppercase tracking-wider mb-2">
+      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.14] border border-white/10 backdrop-blur-sm text-white text-xs font-medium uppercase tracking-wider mb-2">
         {IconComponent && <IconComponent className="text-sm" aria-hidden="true" />}
         <span>{insight.eyebrow}</span>
       </div>
       <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight line-clamp-2 max-w-sm">
         {insight.primary}
       </h2>
-      <p className="text-base sm:text-lg font-semibold text-white/95 mt-1 tracking-tight tabular-nums font-sans">
+      <p className="text-base sm:text-lg font-semibold text-white mt-1 tracking-tight tabular-nums font-sans">
         {insight.secondary}
       </p>
-      <p className="text-xs sm:text-sm text-white/75 mt-1 max-w-sm line-clamp-2">
+      <p className="text-xs sm:text-sm text-white/90 mt-1 max-w-sm line-clamp-2 font-medium">
         {insight.caption}
       </p>
     </div>
@@ -169,14 +169,14 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
   if (insights.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center px-10 py-2 h-[155px]">
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.14] border border-white/10 text-white text-xs font-medium uppercase tracking-wider mb-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.14] border border-white/10 backdrop-blur-sm text-white text-xs font-medium uppercase tracking-wider mb-2">
           <IoSparkles className="text-sm" aria-hidden="true" />
           <span>{t('insights')}</span>
         </div>
         <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
           {t('insightsWelcomeTitle')}
         </h2>
-        <p className="text-xs sm:text-sm text-white/75 mt-1 max-w-sm">
+        <p className="text-xs sm:text-sm text-white/85 mt-1 max-w-sm">
           {t('insightsWelcomeCaption')}
         </p>
       </div>

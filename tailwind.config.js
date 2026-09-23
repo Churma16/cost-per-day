@@ -7,11 +7,11 @@ module.exports = {
     extend: {
       colors: {
         purple: {
-          50: '#faf5ff',
-          100: '#f3e8ff',
-          500: '#a855f7',
-          600: '#9333ea',
-          800: '#6b21a8',
+          50: '#f8f7fd',
+          100: '#f0edfc',
+          500: '#8c72e3',
+          600: '#7257d9',
+          800: '#523caa',
         },
         danger: {
           500: '#ef4444',

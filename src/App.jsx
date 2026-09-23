@@ -47,14 +47,14 @@ const Header = () => {
     <div
       className="page-header relative text-white shadow-sm"
       style={{
-        background: 'linear-gradient(135deg, #334155 0%, #315B68 55%, #2F6F73 100%)',
+        background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
       }}
     >
       <div className="text-center py-4 px-4 sm:px-16">
         {location.pathname === '/' ? (
           <div>
             <HeroCarousel />
-            <div className="mt-3 pt-2.5 border-t border-white/15 inline-flex items-center justify-center gap-2 text-white/90">
+            <div className="mt-4 pt-3 border-t border-white/10 inline-flex items-center justify-center gap-2 text-white/90">
               <span className="text-xs uppercase tracking-wider font-medium text-white/75">{t('totalDailyCost')}:</span>
               <span className="font-semibold text-base text-white tracking-tight tabular-nums">
                 {formatCurrency(totalDailyCost, currencyCode)}<span className="text-xs font-normal text-white/75">{t('perDay')}</span>
