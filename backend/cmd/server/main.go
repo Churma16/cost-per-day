@@ -24,7 +24,12 @@ import (
 )
 
 func main() {
-	serverPort := os.Getenv("PORT")
+	serverHost := strings.TrimSpace(os.Getenv("HOST"))
+	if serverHost == "" {
+		serverHost = "127.0.0.1"
+	}
+
+	serverPort := strings.TrimSpace(os.Getenv("PORT"))
 	if serverPort == "" {
 		serverPort = "8080"
 	}
@@ -137,7 +142,7 @@ func main() {
 		UserIdentityMiddleware: middleware.SessionIdentity(authService, middleware.DefaultSessionCookieName),
 	})
 
-	serverAddress := ":" + serverPort
+	serverAddress := serverHost + ":" + serverPort
 	httpServer := &http.Server{
 		Addr:              serverAddress,
 		Handler:           routerEngine,
@@ -145,7 +150,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("[info] Server is running on port %s (GIN_MODE=%s)\n", serverPort, ginMode)
+		log.Printf("[info] Server is running on http://%s (GIN_MODE=%s)\n", serverAddress, ginMode)
 		if listenError := httpServer.ListenAndServe(); listenError != nil && !errors.Is(listenError, http.ErrServerClosed) {
 			log.Fatalf("[error] Server failed to start: %v\n", listenError)
 		}

@@ -65,6 +65,7 @@ For an upgrade that requires recovery, restore a known-good database backup and 
 
 | Variable | Description | Default |
 | --- | --- | --- |
+| `HOST` | Host interface on which the HTTP server listens | `127.0.0.1` |
 | `PORT` | Port on which the HTTP server listens | `8080` |
 | `GIN_MODE` | Gin operational mode (`debug`, `release`, `test`) | `release` |
 | `ALLOWED_ORIGINS` | Comma-separated exact origins allowed for credentialed CORS | `APP_BASE_URL` origin |
@@ -77,22 +78,40 @@ For an upgrade that requires recovery, restore a known-good database backup and 
 | `GOOGLE_REDIRECT_URI` | Google callback URI; defaults to `APP_BASE_URL/auth/google/callback` | derived |
 | `LEGACY_OWNER_GOOGLE_SUB` | Optional verified Google subject allowed to adopt the pre-auth `legacy` user during upgrade | empty |
 
-Keep `DATABASE_PATH` on persistent storage in container or VPS deployments so application restarts and redeploys retain data. The production image sets `STATIC_DIR=/app/web`, which is a read-only application directory separate from the SQLite mount.
+Keep `DATABASE_PATH` on persistent storage in container or VPS deployments so application restarts and redeploys retain data. The production image sets `HOST=0.0.0.0` and `STATIC_DIR=/app/web`, which is a read-only application directory separate from the SQLite mount.
 
 ## Local Development
 
 ### Prerequisites
 
 - Go 1.25.5 or higher
+- *Optional (for hot reload)*: [Air](https://github.com/air-verse/air) v1.65.3:
+  ```bash
+  go install github.com/air-verse/air@v1.65.3
+  ```
 
 ### Running the Service
 
+#### Option A: Project Root (Recommended)
+From the repository root, start both backend and frontend together:
 ```bash
-cd backend
+npm run dev
+```
+The runner detects Air automatically and enables hot reload, or falls back to standard Go execution if Air is not installed.
+
+#### Option B: Standalone with Air (Hot Reload)
+From the `backend/` directory:
+```bash
+air
+```
+
+#### Option C: Standalone Standard Go
+From the `backend/` directory:
+```bash
 go run ./cmd/server
 ```
 
-For local split frontend/backend development, configure a Google web OAuth client with `http://localhost:8080/auth/google/callback` as an authorized redirect URI, set `APP_BASE_URL=http://localhost:3000`, and provide the required secrets from `.env.example`. The service will start on `http://localhost:8080` and create the configured SQLite database if it does not already exist.
+For local split frontend/backend development, configure a Google web OAuth client with `http://localhost:8080/auth/google/callback` as an authorized redirect URI, set `APP_BASE_URL=http://localhost:3000`, and provide the required secrets from `.env.example`. The service will start on `http://127.0.0.1:8080` and create the configured SQLite database if it does not already exist.
 
 ### Running Tests
 

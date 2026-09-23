@@ -22,7 +22,8 @@
   },
   "scripts": {
     "start": "set \"GENERATE_SOURCEMAP=false\" && react-scripts start",
-    "server": "cd backend && air",
+    "server": "node scripts/start-backend.js",
+    "server:air": "cd backend && air",
     "server:build": "cd backend && go run ./cmd/server",
     "dev": "concurrently -k -n \"backend,frontend\" -c \"cyan,magenta\" \"npm run server\" \"npm start\"",
     "build": "set \"GENERATE_SOURCEMAP=false\" && react-scripts build",

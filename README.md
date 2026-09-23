@@ -38,6 +38,10 @@ A progressive web application that helps you track the daily cost of your purcha
 - Node.js (v22 or higher)
 - npm (comes with Node.js)
 - Go (v1.25.5 or higher, for backend service)
+- *Optional (for backend hot reloading)*: [Air](https://github.com/air-verse/air) v1.65.3:
+  ```bash
+  go install github.com/air-verse/air@v1.65.3
+  ```
 
 ### Installation
 
@@ -52,20 +56,21 @@ cd cost-per-day
 npm install
 ```
 
-3. Start the frontend development server:
+3. Start the development environment:
 ```bash
-npm start
+npm run dev
 ```
 
-The app will open in your default browser at `http://localhost:3000`.
+This single command concurrently starts both the Go backend API (`http://127.0.0.1:8080`) and the React frontend (`http://localhost:3000`).
+- **With Air installed**: The backend runs with automatic hot reloading on file changes.
+- **Without Air**: The development runner automatically falls back to standard `go run ./cmd/server`, keeping fresh checkouts completely functional out of the box.
 
-4. Start the backend service in a second terminal:
-```bash
-cd backend
-go run ./cmd/server
-```
+If you prefer running services in separate terminals:
+- **Frontend only**: `npm start`
+- **Backend with hot reload**: `npm run server:air` (or `air` in the `backend/` directory)
+- **Backend standard**: `npm run server:build` (or `go run ./cmd/server` in the `backend/` directory)
 
-The backend service will listen on `http://localhost:8080`. Configure the Google OIDC values documented in `backend/.env.example`, including an authorized local callback of `http://localhost:8080/auth/google/callback` and `APP_BASE_URL=http://localhost:3000`. In development, the frontend API client uses the backend address by default and includes application session cookies. Set `REACT_APP_API_BASE_URL` to override it when the backend is hosted elsewhere. Production builds default to same-origin requests.
+The backend service will listen on `http://127.0.0.1:8080`. Configure the Google OIDC values documented in `backend/.env.example`, including an authorized local callback of `http://localhost:8080/auth/google/callback` and `APP_BASE_URL=http://localhost:3000`. In development, the frontend API client connects to the backend address by default and includes application session cookies. Set `REACT_APP_API_BASE_URL` to override it when the backend is hosted elsewhere. Production builds default to same-origin requests.
 
 ### Building for Production
 
