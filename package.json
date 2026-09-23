@@ -23,8 +23,8 @@
   "scripts": {
     "start": "set \"GENERATE_SOURCEMAP=false\" && react-scripts start",
     "server": "node scripts/start-backend.js",
-    "server:air": "cd backend && air",
-    "server:build": "cd backend && go run ./cmd/server",
+    "server:air": "node scripts/start-backend.js air",
+    "server:build": "node scripts/start-backend.js go",
     "dev": "concurrently -k -n \"backend,frontend\" -c \"cyan,magenta\" \"npm run server\" \"npm start\"",
     "build": "set \"GENERATE_SOURCEMAP=false\" && react-scripts build",
     "test": "react-scripts test",
