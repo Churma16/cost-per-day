@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
+import { vi } from 'vitest';
 import {
   CurrencyProvider,
   useCurrency,
@@ -10,9 +11,9 @@ import {
 } from './CurrencyContext';
 import { getSetting, updateSetting } from '../services/api';
 
-jest.mock('../services/api', () => ({
-  getSetting: jest.fn(),
-  updateSetting: jest.fn(),
+vi.mock('../services/api', () => ({
+  getSetting: vi.fn(),
+  updateSetting: vi.fn(),
 }));
 
 const TestCurrencyConsumer = () => {
@@ -32,7 +33,7 @@ const TestCurrencyConsumer = () => {
 
 describe('CurrencyContext', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Legacy symbol migration', () => {

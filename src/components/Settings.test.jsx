@@ -1,12 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
 import Settings from './Settings';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { replaceAllItems } from '../services/api';
 
-jest.mock('react-i18next', () => ({
+vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (translationKey) => {
       const translationDictionary = {
@@ -29,25 +30,25 @@ jest.mock('react-i18next', () => ({
   })
 }));
 
-jest.mock('../contexts/LanguageContext', () => ({
-  useLanguage: jest.fn()
+vi.mock('../contexts/LanguageContext', () => ({
+  useLanguage: vi.fn()
 }));
 
-jest.mock('../contexts/CurrencyContext', () => ({
-  useCurrency: jest.fn()
+vi.mock('../contexts/CurrencyContext', () => ({
+  useCurrency: vi.fn()
 }));
 
-jest.mock('../services/api', () => ({
-  getAllItems: jest.fn(),
-  replaceAllItems: jest.fn()
+vi.mock('../services/api', () => ({
+  getAllItems: vi.fn(),
+  replaceAllItems: vi.fn()
 }));
 
 describe('Settings component', () => {
-  const mockChangeCurrency = jest.fn();
-  const mockChangeLanguage = jest.fn();
+  const mockChangeCurrency = vi.fn();
+  const mockChangeLanguage = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     replaceAllItems.mockReset();
     replaceAllItems.mockResolvedValue([]);
     useLanguage.mockReturnValue({

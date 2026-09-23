@@ -1,12 +1,13 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import ItemList from './ItemList';
 import { getAllItems } from '../services/api';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 
-jest.mock('react-i18next', () => ({
+vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key) => ({
       loading: 'Loading...',
@@ -30,23 +31,23 @@ jest.mock('react-i18next', () => ({
   })
 }));
 
-jest.mock('../services/api', () => ({
-  getAllItems: jest.fn()
+vi.mock('../services/api', () => ({
+  getAllItems: vi.fn()
 }));
 
-jest.mock('../contexts/TotalCostContext', () => ({
-  useTotalCost: jest.fn()
+vi.mock('../contexts/TotalCostContext', () => ({
+  useTotalCost: vi.fn()
 }));
 
-jest.mock('../contexts/CurrencyContext', () => ({
-  useCurrency: jest.fn()
+vi.mock('../contexts/CurrencyContext', () => ({
+  useCurrency: vi.fn()
 }));
 
 describe('ItemList lifecycle display', () => {
-  const setTotalDailyCost = jest.fn();
+  const setTotalDailyCost = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     useTotalCost.mockReturnValue({ setTotalDailyCost });
     useCurrency.mockReturnValue({ currencyCode: 'USD' });
   });

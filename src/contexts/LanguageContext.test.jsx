@@ -1,18 +1,18 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
 import { LanguageProvider, useLanguage } from './LanguageContext';
 import { getSetting, updateSetting } from '../services/api';
 import i18n from '../i18n';
 
-jest.mock('../services/api', () => ({
-  getSetting: jest.fn(),
-  updateSetting: jest.fn(),
+vi.mock('../services/api', () => ({
+  getSetting: vi.fn(),
+  updateSetting: vi.fn(),
 }));
 
-jest.mock('../i18n', () => ({
-  __esModule: true,
+vi.mock('../i18n', () => ({
   default: {
-    changeLanguage: jest.fn(),
+    changeLanguage: vi.fn(),
   },
 }));
 
@@ -29,7 +29,7 @@ const TestLanguageConsumer = () => {
 
 describe('LanguageContext', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     i18n.changeLanguage.mockResolvedValue(undefined);
   });
 

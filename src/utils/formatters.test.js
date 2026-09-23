@@ -102,7 +102,12 @@ describe('formatCurrency utility function', () => {
     });
 
     test('passes canonical locale and fraction digits to Intl.NumberFormat', () => {
-      const intlNumberFormatSpy = jest.spyOn(Intl, 'NumberFormat');
+      const originalNumberFormat = Intl.NumberFormat;
+      const intlNumberFormatSpy = jest.spyOn(Intl, 'NumberFormat').mockImplementation(
+        function (...args) {
+          return new originalNumberFormat(...args);
+        }
+      );
 
       formatCurrency(1234, 'IDR');
       expect(intlNumberFormatSpy).toHaveBeenCalledWith(

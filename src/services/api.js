@@ -3,13 +3,33 @@ export const DEFAULT_SETTINGS = {
   currency: 'USD'
 };
 
-const DEFAULT_API_BASE_URL = process.env.NODE_ENV === 'development'
-  ? 'http://localhost:8080'
-  : '';
+const getEnvironmentVariable = (variableName) => {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[variableName] !== undefined) {
+    return import.meta.env[variableName];
+  }
+  if (typeof process !== 'undefined' && process.env && process.env[variableName] !== undefined) {
+    return process.env[variableName];
+  }
+  return undefined;
+};
 
-const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || DEFAULT_API_BASE_URL)
-  .trim()
-  .replace(/\/+$/, '');
+const isDevelopmentMode = () => {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env.MODE === 'development';
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.NODE_ENV === 'development';
+  }
+  return false;
+};
+
+const DEFAULT_API_BASE_URL = isDevelopmentMode() ? 'http://localhost:8080' : '';
+
+const configuredApiBaseUrl = getEnvironmentVariable('VITE_API_BASE_URL')
+  || getEnvironmentVariable('REACT_APP_API_BASE_URL')
+  || DEFAULT_API_BASE_URL;
+
+const API_BASE_URL = configuredApiBaseUrl.trim().replace(/\/+$/, '');
 
 export class ApiError extends Error {
   constructor(message, status = null, cause = null) {

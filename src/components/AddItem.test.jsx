@@ -1,12 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import AddItem from './AddItem';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { addItem, updateItem, getAllItems } from '../services/api';
 
-jest.mock('react-i18next', () => ({
+vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (translationKey) => {
       const translationDictionary = {
@@ -33,26 +34,26 @@ jest.mock('react-i18next', () => ({
   })
 }));
 
-jest.mock('../contexts/LanguageContext', () => ({
-  useLanguage: jest.fn()
+vi.mock('../contexts/LanguageContext', () => ({
+  useLanguage: vi.fn()
 }));
 
-jest.mock('../contexts/CurrencyContext', () => ({
-  useCurrency: jest.fn()
+vi.mock('../contexts/CurrencyContext', () => ({
+  useCurrency: vi.fn()
 }));
 
-jest.mock('../services/api', () => ({
-  addItem: jest.fn(),
-  updateItem: jest.fn(),
-  getAllItems: jest.fn().mockResolvedValue([]),
-  deleteItem: jest.fn()
+vi.mock('../services/api', () => ({
+  addItem: vi.fn(),
+  updateItem: vi.fn(),
+  getAllItems: vi.fn().mockResolvedValue([]),
+  deleteItem: vi.fn()
 }));
 
 describe('AddItem component date localization', () => {
-  const mockNavigate = jest.fn();
+  const mockNavigate = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     useCurrency.mockReturnValue({
       currencySymbol: 'Rp',
       currencyCode: 'IDR'
