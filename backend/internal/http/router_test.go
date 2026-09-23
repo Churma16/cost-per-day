@@ -12,10 +12,10 @@ import (
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/repository/memory"
 	"cost-per-day/backend/internal/service"
-	transportHttp "cost-per-day/backend/internal/transport/http"
-	"cost-per-day/backend/internal/transport/http/handler"
-	"cost-per-day/backend/internal/transport/http/middleware"
-	"cost-per-day/backend/internal/transport/http/response"
+	appHttp "cost-per-day/backend/internal/http"
+	"cost-per-day/backend/internal/http/handler"
+	"cost-per-day/backend/internal/http/middleware"
+	"cost-per-day/backend/internal/http/response"
 )
 
 func setupTestRouter() *gin.Engine {
@@ -31,7 +31,7 @@ func setupTestRouter() *gin.Engine {
 	settingsHandler := handler.NewSettingsHandler(settingsService)
 	healthHandler := handler.NewHealthHandler()
 
-	return transportHttp.SetupRouter(transportHttp.RouterConfig{
+	return appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:  "http://app.test",
 		ItemHandler:     itemHandler,
 		SettingsHandler: settingsHandler,

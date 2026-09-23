@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"cost-per-day/backend/internal/domain"
-	"cost-per-day/backend/internal/transport/http/middleware"
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/middleware"
+	"cost-per-day/backend/internal/http/response"
 )
 
 func authenticatedUserID(ginContext *gin.Context) (string, bool) {

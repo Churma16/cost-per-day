@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/response"
 )
 
 // HealthHandler provides health check endpoints.

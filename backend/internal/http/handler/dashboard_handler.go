@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"cost-per-day/backend/internal/service"
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/response"
 )
 
-// DashboardHandler provides HTTP transport endpoints for home dashboard metrics and carousel insights.
+// DashboardHandler provides HTTP endpoints for home dashboard metrics and carousel insights.
 type DashboardHandler struct {
 	dashboardService service.DashboardService
 }

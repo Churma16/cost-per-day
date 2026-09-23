@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"cost-per-day/backend/internal/domain"
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/response"
 )
 
 const authenticatedUserIDKey = "authenticated_user_id"

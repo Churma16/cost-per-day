@@ -18,9 +18,9 @@ import (
 	"cost-per-day/backend/internal/domain"
 	sqliterepository "cost-per-day/backend/internal/repository/sqlite"
 	"cost-per-day/backend/internal/service"
-	transportHttp "cost-per-day/backend/internal/transport/http"
-	"cost-per-day/backend/internal/transport/http/handler"
-	"cost-per-day/backend/internal/transport/http/middleware"
+	appHttp "cost-per-day/backend/internal/http"
+	"cost-per-day/backend/internal/http/handler"
+	"cost-per-day/backend/internal/http/middleware"
 )
 
 func main() {
@@ -166,7 +166,7 @@ func main() {
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	plannedPurchaseHandler := handler.NewPlannedPurchaseHandler(plannedPurchaseService)
 
-	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
+	routerEngine := appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         allowedOrigins,
 		ItemHandler:            itemHandler,
 		SettingsHandler:        settingsHandler,

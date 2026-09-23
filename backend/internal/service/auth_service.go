@@ -159,7 +159,7 @@ func (serviceInstance *AuthService) AuthenticateSession(ctx context.Context, ses
 	return serviceInstance.userRepository.GetByID(ctx, userID)
 }
 
-// GetUser retrieves the local profile after the transport boundary has already authenticated the request.
+// GetUser retrieves the local profile after the authentication boundary has already authenticated the request.
 func (serviceInstance *AuthService) GetUser(ctx context.Context, userID string) (domain.User, error) {
 	return serviceInstance.userRepository.GetByID(ctx, strings.TrimSpace(userID))
 }

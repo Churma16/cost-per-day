@@ -12,8 +12,8 @@ import (
 
 	"cost-per-day/backend/internal/repository/memory"
 	"cost-per-day/backend/internal/service"
-	transportHttp "cost-per-day/backend/internal/transport/http"
-	"cost-per-day/backend/internal/transport/http/handler"
+	appHttp "cost-per-day/backend/internal/http"
+	"cost-per-day/backend/internal/http/handler"
 )
 
 func setupStaticFrontendTestRouter(t *testing.T) *gin.Engine {
@@ -43,7 +43,7 @@ func setupStaticFrontendTestRouter(t *testing.T) *gin.Engine {
 	itemService := service.NewItemService(itemRepository)
 	settingsService := service.NewSettingsService(settingsRepository)
 
-	return transportHttp.SetupRouter(transportHttp.RouterConfig{
+	return appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:  "*",
 		ItemHandler:     handler.NewItemHandler(itemService),
 		SettingsHandler: handler.NewSettingsHandler(settingsService),

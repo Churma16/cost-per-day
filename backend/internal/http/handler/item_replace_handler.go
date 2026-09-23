@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"cost-per-day/backend/internal/domain"
-	"cost-per-day/backend/internal/transport/http/dto"
-	"cost-per-day/backend/internal/transport/http/response"
+	"cost-per-day/backend/internal/http/dto"
+	"cost-per-day/backend/internal/http/response"
 )
 
 // ReplaceAll handles PUT /api/items/replace to replace only the current user's item collection atomically.

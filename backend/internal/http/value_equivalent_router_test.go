@@ -11,10 +11,10 @@ import (
 
 	"cost-per-day/backend/internal/repository/memory"
 	"cost-per-day/backend/internal/service"
-	transportHttp "cost-per-day/backend/internal/transport/http"
-	"cost-per-day/backend/internal/transport/http/dto"
-	"cost-per-day/backend/internal/transport/http/handler"
-	"cost-per-day/backend/internal/transport/http/middleware"
+	appHttp "cost-per-day/backend/internal/http"
+	"cost-per-day/backend/internal/http/dto"
+	"cost-per-day/backend/internal/http/handler"
+	"cost-per-day/backend/internal/http/middleware"
 )
 
 func setupEquivalentTestRouter(userID string) (*gin.Engine, service.ValueEquivalentService) {
@@ -33,7 +33,7 @@ func setupEquivalentTestRouter(userID string) (*gin.Engine, service.ValueEquival
 	healthHandler := handler.NewHealthHandler()
 	equivalentHandler := handler.NewValueEquivalentHandler(equivalentService)
 
-	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
+	routerEngine := appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         "http://app.test",
 		ItemHandler:            itemHandler,
 		SettingsHandler:        settingsHandler,
@@ -157,7 +157,7 @@ func TestValueEquivalentEndpoints(t *testing.T) {
 		settingsHandler := handler.NewSettingsHandler(service.NewSettingsService(memory.NewMemorySettingsRepository()))
 		healthHandler := handler.NewHealthHandler()
 
-		routerAlpha := transportHttp.SetupRouter(transportHttp.RouterConfig{
+		routerAlpha := appHttp.SetupRouter(appHttp.RouterConfig{
 			AllowedOrigins:         "http://app.test",
 			ItemHandler:            itemHandler,
 			SettingsHandler:        settingsHandler,
@@ -166,7 +166,7 @@ func TestValueEquivalentEndpoints(t *testing.T) {
 			UserIdentityMiddleware: middleware.StaticUserIdentity("user-alpha"),
 		})
 
-		routerBeta := transportHttp.SetupRouter(transportHttp.RouterConfig{
+		routerBeta := appHttp.SetupRouter(appHttp.RouterConfig{
 			AllowedOrigins:         "http://app.test",
 			ItemHandler:            itemHandler,
 			SettingsHandler:        settingsHandler,

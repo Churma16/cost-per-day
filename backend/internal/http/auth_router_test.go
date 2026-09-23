@@ -16,9 +16,9 @@ import (
 
 	sqliterepository "cost-per-day/backend/internal/repository/sqlite"
 	"cost-per-day/backend/internal/service"
-	transportHttp "cost-per-day/backend/internal/transport/http"
-	"cost-per-day/backend/internal/transport/http/handler"
-	"cost-per-day/backend/internal/transport/http/middleware"
+	appHttp "cost-per-day/backend/internal/http"
+	"cost-per-day/backend/internal/http/handler"
+	"cost-per-day/backend/internal/http/middleware"
 )
 
 type routerGoogleProvider struct {
@@ -86,7 +86,7 @@ func setupAuthenticatedTestRouter(t *testing.T) *gin.Engine {
 		t.Fatalf("create auth handler: %v", authHandlerError)
 	}
 
-	return transportHttp.SetupRouter(transportHttp.RouterConfig{
+	return appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         "http://app.test",
 		ItemHandler:            handler.NewItemHandler(service.NewItemService(itemRepository)),
 		SettingsHandler:        handler.NewSettingsHandler(service.NewSettingsService(settingsRepository)),
@@ -291,7 +291,7 @@ func TestConfiguredGoogleOwnerCanAdoptLegacyV3DataAfterUpgrade(t *testing.T) {
 	if authHandlerError != nil {
 		t.Fatalf("create auth handler: %v", authHandlerError)
 	}
-	router := transportHttp.SetupRouter(transportHttp.RouterConfig{
+	router := appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         "http://app.test",
 		ItemHandler:            handler.NewItemHandler(service.NewItemService(itemRepository)),
 		SettingsHandler:        handler.NewSettingsHandler(service.NewSettingsService(settingsRepository)),
