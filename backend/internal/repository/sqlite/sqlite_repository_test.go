@@ -59,8 +59,8 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
-	if schemaVersion != 3 {
-		t.Fatalf("expected schema version 3, got %d", schemaVersion)
+	if schemaVersion != 4 {
+		t.Fatalf("expected schema version 4, got %d", schemaVersion)
 	}
 
 	if migrationError := sqliterepository.ApplyMigrations(ctx, databaseConnection); migrationError != nil {

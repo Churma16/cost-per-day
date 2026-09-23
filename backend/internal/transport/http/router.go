@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/transport/http/handler"
 	"cost-per-day/backend/internal/transport/http/middleware"
 )
@@ -21,6 +20,7 @@ type RouterConfig struct {
 	ItemHandler            *handler.ItemHandler
 	SettingsHandler        *handler.SettingsHandler
 	HealthHandler          *handler.HealthHandler
+	AuthHandler            *handler.AuthHandler
 	StaticDir              string
 	UserIdentityMiddleware gin.HandlerFunc
 }
@@ -34,14 +34,25 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 
 	routerEngine.GET("/health", config.HealthHandler.Check)
 
-	userIdentityMiddleware := config.UserIdentityMiddleware
-	if userIdentityMiddleware == nil {
-		userIdentityMiddleware = middleware.StaticUserIdentity(domain.LegacyUserID)
+	if config.AuthHandler != nil {
+		authRouteGroup := routerEngine.Group("/auth")
+		{
+			authRouteGroup.GET("/google/login", config.AuthHandler.Login)
+			authRouteGroup.GET("/google/callback", config.AuthHandler.Callback)
+			authRouteGroup.POST("/logout", config.AuthHandler.Logout)
+		}
 	}
 
 	apiRouteGroup := routerEngine.Group("/api")
-	apiRouteGroup.Use(userIdentityMiddleware, middleware.RequireAuthenticatedUser())
+	if config.UserIdentityMiddleware != nil {
+		apiRouteGroup.Use(config.UserIdentityMiddleware)
+	}
+	apiRouteGroup.Use(middleware.RequireAuthenticatedUser())
 	{
+		if config.AuthHandler != nil {
+			apiRouteGroup.GET("/me", config.AuthHandler.Me)
+		}
+
 		itemRouteGroup := apiRouteGroup.Group("/items")
 		{
 			itemRouteGroup.GET("", config.ItemHandler.List)
@@ -91,7 +102,11 @@ func registerStaticFrontend(routerEngine *gin.Engine, staticDirectory string) {
 		}
 
 		requestPath := context.Request.URL.Path
-		if requestPath == "/api" || strings.HasPrefix(requestPath, "/api/") || requestPath == "/health" {
+		if requestPath == "/api" ||
+			strings.HasPrefix(requestPath, "/api/") ||
+			requestPath == "/auth" ||
+			strings.HasPrefix(requestPath, "/auth/") ||
+			requestPath == "/health" {
 			context.Status(http.StatusNotFound)
 			return
 		}

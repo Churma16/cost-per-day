@@ -3,7 +3,9 @@ import {
   updateItem,
   getAllItems,
   getSetting,
-  replaceAllItems
+  replaceAllItems,
+  getCurrentUser,
+  logoutCurrentUser
 } from './api';
 
 const response = (status, data, message = 'ok') => ({
@@ -30,7 +32,8 @@ describe('frontend API client', () => {
 
     await expect(getAllItems()).resolves.toEqual(items);
     expect(global.fetch).toHaveBeenCalledWith('/api/items', expect.objectContaining({
-      headers: expect.objectContaining({ Accept: 'application/json' })
+      headers: expect.objectContaining({ Accept: 'application/json' }),
+      credentials: 'include'
     }));
   });
 
@@ -152,5 +155,31 @@ describe('frontend API client', () => {
       price: 200,
       purchaseDate: '2026-09-21T12:00:00Z'
     }]);
+  });
+
+  test('loads and logs out the current authenticated user with cookies', async () => {
+    global.fetch
+      .mockResolvedValueOnce(response(200, {
+        id: 'user-1',
+        email: 'user@example.com',
+        displayName: 'User'
+      }, 'current user retrieved successfully'))
+      .mockResolvedValueOnce(response(200, null, 'logged out successfully'));
+
+    await expect(getCurrentUser()).resolves.toEqual(expect.objectContaining({
+      id: 'user-1',
+      email: 'user@example.com'
+    }));
+    await expect(logoutCurrentUser()).resolves.toBeNull();
+
+    expect(global.fetch.mock.calls[0][0]).toBe('/api/me');
+    expect(global.fetch.mock.calls[0][1]).toEqual(expect.objectContaining({
+      credentials: 'include'
+    }));
+    expect(global.fetch.mock.calls[1][0]).toBe('/auth/logout');
+    expect(global.fetch.mock.calls[1][1]).toEqual(expect.objectContaining({
+      method: 'POST',
+      credentials: 'include'
+    }));
   });
 });

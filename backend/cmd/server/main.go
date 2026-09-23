@@ -5,17 +5,22 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"cost-per-day/backend/internal/auth/googleoidc"
+	"cost-per-day/backend/internal/domain"
 	sqliterepository "cost-per-day/backend/internal/repository/sqlite"
 	"cost-per-day/backend/internal/service"
 	transportHttp "cost-per-day/backend/internal/transport/http"
 	"cost-per-day/backend/internal/transport/http/handler"
+	"cost-per-day/backend/internal/transport/http/middleware"
 )
 
 func main() {
@@ -30,17 +35,44 @@ func main() {
 	}
 	gin.SetMode(ginMode)
 
-	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-	if allowedOrigins == "" {
-		allowedOrigins = "*"
-	}
-
 	databasePath := os.Getenv("DATABASE_PATH")
 	if databasePath == "" {
 		databasePath = "./data/cost-per-day.db"
 	}
 
 	staticDirectory := os.Getenv("STATIC_DIR")
+
+	appBaseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("APP_BASE_URL")), "/")
+	if appBaseURL == "" {
+		log.Fatal("[error] APP_BASE_URL is required")
+	}
+	parsedBaseURL, baseURLError := url.Parse(appBaseURL)
+	if baseURLError != nil || parsedBaseURL.Host == "" || (parsedBaseURL.Scheme != "http" && parsedBaseURL.Scheme != "https") {
+		log.Fatal("[error] APP_BASE_URL must be an absolute http or https URL")
+	}
+
+	allowedOrigins := strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))
+	if allowedOrigins == "" {
+		allowedOrigins = parsedBaseURL.Scheme + "://" + parsedBaseURL.Host
+	}
+	for _, configuredOrigin := range strings.Split(allowedOrigins, ",") {
+		if strings.TrimSpace(configuredOrigin) == "*" {
+			log.Fatal("[error] ALLOWED_ORIGINS cannot contain wildcard origins when cookie authentication is enabled")
+		}
+	}
+
+	googleClientID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
+	googleClientSecret := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET"))
+	sessionSecret := strings.TrimSpace(os.Getenv("SESSION_SECRET"))
+	legacyOwnerGoogleSub := strings.TrimSpace(os.Getenv("LEGACY_OWNER_GOOGLE_SUB"))
+	if googleClientID == "" || googleClientSecret == "" || sessionSecret == "" {
+		log.Fatal("[error] GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and SESSION_SECRET are required")
+	}
+
+	googleRedirectURI := strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URI"))
+	if googleRedirectURI == "" {
+		googleRedirectURI = appBaseURL + "/auth/google/callback"
+	}
 
 	startupContext, cancelStartupContext := context.WithTimeout(context.Background(), 10*time.Second)
 	databaseConnection, databaseError := sqliterepository.Open(startupContext, databasePath)
@@ -54,23 +86,55 @@ func main() {
 		}
 	}()
 
-	// Explicit dependency wiring (composition root)
+	// Explicit dependency wiring (composition root).
 	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
 	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
+	userRepository := sqliterepository.NewUserRepository(databaseConnection)
+	sessionRepository := sqliterepository.NewSessionRepository(databaseConnection)
 
 	itemService := service.NewItemService(itemRepository)
 	settingsService := service.NewSettingsService(settingsRepository)
 
+	googleProvider, googleProviderError := googleoidc.NewClient(googleoidc.Config{
+		ClientID:     googleClientID,
+		ClientSecret: googleClientSecret,
+		RedirectURI:  googleRedirectURI,
+	})
+	if googleProviderError != nil {
+		log.Fatalf("[error] Failed to initialize Google OIDC client: %v\n", googleProviderError)
+	}
+	authService := service.NewAuthService(userRepository, sessionRepository, googleProvider, legacyOwnerGoogleSub)
+	configurationContext, cancelConfigurationContext := context.WithTimeout(context.Background(), 5*time.Second)
+	configurationError := authService.ValidateConfiguration(configurationContext)
+	cancelConfigurationContext()
+	if configurationError != nil {
+		if errors.Is(configurationError, domain.ErrLegacyOwnerBootstrapRequired) {
+			log.Fatal("[error] Existing pre-auth data requires LEGACY_OWNER_GOOGLE_SUB before authentication can be enabled")
+		}
+		log.Fatalf("[error] Failed to validate authentication configuration: %v\n", configurationError)
+	}
+
 	itemHandler := handler.NewItemHandler(itemService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
 	healthHandler := handler.NewHealthHandler()
+	authHandler, authHandlerError := handler.NewAuthHandler(handler.AuthHandlerConfig{
+		AuthService:   authService,
+		SessionSecret: sessionSecret,
+		AppBaseURL:    appBaseURL,
+		SecureCookies: parsedBaseURL.Scheme == "https",
+	})
+	if authHandlerError != nil {
+		log.Fatalf("[error] Failed to initialize authentication handler: %v\n", authHandlerError)
+	}
 
 	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
-		AllowedOrigins:  allowedOrigins,
-		ItemHandler:     itemHandler,
-		SettingsHandler: settingsHandler,
-		HealthHandler:   healthHandler,
-		StaticDir:       staticDirectory,
+		AllowedOrigins:         allowedOrigins,
+		ItemHandler:            itemHandler,
+		SettingsHandler:        settingsHandler,
+		HealthHandler:          healthHandler,
+		AuthHandler:            authHandler,
+		StaticDir:              staticDirectory,
+		UserIdentityMiddleware: middleware.SessionIdentity(authService, middleware.DefaultSessionCookieName),
 	})
 
 	serverAddress := ":" + serverPort

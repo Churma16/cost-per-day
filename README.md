@@ -15,6 +15,8 @@ A progressive web application that helps you track the daily cost of your purcha
   - Add new items with name, price, and purchase date
   - Edit existing items
   - Delete items with confirmation
+- **Google Sign-In**: Uses Google OIDC only for external identity, then keeps application-owned local users and sessions
+- **Multi-User Isolation**: Items and settings are scoped to the authenticated local user
 - **Data Management**:
   - Export server-backed data to a JSON file
   - Import JSON data back through the shared API
@@ -63,7 +65,7 @@ cd backend
 go run ./cmd/server
 ```
 
-The backend service will listen on `http://localhost:8080`. In development, the frontend API client uses this address by default. Set `REACT_APP_API_BASE_URL` to override it when the backend is hosted elsewhere. Production builds default to same-origin `/api` requests.
+The backend service will listen on `http://localhost:8080`. Configure the Google OIDC values documented in `backend/.env.example`, including an authorized local callback of `http://localhost:8080/auth/google/callback` and `APP_BASE_URL=http://localhost:3000`. In development, the frontend API client uses the backend address by default and includes application session cookies. Set `REACT_APP_API_BASE_URL` to override it when the backend is hosted elsewhere. Production builds default to same-origin requests.
 
 ### Building for Production
 

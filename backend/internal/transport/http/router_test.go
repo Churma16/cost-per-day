@@ -9,10 +9,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/repository/memory"
 	"cost-per-day/backend/internal/service"
 	transportHttp "cost-per-day/backend/internal/transport/http"
 	"cost-per-day/backend/internal/transport/http/handler"
+	"cost-per-day/backend/internal/transport/http/middleware"
 	"cost-per-day/backend/internal/transport/http/response"
 )
 
@@ -30,10 +32,11 @@ func setupTestRouter() *gin.Engine {
 	healthHandler := handler.NewHealthHandler()
 
 	return transportHttp.SetupRouter(transportHttp.RouterConfig{
-		AllowedOrigins:  "*",
+		AllowedOrigins:  "http://app.test",
 		ItemHandler:     itemHandler,
 		SettingsHandler: settingsHandler,
-		HealthHandler:   healthHandler,
+		HealthHandler:          healthHandler,
+		UserIdentityMiddleware: middleware.StaticUserIdentity(domain.LegacyUserID),
 	})
 }
 

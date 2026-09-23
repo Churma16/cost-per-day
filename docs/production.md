@@ -42,7 +42,13 @@ Current application configuration:
 | `GIN_MODE` | Gin runtime mode | `release` |
 | `DATABASE_PATH` | SQLite file path | `/var/lib/cost-per-day/cost-per-day.db` |
 | `STATIC_DIR` | Compiled React directory | `/app/web` |
-| `ALLOWED_ORIGINS` | CORS policy | same production origin when cross-origin access is required |
+| `ALLOWED_ORIGINS` | Exact credentialed CORS allowlist | defaults to the `APP_BASE_URL` origin |
+| `GOOGLE_CLIENT_ID` | Google OAuth/OIDC web client ID | secret/config value |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth/OIDC web client secret | secret value |
+| `SESSION_SECRET` | HMAC secret for OIDC state/nonce cookie | at least 32 random characters |
+| `APP_BASE_URL` | Public application URL | `https://worthwhile.example.com` |
+| `GOOGLE_REDIRECT_URI` | Google callback URI | defaults to `APP_BASE_URL/auth/google/callback` |
+| `LEGACY_OWNER_GOOGLE_SUB` | One-time verified-sub mapping for pre-auth legacy data | set only during an upgrade that has legacy-owned data |
 
 The compiled frontend directory and SQLite directory are separate by construction. The HTTP static-file fallback only reads from `STATIC_DIR`, so database files, environment files, repository metadata, and runtime secrets are not part of the public static root.
 
@@ -70,9 +76,9 @@ Caddy can manage certificate issuance and renewal automatically. An equivalent n
 
 ## Google OIDC Production Configuration
 
-Google OIDC is implemented by issue #10 and multi-user ownership by issue #9. This production issue must consume those boundaries after they land rather than adding a deployment-specific login mechanism.
+Google OIDC is the only interactive authentication provider. Google identity is mapped by stable OIDC `sub` to an application-owned local user, and the browser receives an application-owned opaque session cookie.
 
-The expected production secret/configuration contract from #10 is:
+The production secret/configuration contract is:
 
 ```text
 GOOGLE_CLIENT_ID
@@ -89,9 +95,11 @@ https://worthwhile.example.com/auth/google/callback
 
 Do not register an HTTP callback for an internet-exposed deployment.
 
-Production session cookies from #10 must be `HttpOnly`, `Secure`, and use the SameSite policy selected by the authentication implementation. Deployment configuration must not weaken those settings.
+Production session cookies are `HttpOnly`, `Secure`, and `SameSite=Lax` when `APP_BASE_URL` uses HTTPS. Do not set an HTTP `APP_BASE_URL` for an internet-exposed deployment.
 
-Until #9 and #10 are implemented, the application does not satisfy the multi-user authentication acceptance criteria from issue #7.
+The callback validates signed state/nonce data and the Google ID token before creating a local application session. Google provider tokens are not passed into item, settings, domain, or persistence ownership APIs. Credentialed CORS never reflects arbitrary origins; wildcard origins are rejected and only exact configured origins receive CORS authorization.
+
+For a database upgraded from the pre-authentication version, set `LEGACY_OWNER_GOOGLE_SUB` to the intended existing owner's verified Google OIDC subject before that owner signs in. That verified subject is allowed to bind the existing `legacy` local user so its items/settings remain reachable. When meaningful unclaimed legacy data exists, the server refuses to start without this mapping, and authentication refuses non-matching subjects until adoption completes. Untouched built-in language/currency defaults alone do not trigger the guard. After the successful bootstrap login, the subject is persisted in SQLite and the environment variable can be removed.
 
 ## Health Check
 
@@ -160,7 +168,7 @@ Then verify:
 curl --fail http://127.0.0.1:8080/health
 ```
 
-Also verify representative application data through the UI/API. Once #10 exists, include a real login and authenticated item access in the restore verification.
+Also verify representative application data through the UI/API, including a real Google login and authenticated item access.
 
 ## Upgrade and Migration
 
@@ -187,7 +195,7 @@ Pull request CI builds the production Docker image and verifies:
 - SQLite online backup produces a database that passes `PRAGMA integrity_check`;
 - restoring that backup into a clean data directory preserves the previously created data.
 
-After #9 and #10 land, extend this smoke check to cover Google login/session behavior and authenticated user-scoped item access.
+CI also verifies that unauthenticated personal API access returns 401 and uses a synthetic application session row to exercise authenticated persistence without making live Google network calls. Production acceptance should additionally verify one real Google login against the configured callback URL.
 
 ## Scope
 
