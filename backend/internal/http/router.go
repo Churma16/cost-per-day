@@ -107,6 +107,7 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 				plannedPurchaseRouteGroup.GET("", config.PlannedPurchaseHandler.List)
 				plannedPurchaseRouteGroup.GET("/:id", config.PlannedPurchaseHandler.Get)
 				plannedPurchaseRouteGroup.POST("", config.PlannedPurchaseHandler.Create)
+				plannedPurchaseRouteGroup.POST("/:id/convert", config.PlannedPurchaseHandler.Convert)
 				plannedPurchaseRouteGroup.PUT("/:id", config.PlannedPurchaseHandler.Update)
 				plannedPurchaseRouteGroup.DELETE("/:id", config.PlannedPurchaseHandler.Delete)
 			}
