@@ -379,7 +379,12 @@ func TestValueEquivalentRepositoryCRUDAndIsolation(t *testing.T) {
 		t.Fatalf("create second user: %v", secondUserError)
 	}
 
-	equivalentRepository := sqliterepository.NewValueEquivalentRepository(databaseConnection)
+	gormDB, gormError := sqliterepository.NewGORM(databaseConnection)
+	if gormError != nil {
+		t.Fatalf("failed to initialize GORM: %v", gormError)
+	}
+
+	equivalentRepository := sqliterepository.NewValueEquivalentRepository(gormDB)
 
 	createdEquivalent, createError := equivalentRepository.Create(ctx, firstUser.ID, domain.ValueEquivalent{
 		Name:         "Gorengan",
@@ -632,6 +637,187 @@ func TestSQLiteItemOwnershipTargetPersistence(t *testing.T) {
 	}
 	if len(replacedItems) != 1 || replacedItems[0].TargetType == nil || *replacedItems[0].TargetType != domain.OwnershipTargetTypeDuration {
 		t.Fatalf("unexpected replaced item target: %+v", replacedItems)
+	}
+}
+
+func TestNewGORMValidation(t *testing.T) {
+	_, nilError := sqliterepository.NewGORM(nil)
+	if nilError == nil {
+		t.Fatal("expected error when passing nil database connection to NewGORM, got nil")
+	}
+
+	databaseConnection, _ := openTestDatabase(t)
+	gormInstance, initError := sqliterepository.NewGORM(databaseConnection)
+	if initError != nil {
+		t.Fatalf("expected successful GORM initialization, got: %v", initError)
+	}
+	if gormInstance == nil {
+		t.Fatal("expected non-nil *gorm.DB instance")
+	}
+}
+
+func TestValueEquivalentRepositoryErrorHandlingAndEdgeCases(t *testing.T) {
+	databaseConnection, _ := openTestDatabase(t)
+	ctx := context.Background()
+
+	gormInstance, gormError := sqliterepository.NewGORM(databaseConnection)
+	if gormError != nil {
+		t.Fatalf("initialize GORM: %v", gormError)
+	}
+
+	equivalentRepository := sqliterepository.NewValueEquivalentRepository(gormInstance)
+	userRepository := sqliterepository.NewUserRepository(databaseConnection)
+
+	firstUser, userError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
+		ID:          "user-equiv-1",
+		GoogleSub:   "sub-equiv-edge-1",
+		Email:       "equiv1@example.com",
+		DisplayName: "Equiv User 1",
+	})
+	if userError != nil {
+		t.Fatalf("create user 1: %v", userError)
+	}
+
+	secondUser, secondUserError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
+		ID:          "user-equiv-2",
+		GoogleSub:   "sub-equiv-edge-2",
+		Email:       "equiv2@example.com",
+		DisplayName: "Equiv User 2",
+	})
+	if secondUserError != nil {
+		t.Fatalf("create user 2: %v", secondUserError)
+	}
+
+	// 1. Identity validation rejects empty or whitespace user ID
+	invalidUserIDs := []string{"", "   ", "\t"}
+	for _, invalidUserID := range invalidUserIDs {
+		if _, listError := equivalentRepository.List(ctx, invalidUserID); listError == nil {
+			t.Errorf("expected List to reject invalid user ID %q", invalidUserID)
+		}
+		if _, getError := equivalentRepository.GetByID(ctx, invalidUserID, "1"); getError == nil {
+			t.Errorf("expected GetByID to reject invalid user ID %q", invalidUserID)
+		}
+		if _, createError := equivalentRepository.Create(ctx, invalidUserID, domain.ValueEquivalent{Name: "Item", Amount: 10, CurrencyCode: "USD"}); createError == nil {
+			t.Errorf("expected Create to reject invalid user ID %q", invalidUserID)
+		}
+		if _, updateError := equivalentRepository.Update(ctx, invalidUserID, domain.ValueEquivalent{ID: "1", Name: "Item", Amount: 10, CurrencyCode: "USD"}); updateError == nil {
+			t.Errorf("expected Update to reject invalid user ID %q", invalidUserID)
+		}
+		if deleteError := equivalentRepository.Delete(ctx, invalidUserID, "1"); deleteError == nil {
+			t.Errorf("expected Delete to reject invalid user ID %q", invalidUserID)
+		}
+	}
+
+	// 2. Empty list returns non-nil slice
+	emptyList, emptyListError := equivalentRepository.List(ctx, firstUser.ID)
+	if emptyListError != nil {
+		t.Fatalf("list empty equivalents: %v", emptyListError)
+	}
+	if emptyList == nil {
+		t.Fatal("expected empty list to be non-nil slice")
+	}
+	if len(emptyList) != 0 {
+		t.Fatalf("expected 0 items, got %d", len(emptyList))
+	}
+
+	// 3. Non-numeric or empty entity IDs return ErrValueEquivalentNotFound
+	invalidEntityIDs := []string{"", "abc", "invalid-id", "-1", "0x123"}
+	for _, invalidID := range invalidEntityIDs {
+		if _, getError := equivalentRepository.GetByID(ctx, firstUser.ID, invalidID); !errors.Is(getError, domain.ErrValueEquivalentNotFound) {
+			t.Errorf("expected GetByID with ID %q to return ErrValueEquivalentNotFound, got %v", invalidID, getError)
+		}
+		if _, updateError := equivalentRepository.Update(ctx, firstUser.ID, domain.ValueEquivalent{ID: invalidID, Name: "Test", Amount: 10, CurrencyCode: "USD"}); !errors.Is(updateError, domain.ErrValueEquivalentNotFound) {
+			t.Errorf("expected Update with ID %q to return ErrValueEquivalentNotFound, got %v", invalidID, updateError)
+		}
+		if deleteError := equivalentRepository.Delete(ctx, firstUser.ID, invalidID); !errors.Is(deleteError, domain.ErrValueEquivalentNotFound) {
+			t.Errorf("expected Delete with ID %q to return ErrValueEquivalentNotFound, got %v", invalidID, deleteError)
+		}
+	}
+
+	// 4. Non-existent numeric ID returns ErrValueEquivalentNotFound
+	const nonExistentID = "99999999"
+	if _, getError := equivalentRepository.GetByID(ctx, firstUser.ID, nonExistentID); !errors.Is(getError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected GetByID for non-existent ID to return ErrValueEquivalentNotFound, got %v", getError)
+	}
+	if _, updateError := equivalentRepository.Update(ctx, firstUser.ID, domain.ValueEquivalent{ID: nonExistentID, Name: "Test", Amount: 10, CurrencyCode: "USD"}); !errors.Is(updateError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected Update for non-existent ID to return ErrValueEquivalentNotFound, got %v", updateError)
+	}
+	if deleteError := equivalentRepository.Delete(ctx, firstUser.ID, nonExistentID); !errors.Is(deleteError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected Delete for non-existent ID to return ErrValueEquivalentNotFound, got %v", deleteError)
+	}
+
+	// 5. Create ignores caller-supplied IDs and keeps storage identity database-generated.
+	generatedEquivalent, generatedCreateError := equivalentRepository.Create(ctx, firstUser.ID, domain.ValueEquivalent{
+		ID:           "999",
+		Name:         "Database Generated ID",
+		Amount:       10000,
+		CurrencyCode: "IDR",
+	})
+	if generatedCreateError != nil {
+		t.Fatalf("create equivalent with caller-supplied ID: %v", generatedCreateError)
+	}
+	if generatedEquivalent.ID == "999" {
+		t.Fatal("expected repository Create to ignore caller-supplied ID")
+	}
+
+	// 6. Create valid equivalent
+	createdEquivalent, createError := equivalentRepository.Create(ctx, firstUser.ID, domain.ValueEquivalent{
+		Name:         "Kopi Susu",
+		Amount:       18000,
+		CurrencyCode: "IDR",
+	})
+	if createError != nil {
+		t.Fatalf("create equivalent: %v", createError)
+	}
+
+	// 7. Cross-user isolation: second user cannot Get, Update, or Delete first user's equivalent
+	if _, crossGetError := equivalentRepository.GetByID(ctx, secondUser.ID, createdEquivalent.ID); !errors.Is(crossGetError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected cross-user GetByID to return ErrValueEquivalentNotFound, got %v", crossGetError)
+	}
+	if _, crossUpdateError := equivalentRepository.Update(ctx, secondUser.ID, domain.ValueEquivalent{
+		ID:           createdEquivalent.ID,
+		Name:         "Hacked Name",
+		Amount:       20000,
+		CurrencyCode: "IDR",
+	}); !errors.Is(crossUpdateError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected cross-user Update to return ErrValueEquivalentNotFound, got %v", crossUpdateError)
+	}
+	if crossDeleteError := equivalentRepository.Delete(ctx, secondUser.ID, createdEquivalent.ID); !errors.Is(crossDeleteError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected cross-user Delete to return ErrValueEquivalentNotFound, got %v", crossDeleteError)
+	}
+
+	// Verify original item was unmodified by attempted cross-user mutations
+	verifiedOriginal, getOriginalError := equivalentRepository.GetByID(ctx, firstUser.ID, createdEquivalent.ID)
+	if getOriginalError != nil {
+		t.Fatalf("get original after cross-user attempts: %v", getOriginalError)
+	}
+	if verifiedOriginal.Name != "Kopi Susu" || verifiedOriginal.Amount != 18000 {
+		t.Fatalf("expected original item intact, got %+v", verifiedOriginal)
+	}
+
+	// 8. Successful update
+	updatedEquivalent, updateSuccessError := equivalentRepository.Update(ctx, firstUser.ID, domain.ValueEquivalent{
+		ID:           createdEquivalent.ID,
+		Name:         "Kopi Susu Gula Aren",
+		Amount:       20000,
+		CurrencyCode: "IDR",
+	})
+	if updateSuccessError != nil {
+		t.Fatalf("update equivalent: %v", updateSuccessError)
+	}
+	if updatedEquivalent.Name != "Kopi Susu Gula Aren" || updatedEquivalent.Amount != 20000 {
+		t.Fatalf("unexpected updated equivalent: %+v", updatedEquivalent)
+	}
+
+	// 9. Successful delete and verify idempotent not found
+	if deleteSuccessError := equivalentRepository.Delete(ctx, firstUser.ID, createdEquivalent.ID); deleteSuccessError != nil {
+		t.Fatalf("delete equivalent: %v", deleteSuccessError)
+	}
+	if _, afterDeleteError := equivalentRepository.GetByID(ctx, firstUser.ID, createdEquivalent.ID); !errors.Is(afterDeleteError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected ErrValueEquivalentNotFound after delete, got %v", afterDeleteError)
+	}
+	if secondDeleteError := equivalentRepository.Delete(ctx, firstUser.ID, createdEquivalent.ID); !errors.Is(secondDeleteError, domain.ErrValueEquivalentNotFound) {
+		t.Fatalf("expected second delete to return ErrValueEquivalentNotFound, got %v", secondDeleteError)
 	}
 }
 
