@@ -67,8 +67,10 @@ This single command concurrently starts both the Go backend API (`http://127.0.0
 
 If you prefer running services in separate terminals:
 - **Frontend only**: `npm start`
-- **Backend with hot reload**: `npm run server:air` (or `air` in the `backend/` directory)
-- **Backend standard**: `npm run server:build` (or `go run ./cmd/server` in the `backend/` directory)
+- **Backend with hot reload**: `npm run server:air`
+- **Backend standard**: `npm run server:build`
+
+Both backend npm commands load `backend/.env` before starting the server, matching the `npm run dev` configuration behavior.
 
 The backend service will listen on `http://127.0.0.1:8080`. Configure the Google OIDC values documented in `backend/.env.example`, including an authorized local callback of `http://localhost:8080/auth/google/callback` and `APP_BASE_URL=http://localhost:3000`. In development, the frontend API client connects to the backend address by default and includes application session cookies. Set `REACT_APP_API_BASE_URL` to override it when the backend is hosted elsewhere. Production builds default to same-origin requests.
 
