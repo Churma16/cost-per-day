@@ -180,4 +180,41 @@ describe('HeroCarousel component', () => {
     // Still on first slide because auto-advance is disabled for reduced motion
     expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
   });
+
+  it('does not change slide on stationary touch tap without movement', () => {
+    render(<HeroCarousel insightsOverride={mockInsights} />);
+
+    const carousel = screen.getByRole('region', { name: 'Insights Carousel' });
+
+    expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
+
+    // Tap: touchstart at 250px, no touchmove, touchend
+    fireEvent.touchStart(carousel, { touches: [{ clientX: 250 }] });
+    fireEvent.touchEnd(carousel);
+
+    // Remains on first slide
+    expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
+  });
+
+  it('swipes to next and previous slides via touch gestures', () => {
+    render(<HeroCarousel insightsOverride={mockInsights} />);
+
+    const carousel = screen.getByRole('region', { name: 'Insights Carousel' });
+
+    expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
+
+    // Swipe left (advance to next): start at 250px, move to 150px (delta = +100 > 40)
+    fireEvent.touchStart(carousel, { touches: [{ clientX: 250 }] });
+    fireEvent.touchMove(carousel, { touches: [{ clientX: 150 }] });
+    fireEvent.touchEnd(carousel);
+
+    expect(screen.getByText('Laptop Pro')).toBeInTheDocument();
+
+    // Swipe right (go to previous): start at 100px, move to 220px (delta = -120 < -40)
+    fireEvent.touchStart(carousel, { touches: [{ clientX: 100 }] });
+    fireEvent.touchMove(carousel, { touches: [{ clientX: 220 }] });
+    fireEvent.touchEnd(carousel);
+
+    expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
+  });
 });

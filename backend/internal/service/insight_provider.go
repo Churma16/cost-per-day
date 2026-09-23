@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"cost-per-day/backend/internal/domain"
@@ -198,6 +199,46 @@ func (provider *RecentPurchaseImpactProvider) Generate(_ context.Context, data D
 	}
 
 	recentThreshold := data.Now.UTC().AddDate(0, 0, -14)
+
+	// Verify that a prior collection existed before the recent threshold,
+	// and calculate what the daily cost was 14 days ago.
+	var priorDailyCost float64
+	var priorActiveCount int
+
+	for index := range data.Items {
+		item := &data.Items[index]
+		parsedPurchaseDate, parseError := time.Parse(time.RFC3339, item.PurchaseDate)
+		if parseError != nil {
+			continue
+		}
+
+		if !parsedPurchaseDate.After(recentThreshold) {
+			isActiveAtThreshold := true
+			if item.Status != domain.ItemStatusActive && item.EndedAt != nil {
+				if parsedEndDate, endError := time.Parse(time.RFC3339, *item.EndedAt); endError == nil {
+					if parsedEndDate.Before(recentThreshold) {
+						isActiveAtThreshold = false
+					}
+				}
+			}
+
+			if isActiveAtThreshold {
+				priorActiveCount++
+				daysAsOfThreshold := int(math.Ceil(recentThreshold.Sub(parsedPurchaseDate).Hours() / 24))
+				if daysAsOfThreshold < 1 {
+					daysAsOfThreshold = 1
+				}
+				priorDailyCost += item.Price / float64(daysAsOfThreshold)
+			}
+		}
+	}
+
+	// An increase can only be claimed if there was a positive prior baseline
+	// and the current total daily cost strictly exceeds that prior cost.
+	if priorActiveCount == 0 || priorDailyCost <= 0 || data.TotalDailyCost <= priorDailyCost {
+		return nil, nil
+	}
+
 	var impactingItem *domain.Item
 
 	for index := range data.ActiveItems {
@@ -389,6 +430,9 @@ func (provider *EquivalentProvider) Generate(_ context.Context, data DashboardCo
 	for index := range data.Equivalents {
 		equivalent := &data.Equivalents[index]
 		if equivalent.Amount <= 0 {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(equivalent.CurrencyCode), strings.TrimSpace(data.CurrencyCode)) {
 			continue
 		}
 

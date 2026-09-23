@@ -134,7 +134,9 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
   }, [prefersReducedMotion, isPaused, insights.length, autoAdvanceIntervalMs, handleNextSlide]);
 
   const handleTouchStart = (event) => {
-    touchStartXReference.current = event.touches[0].clientX;
+    const clientX = event.touches[0].clientX;
+    touchStartXReference.current = clientX;
+    touchEndXReference.current = clientX;
     setIsPaused(true);
   };
 

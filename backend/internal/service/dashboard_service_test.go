@@ -342,4 +342,156 @@ func TestDashboardService_GetDashboard(t *testing.T) {
 			subTest.Errorf("expected Indonesian caption, got: %s", bestValueInsight.Caption)
 		}
 	})
+
+	t.Run("EquivalentProvider ignores equivalents whose currency does not match user setting", func(subTest *testing.T) {
+		itemRepository := memory.NewMemoryItemRepository()
+		settingsRepository := memory.NewMemorySettingsRepository()
+		equivalentRepository := memory.NewMemoryValueEquivalentRepository()
+
+		_ = settingsRepository.Set(testContext, testUserID, "currency", "IDR")
+
+		// Total daily cost is Rp 15.000/day
+		_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+			Name:         "Kipas Angin",
+			Price:        150000.0,
+			PurchaseDate: time.Now().UTC().AddDate(0, 0, -10).Format(time.RFC3339),
+			Status:       domain.ItemStatusActive,
+		})
+
+		// Equivalent in USD (currency mismatch)
+		_, _ = equivalentRepository.Create(testContext, testUserID, domain.ValueEquivalent{
+			Name:         "USD Coffee",
+			Amount:       1.0,
+			CurrencyCode: "USD",
+		})
+
+		dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
+
+		dashboardData, serviceError := dashboardService.GetDashboard(testContext, testUserID)
+		if serviceError != nil {
+			subTest.Fatalf("expected no error, got: %v", serviceError)
+		}
+
+		for _, insight := range dashboardData.Insights {
+			if insight.Kind == "equivalent" {
+				subTest.Fatalf("expected no equivalent insight for mismatched currency USD when user is IDR, got: %+v", insight)
+			}
+		}
+
+		// Now add matching IDR equivalent
+		_, _ = equivalentRepository.Create(testContext, testUserID, domain.ValueEquivalent{
+			Name:         "Kopi Kenangan",
+			Amount:       15000.0,
+			CurrencyCode: "IDR",
+		})
+
+		dashboardDataWithIDR, serviceError2 := dashboardService.GetDashboard(testContext, testUserID)
+		if serviceError2 != nil {
+			subTest.Fatalf("expected no error, got: %v", serviceError2)
+		}
+
+		var matchedEquivalentInsight *domain.DashboardInsight
+		for _, insight := range dashboardDataWithIDR.Insights {
+			if insight.Kind == "equivalent" {
+				copyInsight := insight
+				matchedEquivalentInsight = &copyInsight
+				break
+			}
+		}
+
+		if matchedEquivalentInsight == nil {
+			subTest.Fatalf("expected equivalent insight for matching IDR currency")
+		}
+		if !strings.Contains(matchedEquivalentInsight.Primary, "Kopi Kenangan") {
+			subTest.Errorf("expected insight to reference 'Kopi Kenangan', got: %s", matchedEquivalentInsight.Primary)
+		}
+	})
+
+	t.Run("RecentPurchaseImpactProvider suppresses insight if total daily cost actually decreased", func(subTest *testing.T) {
+		itemRepository := memory.NewMemoryItemRepository()
+		settingsRepository := memory.NewMemorySettingsRepository()
+		equivalentRepository := memory.NewMemoryValueEquivalentRepository()
+
+		now := time.Now().UTC()
+
+		// Older expensive item: 50 days old, $500 -> cost today is $500/50 = $10.00/day
+		// 14 days ago (day 36), cost was $500/36 = $13.89/day
+		_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+			Name:         "Desk Mat",
+			Price:        500.0,
+			PurchaseDate: now.AddDate(0, 0, -50).Format(time.RFC3339),
+			Status:       domain.ItemStatusActive,
+		})
+
+		// Recent item: 2 days old, $6.00 -> $3.00/day (23% of $13.00 total)
+		// Total today: $10.00 + $3.00 = $13.00/day
+		// Prior 14 days ago was $13.89/day. Net change: DECREASE from $13.89 to $13.00!
+		_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+			Name:         "USB Cable",
+			Price:        6.0,
+			PurchaseDate: now.AddDate(0, 0, -2).Format(time.RFC3339),
+			Status:       domain.ItemStatusActive,
+		})
+
+		dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
+
+		dashboardData, serviceError := dashboardService.GetDashboard(testContext, testUserID)
+		if serviceError != nil {
+			subTest.Fatalf("expected no error, got: %v", serviceError)
+		}
+
+		for _, insight := range dashboardData.Insights {
+			if insight.Kind == "recent_purchase_impact" {
+				subTest.Fatalf("did not expect recent_purchase_impact when total daily cost decreased, got: %+v", insight)
+			}
+		}
+	})
+
+	t.Run("RecentPurchaseImpactProvider triggers when recent purchase drove verified cost increase", func(subTest *testing.T) {
+		itemRepository := memory.NewMemoryItemRepository()
+		settingsRepository := memory.NewMemorySettingsRepository()
+		equivalentRepository := memory.NewMemoryValueEquivalentRepository()
+
+		now := time.Now().UTC()
+
+		// Older item: 50 days old, $100 -> cost today is $2.00/day, 14 days ago was $100/36 = $2.78/day
+		_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+			Name:         "Mouse Pad",
+			Price:        100.0,
+			PurchaseDate: now.AddDate(0, 0, -50).Format(time.RFC3339),
+			Status:       domain.ItemStatusActive,
+		})
+
+		// Substantial recent purchase: 2 days old, $100 -> $50.00/day
+		// Total today: $2.00 + $50.00 = $52.00/day. Prior was $2.78/day. Dramatic increase!
+		_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+			Name:         "Mechanical Keyboard",
+			Price:        100.0,
+			PurchaseDate: now.AddDate(0, 0, -2).Format(time.RFC3339),
+			Status:       domain.ItemStatusActive,
+		})
+
+		dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
+
+		dashboardData, serviceError := dashboardService.GetDashboard(testContext, testUserID)
+		if serviceError != nil {
+			subTest.Fatalf("expected no error, got: %v", serviceError)
+		}
+
+		var recentImpactInsight *domain.DashboardInsight
+		for _, insight := range dashboardData.Insights {
+			if insight.Kind == "recent_purchase_impact" {
+				copyInsight := insight
+				recentImpactInsight = &copyInsight
+				break
+			}
+		}
+
+		if recentImpactInsight == nil {
+			subTest.Fatalf("expected recent_purchase_impact insight when recent purchase drove cost increase")
+		}
+		if recentImpactInsight.Primary != "Mechanical Keyboard" {
+			subTest.Errorf("expected recent impact item 'Mechanical Keyboard', got: %s", recentImpactInsight.Primary)
+		}
+	})
 }

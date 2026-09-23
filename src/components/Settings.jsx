@@ -16,6 +16,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { formatCurrency } from '../utils/formatters';
+import { useInvalidateDashboard } from '../hooks/useDashboard';
 
 function Settings() {
   const { t } = useTranslation();
@@ -29,6 +30,7 @@ function Settings() {
     removeEquivalent,
     error: equivalentsError
   } = useValueEquivalents();
+  const invalidateDashboard = useInvalidateDashboard();
   
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
@@ -114,6 +116,7 @@ function Settings() {
     setNotification(null);
     try {
       await changeLanguage(code);
+      await invalidateDashboard();
       setNotification(null);
     } catch (error) {
       console.error('Error updating language:', error);
@@ -130,6 +133,7 @@ function Settings() {
     setNotification(null);
     try {
       await changeCurrency(selectedCurrencyCode);
+      await invalidateDashboard();
       setNotification(null);
     } catch (error) {
       console.error('Error updating currency:', error);
@@ -287,6 +291,7 @@ function Settings() {
     try {
       // Replace server-backed data through the centralized API boundary.
       await replaceAllItems(importData);
+      await invalidateDashboard();
       
       // Show success notification
       setNotification({
@@ -356,6 +361,7 @@ function Settings() {
           currencyCode: equivalentFormCurrency
         });
       }
+      await invalidateDashboard();
 
       setShowEquivalentModal(false);
       setNotification({
@@ -376,6 +382,7 @@ function Settings() {
 
     try {
       await removeEquivalent(showDeleteEquivalentConfirm.id);
+      await invalidateDashboard();
       setShowDeleteEquivalentConfirm(null);
       setNotification({
         message: t('confirmDelete'),
