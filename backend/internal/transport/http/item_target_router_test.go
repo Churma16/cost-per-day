@@ -87,7 +87,7 @@ func TestItemsAPIOwnershipTargetsAndBenchmarks(t *testing.T) {
 	// Price: 2.400.000, 10 days -> final cost/day = 240.000. Target cost/day = 4.000.
 	// Candidate price: 3.000.000
 	// Match previous: ceil(3.000.000 / 240.000) = 13 days
-	// Beat previous: 14 days
+	// Beat previous: 13 days
 	// Match target: ceil(3.000.000 / 4.000) = 750 days
 	benchmarkReq, _ := http.NewRequest(
 		http.MethodGet,
