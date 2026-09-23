@@ -1,20 +1,21 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 import {
   getCurrentUser,
   logoutCurrentUser
 } from '../services/api';
 
-jest.mock('../services/api', () => ({
+vi.mock('../services/api', () => ({
   ApiError: class ApiError extends Error {
     constructor(message, status = null) {
       super(message);
       this.status = status;
     }
   },
-  getCurrentUser: jest.fn(),
-  getGoogleLoginUrl: jest.fn(() => '/auth/google/login'),
-  logoutCurrentUser: jest.fn()
+  getCurrentUser: vi.fn(),
+  getGoogleLoginUrl: vi.fn(() => '/auth/google/login'),
+  logoutCurrentUser: vi.fn()
 }));
 
 const AuthProbe = () => {
@@ -34,7 +35,7 @@ const AuthProbe = () => {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   getCurrentUser.mockResolvedValue({
     id: 'user-1',
     email: 'user@example.com'

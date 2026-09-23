@@ -7,8 +7,7 @@ RUN npm ci
 
 COPY . .
 
-ENV GENERATE_SOURCEMAP=false
-RUN npx react-scripts build
+RUN npm run build
 
 FROM golang:1.25.5-alpine AS backend-build
 

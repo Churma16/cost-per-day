@@ -1,18 +1,19 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
 import App from './App';
 import { ApiError, getCurrentUser } from './services/api';
 
-jest.mock('./services/api', () => {
-  const actual = jest.requireActual('./services/api');
+vi.mock('./services/api', async (importOriginal) => {
+  const actual = await importOriginal();
   return {
     ...actual,
-    getCurrentUser: jest.fn(),
-    logoutCurrentUser: jest.fn()
+    getCurrentUser: vi.fn(),
+    logoutCurrentUser: vi.fn()
   };
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('renders authentication loading state while session bootstrap is pending', () => {

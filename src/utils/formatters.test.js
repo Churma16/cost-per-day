@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { formatCurrency, getDateLocale } from './formatters';
 import * as currencyConfigModule from './currencyConfig';
 
@@ -80,7 +81,7 @@ describe('formatCurrency utility function', () => {
 
   describe('Canonical configuration driving formatter behavior', () => {
     test('retrieves and applies configuration properties from getCurrencyConfig', () => {
-      const getCurrencyConfigSpy = jest.spyOn(currencyConfigModule, 'getCurrencyConfig');
+      const getCurrencyConfigSpy = vi.spyOn(currencyConfigModule, 'getCurrencyConfig');
 
       const formattedIdrValue = formatCurrency(50000, 'IDR');
       expect(getCurrencyConfigSpy).toHaveBeenCalledWith('IDR');
@@ -102,7 +103,12 @@ describe('formatCurrency utility function', () => {
     });
 
     test('passes canonical locale and fraction digits to Intl.NumberFormat', () => {
-      const intlNumberFormatSpy = jest.spyOn(Intl, 'NumberFormat');
+      const originalNumberFormat = Intl.NumberFormat;
+      const intlNumberFormatSpy = vi.spyOn(Intl, 'NumberFormat').mockImplementation(
+        function (...args) {
+          return new originalNumberFormat(...args);
+        }
+      );
 
       formatCurrency(1234, 'IDR');
       expect(intlNumberFormatSpy).toHaveBeenCalledWith(

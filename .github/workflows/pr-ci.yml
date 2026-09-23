@@ -37,7 +37,6 @@ jobs:
 
     env:
       CI: "true"
-      GENERATE_SOURCEMAP: "false"
 
     steps:
       - name: Checkout repository
@@ -53,7 +52,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm test -- --watchAll=false
+        run: npm test
 
       - name: Build production bundle
         run: npm run build

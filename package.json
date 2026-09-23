@@ -3,10 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.12.0"
   },
   "dependencies": {
-    "cra-template": "1.2.0",
     "date-fns": "^4.1.0",
     "i18next": "~22.5.0",
     "i18next-browser-languagedetector": "~7.0.0",
@@ -16,37 +15,19 @@
     "react-dom": "^19.0.0",
     "react-i18next": "~12.3.0",
     "react-icons": "^5.4.0",
-    "react-router-dom": "^7.1.5",
-    "react-scripts": "5.0.1",
+    "react-router-dom": "^7.18.4",
     "web-vitals": "^4.2.4"
   },
   "scripts": {
-    "start": "set \"GENERATE_SOURCEMAP=false\" && react-scripts start",
+    "start": "vite",
     "server": "node scripts/start-backend.js",
     "server:air": "node scripts/start-backend.js air",
     "server:build": "node scripts/start-backend.js go",
     "dev": "concurrently -k -n \"backend,frontend\" -c \"cyan,magenta\" \"npm run server\" \"npm start\"",
-    "build": "set \"GENERATE_SOURCEMAP=false\" && react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "jest": {
-    "moduleNameMapper": {
-      "^react-router-dom$": "<rootDir>/node_modules/react-router-dom/dist/index.js",
-      "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js",
-      "^react-router$": "<rootDir>/node_modules/react-router/dist/development/index.js",
-      "^date-fns/locale$": "<rootDir>/node_modules/date-fns/locale.cjs",
-      "^date-fns/locale/(.*)$": "<rootDir>/node_modules/date-fns/locale/$1.cjs",
-      "^date-fns$": "<rootDir>/node_modules/date-fns/index.cjs",
-      "^date-fns/(.*)$": "<rootDir>/node_modules/date-fns/$1.cjs",
-      "^react-day-picker/dist/style.css$": "<rootDir>/node_modules/react-day-picker/src/style.css"
-    }
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "browserslist": {
     "production": [
@@ -63,9 +44,13 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.4.17",
     "concurrently": "^10.0.5",
+    "jsdom": "^29.1.1",
     "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "vite": "^8.3.0",
+    "vitest": "^4.1.11"
   }
 }

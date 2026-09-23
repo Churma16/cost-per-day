@@ -3,13 +3,15 @@ export const DEFAULT_SETTINGS = {
   currency: 'USD'
 };
 
-const DEFAULT_API_BASE_URL = process.env.NODE_ENV === 'development'
-  ? 'http://localhost:8080'
-  : '';
+export const resolveApiBaseUrl = () => {
+  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (configuredBaseUrl && configuredBaseUrl.trim() !== '') {
+    return configuredBaseUrl.trim().replace(/\/+$/, '');
+  }
+  return import.meta.env.MODE === 'development' ? 'http://localhost:8080' : '';
+};
 
-const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || DEFAULT_API_BASE_URL)
-  .trim()
-  .replace(/\/+$/, '');
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(message, status = null, cause = null) {
@@ -20,7 +22,7 @@ export class ApiError extends Error {
   }
 }
 
-const buildApiUrl = (path) => `${API_BASE_URL}${path}`;
+export const buildApiUrl = (path) => `${resolveApiBaseUrl()}${path}`;
 
 const request = async (path, options = {}) => {
   const requestOptions = {
