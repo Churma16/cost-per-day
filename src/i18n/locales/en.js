@@ -151,6 +151,12 @@ const translation = {
   "exploreFraming": "Try a different pace",
   "explorePaceDescription": "Adjust the contribution amount or frequency to see how your timeline changes.",
   "daysRemaining": "{{days}} days remaining",
+  "markAsPurchased": "Mark as Purchased",
+  "markAsPurchasedDescription": "Review the actual purchase details before moving this plan into ownership.",
+  "actualPurchasePrice": "Actual purchase price",
+  "plannedPriceReference": "Planned price: {{amount}}",
+  "createOwnedItem": "Create Owned Item",
+  "conversionFailed": "Failed to convert the planned purchase. Please try again.",
 
   // Ownership Targets & Benchmarks
   "ownershipTarget": "Ownership Target",
