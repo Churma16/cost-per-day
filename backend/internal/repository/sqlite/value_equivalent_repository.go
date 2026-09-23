@@ -2,30 +2,90 @@ package sqlite
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/repository"
 )
 
-type valueEquivalentScanner interface {
-	Scan(destinations ...any) error
+// valueEquivalentRecord represents the persistence schema for the value_equivalents table.
+type valueEquivalentRecord struct {
+	ID           int64  `gorm:"column:id;primaryKey;autoIncrement"`
+	UserID       string `gorm:"column:user_id;not null"`
+	Name         string `gorm:"column:name;not null"`
+	AmountMicros int64  `gorm:"column:amount_micros;not null"`
+	CurrencyCode string `gorm:"column:currency_code;not null"`
+	CreatedAt    string `gorm:"column:created_at;not null"`
+	UpdatedAt    string `gorm:"column:updated_at;not null"`
 }
 
-// ValueEquivalentRepository implements repository.ValueEquivalentRepository using user-scoped SQLite queries.
+func (valueEquivalentRecord) TableName() string {
+	return "value_equivalents"
+}
+
+func (record valueEquivalentRecord) toDomain() (domain.ValueEquivalent, error) {
+	createdAt, parseCreatedAtError := parseSQLiteTimestamp(record.CreatedAt)
+	if parseCreatedAtError != nil {
+		return domain.ValueEquivalent{}, fmt.Errorf("parse value equivalent created_at: %w", parseCreatedAtError)
+	}
+
+	updatedAt, parseUpdatedAtError := parseSQLiteTimestamp(record.UpdatedAt)
+	if parseUpdatedAtError != nil {
+		return domain.ValueEquivalent{}, fmt.Errorf("parse value equivalent updated_at: %w", parseUpdatedAtError)
+	}
+
+	return domain.ValueEquivalent{
+		ID:           strconv.FormatInt(record.ID, 10),
+		UserID:       record.UserID,
+		Name:         record.Name,
+		Amount:       convertMicrosToPrice(record.AmountMicros),
+		CurrencyCode: record.CurrencyCode,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+	}, nil
+}
+
+func toValueEquivalentRecord(userID string, equivalent domain.ValueEquivalent, timestamp time.Time) (valueEquivalentRecord, error) {
+	amountMicros, conversionError := convertPriceToMicros(equivalent.Amount)
+	if conversionError != nil {
+		return valueEquivalentRecord{}, conversionError
+	}
+
+	var databaseID int64
+	if trimmedID := strings.TrimSpace(equivalent.ID); trimmedID != "" {
+		if parsedID, parseError := strconv.ParseInt(trimmedID, 10, 64); parseError == nil {
+			databaseID = parsedID
+		}
+	}
+
+	formattedTimestamp := timestamp.UTC().Format(time.RFC3339Nano)
+
+	return valueEquivalentRecord{
+		ID:           databaseID,
+		UserID:       userID,
+		Name:         strings.TrimSpace(equivalent.Name),
+		AmountMicros: amountMicros,
+		CurrencyCode: strings.TrimSpace(equivalent.CurrencyCode),
+		CreatedAt:    formattedTimestamp,
+		UpdatedAt:    formattedTimestamp,
+	}, nil
+}
+
+// ValueEquivalentRepository implements repository.ValueEquivalentRepository using user-scoped GORM queries.
 type ValueEquivalentRepository struct {
-	databaseConnection *sql.DB
+	database *gorm.DB
 }
 
-// NewValueEquivalentRepository creates a SQLite-backed value equivalent repository.
-func NewValueEquivalentRepository(databaseConnection *sql.DB) repository.ValueEquivalentRepository {
+// NewValueEquivalentRepository creates a GORM-backed value equivalent repository.
+func NewValueEquivalentRepository(database *gorm.DB) repository.ValueEquivalentRepository {
 	return &ValueEquivalentRepository{
-		databaseConnection: databaseConnection,
+		database: database,
 	}
 }
 
@@ -36,28 +96,22 @@ func (repositoryInstance *ValueEquivalentRepository) List(ctx context.Context, u
 		return nil, identityError
 	}
 
-	rows, queryError := repositoryInstance.databaseConnection.QueryContext(ctx, `
-		SELECT user_id, id, name, amount_micros, currency_code, created_at, updated_at
-		FROM value_equivalents
-		WHERE user_id = ?
-		ORDER BY id ASC
-	`, normalizedUserID)
-	if queryError != nil {
-		return nil, fmt.Errorf("list value equivalents: %w", queryError)
+	var records []valueEquivalentRecord
+	result := repositoryInstance.database.WithContext(ctx).
+		Where("user_id = ?", normalizedUserID).
+		Order("id ASC").
+		Find(&records)
+	if result.Error != nil {
+		return nil, fmt.Errorf("list value equivalents: %w", result.Error)
 	}
-	defer rows.Close()
 
-	valueEquivalents := make([]domain.ValueEquivalent, 0)
-	for rows.Next() {
-		equivalent, scanError := scanValueEquivalent(rows)
-		if scanError != nil {
-			return nil, scanError
+	valueEquivalents := make([]domain.ValueEquivalent, 0, len(records))
+	for _, record := range records {
+		equivalent, mapError := record.toDomain()
+		if mapError != nil {
+			return nil, mapError
 		}
 		valueEquivalents = append(valueEquivalents, equivalent)
-	}
-
-	if rowsError := rows.Err(); rowsError != nil {
-		return nil, fmt.Errorf("iterate value equivalents: %w", rowsError)
 	}
 
 	return valueEquivalents, nil
@@ -75,19 +129,18 @@ func (repositoryInstance *ValueEquivalentRepository) GetByID(ctx context.Context
 		return domain.ValueEquivalent{}, domain.ErrValueEquivalentNotFound
 	}
 
-	equivalent, scanError := scanValueEquivalent(repositoryInstance.databaseConnection.QueryRowContext(ctx, `
-		SELECT user_id, id, name, amount_micros, currency_code, created_at, updated_at
-		FROM value_equivalents
-		WHERE user_id = ? AND id = ?
-	`, normalizedUserID, parsedID))
-	if errors.Is(scanError, sql.ErrNoRows) {
+	var record valueEquivalentRecord
+	result := repositoryInstance.database.WithContext(ctx).
+		Where("user_id = ? AND id = ?", normalizedUserID, parsedID).
+		First(&record)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return domain.ValueEquivalent{}, domain.ErrValueEquivalentNotFound
 	}
-	if scanError != nil {
-		return domain.ValueEquivalent{}, scanError
+	if result.Error != nil {
+		return domain.ValueEquivalent{}, fmt.Errorf("get value equivalent: %w", result.Error)
 	}
 
-	return equivalent, nil
+	return record.toDomain()
 }
 
 // Create persists a new value equivalent under the current user and assigns its SQLite-generated identifier.
@@ -97,31 +150,21 @@ func (repositoryInstance *ValueEquivalentRepository) Create(ctx context.Context,
 		return domain.ValueEquivalent{}, identityError
 	}
 
-	amountMicros, conversionError := convertPriceToMicros(equivalentToCreate.Amount)
-	if conversionError != nil {
-		return domain.ValueEquivalent{}, conversionError
-	}
-
 	currentTime := time.Now().UTC()
-	formattedTimestamp := currentTime.Format(time.RFC3339Nano)
-
-	executionResult, insertError := repositoryInstance.databaseConnection.ExecContext(ctx, `
-		INSERT INTO value_equivalents (user_id, name, amount_micros, currency_code, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, normalizedUserID, strings.TrimSpace(equivalentToCreate.Name), amountMicros, strings.TrimSpace(equivalentToCreate.CurrencyCode), formattedTimestamp, formattedTimestamp)
-	if insertError != nil {
-		return domain.ValueEquivalent{}, fmt.Errorf("insert value equivalent: %w", insertError)
+	record, mapError := toValueEquivalentRecord(normalizedUserID, equivalentToCreate, currentTime)
+	if mapError != nil {
+		return domain.ValueEquivalent{}, mapError
 	}
 
-	generatedID, idError := executionResult.LastInsertId()
-	if idError != nil {
-		return domain.ValueEquivalent{}, fmt.Errorf("retrieve value equivalent last insert identifier: %w", idError)
+	result := repositoryInstance.database.WithContext(ctx).Create(&record)
+	if result.Error != nil {
+		return domain.ValueEquivalent{}, fmt.Errorf("insert value equivalent: %w", result.Error)
 	}
 
 	createdEquivalent := equivalentToCreate
-	createdEquivalent.ID = strconv.FormatInt(generatedID, 10)
+	createdEquivalent.ID = strconv.FormatInt(record.ID, 10)
 	createdEquivalent.UserID = normalizedUserID
-	createdEquivalent.Amount = convertMicrosToPrice(amountMicros)
+	createdEquivalent.Amount = convertMicrosToPrice(record.AmountMicros)
 	createdEquivalent.CreatedAt = currentTime
 	createdEquivalent.UpdatedAt = currentTime
 
@@ -148,29 +191,25 @@ func (repositoryInstance *ValueEquivalentRepository) Update(ctx context.Context,
 	currentTime := time.Now().UTC()
 	formattedTimestamp := currentTime.Format(time.RFC3339Nano)
 
-	executionResult, updateError := repositoryInstance.databaseConnection.ExecContext(ctx, `
-		UPDATE value_equivalents
-		SET name = ?, amount_micros = ?, currency_code = ?, updated_at = ?
-		WHERE user_id = ? AND id = ?
-	`, strings.TrimSpace(equivalentToUpdate.Name), amountMicros, strings.TrimSpace(equivalentToUpdate.CurrencyCode), formattedTimestamp, normalizedUserID, parsedID)
-	if updateError != nil {
-		return domain.ValueEquivalent{}, fmt.Errorf("update value equivalent: %w", updateError)
+	updateColumns := map[string]any{
+		"name":          strings.TrimSpace(equivalentToUpdate.Name),
+		"amount_micros": amountMicros,
+		"currency_code": strings.TrimSpace(equivalentToUpdate.CurrencyCode),
+		"updated_at":    formattedTimestamp,
 	}
 
-	affectedRows, rowsAffectedError := executionResult.RowsAffected()
-	if rowsAffectedError != nil {
-		return domain.ValueEquivalent{}, fmt.Errorf("inspect value equivalent rows affected: %w", rowsAffectedError)
+	result := repositoryInstance.database.WithContext(ctx).
+		Model(&valueEquivalentRecord{}).
+		Where("user_id = ? AND id = ?", normalizedUserID, parsedID).
+		Updates(updateColumns)
+	if result.Error != nil {
+		return domain.ValueEquivalent{}, fmt.Errorf("update value equivalent: %w", result.Error)
 	}
-	if affectedRows == 0 {
+	if result.RowsAffected == 0 {
 		return domain.ValueEquivalent{}, domain.ErrValueEquivalentNotFound
 	}
 
-	persistedEquivalent, retrieveError := repositoryInstance.GetByID(ctx, normalizedUserID, strconv.FormatInt(parsedID, 10))
-	if retrieveError != nil {
-		return domain.ValueEquivalent{}, retrieveError
-	}
-
-	return persistedEquivalent, nil
+	return repositoryInstance.GetByID(ctx, normalizedUserID, strconv.FormatInt(parsedID, 10))
 }
 
 // Delete removes a value equivalent only when owned by the current user.
@@ -185,68 +224,17 @@ func (repositoryInstance *ValueEquivalentRepository) Delete(ctx context.Context,
 		return domain.ErrValueEquivalentNotFound
 	}
 
-	executionResult, deleteError := repositoryInstance.databaseConnection.ExecContext(ctx, `
-		DELETE FROM value_equivalents
-		WHERE user_id = ? AND id = ?
-	`, normalizedUserID, parsedID)
-	if deleteError != nil {
-		return fmt.Errorf("delete value equivalent: %w", deleteError)
+	result := repositoryInstance.database.WithContext(ctx).
+		Where("user_id = ? AND id = ?", normalizedUserID, parsedID).
+		Delete(&valueEquivalentRecord{})
+	if result.Error != nil {
+		return fmt.Errorf("delete value equivalent: %w", result.Error)
 	}
-
-	affectedRows, rowsAffectedError := executionResult.RowsAffected()
-	if rowsAffectedError != nil {
-		return fmt.Errorf("inspect value equivalent delete rows affected: %w", rowsAffectedError)
-	}
-	if affectedRows == 0 {
+	if result.RowsAffected == 0 {
 		return domain.ErrValueEquivalentNotFound
 	}
 
 	return nil
-}
-
-func scanValueEquivalent(scanner valueEquivalentScanner) (domain.ValueEquivalent, error) {
-	var (
-		userID            string
-		databaseID        int64
-		name              string
-		amountMicros      int64
-		currencyCode      string
-		createdAtString   string
-		updatedAtString   string
-	)
-
-	scanError := scanner.Scan(
-		&userID,
-		&databaseID,
-		&name,
-		&amountMicros,
-		&currencyCode,
-		&createdAtString,
-		&updatedAtString,
-	)
-	if scanError != nil {
-		return domain.ValueEquivalent{}, scanError
-	}
-
-	createdAt, parseCreatedAtError := parseSQLiteTimestamp(createdAtString)
-	if parseCreatedAtError != nil {
-		return domain.ValueEquivalent{}, fmt.Errorf("parse value equivalent created_at: %w", parseCreatedAtError)
-	}
-
-	updatedAt, parseUpdatedAtError := parseSQLiteTimestamp(updatedAtString)
-	if parseUpdatedAtError != nil {
-		return domain.ValueEquivalent{}, fmt.Errorf("parse value equivalent updated_at: %w", parseUpdatedAtError)
-	}
-
-	return domain.ValueEquivalent{
-		ID:           strconv.FormatInt(databaseID, 10),
-		UserID:       userID,
-		Name:         name,
-		Amount:       convertMicrosToPrice(amountMicros),
-		CurrencyCode: currencyCode,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
-	}, nil
 }
 
 func parseSQLiteTimestamp(value string) (time.Time, error) {

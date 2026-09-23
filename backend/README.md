@@ -9,8 +9,8 @@ The backend keeps HTTP, application behavior, repository contracts, and persiste
 ```text
 HTTP Layer (Gin router, auth middleware, handlers, DTOs, response envelope)
     -> Application Services (AuthService, ItemService, SettingsService)
-        -> Repository Interfaces (User, Session, Item, Settings)
-            -> SQLite Adapter (database/sql + explicit raw SQL)
+        -> Repository Interfaces (User, Session, Item, Settings, ValueEquivalent, PlannedPurchase)
+            -> SQLite Adapter (GORM for CRUD reference / database/sql + raw SQL)
 
 Google OIDC Adapter
     -> verified Google identity (sub + profile)
@@ -19,25 +19,71 @@ Google OIDC Adapter
 ```
 
 - **HTTP Decoupling**: Gin and `*gin.Context` remain strictly inside `internal/http`.
-- **Domain Independence**: Domain models and application services depend on repository interfaces, not SQLite.
-- **Persistence Isolation**: SQLite queries live only in `internal/repository/sqlite`.
-- **Composition Root**: Concrete SQLite repositories are selected only in `cmd/server/main.go`.
+- **Domain Independence**: Domain models and application services depend on repository interfaces, not SQLite or GORM. Domain structs contain no GORM tags or dependencies.
+- **Persistence Boundary**: `*gorm.DB` is strictly encapsulated inside `internal/repository/sqlite`. It is never leaked to HTTP handlers, services, or domain packages.
+- **Composition Root**: Concrete SQLite repositories are selected and wired only in `cmd/server/main.go`.
 
 The in-memory repositories remain available for focused unit tests. User-owned operations require a local user ID supplied by the HTTP authentication boundary. Google tokens and claims stop at the OIDC adapter; item and settings services receive only the application-owned local user ID.
 
+## Persistence Architecture & GORM Integration
+
+The backend adopts GORM as an internal implementation tool behind the existing repository boundary to reduce boilerplate for standard CRUD operations while preserving explicit architecture and SQLite operational characteristics.
+
+### Reference Implementation
+
+`ValueEquivalentRepository` serves as the reference implementation for GORM persistence:
+- Demonstrates persistence-specific model mapping (`valueEquivalentRecord` with column tags vs clean domain `domain.ValueEquivalent`).
+- Maps storage micro-units (`amount_micros`) to domain amounts (`float64`).
+- Handles GORM error translation (`gorm.ErrRecordNotFound` to `domain.ErrValueEquivalentNotFound`).
+- Enforces user isolation on every query (`Where("user_id = ?", userID)`).
+
+Other repositories remain on explicit SQL and may be migrated incrementally if GORM makes their persistence demonstrably clearer.
+
+### GORM vs. Raw SQL Guidance
+
+The project follows a pragmatic persistence philosophy rather than ORM purity:
+
+- **Prefer GORM for**:
+  - Standard entity CRUD (`Create`, `First`, `Find`, `Updates`, `Delete`);
+  - Straightforward user-scoped queries and primary-key lookups;
+  - Scenarios where ORM reduces repetitive `Scan` and `ExecContext` boilerplate.
+- **Prefer Raw SQL for**:
+  - Complex aggregations, reporting, and dashboard metrics;
+  - Multi-table analytical joins;
+  - SQLite-specific operations, pragmas, and indexing optimizations;
+  - Queries where SQL is clearer, more maintainable, or more performant than ORM method chaining.
+
+Multi-step business workflows belong in services and repository operations, not hidden inside GORM lifecycle callbacks (`BeforeCreate`, `AfterSave`).
+
+### Schema Migration Policy & Why `AutoMigrate()` Is Not Used
+
+Schema evolution is driven exclusively by explicit SQL migration files under:
+
+```text
+internal/repository/sqlite/migrations/
+```
+
+Tracked via SQLite `PRAGMA user_version`. GORM's `AutoMigrate()` is **strictly prohibited** in production for the following reasons:
+- **Explicit & Reviewable**: Schema changes remain versioned, deterministic, and reviewable in pull requests.
+- **Deterministic Order**: Embedded SQL migrations execute sequentially in transactional steps, guaranteeing consistent application across development, CI, and production.
+- **No Implicit Mutation**: Application startup never silently mutates or infers production database schemas from Go struct definitions.
+- **Predictable Recovery**: Schema compatibility checks and rollback boundaries remain explicit and auditable.
+
+GORM models conform to the schema created by SQL migrations; they never define or alter the production schema.
+
 ## SQLite Persistence
 
-The backend uses Go's standard `database/sql` package with `modernc.org/sqlite`.
+The backend uses Go's standard `database/sql` package with `modernc.org/sqlite`, keeping the service completely **CGO-free** with no external C compiler requirements.
 
-Runtime defaults:
+GORM attaches directly to the pre-configured `*sql.DB` connection pool (`sqliteDialector{Conn: databaseConnection}`), preserving all operational database settings:
 
-- WAL journal mode;
-- foreign key enforcement;
-- 5 second busy timeout;
-- a small connection pool suitable for the single-VPS workload;
-- no external database service.
+- WAL journal mode (`PRAGMA journal_mode = WAL`);
+- Foreign key enforcement (`PRAGMA foreign_keys = 1`);
+- 5 second busy timeout (`PRAGMA busy_timeout = 5000`);
+- A small connection pool suitable for single-VPS workloads (`SetMaxOpenConns(4)`);
+- Embedded SQL migrations executed prior to server launch.
 
-Item prices are persisted as integer micro-units:
+Item prices and value equivalent amounts are persisted as integer micro-units:
 
 ```text
 stored_price = price * 1,000,000
@@ -46,12 +92,6 @@ stored_price = price * 1,000,000
 This preserves up to six fractional decimal places while keeping the existing domain/API `float64` model unchanged.
 
 ### Schema Migrations
-
-Schema evolution is driven by explicit SQL files under:
-
-```text
-internal/repository/sqlite/migrations/
-```
 
 Migrations run automatically during backend startup before the HTTP server begins accepting traffic. The current schema version is tracked with SQLite `PRAGMA user_version`.
 

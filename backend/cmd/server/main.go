@@ -101,12 +101,17 @@ func main() {
 		}
 	}()
 
+	gormDB, gormError := sqliterepository.NewGORM(databaseConnection)
+	if gormError != nil {
+		log.Fatalf("[error] Failed to initialize GORM persistence: %v\n", gormError)
+	}
+
 	// Explicit dependency wiring (composition root).
 	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
 	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
 	userRepository := sqliterepository.NewUserRepository(databaseConnection)
 	sessionRepository := sqliterepository.NewSessionRepository(databaseConnection)
-	equivalentRepository := sqliterepository.NewValueEquivalentRepository(databaseConnection)
+	equivalentRepository := sqliterepository.NewValueEquivalentRepository(gormDB)
 	plannedPurchaseRepository := sqliterepository.NewPlannedPurchaseRepository(databaseConnection)
 
 	itemService := service.NewItemService(itemRepository)
