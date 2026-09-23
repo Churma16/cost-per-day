@@ -75,7 +75,7 @@ GORM models conform to the schema created by SQL migrations; they never define o
 
 The backend uses Go's standard `database/sql` package with `modernc.org/sqlite`, keeping the service completely **CGO-free** with no external C compiler requirements.
 
-GORM attaches directly to the pre-configured `*sql.DB` connection pool through the maintained CGo-free `gosqlite.org/gorm` dialector, preserving all operational database settings:
+GORM attaches to the pre-configured `*sql.DB` connection pool through the maintained `gorm.io/driver/sqlite` dialector in connection-injection mode. The dialector does not open its default SQLite driver; runtime SQLite I/O continues through the existing pure-Go `modernc.org/sqlite` pool, preserving all operational database settings:
 
 - WAL journal mode (`PRAGMA journal_mode = WAL`);
 - Foreign key enforcement (`PRAGMA foreign_keys = 1`);
