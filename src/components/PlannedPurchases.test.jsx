@@ -52,6 +52,12 @@ vi.mock('react-i18next', () => ({
         deleteItem: 'Delete Item',
         exploreFraming: 'Try a different pace',
         explorePaceDescription: 'Adjust the contribution amount or frequency to see how your timeline changes.',
+        markAsPurchased: 'Mark as Purchased',
+        markAsPurchasedDescription: 'Review the actual purchase details before moving this plan into ownership.',
+        actualPurchasePrice: 'Actual purchase price',
+        plannedPriceReference: 'Planned price',
+        createOwnedItem: 'Create Owned Item',
+        conversionFailed: 'Failed to convert the planned purchase. Please try again.',
         unitDays: 'days',
         unitWeeks: 'weeks',
         unitMonths: 'months',
@@ -75,6 +81,7 @@ vi.mock('../services/plannedPurchaseService', () => ({
   createPlannedPurchase: vi.fn(),
   updatePlannedPurchase: vi.fn(),
   deletePlannedPurchase: vi.fn(),
+  convertPlannedPurchase: vi.fn(),
 }));
 
 describe('PlannedPurchases Component', () => {
@@ -257,6 +264,88 @@ describe('PlannedPurchases Component', () => {
     // Displays clean integer days without decimal leakage like 85.71428571428571
     expect(screen.getByText(/About 86 days/i)).toBeInTheDocument();
     expect(screen.queryByText(/85\.71/)).not.toBeInTheDocument();
+  });
+
+  it('opens conversion with prefilled values, allows edits, and confirms explicitly', async () => {
+    const mockPurchase = {
+      id: 'purchase-1',
+      name: 'MacBook Air',
+      targetPrice: 18000000,
+      currencyCode: 'IDR',
+      contributionAmount: 25000,
+      contributionCadence: 'daily',
+      estimatedPeriods: 720,
+      estimatedDays: 720,
+    };
+
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([mockPurchase]);
+    plannedPurchaseService.convertPlannedPurchase.mockResolvedValue({
+      id: 'owned-1',
+      name: 'MacBook Air',
+      price: 17500000,
+      status: 'active',
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('MacBook Air')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as Purchased' }));
+
+    expect(screen.getByLabelText('Item Name')).toHaveValue('MacBook Air');
+    expect(screen.getByLabelText('Actual purchase price')).toHaveValue(18000000);
+    expect(screen.getByLabelText('Currency')).toHaveValue('IDR');
+    expect(screen.getByLabelText('Purchase date').value).not.toBe('');
+
+    fireEvent.change(screen.getByLabelText('Actual purchase price'), {
+      target: { value: '17500000' },
+    });
+    fireEvent.change(screen.getByLabelText('Purchase date'), {
+      target: { value: '2026-09-23' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Owned Item' }));
+
+    await waitFor(() => {
+      expect(plannedPurchaseService.convertPlannedPurchase).toHaveBeenCalledWith(
+        'purchase-1',
+        {
+          purchasePrice: 17500000,
+          currencyCode: 'IDR',
+          purchaseDate: '2026-09-23',
+        }
+      );
+    });
+  });
+
+  it('keeps conversion form open and displays backend errors', async () => {
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([
+      {
+        id: 'purchase-2',
+        name: 'Camera',
+        targetPrice: 5000000,
+        currencyCode: 'IDR',
+      },
+    ]);
+    plannedPurchaseService.convertPlannedPurchase.mockRejectedValue(
+      new Error('failed to convert planned purchase')
+    );
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Camera')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as Purchased' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create Owned Item' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('failed to convert planned purchase');
+    });
+    expect(screen.getByLabelText('Actual purchase price')).toBeInTheDocument();
   });
 
   it('renders planned purchase cards with contribution framing and allows deletion', async () => {
