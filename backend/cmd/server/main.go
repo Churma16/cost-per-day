@@ -36,7 +36,7 @@ func main() {
 
 	ginMode := os.Getenv("GIN_MODE")
 	if ginMode == "" {
-		ginMode = gin.ReleaseMode
+		ginMode = gin.DebugMode
 	}
 	gin.SetMode(ginMode)
 
