@@ -32,5 +32,6 @@ test('shows Google sign-in when there is no application session', async () => {
   await waitFor(() => {
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Worthwhile', level: 1 })).toBeInTheDocument();
+    expect(screen.getByAltText('Worthwhile')).toBeInTheDocument();
   });
 });

@@ -142,6 +142,11 @@ function AuthGate() {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <section className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center">
+          <img
+            src="/logo192.png"
+            alt="Worthwhile"
+            className="w-20 h-20 mx-auto mb-4"
+          />
           <h1 className="text-2xl font-bold text-gray-900">{PRODUCT_NAME}</h1>
           <p className="mt-3 text-sm text-gray-600">
             Sign in to access your items and settings across devices.
