@@ -101,6 +101,7 @@ func main() {
 	itemService := service.NewItemService(itemRepository)
 	settingsService := service.NewSettingsService(settingsRepository)
 	equivalentService := service.NewValueEquivalentService(equivalentRepository)
+	dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
 
 	googleProvider, googleProviderError := googleoidc.NewClient(googleoidc.Config{
 		ClientID:     googleClientID,
@@ -134,6 +135,7 @@ func main() {
 		log.Fatalf("[error] Failed to initialize authentication handler: %v\n", authHandlerError)
 	}
 	equivalentHandler := handler.NewValueEquivalentHandler(equivalentService)
+	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 
 	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
 		AllowedOrigins:         allowedOrigins,
@@ -142,6 +144,7 @@ func main() {
 		HealthHandler:          healthHandler,
 		AuthHandler:            authHandler,
 		ValueEquivalentHandler: equivalentHandler,
+		DashboardHandler:       dashboardHandler,
 		StaticDir:              staticDirectory,
 		UserIdentityMiddleware: middleware.SessionIdentity(authService, middleware.DefaultSessionCookieName),
 	})

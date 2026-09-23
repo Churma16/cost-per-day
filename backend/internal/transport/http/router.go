@@ -22,6 +22,7 @@ type RouterConfig struct {
 	HealthHandler          *handler.HealthHandler
 	AuthHandler            *handler.AuthHandler
 	ValueEquivalentHandler *handler.ValueEquivalentHandler
+	DashboardHandler       *handler.DashboardHandler
 	StaticDir              string
 	UserIdentityMiddleware gin.HandlerFunc
 }
@@ -52,6 +53,10 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 	{
 		if config.AuthHandler != nil {
 			apiRouteGroup.GET("/me", config.AuthHandler.Me)
+		}
+
+		if config.DashboardHandler != nil {
+			apiRouteGroup.GET("/dashboard", config.DashboardHandler.GetDashboard)
 		}
 
 		itemRouteGroup := apiRouteGroup.Group("/items")

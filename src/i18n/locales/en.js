@@ -97,7 +97,18 @@ const translation = {
   "errorLoadingEquivalents": "Failed to load value equivalents",
   "equivalentPerDay": "{{count}} {{name}}/day",
   "equivalentEveryNDays": "1 {{name}} every {{count}} days",
-  "equivalentPerMonth": "{{count}} {{name}}/month"
+  "equivalentPerMonth": "{{count}} {{name}}/month",
+
+  // Insights Carousel
+  "insights": "Insights",
+  "insightsCarousel": "Insights Carousel",
+  "previousInsight": "Previous insight",
+  "nextInsight": "Next insight",
+  "goToSlide": "Go to slide {{number}}",
+  "slideOf": "Slide {{current}} of {{total}}",
+  "noInsightsYet": "Insights will appear as your collection grows",
+  "insightsWelcomeTitle": "Mindful Ownership",
+  "insightsWelcomeCaption": "Track your purchases and see how their daily cost evolves over time."
 };
 
 export default translation;
