@@ -21,6 +21,7 @@ vi.mock('react-i18next', () => ({
         benchmarkResultDays: `~${options?.days} days`,
         benchmarkResultDaysToBeat: `Must last at least ${options?.days} days to beat prior rate`,
         useBenchmarkAsTarget: 'Use as Target',
+        benchmarkUnmatchableZeroCost: 'This item had a zero or negative net ownership cost (sold at or above purchase price). A new purchase cannot match a zero-cost baseline.',
         close: 'Close',
         loading: 'Loading...'
       };
@@ -137,5 +138,62 @@ describe('ReplacementBenchmarkModal component', () => {
       daysToMatchPrevious: 200
     }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('calls onCandidatePriceChange when candidate price is modified', () => {
+    const onCandidatePriceChange = vi.fn();
+    render(
+      <ReplacementBenchmarkModal
+        isOpen={true}
+        onClose={vi.fn()}
+        completedItem={mockCompletedItem}
+        initialCandidatePrice={250}
+        onCandidatePriceChange={onCandidatePriceChange}
+      />
+    );
+
+    const priceInput = screen.getByPlaceholderText('Enter replacement price');
+    fireEvent.change(priceInput, { target: { value: '350' } });
+
+    expect(priceInput.value).toBe('350');
+    expect(onCandidatePriceChange).toHaveBeenCalledWith('350');
+  });
+
+  it('displays unmatchable warning notice and omits apply button when benchmark is unmatchable', () => {
+    const onApplyBenchmark = vi.fn();
+
+    useReplacementBenchmark.mockReturnValue({
+      data: {
+        itemId: 'item-10',
+        itemName: 'Old Headphones',
+        itemStatus: 'sold',
+        previousPrice: 300,
+        finalOwnershipDays: 200,
+        finalCostPerDay: 0,
+        candidatePrice: 300,
+        daysToMatchPrevious: null,
+        daysToBeatPrevious: null,
+        hasTarget: false,
+        isUnmatchable: true,
+        unmatchableReason: 'item had zero or negative net ownership cost'
+      },
+      isLoading: false,
+      error: null
+    });
+
+    render(
+      <ReplacementBenchmarkModal
+        isOpen={true}
+        onClose={vi.fn()}
+        completedItem={mockCompletedItem}
+        onApplyBenchmark={onApplyBenchmark}
+      />
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'This item had a zero or negative net ownership cost'
+    );
+    expect(screen.queryByRole('button', { name: 'Use as Target' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Required duration to match prior final rate/i)).not.toBeInTheDocument();
   });
 });

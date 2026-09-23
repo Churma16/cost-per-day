@@ -244,6 +244,8 @@ func (handlerInstance *ItemHandler) GetReplacementBenchmark(ginContext *gin.Cont
 		HasTarget:           benchmark.HasTarget,
 		TargetCostPerDay:    benchmark.TargetCostPerDay,
 		DaysToMatchTarget:   benchmark.DaysToMatchTarget,
+		IsUnmatchable:       benchmark.IsUnmatchable,
+		UnmatchableReason:   benchmark.UnmatchableReason,
 	}
 
 	response.Success(ginContext, http.StatusOK, "replacement benchmark calculated successfully", responseDTO)

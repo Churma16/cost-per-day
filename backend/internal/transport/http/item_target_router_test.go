@@ -141,4 +141,38 @@ func TestItemsAPIOwnershipTargetsAndBenchmarks(t *testing.T) {
 	if missingPriceRec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for missing price, got %d", missingPriceRec.Code)
 	}
+
+	// 6. Benchmark sold item with zero net cost (salePrice == price)
+	soldCreateBody := `{"name":"Sold Lens","price":500000,"purchaseDate":"2026-09-01T12:00:00Z"}`
+	soldCreateReq, _ := http.NewRequest(http.MethodPost, "/api/items", bytes.NewBufferString(soldCreateBody))
+	soldCreateReq.Header.Set("Content-Type", "application/json")
+	soldCreateRec := httptest.NewRecorder()
+	routerInstance.ServeHTTP(soldCreateRec, soldCreateReq)
+	soldCreateEnv := parseResponseBody(t, soldCreateRec)
+	soldItemID := soldCreateEnv.Data.(map[string]any)["id"].(string)
+
+	soldUpdateBody := `{"name":"Sold Lens","price":500000,"purchaseDate":"2026-09-01T12:00:00Z","status":"sold","endedAt":"2026-09-11T12:00:00Z","salePrice":500000}`
+	soldUpdateReq, _ := http.NewRequest(http.MethodPut, "/api/items/"+soldItemID, bytes.NewBufferString(soldUpdateBody))
+	soldUpdateReq.Header.Set("Content-Type", "application/json")
+	soldUpdateRec := httptest.NewRecorder()
+	routerInstance.ServeHTTP(soldUpdateRec, soldUpdateReq)
+
+	soldBenchmarkReq, _ := http.NewRequest(
+		http.MethodGet,
+		"/api/items/"+soldItemID+"/replacement-benchmark?price=600000",
+		nil,
+	)
+	soldBenchmarkRec := httptest.NewRecorder()
+	routerInstance.ServeHTTP(soldBenchmarkRec, soldBenchmarkReq)
+	if soldBenchmarkRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for sold benchmark, got %d", soldBenchmarkRec.Code)
+	}
+	soldBenchmarkEnv := parseResponseBody(t, soldBenchmarkRec)
+	soldBenchmarkData := soldBenchmarkEnv.Data.(map[string]any)
+	if soldBenchmarkData["isUnmatchable"] != true {
+		t.Fatalf("expected isUnmatchable true, got %v", soldBenchmarkData["isUnmatchable"])
+	}
+	if soldBenchmarkData["daysToMatchPrevious"] != nil {
+		t.Fatalf("expected daysToMatchPrevious nil, got %v", soldBenchmarkData["daysToMatchPrevious"])
+	}
 }

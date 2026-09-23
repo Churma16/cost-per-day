@@ -200,6 +200,9 @@ function AddItem() {
   }
 
   const handleApplyBenchmark = (benchmarkResult) => {
+    if (benchmarkResult?.candidatePrice) {
+      setPrice(String(benchmarkResult.candidatePrice));
+    }
     if (benchmarkResult?.daysToMatchPrevious) {
       setTargetType('duration');
       setTargetValue(String(benchmarkResult.daysToMatchPrevious));
@@ -683,6 +686,7 @@ function AddItem() {
           onClose={() => setBenchmarkModalOpen(false)}
           completedItem={benchmarkSourceItem}
           initialCandidatePrice={price}
+          onCandidatePriceChange={(updatedPrice) => setPrice(updatedPrice)}
           onApplyBenchmark={handleApplyBenchmark}
         />
       )}

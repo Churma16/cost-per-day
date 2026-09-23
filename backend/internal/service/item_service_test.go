@@ -430,5 +430,34 @@ func TestItemService_CalculateReplacementBenchmark(t *testing.T) {
 	if nonIntegerBenchmark.DaysToBeatPrevious == nil || *nonIntegerBenchmark.DaysToBeatPrevious != 13 {
 		t.Fatalf("expected 13 days to beat previous, got %v", nonIntegerBenchmark.DaysToBeatPrevious)
 	}
+
+	// 6. Sold item with non-positive net ownership cost (break even salePrice == purchasePrice)
+	salePriceBreakEven := 200.0
+	endDate := "2026-09-11T12:00:00Z"
+	breakEvenSoldItem, createSoldErr := itemService.CreateItem(ctx, domain.LegacyUserID, "Sold Camera", 200.0, "2026-09-01T12:00:00Z", nil, nil)
+	if createSoldErr != nil {
+		t.Fatalf("create sold item error: %v", createSoldErr)
+	}
+	updatedSoldItem, updateSoldErr := itemService.UpdateItem(
+		ctx, domain.LegacyUserID, breakEvenSoldItem.ID, breakEvenSoldItem.Name, breakEvenSoldItem.Price, breakEvenSoldItem.PurchaseDate,
+		domain.ItemStatusSold, &endDate, &salePriceBreakEven, nil, nil,
+	)
+	if updateSoldErr != nil {
+		t.Fatalf("update sold item error: %v", updateSoldErr)
+	}
+
+	zeroCostBenchmark, zeroCostErr := itemService.CalculateReplacementBenchmark(ctx, domain.LegacyUserID, updatedSoldItem.ID, 300.0)
+	if zeroCostErr != nil {
+		t.Fatalf("calculate zero cost benchmark error: %v", zeroCostErr)
+	}
+	if !zeroCostBenchmark.IsUnmatchable {
+		t.Fatalf("expected IsUnmatchable true for sold item with zero net cost")
+	}
+	if zeroCostBenchmark.DaysToMatchPrevious != nil {
+		t.Fatalf("expected DaysToMatchPrevious nil, got %v", zeroCostBenchmark.DaysToMatchPrevious)
+	}
+	if zeroCostBenchmark.DaysToBeatPrevious != nil {
+		t.Fatalf("expected DaysToBeatPrevious nil, got %v", zeroCostBenchmark.DaysToBeatPrevious)
+	}
 }
 

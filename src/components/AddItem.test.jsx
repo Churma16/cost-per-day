@@ -46,6 +46,8 @@ vi.mock('react-i18next', () => ({
         benchmarkSelectPrompt: 'Select a completed item to calculate how long this replacement must last to match or beat its value.',
         selectCompletedItem: 'Select a completed item...',
         replacementBenchmark: 'Replacement Benchmark',
+        candidatePrice: 'Planned replacement price',
+        enterCandidatePrice: 'Enter replacement price',
         useBenchmarkAsTarget: 'Apply to Target',
         benchmarkResultDays: `~${options?.days} days`,
         benchmarkResultRequiredDuration: `Required duration to match prior final rate (${options?.rate}/day)`,
@@ -419,6 +421,82 @@ describe('AddItem component date localization', () => {
 
     const targetValueInput = screen.getByPlaceholderText('Enter target duration in days');
     expect(targetValueInput.value).toBe('150');
+  });
+
+  test('synchronizes candidate price from modal and saves matching price and target duration', async () => {
+    addItem.mockResolvedValue({ id: 'new-phone-2' });
+    getAllItems.mockResolvedValue([
+      {
+        id: 'old-phone-2',
+        name: 'Old Phone 2',
+        price: 200,
+        purchaseDate: '2025-01-01T12:00:00Z',
+        status: 'retired',
+        ownershipDays: 100,
+        grossCostPerDay: 2.0,
+        netCostPerDay: 2.0
+      }
+    ]);
+
+    useReplacementBenchmark.mockReturnValue({
+      data: {
+        itemId: 'old-phone-2',
+        itemName: 'Old Phone 2',
+        itemStatus: 'retired',
+        previousPrice: 200,
+        finalOwnershipDays: 100,
+        finalCostPerDay: 2.0,
+        candidatePrice: 500,
+        daysToMatchPrevious: 250,
+        daysToBeatPrevious: 251,
+        hasTarget: false
+      },
+      isLoading: false,
+      error: null
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'New Phone 2' }
+    });
+    const priceInput = screen.getByPlaceholderText('Enter price');
+    fireEvent.change(priceInput, {
+      target: { value: '300' }
+    });
+
+    const benchmarkButton = await screen.findByRole('button', { name: /Replacement Benchmark/i });
+    const selectDropdown = screen.getByLabelText('Benchmark from completed item');
+    fireEvent.change(selectDropdown, { target: { value: 'old-phone-2' } });
+
+    fireEvent.click(benchmarkButton);
+
+    const modalPriceInput = screen.getByLabelText('Planned replacement price');
+    fireEvent.change(modalPriceInput, { target: { value: '500' } });
+
+    expect(priceInput.value).toBe('500');
+
+    const applyButton = screen.getByRole('button', { name: 'Apply to Target' });
+    fireEvent.click(applyButton);
+
+    expect(priceInput.value).toBe('500');
+    expect(screen.getByLabelText('Target type').value).toBe('duration');
+    expect(screen.getByPlaceholderText('Enter target duration in days').value).toBe('250');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(addItem).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'New Phone 2',
+        price: 500,
+        targetType: 'duration',
+        targetValue: 250
+      }));
+    });
   });
 });
 

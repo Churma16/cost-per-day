@@ -190,7 +190,8 @@ const translation = {
   "benchmarkFromPriorItem": "Benchmark from completed item",
   "benchmarkSelectPrompt": "Select a completed item to calculate how long this replacement must last to match or beat its value.",
   "selectCompletedItem": "Select a completed item...",
-  "useBenchmarkAsTarget": "Apply to Target"
+  "useBenchmarkAsTarget": "Apply to Target",
+  "benchmarkUnmatchableZeroCost": "This item had a zero or negative net ownership cost (sold at or above purchase price). A new purchase cannot match a zero-cost baseline."
 };
 
 export default translation;

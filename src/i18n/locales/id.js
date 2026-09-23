@@ -190,7 +190,8 @@ const translation = {
   "benchmarkFromPriorItem": "Gunakan tolok ukur barang sebelumnya",
   "benchmarkSelectPrompt": "Pilih barang selesai untuk menghitung durasi yang dibutuhkan agar barang pengganti ini menyamai atau melampaui nilainya.",
   "selectCompletedItem": "Pilih barang yang sudah selesai...",
-  "useBenchmarkAsTarget": "Terapkan ke Target"
+  "useBenchmarkAsTarget": "Terapkan ke Target",
+  "benchmarkUnmatchableZeroCost": "Barang ini memiliki biaya kepemilikan bersih nol atau negatif (dijual sama dengan atau di atas harga beli). Pembelian baru tidak dapat menyamai biaya nol."
 };
 
 export default translation;

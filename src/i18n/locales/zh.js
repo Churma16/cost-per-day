@@ -171,7 +171,8 @@ const translation = {
   "benchmarkFromPriorItem": "根据已完结物品对标",
   "benchmarkSelectPrompt": "选择已结束的物品以计算新物品需使用多久才能达到或超越其价值。",
   "selectCompletedItem": "选择已完结物品...",
-  "useBenchmarkAsTarget": "应用为目标"
+  "useBenchmarkAsTarget": "应用为目标",
+  "benchmarkUnmatchableZeroCost": "该物品最终持有净成本为零或负数（转售价格高于或等于购买价格），新购物品无法对标零成本。"
 };
 
 export default translation;

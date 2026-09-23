@@ -61,7 +61,9 @@ type ReplacementBenchmark struct {
 	DaysToMatchPrevious *int     `json:"daysToMatchPrevious"`
 	DaysToBeatPrevious  *int     `json:"daysToBeatPrevious"`
 	HasTarget           bool     `json:"hasTarget"`
-	TargetCostPerDay    *float64 `json:"targetCostPerDay,omitempty"`
-	DaysToMatchTarget   *int     `json:"daysToMatchTarget,omitempty"`
+	TargetCostPerDay    *float64   `json:"targetCostPerDay,omitempty"`
+	DaysToMatchTarget   *int       `json:"daysToMatchTarget,omitempty"`
+	IsUnmatchable       bool       `json:"isUnmatchable"`
+	UnmatchableReason   *string    `json:"unmatchableReason,omitempty"`
 }
 

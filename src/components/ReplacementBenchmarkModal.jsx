@@ -10,6 +10,7 @@ function ReplacementBenchmarkModal({
   onClose,
   completedItem,
   initialCandidatePrice = '',
+  onCandidatePriceChange,
   onApplyBenchmark,
 }) {
   const { t } = useTranslation();
@@ -19,10 +20,18 @@ function ReplacementBenchmarkModal({
   );
 
   React.useEffect(() => {
-    if (isOpen && initialCandidatePrice) {
-      setCandidatePriceInput(String(initialCandidatePrice));
+    if (isOpen) {
+      setCandidatePriceInput(initialCandidatePrice ? String(initialCandidatePrice) : '');
     }
-  }, [isOpen, initialCandidatePrice]);
+  }, [isOpen]);
+
+  const handleCandidatePriceChange = (event) => {
+    const updatedValue = event.target.value;
+    setCandidatePriceInput(updatedValue);
+    if (onCandidatePriceChange) {
+      onCandidatePriceChange(updatedValue);
+    }
+  };
 
   const numericCandidatePrice = Number(candidatePriceInput);
   const isValidCandidatePrice = Number.isFinite(numericCandidatePrice) && numericCandidatePrice > 0;
@@ -118,7 +127,7 @@ function ReplacementBenchmarkModal({
               id="candidate-replacement-price"
               type="number"
               value={candidatePriceInput}
-              onChange={(event) => setCandidatePriceInput(event.target.value)}
+              onChange={handleCandidatePriceChange}
               min="0.01"
               step="0.01"
               placeholder={t('enterCandidatePrice')}
@@ -142,21 +151,27 @@ function ReplacementBenchmarkModal({
 
         {benchmarkData && (
           <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div>
-              <p className="text-xs text-gray-500">
-                {t('benchmarkResultRequiredDuration', {
-                  rate: formatCurrency(benchmarkData.finalCostPerDay, currencyCode)
-                })}
-              </p>
-              <p className="text-base font-semibold text-gray-900 mt-0.5">
-                {t('benchmarkResultDays', { days: benchmarkData.daysToMatchPrevious })}
-              </p>
-              {benchmarkData.daysToBeatPrevious && (
-                <p className="text-xs text-purple-600 mt-1 font-medium">
-                  {t('benchmarkResultDaysToBeat', { days: benchmarkData.daysToBeatPrevious })}
+            {benchmarkData.isUnmatchable || benchmarkData.finalCostPerDay <= 0 ? (
+              <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                {t('benchmarkUnmatchableZeroCost')}
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-gray-500">
+                  {t('benchmarkResultRequiredDuration', {
+                    rate: formatCurrency(benchmarkData.finalCostPerDay, currencyCode)
+                  })}
                 </p>
-              )}
-            </div>
+                <p className="text-base font-semibold text-gray-900 mt-0.5">
+                  {t('benchmarkResultDays', { days: benchmarkData.daysToMatchPrevious })}
+                </p>
+                {benchmarkData.daysToBeatPrevious && (
+                  <p className="text-xs text-purple-600 mt-1 font-medium">
+                    {t('benchmarkResultDaysToBeat', { days: benchmarkData.daysToBeatPrevious })}
+                  </p>
+                )}
+              </div>
+            )}
 
             {benchmarkData.hasTarget && benchmarkData.daysToMatchTarget && (
               <div className="border-t border-gray-200 pt-2">
@@ -171,7 +186,7 @@ function ReplacementBenchmarkModal({
               </div>
             )}
 
-            {onApplyBenchmark && (
+            {onApplyBenchmark && Boolean(benchmarkData.daysToMatchPrevious) && (
               <button
                 type="button"
                 onClick={handleApply}

@@ -35,4 +35,6 @@ type ReplacementBenchmarkResponseDTO struct {
 	HasTarget           bool     `json:"hasTarget"`
 	TargetCostPerDay    *float64 `json:"targetCostPerDay,omitempty"`
 	DaysToMatchTarget   *int     `json:"daysToMatchTarget,omitempty"`
+	IsUnmatchable       bool     `json:"isUnmatchable"`
+	UnmatchableReason   *string  `json:"unmatchableReason,omitempty"`
 }

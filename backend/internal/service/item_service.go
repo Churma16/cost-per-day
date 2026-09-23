@@ -276,6 +276,10 @@ func (serviceInstance *itemServiceImpl) CalculateReplacementBenchmark(
 		}
 		benchmark.DaysToMatchPrevious = &matchDays
 		benchmark.DaysToBeatPrevious = &beatDays
+	} else {
+		benchmark.IsUnmatchable = true
+		unmatchableMessage := "item had zero or negative net ownership cost"
+		benchmark.UnmatchableReason = &unmatchableMessage
 	}
 
 	if item.TargetCostPerDay != nil && *item.TargetCostPerDay > 0 {
