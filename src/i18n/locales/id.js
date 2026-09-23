@@ -1,10 +1,10 @@
 const translation = {
   // General
-  "appName": "Biaya Per Hari",
+  "appName": "Worthwhile",
   "loading": "Memuat...",
   "version": "Versi",
-  "appTitle": "Biaya Per Hari",
-  "appDescription": "Hitung biaya harian barang Anda",
+  "appTitle": "Worthwhile",
+  "appDescription": "Pahami pembelian besar dari waktu ke waktu, sebelum membeli dan setelah memiliki.",
 
   // Header
   "totalDailyCost": "Total Biaya Harian",

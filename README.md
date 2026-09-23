@@ -1,6 +1,8 @@
-# Cost Per Day
+# Worthwhile
 
-A progressive web application that helps you track the daily cost of your purchased items across their ownership lifecycle. Active items use the current date, while retired, sold, or lost items keep a frozen final cost per day based on their recorded ownership end date.
+A progressive web application designed to help you make big purchases make sense over time. Understand big purchases through time—before buying and throughout ownership.
+
+The core cost-per-day calculation remains a central feature: active items calculate your real-time daily cost against the current date, while retired, sold, or lost items preserve a frozen final cost per day based on their recorded ownership lifecycle.
 
 <div style="text-align: center;">
   <img src="./public/preview.png" alt="drawing" width="200"/>
@@ -152,6 +154,12 @@ The app is designed with a mobile-first approach and includes:
 - Responsive layout for all screen sizes
 - PWA support for installation on home screen
 
-## License
+## Brand & Trademark Notice
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Worthwhile is currently a working product name for personal and internal development. Commercial brand and trademark clearances remain pending prior to any public commercial release.
+
+## Attribution & License
+
+Based on the original upstream project by Leo Li ([leoli-dev/cost-per-day](https://github.com/leoli-dev/cost-per-day)).
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.

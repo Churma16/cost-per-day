@@ -15,6 +15,7 @@ import HeroCarousel from './components/HeroCarousel';
 import { useTranslation } from 'react-i18next';
 import { TotalCostProvider, useTotalCost } from './contexts/TotalCostContext';
 import { formatCurrency } from './utils/formatters';
+import { PRODUCT_NAME } from './constants/branding';
 
 const applicationQueryClient = new QueryClient({
   defaultOptions: {
@@ -141,7 +142,7 @@ function AuthGate() {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <section className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Cost Per Day</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{PRODUCT_NAME}</h1>
           <p className="mt-3 text-sm text-gray-600">
             Sign in to access your items and settings across devices.
           </p>
