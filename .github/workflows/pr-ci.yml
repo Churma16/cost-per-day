@@ -29,7 +29,10 @@ jobs:
 
       - name: Run backend tests
         working-directory: backend
-        run: go test -count=1 ./...
+        run: |
+          go mod tidy
+          git diff -- go.mod go.sum
+          go test -count=1 ./...
 
   frontend:
     name: Frontend test and build
