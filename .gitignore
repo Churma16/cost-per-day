@@ -25,6 +25,7 @@ yarn-error.log*
 # backend
 backend/.env
 backend/bin/
+backend/tmp/
 backend/*.exe
 backend/data/
 backend/*.db

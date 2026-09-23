@@ -34,7 +34,8 @@ WORKDIR /app
 COPY --from=backend-build --chown=app:app /out/cost-per-day /app/cost-per-day
 COPY --from=frontend-build --chown=app:app /app/build /app/web
 
-ENV PORT=8080 \
+ENV HOST=0.0.0.0 \
+    PORT=8080 \
     GIN_MODE=release \
     DATABASE_PATH=/var/lib/cost-per-day/cost-per-day.db \
     STATIC_DIR=/app/web

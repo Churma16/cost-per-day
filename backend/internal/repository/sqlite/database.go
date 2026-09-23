@@ -46,9 +46,14 @@ func Open(ctx context.Context, databasePath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("create database directory: %w", directoryError)
 	}
 
+	normalizedDatabasePath := filepath.ToSlash(absoluteDatabasePath)
+	if !strings.HasPrefix(normalizedDatabasePath, "/") {
+		normalizedDatabasePath = "/" + normalizedDatabasePath
+	}
+
 	databaseURL := &url.URL{
 		Scheme: "file",
-		Path:   filepath.ToSlash(absoluteDatabasePath),
+		Path:   normalizedDatabasePath,
 	}
 	queryValues := databaseURL.Query()
 	queryValues.Set("_busy_timeout", strconv.Itoa(busyTimeoutMilliseconds))
