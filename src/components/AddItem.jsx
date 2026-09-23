@@ -8,6 +8,7 @@ import { addItem, updateItem, getAllItems, deleteItem } from '../services/api';
 import { formatDate, getDateLocale } from '../utils/formatters';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { useInvalidateDashboard } from '../hooks/useDashboard';
 import { parseISO } from 'date-fns';
 
 // Helper function to set time to noon UTC
@@ -39,6 +40,7 @@ function AddItem() {
   const location = useLocation();
   const [month, setMonth] = useState(purchaseDate);
   const { currencySymbol } = useCurrency();
+  const invalidateDashboard = useInvalidateDashboard();
   
   // Get date-fns locale matching the current application language
   const getLocale = () => getDateLocale(language);
@@ -174,6 +176,7 @@ function AddItem() {
       } else {
         await addItem(itemData);
       }
+      await invalidateDashboard();
       navigate('/');
     } catch (error) {
       console.error('Error saving item:', error);
@@ -190,6 +193,7 @@ function AddItem() {
 
     try {
       await deleteItem(editIndex);
+      await invalidateDashboard();
       navigate('/');
     } catch (error) {
       console.error('Error deleting item:', error);

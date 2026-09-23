@@ -49,7 +49,11 @@ func main() {
 
 	appBaseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("APP_BASE_URL")), "/")
 	if appBaseURL == "" {
-		log.Fatal("[error] APP_BASE_URL is required")
+		if ginMode != gin.ReleaseMode {
+			appBaseURL = "http://localhost:3000"
+		} else {
+			log.Fatal("[error] APP_BASE_URL is required")
+		}
 	}
 	parsedBaseURL, baseURLError := url.Parse(appBaseURL)
 	if baseURLError != nil || parsedBaseURL.Host == "" || (parsedBaseURL.Scheme != "http" && parsedBaseURL.Scheme != "https") {
@@ -58,7 +62,11 @@ func main() {
 
 	allowedOrigins := strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))
 	if allowedOrigins == "" {
-		allowedOrigins = parsedBaseURL.Scheme + "://" + parsedBaseURL.Host
+		if ginMode != gin.ReleaseMode {
+			allowedOrigins = "http://localhost:3000,http://127.0.0.1:3000"
+		} else {
+			allowedOrigins = parsedBaseURL.Scheme + "://" + parsedBaseURL.Host
+		}
 	}
 	for _, configuredOrigin := range strings.Split(allowedOrigins, ",") {
 		if strings.TrimSpace(configuredOrigin) == "*" {
@@ -70,13 +78,15 @@ func main() {
 	googleClientSecret := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET"))
 	sessionSecret := strings.TrimSpace(os.Getenv("SESSION_SECRET"))
 	legacyOwnerGoogleSub := strings.TrimSpace(os.Getenv("LEGACY_OWNER_GOOGLE_SUB"))
-	if googleClientID == "" || googleClientSecret == "" || sessionSecret == "" {
-		log.Fatal("[error] GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and SESSION_SECRET are required")
-	}
 
-	googleRedirectURI := strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URI"))
-	if googleRedirectURI == "" {
-		googleRedirectURI = appBaseURL + "/auth/google/callback"
+	authDisabled := strings.EqualFold(os.Getenv("AUTH_DISABLED"), "true") || strings.EqualFold(os.Getenv("DEV_AUTH_BYPASS"), "true")
+	if !authDisabled && (googleClientID == "" || googleClientSecret == "" || sessionSecret == "") {
+		if ginMode != gin.ReleaseMode {
+			log.Println("[info] Development mode without Google OIDC credentials. Enabling dev auth bypass (using legacy user).")
+			authDisabled = true
+		} else {
+			log.Fatal("[error] GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and SESSION_SECRET are required")
+		}
 	}
 
 	startupContext, cancelStartupContext := context.WithTimeout(context.Background(), 10*time.Second)
@@ -101,39 +111,57 @@ func main() {
 	itemService := service.NewItemService(itemRepository)
 	settingsService := service.NewSettingsService(settingsRepository)
 	equivalentService := service.NewValueEquivalentService(equivalentRepository)
+	dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
 
-	googleProvider, googleProviderError := googleoidc.NewClient(googleoidc.Config{
-		ClientID:     googleClientID,
-		ClientSecret: googleClientSecret,
-		RedirectURI:  googleRedirectURI,
-	})
-	if googleProviderError != nil {
-		log.Fatalf("[error] Failed to initialize Google OIDC client: %v\n", googleProviderError)
-	}
-	authService := service.NewAuthService(userRepository, sessionRepository, googleProvider, legacyOwnerGoogleSub)
-	configurationContext, cancelConfigurationContext := context.WithTimeout(context.Background(), 5*time.Second)
-	configurationError := authService.ValidateConfiguration(configurationContext)
-	cancelConfigurationContext()
-	if configurationError != nil {
-		if errors.Is(configurationError, domain.ErrLegacyOwnerBootstrapRequired) {
-			log.Fatal("[error] Existing pre-auth data requires LEGACY_OWNER_GOOGLE_SUB before authentication can be enabled")
+	var authHandler *handler.AuthHandler
+	var identityMiddleware gin.HandlerFunc
+
+	if authDisabled {
+		log.Println("[info] Authentication is bypassed for local development. Requests use legacy user.")
+		identityMiddleware = middleware.StaticUserIdentity(domain.LegacyUserID)
+	} else {
+		googleRedirectURI := strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URI"))
+		if googleRedirectURI == "" {
+			googleRedirectURI = appBaseURL + "/auth/google/callback"
 		}
-		log.Fatalf("[error] Failed to validate authentication configuration: %v\n", configurationError)
+
+		googleProvider, googleProviderError := googleoidc.NewClient(googleoidc.Config{
+			ClientID:     googleClientID,
+			ClientSecret: googleClientSecret,
+			RedirectURI:  googleRedirectURI,
+		})
+		if googleProviderError != nil {
+			log.Fatalf("[error] Failed to initialize Google OIDC client: %v\n", googleProviderError)
+		}
+		authService := service.NewAuthService(userRepository, sessionRepository, googleProvider, legacyOwnerGoogleSub)
+		configurationContext, cancelConfigurationContext := context.WithTimeout(context.Background(), 5*time.Second)
+		configurationError := authService.ValidateConfiguration(configurationContext)
+		cancelConfigurationContext()
+		if configurationError != nil {
+			if errors.Is(configurationError, domain.ErrLegacyOwnerBootstrapRequired) {
+				log.Fatal("[error] Existing pre-auth data requires LEGACY_OWNER_GOOGLE_SUB before authentication can be enabled")
+			}
+			log.Fatalf("[error] Failed to validate authentication configuration: %v\n", configurationError)
+		}
+
+		createdAuthHandler, authHandlerError := handler.NewAuthHandler(handler.AuthHandlerConfig{
+			AuthService:   authService,
+			SessionSecret: sessionSecret,
+			AppBaseURL:    appBaseURL,
+			SecureCookies: parsedBaseURL.Scheme == "https",
+		})
+		if authHandlerError != nil {
+			log.Fatalf("[error] Failed to initialize authentication handler: %v\n", authHandlerError)
+		}
+		authHandler = createdAuthHandler
+		identityMiddleware = middleware.SessionIdentity(authService, middleware.DefaultSessionCookieName)
 	}
 
 	itemHandler := handler.NewItemHandler(itemService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
 	healthHandler := handler.NewHealthHandler()
-	authHandler, authHandlerError := handler.NewAuthHandler(handler.AuthHandlerConfig{
-		AuthService:   authService,
-		SessionSecret: sessionSecret,
-		AppBaseURL:    appBaseURL,
-		SecureCookies: parsedBaseURL.Scheme == "https",
-	})
-	if authHandlerError != nil {
-		log.Fatalf("[error] Failed to initialize authentication handler: %v\n", authHandlerError)
-	}
 	equivalentHandler := handler.NewValueEquivalentHandler(equivalentService)
+	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 
 	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
 		AllowedOrigins:         allowedOrigins,
@@ -142,8 +170,9 @@ func main() {
 		HealthHandler:          healthHandler,
 		AuthHandler:            authHandler,
 		ValueEquivalentHandler: equivalentHandler,
+		DashboardHandler:       dashboardHandler,
 		StaticDir:              staticDirectory,
-		UserIdentityMiddleware: middleware.SessionIdentity(authService, middleware.DefaultSessionCookieName),
+		UserIdentityMiddleware: identityMiddleware,
 	})
 
 	serverAddress := serverHost + ":" + serverPort

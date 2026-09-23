@@ -52,7 +52,10 @@ function startBackendServer() {
 
   const runnerEnvironment = {
     ...process.env,
-    HOST: process.env.HOST || '127.0.0.1'
+    HOST: process.env.HOST || '127.0.0.1',
+    GIN_MODE: process.env.GIN_MODE || 'debug',
+    APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:3000',
+    AUTH_DISABLED: process.env.AUTH_DISABLED ?? (process.env.GOOGLE_CLIENT_ID ? 'false' : 'true'),
   };
 
   let activeChildProcess;

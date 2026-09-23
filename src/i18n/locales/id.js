@@ -97,7 +97,18 @@ const translation = {
   "errorLoadingEquivalents": "Gagal memuat perbandingan nilai",
   "equivalentPerDay": "{{count}} {{name}}/hari",
   "equivalentEveryNDays": "1 {{name}} setiap {{count}} hari",
-  "equivalentPerMonth": "{{count}} {{name}}/bulan"
+  "equivalentPerMonth": "{{count}} {{name}}/bulan",
+
+  // Insights Carousel
+  "insights": "Wawasan",
+  "insightsCarousel": "Korsel Wawasan",
+  "previousInsight": "Wawasan sebelumnya",
+  "nextInsight": "Wawasan berikutnya",
+  "goToSlide": "Buka slide {{number}}",
+  "slideOf": "Slide {{current}} dari {{total}}",
+  "noInsightsYet": "Wawasan akan muncul seiring bertambahnya koleksi Anda",
+  "insightsWelcomeTitle": "Kepemilikan Bijak",
+  "insightsWelcomeCaption": "Lacak pembelian Anda dan amati bagaimana biaya hariannya berkembang seiring waktu."
 };
 
 export default translation;

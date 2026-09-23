@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { CurrencyProvider, useCurrency } from './contexts/CurrencyContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -9,9 +10,18 @@ import AddItem from './components/AddItem';
 import Settings from './components/Settings';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
+import HeroCarousel from './components/HeroCarousel';
 import { useTranslation } from 'react-i18next';
 import { TotalCostProvider, useTotalCost } from './contexts/TotalCostContext';
 import { formatCurrency } from './utils/formatters';
+
+const applicationQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const Header = () => {
   const location = useLocation();
@@ -34,15 +44,27 @@ const Header = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-500 to-purple-600 page-header relative">
-      <div className="text-center py-4 px-16">
-        <h1 className="text-2xl font-bold text-white">
-          {getTitle()}
-        </h1>
-        {location.pathname === '/' && (
-          <p className="text-white text-4xl font-orbitron font-bold tracking-wider mt-2">
-            {formatCurrency(totalDailyCost, currencyCode)}<span className="text-lg">{t('perDay')}</span>
-          </p>
+    <div
+      className="page-header relative text-white shadow-sm"
+      style={{
+        background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
+      }}
+    >
+      <div className="text-center py-4 px-4 sm:px-16">
+        {location.pathname === '/' ? (
+          <div>
+            <HeroCarousel />
+            <div className="mt-4 pt-3 border-t border-white/10 inline-flex items-center justify-center gap-2 text-white/90">
+              <span className="text-xs uppercase tracking-wider font-medium text-white/75">{t('totalDailyCost')}:</span>
+              <span className="font-semibold text-base text-white tracking-tight tabular-nums">
+                {formatCurrency(totalDailyCost, currencyCode)}<span className="text-xs font-normal text-white/75">{t('perDay')}</span>
+              </span>
+            </div>
+          </div>
+        ) : (
+          <h1 className="text-2xl font-bold text-white">
+            {getTitle()}
+          </h1>
         )}
       </div>
       <div className="absolute right-3 top-3 text-right">
@@ -79,22 +101,24 @@ const MainContent = () => (
 
 function AuthenticatedApp() {
   return (
-    <LanguageProvider>
-      <CurrencyProvider>
-        <ValueEquivalentsProvider>
-          <PageMetadata />
-          <TotalCostProvider>
-            <Router>
-              <div className="mx-auto max-w-[1024px] sm:border-x sm:border-gray-200 h-full bg-gray-50 flex flex-col">
-                <Header />
-                <MainContent />
-                <Footer />
-              </div>
-            </Router>
-          </TotalCostProvider>
-        </ValueEquivalentsProvider>
-      </CurrencyProvider>
-    </LanguageProvider>
+    <QueryClientProvider client={applicationQueryClient}>
+      <LanguageProvider>
+        <CurrencyProvider>
+          <ValueEquivalentsProvider>
+            <PageMetadata />
+            <TotalCostProvider>
+              <Router>
+                <div className="mx-auto max-w-[1024px] sm:border-x sm:border-gray-200 h-full bg-gray-50 flex flex-col">
+                  <Header />
+                  <MainContent />
+                  <Footer />
+                </div>
+              </Router>
+            </TotalCostProvider>
+          </ValueEquivalentsProvider>
+        </CurrencyProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
   );
 }
 
