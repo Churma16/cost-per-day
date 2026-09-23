@@ -14,7 +14,15 @@ import (
 type ItemService interface {
 	ListItems(ctx context.Context, userID string) ([]domain.Item, error)
 	GetItemByID(ctx context.Context, userID string, itemID string) (domain.Item, error)
-	CreateItem(ctx context.Context, userID string, name string, price float64, purchaseDate string) (domain.Item, error)
+	CreateItem(
+		ctx context.Context,
+		userID string,
+		name string,
+		price float64,
+		purchaseDate string,
+		targetType *domain.OwnershipTargetType,
+		targetValue *float64,
+	) (domain.Item, error)
 	UpdateItem(
 		ctx context.Context,
 		userID string,
@@ -25,9 +33,17 @@ type ItemService interface {
 		status domain.ItemStatus,
 		endedAt *string,
 		salePrice *float64,
+		targetType *domain.OwnershipTargetType,
+		targetValue *float64,
 	) (domain.Item, error)
 	DeleteItem(ctx context.Context, userID string, itemID string) error
 	ReplaceItems(ctx context.Context, userID string, items []domain.Item) ([]domain.Item, error)
+	CalculateReplacementBenchmark(
+		ctx context.Context,
+		userID string,
+		itemID string,
+		candidatePrice float64,
+	) (domain.ReplacementBenchmark, error)
 }
 
 const itemPricePrecisionScale = 1_000_000
@@ -79,7 +95,15 @@ func (serviceInstance *itemServiceImpl) GetItemByID(ctx context.Context, userID 
 }
 
 // CreateItem validates and creates a new active item for the current user.
-func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, userID string, name string, price float64, purchaseDate string) (domain.Item, error) {
+func (serviceInstance *itemServiceImpl) CreateItem(
+	ctx context.Context,
+	userID string,
+	name string,
+	price float64,
+	purchaseDate string,
+	targetType *domain.OwnershipTargetType,
+	targetValue *float64,
+) (domain.Item, error) {
 	normalizedUserID, identityError := normalizeUserID(userID)
 	if identityError != nil {
 		return domain.Item{}, identityError
@@ -90,6 +114,8 @@ func (serviceInstance *itemServiceImpl) CreateItem(ctx context.Context, userID s
 		Price:        price,
 		PurchaseDate: purchaseDate,
 		Status:       domain.ItemStatusActive,
+		TargetType:   targetType,
+		TargetValue:  targetValue,
 	})
 	if validationError != nil {
 		return domain.Item{}, validationError
@@ -114,6 +140,8 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 	status domain.ItemStatus,
 	endedAt *string,
 	salePrice *float64,
+	targetType *domain.OwnershipTargetType,
+	targetValue *float64,
 ) (domain.Item, error) {
 	normalizedUserID, identityError := normalizeUserID(userID)
 	if identityError != nil {
@@ -133,6 +161,8 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		Status:       status,
 		EndedAt:      endedAt,
 		SalePrice:    salePrice,
+		TargetType:   targetType,
+		TargetValue:  targetValue,
 	})
 	if validationError != nil {
 		return domain.Item{}, validationError
@@ -183,6 +213,82 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, userID
 
 	return enrichItems(replacedItems, time.Now().UTC())
 }
+
+// CalculateReplacementBenchmark projects the ownership duration a candidate replacement purchase must achieve
+// to match or beat a completed historical item's final ownership economics.
+func (serviceInstance *itemServiceImpl) CalculateReplacementBenchmark(
+	ctx context.Context,
+	userID string,
+	itemID string,
+	candidatePrice float64,
+) (domain.ReplacementBenchmark, error) {
+	normalizedUserID, identityError := normalizeUserID(userID)
+	if identityError != nil {
+		return domain.ReplacementBenchmark{}, identityError
+	}
+
+	trimmedItemID := strings.TrimSpace(itemID)
+	if trimmedItemID == "" {
+		return domain.ReplacementBenchmark{}, domain.ErrItemNotFound
+	}
+
+	if candidatePrice <= 0 || math.IsNaN(candidatePrice) || math.IsInf(candidatePrice, 0) {
+		return domain.ReplacementBenchmark{}, domain.ErrInvalidBenchmarkPrice
+	}
+
+	scaledPrice := candidatePrice * itemPricePrecisionScale
+	if scaledPrice >= float64(math.MaxInt64) || math.Round(scaledPrice) <= 0 {
+		return domain.ReplacementBenchmark{}, domain.ErrUnsupportedBenchmarkPrice
+	}
+
+	item, getError := serviceInstance.GetItemByID(ctx, normalizedUserID, trimmedItemID)
+	if getError != nil {
+		return domain.ReplacementBenchmark{}, getError
+	}
+
+	if item.Status == domain.ItemStatusActive {
+		return domain.ReplacementBenchmark{}, domain.ErrBenchmarkItemNotCompleted
+	}
+
+	finalCostPerDay := item.GrossCostPerDay
+	if item.Status == domain.ItemStatusSold && item.NetCostPerDay != nil {
+		finalCostPerDay = *item.NetCostPerDay
+	}
+
+	benchmark := domain.ReplacementBenchmark{
+		ItemID:             item.ID,
+		ItemName:           item.Name,
+		ItemStatus:         item.Status,
+		PreviousPrice:      item.Price,
+		FinalOwnershipDays: item.OwnershipDays,
+		FinalCostPerDay:    finalCostPerDay,
+		CandidatePrice:     candidatePrice,
+	}
+
+	if finalCostPerDay > 0 {
+		matchDays := int(math.Ceil(candidatePrice / finalCostPerDay))
+		if matchDays < 1 {
+			matchDays = 1
+		}
+		beatDays := matchDays + 1
+		benchmark.DaysToMatchPrevious = &matchDays
+		benchmark.DaysToBeatPrevious = &beatDays
+	}
+
+	if item.TargetCostPerDay != nil && *item.TargetCostPerDay > 0 {
+		benchmark.HasTarget = true
+		targetCost := *item.TargetCostPerDay
+		benchmark.TargetCostPerDay = &targetCost
+		targetDays := int(math.Ceil(candidatePrice / targetCost))
+		if targetDays < 1 {
+			targetDays = 1
+		}
+		benchmark.DaysToMatchTarget = &targetDays
+	}
+
+	return benchmark, nil
+}
+
 
 func validateItem(item domain.Item) (domain.Item, error) {
 	trimmedName := strings.TrimSpace(item.Name)
@@ -256,6 +362,43 @@ func validateItem(item domain.Item) (domain.Item, error) {
 		}
 	default:
 		return domain.Item{}, domain.ErrInvalidItemStatus
+	}
+
+	if item.TargetType == nil && item.TargetValue != nil {
+		return domain.Item{}, domain.ErrMissingOwnershipTargetType
+	}
+	if item.TargetType != nil && item.TargetValue == nil {
+		return domain.Item{}, domain.ErrMissingOwnershipTargetValue
+	}
+	if item.TargetType != nil && item.TargetValue != nil {
+		normalizedType := domain.OwnershipTargetType(strings.ToLower(strings.TrimSpace(string(*item.TargetType))))
+		if normalizedType != domain.OwnershipTargetTypeCostPerDay && normalizedType != domain.OwnershipTargetTypeDuration {
+			return domain.Item{}, domain.ErrInvalidOwnershipTargetType
+		}
+
+		value := *item.TargetValue
+		if value <= 0 || math.IsNaN(value) || math.IsInf(value, 0) {
+			return domain.Item{}, domain.ErrInvalidOwnershipTargetValue
+		}
+
+		scaledValue := value * itemPricePrecisionScale
+		if scaledValue >= float64(math.MaxInt64) || math.Round(scaledValue) <= 0 {
+			return domain.Item{}, domain.ErrUnsupportedOwnershipTargetValue
+		}
+
+		if normalizedType == domain.OwnershipTargetTypeDuration {
+			if math.Round(value) < 1 {
+				return domain.Item{}, domain.ErrInvalidOwnershipTargetValue
+			}
+			roundedValue := math.Round(value)
+			validatedItem.TargetValue = &roundedValue
+		} else {
+			validatedItem.TargetValue = &value
+		}
+		validatedItem.TargetType = &normalizedType
+	} else {
+		validatedItem.TargetType = nil
+		validatedItem.TargetValue = nil
 	}
 
 	return validatedItem, nil
@@ -332,6 +475,85 @@ func enrichItem(item domain.Item, asOf time.Time) (domain.Item, error) {
 		netCostPerDay := netOwnershipCost / float64(ownershipDays)
 		item.NetOwnershipCost = &netOwnershipCost
 		item.NetCostPerDay = &netCostPerDay
+	}
+
+	if item.TargetType != nil && item.TargetValue != nil {
+		effectiveCost := item.Price
+		if status == domain.ItemStatusSold && item.NetOwnershipCost != nil {
+			if *item.NetOwnershipCost > 0 {
+				effectiveCost = *item.NetOwnershipCost
+			} else {
+				effectiveCost = 0
+			}
+		}
+
+		var targetCostPerDay float64
+		var targetDurationDays int
+
+		switch *item.TargetType {
+		case domain.OwnershipTargetTypeCostPerDay:
+			targetCostPerDay = *item.TargetValue
+			if effectiveCost <= 0 {
+				targetDurationDays = 1
+			} else {
+				targetDurationDays = int(math.Ceil(effectiveCost / targetCostPerDay))
+				if targetDurationDays < 1 {
+					targetDurationDays = 1
+				}
+			}
+		case domain.OwnershipTargetTypeDuration:
+			targetDurationDays = int(math.Round(*item.TargetValue))
+			if targetDurationDays < 1 {
+				targetDurationDays = 1
+			}
+			if effectiveCost <= 0 {
+				targetCostPerDay = 0
+			} else {
+				targetCostPerDay = effectiveCost / float64(targetDurationDays)
+			}
+		}
+
+		item.TargetCostPerDay = &targetCostPerDay
+		item.TargetDurationDays = &targetDurationDays
+
+		var progressPercentage float64
+		if targetDurationDays > 0 {
+			progressPercentage = (float64(item.OwnershipDays) / float64(targetDurationDays)) * 100.0
+		}
+		item.ProgressPercentage = &progressPercentage
+
+		targetReached := item.OwnershipDays >= targetDurationDays || (effectiveCost <= 0)
+		item.TargetReached = &targetReached
+
+		var remainingDays int
+		var daysBeyond int
+		var targetState string
+
+		if effectiveCost <= 0 {
+			remainingDays = 0
+			daysBeyond = 0
+			targetState = "target_reached"
+		} else if item.OwnershipDays > targetDurationDays {
+			remainingDays = 0
+			daysBeyond = item.OwnershipDays - targetDurationDays
+			targetState = "beyond_target"
+		} else if item.OwnershipDays == targetDurationDays {
+			remainingDays = 0
+			daysBeyond = 0
+			targetState = "target_reached"
+		} else if item.OwnershipDays <= 1 {
+			remainingDays = targetDurationDays - item.OwnershipDays
+			daysBeyond = 0
+			targetState = "new"
+		} else {
+			remainingDays = targetDurationDays - item.OwnershipDays
+			daysBeyond = 0
+			targetState = "in_progress"
+		}
+
+		item.RemainingDays = &remainingDays
+		item.DaysBeyond = &daysBeyond
+		item.TargetState = &targetState
 	}
 
 	return item, nil

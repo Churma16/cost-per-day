@@ -111,8 +111,8 @@ func TestLifecycleMigrationTreatsLegacyRowsAsActive(t *testing.T) {
 	if scanError := migratedDatabase.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("read schema version: %v", scanError)
 	}
-	if schemaVersion != 6 {
-		t.Fatalf("expected schema version 6, got %d", schemaVersion)
+	if schemaVersion != 7 {
+		t.Fatalf("expected schema version 7, got %d", schemaVersion)
 	}
 
 	itemRepository := sqliterepository.NewItemRepository(migratedDatabase)

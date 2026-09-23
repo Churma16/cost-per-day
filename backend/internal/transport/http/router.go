@@ -77,6 +77,7 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 		{
 			itemRouteGroup.GET("", config.ItemHandler.List)
 			itemRouteGroup.GET("/:id", config.ItemHandler.Get)
+			itemRouteGroup.GET("/:id/replacement-benchmark", config.ItemHandler.GetReplacementBenchmark)
 			itemRouteGroup.POST("", config.ItemHandler.Create)
 			itemRouteGroup.PUT("/replace", config.ItemHandler.ReplaceAll)
 			itemRouteGroup.PUT("/:id", config.ItemHandler.Update)

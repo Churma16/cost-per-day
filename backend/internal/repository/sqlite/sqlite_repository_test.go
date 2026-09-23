@@ -59,8 +59,8 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
-	if schemaVersion != 6 {
-		t.Fatalf("expected schema version 6, got %d", schemaVersion)
+	if schemaVersion != 7 {
+		t.Fatalf("expected schema version 7, got %d", schemaVersion)
 	}
 
 	if migrationError := sqliterepository.ApplyMigrations(ctx, databaseConnection); migrationError != nil {
@@ -569,5 +569,71 @@ func TestPlannedPurchaseRepositoryUserIsolationAndOperations(t *testing.T) {
 		t.Fatalf("expected ErrPlannedPurchaseNotFound after delete, got %v", afterDeleteError)
 	}
 }
+
+func TestSQLiteItemOwnershipTargetPersistence(t *testing.T) {
+	databaseConnection, _ := openTestDatabase(t)
+	ctx := context.Background()
+	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+
+	costTargetType := domain.OwnershipTargetTypeCostPerDay
+	targetCostValue := 4000.0
+
+	createdItem, createError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
+		Name:         "Headphones",
+		Price:        2400000.0,
+		PurchaseDate: "2026-09-01T12:00:00Z",
+		Status:       domain.ItemStatusActive,
+		TargetType:   &costTargetType,
+		TargetValue:  &targetCostValue,
+	})
+	if createError != nil {
+		t.Fatalf("failed to create item with ownership target: %v", createError)
+	}
+
+	if createdItem.TargetType == nil || *createdItem.TargetType != domain.OwnershipTargetTypeCostPerDay {
+		t.Fatalf("expected target type %q, got %v", domain.OwnershipTargetTypeCostPerDay, createdItem.TargetType)
+	}
+	if createdItem.TargetValue == nil || *createdItem.TargetValue != 4000.0 {
+		t.Fatalf("expected target value 4000.0, got %v", createdItem.TargetValue)
+	}
+
+	fetchedItem, getError := itemRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID)
+	if getError != nil {
+		t.Fatalf("failed to get item with ownership target: %v", getError)
+	}
+	if fetchedItem.TargetType == nil || *fetchedItem.TargetType != domain.OwnershipTargetTypeCostPerDay {
+		t.Fatalf("expected fetched target type %q, got %v", domain.OwnershipTargetTypeCostPerDay, fetchedItem.TargetType)
+	}
+	if fetchedItem.TargetValue == nil || *fetchedItem.TargetValue != 4000.0 {
+		t.Fatalf("expected fetched target value 4000.0, got %v", fetchedItem.TargetValue)
+	}
+
+	// Update to duration target
+	durationTargetType := domain.OwnershipTargetTypeDuration
+	targetDurationValue := 600.0
+	fetchedItem.TargetType = &durationTargetType
+	fetchedItem.TargetValue = &targetDurationValue
+
+	updatedItem, updateError := itemRepository.Update(ctx, domain.LegacyUserID, fetchedItem)
+	if updateError != nil {
+		t.Fatalf("failed to update item target: %v", updateError)
+	}
+	if updatedItem.TargetType == nil || *updatedItem.TargetType != domain.OwnershipTargetTypeDuration {
+		t.Fatalf("expected updated target type %q, got %v", domain.OwnershipTargetTypeDuration, updatedItem.TargetType)
+	}
+	if updatedItem.TargetValue == nil || *updatedItem.TargetValue != 600.0 {
+		t.Fatalf("expected updated target value 600.0, got %v", updatedItem.TargetValue)
+	}
+
+	// ReplaceAll verification
+	replacedItems, replaceError := itemRepository.ReplaceAll(ctx, domain.LegacyUserID, []domain.Item{updatedItem})
+	if replaceError != nil {
+		t.Fatalf("failed to replace items with target: %v", replaceError)
+	}
+	if len(replacedItems) != 1 || replacedItems[0].TargetType == nil || *replacedItems[0].TargetType != domain.OwnershipTargetTypeDuration {
+		t.Fatalf("unexpected replaced item target: %+v", replacedItems)
+	}
+}
+
 
 

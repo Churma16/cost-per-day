@@ -17,8 +17,8 @@ func TestApplyMigrationRollsBackSchemaAndVersionOnFailure(t *testing.T) {
 	defer databaseConnection.Close()
 
 	failingMigration := migration{
-		version: 7,
-		name:    "0007_failure.sql",
+		version: 8,
+		name:    "0008_failure.sql",
 		sql: `
 			CREATE TABLE migration_rollback_probe (id INTEGER PRIMARY KEY);
 			INSERT INTO table_that_does_not_exist (id) VALUES (1);
@@ -45,7 +45,7 @@ func TestApplyMigrationRollsBackSchemaAndVersionOnFailure(t *testing.T) {
 	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
-	if schemaVersion != 6 {
-		t.Fatalf("expected schema version to remain 6 after failed migration, got %d", schemaVersion)
+	if schemaVersion != 7 {
+		t.Fatalf("expected schema version to remain 7 after failed migration, got %d", schemaVersion)
 	}
 }

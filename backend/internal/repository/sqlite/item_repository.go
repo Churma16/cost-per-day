@@ -40,7 +40,7 @@ func (repositoryInstance *ItemRepository) List(ctx context.Context, userID strin
 	}
 
 	rows, queryError := repositoryInstance.databaseConnection.QueryContext(ctx, `
-		SELECT user_id, id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, created_at, updated_at
+		SELECT user_id, id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, target_type, target_value, created_at, updated_at
 		FROM items
 		WHERE user_id = ?
 		ORDER BY id ASC
@@ -74,7 +74,7 @@ func (repositoryInstance *ItemRepository) GetByID(ctx context.Context, userID st
 	}
 
 	item, scanError := scanItem(repositoryInstance.databaseConnection.QueryRowContext(ctx, `
-		SELECT user_id, id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, created_at, updated_at
+		SELECT user_id, id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, target_type, target_value, created_at, updated_at
 		FROM items
 		WHERE user_id = ? AND id = ?
 	`, normalizedUserID, itemID))
@@ -132,10 +132,12 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 			status,
 			ended_at,
 			sale_price_micros,
+			target_type,
+			target_value,
 			created_at,
 			updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		normalizedUserID,
 		itemToCreate.Name,
@@ -144,6 +146,8 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 		string(itemToCreate.Status),
 		nullableString(itemToCreate.EndedAt),
 		nullableInt64(salePriceMicros),
+		nullableTargetType(itemToCreate.TargetType),
+		nullableFloat64(itemToCreate.TargetValue),
 		itemToCreate.CreatedAt.Format(time.RFC3339Nano),
 		itemToCreate.UpdatedAt.Format(time.RFC3339Nano),
 	)
@@ -199,6 +203,8 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID str
 			status = ?,
 			ended_at = ?,
 			sale_price_micros = ?,
+			target_type = ?,
+			target_value = ?,
 			updated_at = ?
 		WHERE user_id = ? AND id = ?
 		RETURNING created_at
@@ -209,6 +215,8 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID str
 		string(itemToUpdate.Status),
 		nullableString(itemToUpdate.EndedAt),
 		nullableInt64(salePriceMicros),
+		nullableTargetType(itemToUpdate.TargetType),
+		nullableFloat64(itemToUpdate.TargetValue),
 		itemToUpdate.UpdatedAt.Format(time.RFC3339Nano),
 		normalizedUserID,
 		itemToUpdate.ID,
@@ -262,6 +270,8 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 		statusText      string
 		endedAtText     sql.NullString
 		salePriceMicros sql.NullInt64
+		targetTypeText  sql.NullString
+		targetValueNum  sql.NullFloat64
 		createdAtText   string
 		updatedAtText   string
 		item            domain.Item
@@ -276,6 +286,8 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 		&statusText,
 		&endedAtText,
 		&salePriceMicros,
+		&targetTypeText,
+		&targetValueNum,
 		&createdAtText,
 		&updatedAtText,
 	)
@@ -306,6 +318,14 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 		salePrice := convertMicrosToPrice(salePriceMicros.Int64)
 		item.SalePrice = &salePrice
 	}
+	if targetTypeText.Valid && strings.TrimSpace(targetTypeText.String) != "" {
+		targetType := domain.OwnershipTargetType(targetTypeText.String)
+		item.TargetType = &targetType
+	}
+	if targetValueNum.Valid {
+		targetValue := targetValueNum.Float64
+		item.TargetValue = &targetValue
+	}
 	item.CreatedAt = createdAt.UTC()
 	item.UpdatedAt = updatedAt.UTC()
 
@@ -328,6 +348,20 @@ func nullableString(value *string) any {
 }
 
 func nullableInt64(value *int64) any {
+	if value == nil {
+		return nil
+	}
+	return *value
+}
+
+func nullableTargetType(value *domain.OwnershipTargetType) any {
+	if value == nil {
+		return nil
+	}
+	return string(*value)
+}
+
+func nullableFloat64(value *float64) any {
 	if value == nil {
 		return nil
 	}
