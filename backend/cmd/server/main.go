@@ -113,12 +113,17 @@ func main() {
 	sessionRepository := sqliterepository.NewSessionRepository(databaseConnection)
 	equivalentRepository := sqliterepository.NewValueEquivalentRepository(gormDB)
 	plannedPurchaseRepository := sqliterepository.NewPlannedPurchaseRepository(databaseConnection)
+	plannedPurchaseConversionRepository := sqliterepository.NewPlannedPurchaseConversionRepository(databaseConnection)
 
 	itemService := service.NewItemService(itemRepository)
 	settingsService := service.NewSettingsService(settingsRepository)
 	equivalentService := service.NewValueEquivalentService(equivalentRepository)
 	dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
 	plannedPurchaseService := service.NewPlannedPurchaseService(plannedPurchaseRepository)
+	plannedPurchaseConversionService := service.NewPlannedPurchaseConversionService(
+		plannedPurchaseRepository,
+		plannedPurchaseConversionRepository,
+	)
 
 	var authHandler *handler.AuthHandler
 	var identityMiddleware gin.HandlerFunc
@@ -169,7 +174,10 @@ func main() {
 	healthHandler := handler.NewHealthHandler()
 	equivalentHandler := handler.NewValueEquivalentHandler(equivalentService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
-	plannedPurchaseHandler := handler.NewPlannedPurchaseHandler(plannedPurchaseService)
+	plannedPurchaseHandler := handler.NewPlannedPurchaseHandler(
+		plannedPurchaseService,
+		plannedPurchaseConversionService,
+	)
 
 	routerEngine := appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:         allowedOrigins,
