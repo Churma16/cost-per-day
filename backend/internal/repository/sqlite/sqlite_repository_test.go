@@ -746,7 +746,21 @@ func TestValueEquivalentRepositoryErrorHandlingAndEdgeCases(t *testing.T) {
 		t.Fatalf("expected Delete for non-existent ID to return ErrValueEquivalentNotFound, got %v", deleteError)
 	}
 
-	// 5. Create valid equivalent
+	// 5. Create ignores caller-supplied IDs and keeps storage identity database-generated.
+	generatedEquivalent, generatedCreateError := equivalentRepository.Create(ctx, firstUser.ID, domain.ValueEquivalent{
+		ID:           "999",
+		Name:         "Database Generated ID",
+		Amount:       10000,
+		CurrencyCode: "IDR",
+	})
+	if generatedCreateError != nil {
+		t.Fatalf("create equivalent with caller-supplied ID: %v", generatedCreateError)
+	}
+	if generatedEquivalent.ID == "999" {
+		t.Fatal("expected repository Create to ignore caller-supplied ID")
+	}
+
+	// 6. Create valid equivalent
 	createdEquivalent, createError := equivalentRepository.Create(ctx, firstUser.ID, domain.ValueEquivalent{
 		Name:         "Kopi Susu",
 		Amount:       18000,
@@ -756,7 +770,7 @@ func TestValueEquivalentRepositoryErrorHandlingAndEdgeCases(t *testing.T) {
 		t.Fatalf("create equivalent: %v", createError)
 	}
 
-	// 6. Cross-user isolation: second user cannot Get, Update, or Delete first user's equivalent
+	// 7. Cross-user isolation: second user cannot Get, Update, or Delete first user's equivalent
 	if _, crossGetError := equivalentRepository.GetByID(ctx, secondUser.ID, createdEquivalent.ID); !errors.Is(crossGetError, domain.ErrValueEquivalentNotFound) {
 		t.Fatalf("expected cross-user GetByID to return ErrValueEquivalentNotFound, got %v", crossGetError)
 	}
@@ -781,7 +795,7 @@ func TestValueEquivalentRepositoryErrorHandlingAndEdgeCases(t *testing.T) {
 		t.Fatalf("expected original item intact, got %+v", verifiedOriginal)
 	}
 
-	// 7. Successful update
+	// 8. Successful update
 	updatedEquivalent, updateSuccessError := equivalentRepository.Update(ctx, firstUser.ID, domain.ValueEquivalent{
 		ID:           createdEquivalent.ID,
 		Name:         "Kopi Susu Gula Aren",
@@ -795,7 +809,7 @@ func TestValueEquivalentRepositoryErrorHandlingAndEdgeCases(t *testing.T) {
 		t.Fatalf("unexpected updated equivalent: %+v", updatedEquivalent)
 	}
 
-	// 8. Successful delete and verify idempotent not found
+	// 9. Successful delete and verify idempotent not found
 	if deleteSuccessError := equivalentRepository.Delete(ctx, firstUser.ID, createdEquivalent.ID); deleteSuccessError != nil {
 		t.Fatalf("delete equivalent: %v", deleteSuccessError)
 	}
