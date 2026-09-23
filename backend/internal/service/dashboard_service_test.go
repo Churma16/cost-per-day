@@ -260,7 +260,7 @@ func TestDashboardService_GetDashboard(t *testing.T) {
 		}
 	})
 
-	t.Run("limits output to maximum 4 insights", func(subTest *testing.T) {
+	t.Run("returns all eligible insights ranked by priority without 4-slide truncation", func(subTest *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		settingsRepository := memory.NewMemorySettingsRepository()
 		equivalentRepository := memory.NewMemoryValueEquivalentRepository()
@@ -292,8 +292,8 @@ func TestDashboardService_GetDashboard(t *testing.T) {
 			subTest.Fatalf("expected no error, got: %v", serviceError)
 		}
 
-		if len(dashboardData.Insights) > 4 {
-			subTest.Fatalf("expected at most 4 insights, got: %d", len(dashboardData.Insights))
+		if len(dashboardData.Insights) <= 4 {
+			subTest.Fatalf("expected more than 4 insights when multiple providers qualify, got: %d", len(dashboardData.Insights))
 		}
 	})
 

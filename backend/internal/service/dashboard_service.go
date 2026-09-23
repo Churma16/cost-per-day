@@ -15,8 +15,6 @@ type DashboardService interface {
 	GetDashboard(ctx context.Context, userID string) (domain.DashboardData, error)
 }
 
-const maxCarouselInsights = 4
-
 type dashboardServiceImpl struct {
 	itemRepository       repository.ItemRepository
 	settingsRepository   repository.SettingsRepository
@@ -147,10 +145,6 @@ func (serviceInstance *dashboardServiceImpl) GetDashboard(ctx context.Context, u
 		}
 		return firstInsight.Primary < secondInsight.Primary
 	})
-
-	if len(generatedInsights) > maxCarouselInsights {
-		generatedInsights = generatedInsights[:maxCarouselInsights]
-	}
 
 	return domain.DashboardData{
 		TotalDailyCost: totalDailyCost,
