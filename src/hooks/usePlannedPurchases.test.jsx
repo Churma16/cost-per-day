@@ -8,6 +8,7 @@ import {
   useCreatePlannedPurchase,
   useUpdatePlannedPurchase,
   useDeletePlannedPurchase,
+  useConvertPlannedPurchase,
   invalidatePlannedPurchasesQuery,
 } from './usePlannedPurchases';
 import * as plannedPurchaseService from '../services/plannedPurchaseService';
@@ -17,6 +18,7 @@ vi.mock('../services/plannedPurchaseService', () => ({
   createPlannedPurchase: vi.fn(),
   updatePlannedPurchase: vi.fn(),
   deletePlannedPurchase: vi.fn(),
+  convertPlannedPurchase: vi.fn(),
 }));
 
 describe('usePlannedPurchases hook & mutations', () => {
@@ -94,6 +96,30 @@ describe('usePlannedPurchases hook & mutations', () => {
     });
 
     expect(plannedPurchaseService.updatePlannedPurchase).toHaveBeenCalledWith('2', updatePayload);
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: PLANNED_PURCHASES_QUERY_KEY,
+    });
+  });
+
+  it('converts planned purchase and invalidates cache', async () => {
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const conversionPayload = {
+      purchasePrice: 950,
+      currencyCode: 'USD',
+      purchaseDate: '2026-09-24',
+    };
+    plannedPurchaseService.convertPlannedPurchase.mockResolvedValueOnce({ id: 'owned-1' });
+
+    const { result } = renderHook(() => useConvertPlannedPurchase(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        plannedPurchaseId: '2',
+        conversionPayload,
+      });
+    });
+
+    expect(plannedPurchaseService.convertPlannedPurchase).toHaveBeenCalledWith('2', conversionPayload);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: PLANNED_PURCHASES_QUERY_KEY,
     });
