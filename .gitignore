@@ -22,6 +22,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# local notes / docs
+app_philosophy.md
+*philosophy*.md
+
 # backend
 backend/.env
 backend/bin/
