@@ -335,10 +335,10 @@ func TestDashboardService_GetDashboard(t *testing.T) {
 		if bestValueInsight == nil {
 			subTest.Fatalf("expected best_value insight")
 		}
-		if bestValueInsight.Eyebrow != "Nilai Terbaik" {
-			subTest.Errorf("expected eyebrow 'Nilai Terbaik', got: %s", bestValueInsight.Eyebrow)
+		if bestValueInsight.Eyebrow != "Paling Banyak Memberi Nilai" {
+			subTest.Errorf("expected eyebrow 'Paling Banyak Memberi Nilai', got: %s", bestValueInsight.Eyebrow)
 		}
-		if !strings.Contains(bestValueInsight.Caption, "Dimiliki selama") {
+		if !strings.Contains(bestValueInsight.Caption, "Menemanimu selama") {
 			subTest.Errorf("expected Indonesian caption, got: %s", bestValueInsight.Caption)
 		}
 	})

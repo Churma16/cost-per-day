@@ -44,13 +44,13 @@ func (provider *BestValueProvider) Generate(_ context.Context, data DashboardCon
 	}
 
 	isIndonesian := data.Language == "id"
-	eyebrow := "Best Value"
-	caption := fmt.Sprintf("Owned for %d days", bestItem.OwnershipDays)
+	eyebrow := "Giving the Most Value"
+	caption := fmt.Sprintf("With you for %d days", bestItem.OwnershipDays)
 	perDaySuffix := "/day"
 
 	if isIndonesian {
-		eyebrow = "Nilai Terbaik"
-		caption = fmt.Sprintf("Dimiliki selama %d hari", bestItem.OwnershipDays)
+		eyebrow = "Paling Banyak Memberi Nilai"
+		caption = fmt.Sprintf("Menemanimu selama %d hari", bestItem.OwnershipDays)
 		perDaySuffix = "/hari"
 	}
 
@@ -94,13 +94,13 @@ func (provider *BiggestContributorProvider) Generate(_ context.Context, data Das
 	}
 
 	isIndonesian := data.Language == "id"
-	eyebrow := "Biggest Contributor"
-	secondary := fmt.Sprintf("%d%% of your current total cost/day", percentage)
+	eyebrow := "Most Influential Right Now"
+	secondary := fmt.Sprintf("%d%% of your daily cost", percentage)
 	perDaySuffix := "/day"
 
 	if isIndonesian {
-		eyebrow = "Kontributor Terbesar"
-		secondary = fmt.Sprintf("%d%% dari total biaya/hari Anda", percentage)
+		eyebrow = "Paling Berpengaruh Saat Ini"
+		secondary = fmt.Sprintf("%d%% dari biaya harianmu", percentage)
 		perDaySuffix = "/hari"
 	}
 
@@ -165,12 +165,12 @@ func (provider *MilestoneProvider) Generate(_ context.Context, data DashboardCon
 	}
 
 	isIndonesian := data.Language == "id"
-	eyebrow := "Milestone"
+	eyebrow := "A Milestone Reached"
 	secondary := fmt.Sprintf("Reached %s", bestMilestoneLabel)
 	caption := fmt.Sprintf("Now down to %s/day", data.FormatCurrency(bestMilestoneItem.GrossCostPerDay))
 
 	if isIndonesian {
-		eyebrow = "Tonggak Kepemilikan"
+		eyebrow = "Sebuah Milestone Tercapai"
 		secondary = fmt.Sprintf("Mencapai %s", bestMilestoneIdLabel)
 		caption = fmt.Sprintf("Kini turun ke %s/hari", data.FormatCurrency(bestMilestoneItem.GrossCostPerDay))
 	}
@@ -222,13 +222,13 @@ func (provider *RecentPurchaseImpactProvider) Generate(_ context.Context, data D
 	}
 
 	isIndonesian := data.Language == "id"
-	eyebrow := "Recent Purchase Impact"
-	secondary := "Currently drives most of the increase in cost/day"
+	eyebrow := "Shifting Your Daily Cost"
+	secondary := "Currently driving most of your daily cost increase"
 	caption := "New purchases start expensive."
 
 	if isIndonesian {
-		eyebrow = "Dampak Pembelian Terakhir"
-		secondary = "Mendorong sebagian besar kenaikan biaya/hari"
+		eyebrow = "Yang Mengubah Biaya Harianmu"
+		secondary = "Mendorong sebagian besar kenaikan biaya harianmu"
 		caption = "Barang baru mulai dengan biaya harian tinggi."
 	}
 
@@ -311,9 +311,9 @@ func (provider *OwnershipCostTrendProvider) Generate(_ context.Context, data Das
 	}
 
 	isIndonesian := data.Language == "id"
-	eyebrow := "Ownership Cost Trend"
+	eyebrow := "Growing More Valuable Over Time"
 	if isIndonesian {
-		eyebrow = "Tren Biaya Kepemilikan"
+		eyebrow = "Makin Bernilai Seiring Waktu"
 	}
 
 	if delta < 0 {
@@ -324,9 +324,9 @@ func (provider *OwnershipCostTrendProvider) Generate(_ context.Context, data Das
 		caption := "Your purchases are earning their keep over time."
 
 		if isIndonesian {
-			primary = "Koleksi Anda semakin terjangkau per hari"
+			primary = "Koleksi barangmu semakin terjangkau per hari"
 			secondary = fmt.Sprintf("turun %s/hari selama 30 hari terakhir", data.FormatCurrency(decreaseAmount))
-			caption = "Barang Anda semakin bernilai seiring waktu pemakaian."
+			caption = "Barangmu semakin bernilai seiring waktu pemakaian."
 		}
 
 		return &domain.DashboardInsight{
@@ -350,7 +350,7 @@ func (provider *OwnershipCostTrendProvider) Generate(_ context.Context, data Das
 	caption := "New purchases start expensive."
 
 	if isIndonesian {
-		primary = "Biaya kepemilikan Anda meningkat"
+		primary = "Biaya kepemilikanmu meningkat"
 		if newlyAddedHighestCostItem != nil {
 			secondary = fmt.Sprintf("naik setelah menambah %s", newlyAddedHighestCostItem.Name)
 		} else {
@@ -408,14 +408,14 @@ func (provider *EquivalentProvider) Generate(_ context.Context, data DashboardCo
 	}
 
 	isIndonesian := data.Language == "id"
-	eyebrow := "Daily Equivalent"
-	caption := "Based on your custom equivalents"
+	eyebrow := "Compared to the Familiar"
+	caption := "Based on your chosen benchmarks"
 	perDayAcross := "/day across your collection"
 
 	if isIndonesian {
-		eyebrow = "Setara Nilai Harian"
-		caption = "Berdasarkan pembanding kustom Anda"
-		perDayAcross = "/hari di seluruh koleksi Anda"
+		eyebrow = "Kalau Dibandingkan dengan Hal Familiar"
+		caption = "Berdasarkan pembanding pilihanmu"
+		perDayAcross = "/hari di seluruh koleksimu"
 	}
 
 	var ratioString string
@@ -463,16 +463,16 @@ func (provider *PortfolioMilestoneProvider) Generate(_ context.Context, data Das
 	}
 
 	isIndonesian := data.Language == "id"
-	eyebrow := "Collection Milestone"
+	eyebrow := "A Collection Milestone"
 	primary := fmt.Sprintf("%d Items Tracked", matchedMilestone)
 	secondary := "Active items in your collection"
 	caption := "Tracking ownership builds mindful spending habits."
 
 	if isIndonesian {
-		eyebrow = "Tonggak Koleksi"
+		eyebrow = "Sebuah Milestone Koleksi"
 		primary = fmt.Sprintf("%d Barang Dilacak", matchedMilestone)
-		secondary = "Barang aktif dalam koleksi Anda"
-		caption = "Melacak kepemilikan membangun kebiasaan belanja yang bijak."
+		secondary = "Barang aktif dalam koleksimu"
+		caption = "Melacak kepemilikan membangun kebiasaan yang bijak."
 	}
 
 	return &domain.DashboardInsight{
