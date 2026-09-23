@@ -57,17 +57,9 @@ func toValueEquivalentRecord(userID string, equivalent domain.ValueEquivalent, t
 		return valueEquivalentRecord{}, conversionError
 	}
 
-	var databaseID int64
-	if trimmedID := strings.TrimSpace(equivalent.ID); trimmedID != "" {
-		if parsedID, parseError := strconv.ParseInt(trimmedID, 10, 64); parseError == nil {
-			databaseID = parsedID
-		}
-	}
-
 	formattedTimestamp := timestamp.UTC().Format(time.RFC3339Nano)
 
 	return valueEquivalentRecord{
-		ID:           databaseID,
 		UserID:       userID,
 		Name:         strings.TrimSpace(equivalent.Name),
 		AmountMicros: amountMicros,
