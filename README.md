@@ -72,7 +72,7 @@ If you prefer running services in separate terminals:
 
 Both backend npm commands load `backend/.env` before starting the server, matching the `npm run dev` configuration behavior.
 
-The backend service will listen on `http://127.0.0.1:8080`. Configure the Google OIDC values documented in `backend/.env.example`, including an authorized local callback of `http://localhost:8080/auth/google/callback` and `APP_BASE_URL=http://localhost:3000`. In development, the frontend API client connects to the backend address by default and includes application session cookies. Set `REACT_APP_API_BASE_URL` to override it when the backend is hosted elsewhere. Production builds default to same-origin requests.
+The backend service will listen on `http://127.0.0.1:8080`. Configure the Google OIDC values documented in `backend/.env.example`, including an authorized local callback of `http://localhost:8080/auth/google/callback` and `APP_BASE_URL=http://localhost:3000`. In development, the frontend API client connects to the backend address by default and includes application session cookies. Set `VITE_API_BASE_URL` to override it when the backend is hosted elsewhere. Production builds default to same-origin requests.
 
 ### Building for Production
 
@@ -129,7 +129,7 @@ See [docs/production.md](./docs/production.md) for the supported single-VPS topo
 
 ## Technologies Used
 
-- **Frontend**: React, React Router
+- **Frontend**: React, React Router, Vite
 - **State Management**: React Context API
 - **Styling**: Tailwind CSS
 - **Storage**: SQLite behind the shared Go API
