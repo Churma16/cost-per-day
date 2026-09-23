@@ -21,12 +21,22 @@ type PlannedPurchaseService interface {
 
 type plannedPurchaseServiceImpl struct {
 	plannedPurchaseRepository repository.PlannedPurchaseRepository
+	nowProvider               func() time.Time
 }
 
 // NewPlannedPurchaseService creates a new PlannedPurchaseService instance.
 func NewPlannedPurchaseService(plannedPurchaseRepository repository.PlannedPurchaseRepository) PlannedPurchaseService {
+	return NewPlannedPurchaseServiceWithClock(plannedPurchaseRepository, time.Now)
+}
+
+// NewPlannedPurchaseServiceWithClock creates a PlannedPurchaseService instance with custom time provider for testing.
+func NewPlannedPurchaseServiceWithClock(plannedPurchaseRepository repository.PlannedPurchaseRepository, nowProvider func() time.Time) PlannedPurchaseService {
+	if nowProvider == nil {
+		nowProvider = time.Now
+	}
 	return &plannedPurchaseServiceImpl{
 		plannedPurchaseRepository: plannedPurchaseRepository,
+		nowProvider:               nowProvider,
 	}
 }
 
@@ -42,7 +52,7 @@ func (serviceInstance *plannedPurchaseServiceImpl) ListPlannedPurchases(ctx cont
 		return nil, repositoryError
 	}
 
-	currentTime := time.Now().UTC()
+	currentTime := serviceInstance.nowProvider().UTC()
 	enrichedPurchases := make([]domain.PlannedPurchase, 0, len(persistedPurchases))
 	for _, purchase := range persistedPurchases {
 		enrichedPurchases = append(enrichedPurchases, enrichPlannedPurchase(purchase, currentTime))
@@ -68,7 +78,8 @@ func (serviceInstance *plannedPurchaseServiceImpl) GetPlannedPurchaseByID(ctx co
 		return domain.PlannedPurchase{}, repositoryError
 	}
 
-	return enrichPlannedPurchase(persistedPurchase, time.Now().UTC()), nil
+	currentTime := serviceInstance.nowProvider().UTC()
+	return enrichPlannedPurchase(persistedPurchase, currentTime), nil
 }
 
 // CreatePlannedPurchase validates inputs, persists, and returns enriched planned purchase.
@@ -78,7 +89,7 @@ func (serviceInstance *plannedPurchaseServiceImpl) CreatePlannedPurchase(ctx con
 		return domain.PlannedPurchase{}, identityError
 	}
 
-	currentTime := time.Now().UTC()
+	currentTime := serviceInstance.nowProvider().UTC()
 	validatedPurchase, validationError := validatePlannedPurchase(candidate, currentTime)
 	if validationError != nil {
 		return domain.PlannedPurchase{}, validationError
@@ -104,7 +115,7 @@ func (serviceInstance *plannedPurchaseServiceImpl) UpdatePlannedPurchase(ctx con
 		return domain.PlannedPurchase{}, domain.ErrPlannedPurchaseNotFound
 	}
 
-	currentTime := time.Now().UTC()
+	currentTime := serviceInstance.nowProvider().UTC()
 	validatedPurchase, validationError := validatePlannedPurchase(candidate, currentTime)
 	if validationError != nil {
 		return domain.PlannedPurchase{}, validationError
@@ -222,17 +233,17 @@ func enrichPlannedPurchase(purchase domain.PlannedPurchase, asOf time.Time) doma
 
 	// Direction 1: Contribution -> Estimated Time
 	if enriched.ContributionAmount != nil && *enriched.ContributionAmount > 0 && enriched.ContributionCadence != nil {
-		periodsRequired := enriched.TargetPrice / *enriched.ContributionAmount
+		periodsRequired := math.Ceil(enriched.TargetPrice / *enriched.ContributionAmount)
 		enriched.EstimatedPeriods = &periodsRequired
 
 		var estimatedDays int
 		switch *enriched.ContributionCadence {
 		case domain.ContributionCadenceDaily:
-			estimatedDays = int(math.Ceil(periodsRequired))
+			estimatedDays = int(periodsRequired)
 		case domain.ContributionCadenceWeekly:
-			estimatedDays = int(math.Ceil(periodsRequired * 7.0))
+			estimatedDays = int(periodsRequired * 7.0)
 		case domain.ContributionCadenceMonthly:
-			estimatedDays = int(math.Ceil(periodsRequired * (365.0 / 12.0)))
+			estimatedDays = int(math.Round(periodsRequired * (365.0 / 12.0)))
 		}
 		enriched.EstimatedDays = &estimatedDays
 	}

@@ -614,6 +614,16 @@ h1 {
   padding-top: 80px;
 }
 
+.planning-page-content {
+  padding-top: 116px;
+}
+
+@media (min-width: 640px) {
+  .planning-page-content {
+    padding-top: 124px;
+  }
+}
+
 .app-footer {
   position: fixed;
   bottom: 0;

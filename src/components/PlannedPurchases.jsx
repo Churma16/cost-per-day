@@ -72,7 +72,7 @@ function PlannedPurchases() {
     createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="px-4 py-6 space-y-5 max-w-3xl mx-auto">
+    <div className="px-4 pb-8 space-y-5 max-w-3xl mx-auto planning-page-content">
       {/* Intro Header & Philosophy */}
       <div className="rounded-2xl p-5 bg-gradient-to-br from-teal-800 via-teal-700 to-cyan-800 text-white shadow-sm space-y-2">
         <div className="flex items-center gap-2">

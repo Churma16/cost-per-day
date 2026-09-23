@@ -39,19 +39,37 @@ function PlannedPurchaseCard({
     if (exploreCadence === 'weekly') {
       days = Math.ceil(periods * 7);
     } else if (exploreCadence === 'monthly') {
-      days = Math.ceil(periods * (365 / 12));
+      days = Math.round(periods * (365 / 12));
     }
-    return { periods, days };
-  }, [exploreContributionAmount, exploreCadence, targetPrice]);
+    const periodUnit =
+      exploreCadence === 'daily'
+        ? t('unitDays')
+        : exploreCadence === 'weekly'
+        ? t('unitWeeks')
+        : t('unitMonths');
 
-  const cadenceName =
+    return { periods, days, periodUnit, isDaily: exploreCadence === 'daily' };
+  }, [exploreContributionAmount, exploreCadence, targetPrice, t]);
+
+  const cadencePer =
     plannedPurchase.contributionCadence === 'daily'
-      ? t('cadenceDaily').toLowerCase()
+      ? t('cadencePerDaily')
       : plannedPurchase.contributionCadence === 'weekly'
-      ? t('cadenceWeekly').toLowerCase()
+      ? t('cadencePerWeekly')
       : plannedPurchase.contributionCadence === 'monthly'
-      ? t('cadenceMonthly').toLowerCase()
+      ? t('cadencePerMonthly')
       : '';
+
+  const periodUnit =
+    plannedPurchase.contributionCadence === 'daily'
+      ? t('unitDays')
+      : plannedPurchase.contributionCadence === 'weekly'
+      ? t('unitWeeks')
+      : t('unitMonths');
+
+  const isDaily = plannedPurchase.contributionCadence === 'daily';
+  const roundedPeriods = Math.ceil(Number(plannedPurchase.estimatedPeriods || 0));
+  const estimatedDays = plannedPurchase.estimatedDays || roundedPeriods;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-teal-100 overflow-hidden hover:shadow-md transition-shadow">
@@ -106,15 +124,17 @@ function PlannedPurchaseCard({
                 <span>{t('recurringContribution')}</span>
               </div>
               <div className="text-sm font-bold text-gray-900">
-                {formatCurrency(plannedPurchase.contributionAmount, currencyCode)}/{cadenceName}
+                {formatCurrency(plannedPurchase.contributionAmount, currencyCode)} {cadencePer}
               </div>
               {plannedPurchase.estimatedPeriods && (
                 <div className="mt-1 text-xs text-teal-700 font-medium">
-                  &rarr; {t('reachTargetIn', {
-                    periods: plannedPurchase.estimatedPeriods,
-                    cadence: cadenceName,
-                    days: plannedPurchase.estimatedDays || plannedPurchase.estimatedPeriods,
-                  })}
+                  &rarr; {isDaily
+                    ? t('reachTargetInDays', { days: estimatedDays })
+                    : t('reachTargetIn', {
+                        periods: roundedPeriods,
+                        periodUnit,
+                        days: estimatedDays,
+                      })}
                 </div>
               )}
             </div>
@@ -132,7 +152,7 @@ function PlannedPurchaseCard({
               </div>
               {plannedPurchase.requiredDailyContribution && (
                 <div className="mt-1 text-xs text-cyan-800 font-medium">
-                  {formatCurrency(plannedPurchase.requiredDailyContribution, currencyCode)}/day &middot; {formatCurrency(plannedPurchase.requiredMonthlyContribution || 0, currencyCode)}/month
+                  {formatCurrency(plannedPurchase.requiredDailyContribution, currencyCode)} {t('cadencePerDaily')} &middot; {formatCurrency(plannedPurchase.requiredMonthlyContribution || 0, currencyCode)} {t('cadencePerMonthly')}
                 </div>
               )}
             </div>
@@ -158,7 +178,7 @@ function PlannedPurchaseCard({
           {isExplorationOpen && (
             <div className="mt-2.5 p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs space-y-3">
               <p className="text-gray-600 text-[11px]">
-                {t('planningSubtitle')}
+                {t('explorePaceDescription')}
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -195,16 +215,13 @@ function PlannedPurchaseCard({
 
               {exploredPeriods && (
                 <div className="p-2 rounded bg-white border border-teal-100 text-teal-950 font-medium">
-                  {t('reachTargetIn', {
-                    periods: exploredPeriods.periods,
-                    cadence:
-                      exploreCadence === 'daily'
-                        ? t('cadenceDaily').toLowerCase()
-                        : exploreCadence === 'weekly'
-                        ? t('cadenceWeekly').toLowerCase()
-                        : t('cadenceMonthly').toLowerCase(),
-                    days: exploredPeriods.days,
-                  })}
+                  {exploredPeriods.isDaily
+                    ? t('reachTargetInDays', { days: exploredPeriods.days })
+                    : t('reachTargetIn', {
+                        periods: exploredPeriods.periods,
+                        periodUnit: exploredPeriods.periodUnit,
+                        days: exploredPeriods.days,
+                      })}
                 </div>
               )}
             </div>

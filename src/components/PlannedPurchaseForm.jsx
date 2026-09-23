@@ -47,6 +47,15 @@ function PlannedPurchaseForm({
   const [targetDate, setTargetDate] = useState(initialData?.targetDate || '');
   const [validationError, setValidationError] = useState(null);
 
+  const handleModeChange = (newMode) => {
+    setPlanningMode(newMode);
+    if (newMode === 'contributionToTime') {
+      setTargetDate('');
+    } else {
+      setContributionAmount('');
+    }
+  };
+
   const numericTargetPrice = parseFloat(targetPrice);
   const numericContributionAmount = parseFloat(contributionAmount);
 
@@ -60,20 +69,29 @@ function PlannedPurchaseForm({
     if (contributionCadence === 'weekly') {
       estimatedDays = Math.ceil(periods * 7);
     } else if (contributionCadence === 'monthly') {
-      estimatedDays = Math.ceil(periods * (365 / 12));
+      estimatedDays = Math.round(periods * (365 / 12));
     }
 
-    const cadenceKey =
+    const periodUnit =
       contributionCadence === 'daily'
-        ? t('cadenceDaily').toLowerCase()
+        ? t('unitDays')
         : contributionCadence === 'weekly'
-        ? t('cadenceWeekly').toLowerCase()
-        : t('cadenceMonthly').toLowerCase();
+        ? t('unitWeeks')
+        : t('unitMonths');
+
+    const cadencePer =
+      contributionCadence === 'daily'
+        ? t('cadencePerDaily')
+        : contributionCadence === 'weekly'
+        ? t('cadencePerWeekly')
+        : t('cadencePerMonthly');
 
     return {
       periods,
       estimatedDays,
-      cadenceKey,
+      periodUnit,
+      cadencePer,
+      isDaily: contributionCadence === 'daily',
     };
   }, [numericTargetPrice, numericContributionAmount, contributionCadence, t]);
 
@@ -130,17 +148,13 @@ function PlannedPurchaseForm({
         payload.contributionAmount = numericContributionAmount;
         payload.contributionCadence = contributionCadence;
       }
-      if (targetDate) {
-        payload.targetDate = targetDate;
-      }
+      payload.targetDate = null;
     } else {
       if (targetDate) {
         payload.targetDate = targetDate;
       }
-      if (contributionAmount !== '' && !isNaN(numericContributionAmount) && numericContributionAmount > 0) {
-        payload.contributionAmount = numericContributionAmount;
-        payload.contributionCadence = contributionCadence;
-      }
+      payload.contributionAmount = null;
+      payload.contributionCadence = null;
     }
 
     onSubmit(payload);
@@ -216,7 +230,7 @@ function PlannedPurchaseForm({
         <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg">
           <button
             type="button"
-            onClick={() => setPlanningMode('contributionToTime')}
+            onClick={() => handleModeChange('contributionToTime')}
             className={`py-2 px-3 text-xs font-medium rounded-md transition-all ${
               planningMode === 'contributionToTime'
                 ? 'bg-white text-teal-800 shadow-sm font-semibold'
@@ -227,7 +241,7 @@ function PlannedPurchaseForm({
           </button>
           <button
             type="button"
-            onClick={() => setPlanningMode('targetDateToContribution')}
+            onClick={() => handleModeChange('targetDateToContribution')}
             className={`py-2 px-3 text-xs font-medium rounded-md transition-all ${
               planningMode === 'targetDateToContribution'
                 ? 'bg-white text-teal-800 shadow-sm font-semibold'
@@ -285,14 +299,16 @@ function PlannedPurchaseForm({
             <div className="rounded-lg bg-white p-3 border border-teal-200 text-xs text-teal-950 space-y-1">
               <span className="font-semibold block text-teal-800">{t('timeToReachTarget')}:</span>
               <p className="text-sm font-bold text-teal-700">
-                {t('reachTargetIn', {
-                  periods: liveTimeProjection.periods,
-                  cadence: liveTimeProjection.cadenceKey,
-                  days: liveTimeProjection.estimatedDays,
-                })}
+                {liveTimeProjection.isDaily
+                  ? t('reachTargetInDays', { days: liveTimeProjection.estimatedDays })
+                  : t('reachTargetIn', {
+                      periods: liveTimeProjection.periods,
+                      periodUnit: liveTimeProjection.periodUnit,
+                      days: liveTimeProjection.estimatedDays,
+                    })}
               </p>
               <p className="text-gray-500 text-[11px]">
-                {formatCurrency(numericContributionAmount, currencyCode)}/{liveTimeProjection.cadenceKey} &rarr; {formatCurrency(numericTargetPrice, currencyCode)}
+                {formatCurrency(numericContributionAmount, currencyCode)} {liveTimeProjection.cadencePer} &rarr; {formatCurrency(numericTargetPrice, currencyCode)}
               </p>
             </div>
           )}

@@ -8,8 +8,11 @@ import * as plannedPurchaseService from '../services/plannedPurchaseService';
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, options) => {
+      if (key === 'reachTargetInDays') {
+        return `About ${options?.days} days`;
+      }
       if (key === 'reachTargetIn') {
-        return `About ${options?.periods} ${options?.cadence} (~${options?.days} days)`;
+        return `About ${options?.periods} ${options?.periodUnit || options?.cadence} (~${options?.days} days)`;
       }
       const translations = {
         plannedPurchases: 'Planned Purchases',
@@ -23,15 +26,18 @@ vi.mock('react-i18next', () => ({
         enterTargetItemName: 'Enter name',
         targetPrice: 'Target price',
         enterTargetPrice: 'Enter target price',
-        planningMode: 'Planning Direction',
-        modeContributionToTime: 'Contribution -> Time',
-        modeTargetDateToContribution: 'Target Date -> Contribution',
+        planningMode: 'How do you want to plan?',
+        modeContributionToTime: 'Choose an amount',
+        modeTargetDateToContribution: 'Choose a target date',
         recurringContribution: 'Recurring contribution',
         enterContributionAmount: 'Enter amount',
-        cadence: 'Cadence',
-        cadenceDaily: 'Daily',
-        cadenceWeekly: 'Weekly',
-        cadenceMonthly: 'Monthly',
+        cadence: 'Frequency',
+        cadenceDaily: 'Every day',
+        cadenceWeekly: 'Every week',
+        cadenceMonthly: 'Every month',
+        cadencePerDaily: 'per day',
+        cadencePerWeekly: 'per week',
+        cadencePerMonthly: 'per month',
         targetDate: 'Target date',
         timeToReachTarget: 'Estimated time to reach target',
         requiredContribution: 'Required contribution',
@@ -44,7 +50,11 @@ vi.mock('react-i18next', () => ({
         loading: 'Loading...',
         edit: 'Edit',
         deleteItem: 'Delete Item',
-        exploreFraming: 'Explore Framing',
+        exploreFraming: 'Try a different pace',
+        explorePaceDescription: 'Adjust the contribution amount or frequency to see how your timeline changes.',
+        unitDays: 'days',
+        unitWeeks: 'weeks',
+        unitMonths: 'months',
         usd: 'US Dollar (USD)',
         idr: 'Indonesian Rupiah (IDR)',
       };
@@ -104,6 +114,13 @@ describe('PlannedPurchases Component', () => {
     });
   });
 
+  it('includes planning-page-content class to avoid mobile header overlap', async () => {
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
+    const { container } = renderComponent();
+
+    expect(container.querySelector('.planning-page-content')).toBeInTheDocument();
+  });
+
   it('opens create form when clicking New Plan', async () => {
     plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
     renderComponent();
@@ -116,6 +133,79 @@ describe('PlannedPurchases Component', () => {
 
     expect(screen.getByLabelText(/target item name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/target price/i)).toBeInTheDocument();
+  });
+
+  it('clears inactive mode fields and sets them to null when switching from contribution to target date', async () => {
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
+    plannedPurchaseService.createPlannedPurchase.mockResolvedValue({ id: 'new-1' });
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /new plan/i }));
+
+    // 1. Fill contribution fields
+    fireEvent.change(screen.getByLabelText(/target item name/i), { target: { value: 'Winter Coat' } });
+    fireEvent.change(screen.getByLabelText(/target price/i), { target: { value: '1200000' } });
+    fireEvent.change(screen.getByLabelText(/recurring contribution/i), { target: { value: '14000' } });
+
+    // 2. Switch to Target Date mode
+    fireEvent.click(screen.getByRole('button', { name: /choose a target date/i }));
+
+    // 3. Fill target date
+    fireEvent.change(screen.getByLabelText(/target date/i), { target: { value: '2028-12-31' } });
+
+    // 4. Submit form
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => {
+      expect(plannedPurchaseService.createPlannedPurchase).toHaveBeenCalledWith({
+        name: 'Winter Coat',
+        targetPrice: 1200000,
+        currencyCode: 'IDR',
+        targetDate: '2028-12-31',
+        contributionAmount: null,
+        contributionCadence: null,
+      });
+    });
+  });
+
+  it('clears inactive mode fields and sets them to null when switching from target date to contribution', async () => {
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
+    plannedPurchaseService.createPlannedPurchase.mockResolvedValue({ id: 'new-2' });
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /new plan/i }));
+
+    // 1. Switch to Target Date mode first and fill
+    fireEvent.change(screen.getByLabelText(/target item name/i), { target: { value: 'Camera' } });
+    fireEvent.change(screen.getByLabelText(/target price/i), { target: { value: '5000000' } });
+    fireEvent.click(screen.getByRole('button', { name: /choose a target date/i }));
+    fireEvent.change(screen.getByLabelText(/target date/i), { target: { value: '2028-12-31' } });
+
+    // 2. Switch back to Contribution mode and fill
+    fireEvent.click(screen.getByRole('button', { name: /choose an amount/i }));
+    fireEvent.change(screen.getByLabelText(/recurring contribution/i), { target: { value: '50000' } });
+
+    // 3. Submit form
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => {
+      expect(plannedPurchaseService.createPlannedPurchase).toHaveBeenCalledWith({
+        name: 'Camera',
+        targetPrice: 5000000,
+        currencyCode: 'IDR',
+        targetDate: null,
+        contributionAmount: 50000,
+        contributionCadence: 'daily',
+      });
+    });
   });
 
   it('shows live time projection calculation when entering price and contribution', async () => {
@@ -138,8 +228,35 @@ describe('PlannedPurchases Component', () => {
 
     // 18,000,000 / 25,000 = 720 days
     await waitFor(() => {
-      expect(screen.getByText(/720/)).toBeInTheDocument();
+      expect(screen.getByText(/720 days/i)).toBeInTheDocument();
     });
+  });
+
+  it('renders planned purchase cards with clean rounded periods and no long decimals', async () => {
+    const mockPurchases = [
+      {
+        id: 'purchase-1',
+        name: 'Winter Jacket',
+        targetPrice: 1200000,
+        currencyCode: 'IDR',
+        contributionAmount: 14000,
+        contributionCadence: 'daily',
+        estimatedPeriods: 86,
+        estimatedDays: 86,
+      },
+    ];
+
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue(mockPurchases);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Winter Jacket')).toBeInTheDocument();
+    });
+
+    // Displays clean integer days without decimal leakage like 85.71428571428571
+    expect(screen.getByText(/About 86 days/i)).toBeInTheDocument();
+    expect(screen.queryByText(/85\.71/)).not.toBeInTheDocument();
   });
 
   it('renders planned purchase cards with contribution framing and allows deletion', async () => {
