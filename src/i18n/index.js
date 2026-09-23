@@ -31,6 +31,8 @@ i18n
     resources,
     lng: 'en', // 默认语言
     fallbackLng: 'en', // 如果检测到的语言不可用，则使用英语
+    supportedLngs: ['en', 'id'],
+    nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false // 不转义HTML内容
     }

@@ -114,13 +114,17 @@ describe('Settings component', () => {
     });
   });
 
-  test('offers Bahasa Indonesia and selects it', async () => {
+  test('offers Bahasa Indonesia and selects it while excluding deprioritized languages (fr, zh)', async () => {
     render(<Settings />);
 
     const languageDropdownTriggerButton = screen.getByRole('button', {
       name: /English/i
     });
     fireEvent.click(languageDropdownTriggerButton);
+
+    // fr and zh must not be available for selection
+    expect(screen.queryByRole('button', { name: /Français/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /中文/i })).not.toBeInTheDocument();
 
     const indonesianLanguageOptionButton = screen.getByRole('button', {
       name: /Bahasa Indonesia/i

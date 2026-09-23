@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { IoHomeOutline, IoAddOutline, IoSettingsOutline } from "react-icons/io5";
+import { IoHomeOutline, IoAddOutline, IoSettingsOutline, IoTimeOutline } from "react-icons/io5";
 
 function Footer() {
   const [activeIcon, setActiveIcon] = useState(null);
@@ -21,10 +21,11 @@ function Footer() {
   
   return (
     <div className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-purple-100 app-footer">
-      <div className="max-w-lg mx-auto px-8 h-full flex justify-around items-center">
+      <div className="max-w-lg mx-auto px-6 h-full flex justify-around items-center">
         <button 
           className="relative p-3 group"
           onClick={() => handleIconClick('home', '/')}
+          aria-label="Home"
         >
           <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
             ${activeIcon === 'home' ? 'bg-purple-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
@@ -35,7 +36,20 @@ function Footer() {
         </button>
         <button 
           className="relative p-3 group"
+          onClick={() => handleIconClick('planning', '/planning')}
+          aria-label="Planning"
+        >
+          <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
+            ${activeIcon === 'planning' ? 'bg-teal-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
+          />
+          <IoTimeOutline className={`footer-icon relative z-10 transition-colors duration-300
+            ${activeIcon === 'planning' ? 'text-white' : location.pathname === '/planning' ? 'text-teal-800' : 'text-teal-600 group-hover:text-teal-800'}`} 
+          />
+        </button>
+        <button 
+          className="relative p-3 group"
           onClick={() => handleIconClick('add', '/add')}
+          aria-label="Add"
         >
           <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
             ${activeIcon === 'add' ? 'bg-purple-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
@@ -47,6 +61,7 @@ function Footer() {
         <button 
           className="relative p-3 group"
           onClick={() => handleIconClick('settings', '/settings')}
+          aria-label="Settings"
         >
           <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
             ${activeIcon === 'settings' ? 'bg-purple-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 

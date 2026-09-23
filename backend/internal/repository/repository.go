@@ -48,3 +48,12 @@ type ValueEquivalentRepository interface {
 	Delete(ctx context.Context, userID string, id string) error
 }
 
+// PlannedPurchaseRepository defines the persistence contract for user-owned planned purchase operations.
+type PlannedPurchaseRepository interface {
+	List(ctx context.Context, userID string) ([]domain.PlannedPurchase, error)
+	GetByID(ctx context.Context, userID string, id string) (domain.PlannedPurchase, error)
+	Create(ctx context.Context, userID string, plannedPurchase domain.PlannedPurchase) (domain.PlannedPurchase, error)
+	Update(ctx context.Context, userID string, plannedPurchase domain.PlannedPurchase) (domain.PlannedPurchase, error)
+	Delete(ctx context.Context, userID string, id string) error
+}
+

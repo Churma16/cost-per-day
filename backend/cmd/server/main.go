@@ -107,11 +107,13 @@ func main() {
 	userRepository := sqliterepository.NewUserRepository(databaseConnection)
 	sessionRepository := sqliterepository.NewSessionRepository(databaseConnection)
 	equivalentRepository := sqliterepository.NewValueEquivalentRepository(databaseConnection)
+	plannedPurchaseRepository := sqliterepository.NewPlannedPurchaseRepository(databaseConnection)
 
 	itemService := service.NewItemService(itemRepository)
 	settingsService := service.NewSettingsService(settingsRepository)
 	equivalentService := service.NewValueEquivalentService(equivalentRepository)
 	dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
+	plannedPurchaseService := service.NewPlannedPurchaseService(plannedPurchaseRepository)
 
 	var authHandler *handler.AuthHandler
 	var identityMiddleware gin.HandlerFunc
@@ -162,6 +164,7 @@ func main() {
 	healthHandler := handler.NewHealthHandler()
 	equivalentHandler := handler.NewValueEquivalentHandler(equivalentService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
+	plannedPurchaseHandler := handler.NewPlannedPurchaseHandler(plannedPurchaseService)
 
 	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
 		AllowedOrigins:         allowedOrigins,
@@ -171,6 +174,7 @@ func main() {
 		AuthHandler:            authHandler,
 		ValueEquivalentHandler: equivalentHandler,
 		DashboardHandler:       dashboardHandler,
+		PlannedPurchaseHandler: plannedPurchaseHandler,
 		StaticDir:              staticDirectory,
 		UserIdentityMiddleware: identityMiddleware,
 	})

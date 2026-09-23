@@ -95,4 +95,38 @@ describe('LanguageContext', () => {
     expect(getSetting).toHaveBeenCalledTimes(2);
     expect(i18n.changeLanguage).toHaveBeenLastCalledWith('id');
   });
+
+  test('falls back safely to English when persisted language is deprioritized (fr or zh) or unknown', async () => {
+    // Persisted as 'fr'
+    getSetting.mockResolvedValue('fr');
+
+    const frRender = render(
+      <LanguageProvider>
+        <TestLanguageConsumer />
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('language-code')).toHaveTextContent('en');
+    });
+
+    expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
+    frRender.unmount();
+
+    // Persisted as 'zh'
+    getSetting.mockResolvedValue('zh');
+
+    const zhRender = render(
+      <LanguageProvider>
+        <TestLanguageConsumer />
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('language-code')).toHaveTextContent('en');
+    });
+
+    expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
+    zhRender.unmount();
+  });
 });

@@ -97,7 +97,42 @@ const translation = {
   "errorLoadingEquivalents": "加载价值等价物失败",
   "equivalentPerDay": "{{count}} {{name}}/天",
   "equivalentEveryNDays": "每 {{count}} 天 1 个 {{name}}",
-  "equivalentPerMonth": "{{count}} {{name}}/月"
+  "equivalentPerMonth": "{{count}} {{name}}/月",
+
+  // Planned Purchases
+  "plannedPurchases": "计划购买",
+  "planningSubtitle": "在购买前理解价格与时间的关系。",
+  "addPlannedPurchase": "添加计划购买",
+  "editPlannedPurchase": "编辑计划购买",
+  "newPlan": "新建计划",
+  "noPlannedPurchases": "暂无计划购买",
+  "noPlannedPurchasesDescription": "在购买前将大额支出拆解为可管理的周期性储蓄。",
+  "targetItemName": "目标物品名称",
+  "enterTargetItemName": "例如：笔记本电脑、相机",
+  "targetPrice": "目标价格",
+  "enterTargetPrice": "输入目标价格",
+  "planningMode": "规划方向",
+  "modeContributionToTime": "储蓄 -> 所需时间",
+  "modeTargetDateToContribution": "目标时间 -> 所需储蓄",
+  "recurringContribution": "周期储蓄",
+  "enterContributionAmount": "输入金额",
+  "cadence": "周期",
+  "cadenceDaily": "按天",
+  "cadenceWeekly": "按周",
+  "cadenceMonthly": "按月",
+  "targetDate": "目标日期",
+  "timeToReachTarget": "预计达成时间",
+  "requiredContribution": "所需周期储蓄",
+  "reachTargetIn": "约 {{periods}} {{cadence}}（~{{days}} 天）",
+  "requiredDaily": "{{amount}}/天",
+  "requiredWeekly": "{{amount}}/周",
+  "requiredMonthly": "{{amount}}/月",
+  "planningDisclaimer": "估算时间和金额均为客观规划推算，不构成财务建议或担保。",
+  "confirmDeletePlannedPurchase": "确定要删除此计划购买吗？",
+  "statusPlanned": "规划中",
+  "exploreFraming": "探索推算",
+  "daysRemaining": "剩余 {{days}} 天"
 };
 
 export default translation;
+

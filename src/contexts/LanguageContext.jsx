@@ -2,11 +2,24 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { getSetting, updateSetting } from '../services/api';
 import i18n from '../i18n';
 
+export const SUPPORTED_LANGUAGES = ['en', 'id'];
+export const DEFAULT_LANGUAGE = 'en';
+
+export const sanitizeLanguage = (languageCode) => {
+  if (languageCode && typeof languageCode === 'string') {
+    const normalized = languageCode.trim().toLowerCase();
+    if (SUPPORTED_LANGUAGES.includes(normalized)) {
+      return normalized;
+    }
+  }
+  return DEFAULT_LANGUAGE;
+};
+
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
-  const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [currentLanguage, setCurrentLanguage] = useState(DEFAULT_LANGUAGE);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -14,13 +27,14 @@ export const LanguageProvider = ({ children }) => {
       try {
         setLoading(true);
         setError(null);
-        const language = await getSetting('language') || 'en';
+        const rawLanguage = await getSetting('language');
+        const language = sanitizeLanguage(rawLanguage);
         setCurrentLanguage(language);
         await i18n.changeLanguage(language);
       } catch (loadError) {
         console.error('Error loading language:', loadError);
         setError(loadError);
-        await i18n.changeLanguage('en');
+        await i18n.changeLanguage(DEFAULT_LANGUAGE);
       } finally {
         setLoading(false);
       }
@@ -30,11 +44,12 @@ export const LanguageProvider = ({ children }) => {
   }, []);
 
   const changeLanguage = async (languageCode) => {
+    const sanitizedLanguage = sanitizeLanguage(languageCode);
     try {
       setError(null);
-      await updateSetting('language', languageCode);
-      await i18n.changeLanguage(languageCode);
-      setCurrentLanguage(languageCode);
+      await updateSetting('language', sanitizedLanguage);
+      await i18n.changeLanguage(sanitizedLanguage);
+      setCurrentLanguage(sanitizedLanguage);
     } catch (updateError) {
       console.error('Error changing language:', updateError);
       setError(updateError);

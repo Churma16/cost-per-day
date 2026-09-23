@@ -24,6 +24,7 @@ type RouterConfig struct {
 	AuthHandler            *handler.AuthHandler
 	ValueEquivalentHandler *handler.ValueEquivalentHandler
 	DashboardHandler       *handler.DashboardHandler
+	PlannedPurchaseHandler *handler.PlannedPurchaseHandler
 	StaticDir              string
 	UserIdentityMiddleware gin.HandlerFunc
 }
@@ -96,6 +97,17 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 				valueEquivalentRouteGroup.POST("", config.ValueEquivalentHandler.Create)
 				valueEquivalentRouteGroup.PUT("/:id", config.ValueEquivalentHandler.Update)
 				valueEquivalentRouteGroup.DELETE("/:id", config.ValueEquivalentHandler.Delete)
+			}
+		}
+
+		if config.PlannedPurchaseHandler != nil {
+			plannedPurchaseRouteGroup := apiRouteGroup.Group("/planned-purchases")
+			{
+				plannedPurchaseRouteGroup.GET("", config.PlannedPurchaseHandler.List)
+				plannedPurchaseRouteGroup.GET("/:id", config.PlannedPurchaseHandler.Get)
+				plannedPurchaseRouteGroup.POST("", config.PlannedPurchaseHandler.Create)
+				plannedPurchaseRouteGroup.PUT("/:id", config.PlannedPurchaseHandler.Update)
+				plannedPurchaseRouteGroup.DELETE("/:id", config.PlannedPurchaseHandler.Delete)
 			}
 		}
 	}

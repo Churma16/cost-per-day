@@ -55,8 +55,6 @@ function Settings() {
 
   const languages = [
     { code: 'en', name: 'English' },
-    { code: 'fr', name: 'Français' },
-    { code: 'zh', name: '中文' },
     { code: 'id', name: 'Bahasa Indonesia' }
   ];
 
