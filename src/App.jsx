@@ -8,6 +8,7 @@ import { ValueEquivalentsProvider } from './contexts/ValueEquivalentsContext';
 import ItemList from './components/ItemList';
 import AddItem from './components/AddItem';
 import Settings from './components/Settings';
+import PlannedPurchases from './components/PlannedPurchases';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import HeroCarousel from './components/HeroCarousel';
@@ -38,6 +39,8 @@ const Header = () => {
         return t('editItem');
       case '/settings':
         return t('settings');
+      case '/planning':
+        return t('plannedPurchases');
       default:
         return t('totalDailyCost');
     }
@@ -91,6 +94,7 @@ const MainContent = () => (
   <div className="page-content">
     <Routes>
       <Route path="/" element={<ItemList />} />
+      <Route path="/planning" element={<PlannedPurchases />} />
       <Route path="/add" element={<AddItem />} />
       <Route path="/edit" element={<AddItem />} />
       <Route path="/settings" element={<Settings />} />

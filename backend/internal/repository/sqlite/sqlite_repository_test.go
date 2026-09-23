@@ -59,8 +59,8 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
-	if schemaVersion != 5 {
-		t.Fatalf("expected schema version 5, got %d", schemaVersion)
+	if schemaVersion != 6 {
+		t.Fatalf("expected schema version 6, got %d", schemaVersion)
 	}
 
 	if migrationError := sqliterepository.ApplyMigrations(ctx, databaseConnection); migrationError != nil {
@@ -463,4 +463,111 @@ func TestValueEquivalentRepositoryCRUDAndIsolation(t *testing.T) {
 		t.Fatalf("expected persisted amount %.9f to match created amount %.9f", persistedPrecisionEquivalent.Amount, precisionEquivalent.Amount)
 	}
 }
+
+func TestPlannedPurchaseRepositoryUserIsolationAndOperations(t *testing.T) {
+	databaseConnection, _ := openTestDatabase(t)
+	ctx := context.Background()
+
+	userRepository := sqliterepository.NewUserRepository(databaseConnection)
+	firstUser, firstUserError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
+		ID:          "user-planned-one",
+		GoogleSub:   "google-sub-user-one",
+		Email:       "user.one@example.com",
+		DisplayName: "User One",
+	})
+	if firstUserError != nil {
+		t.Fatalf("failed to create first user: %v", firstUserError)
+	}
+
+	secondUser, secondUserError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
+		ID:          "user-planned-two",
+		GoogleSub:   "google-sub-user-two",
+		Email:       "user.two@example.com",
+		DisplayName: "User Two",
+	})
+	if secondUserError != nil {
+		t.Fatalf("failed to create second user: %v", secondUserError)
+	}
+
+	plannedPurchaseRepository := sqliterepository.NewPlannedPurchaseRepository(databaseConnection)
+
+	// User one creates a planned purchase with both target date and contribution
+	targetDate := "2027-06-01"
+	amount := 25000.0
+	cadence := domain.ContributionCadenceDaily
+
+	createdPurchase, createError := plannedPurchaseRepository.Create(ctx, firstUser.ID, domain.PlannedPurchase{
+		Name:                "MacBook Air",
+		TargetPrice:         18000000,
+		CurrencyCode:        "IDR",
+		TargetDate:          &targetDate,
+		ContributionAmount:  &amount,
+		ContributionCadence: &cadence,
+	})
+	if createError != nil {
+		t.Fatalf("failed to create planned purchase: %v", createError)
+	}
+
+	if createdPurchase.ID == "" {
+		t.Fatal("expected non-empty generated ID")
+	}
+	if createdPurchase.UserID != firstUser.ID {
+		t.Fatalf("expected user ID %q, got %q", firstUser.ID, createdPurchase.UserID)
+	}
+	if createdPurchase.TargetPrice != 18000000 {
+		t.Fatalf("expected target price 18000000, got %v", createdPurchase.TargetPrice)
+	}
+	if createdPurchase.ContributionAmount == nil || *createdPurchase.ContributionAmount != 25000 {
+		t.Fatalf("expected contribution amount 25000, got %v", createdPurchase.ContributionAmount)
+	}
+
+	// User two should NOT see user one's planned purchase
+	userTwoList, userTwoListError := plannedPurchaseRepository.List(ctx, secondUser.ID)
+	if userTwoListError != nil {
+		t.Fatalf("failed to list for user two: %v", userTwoListError)
+	}
+	if len(userTwoList) != 0 {
+		t.Fatalf("expected 0 purchases for user two, got %d", len(userTwoList))
+	}
+
+	_, userTwoGetError := plannedPurchaseRepository.GetByID(ctx, secondUser.ID, createdPurchase.ID)
+	if !errors.Is(userTwoGetError, domain.ErrPlannedPurchaseNotFound) {
+		t.Fatalf("expected ErrPlannedPurchaseNotFound for user two, got %v", userTwoGetError)
+	}
+
+	// User one can get by ID
+	userOnePurchase, userOneGetError := plannedPurchaseRepository.GetByID(ctx, firstUser.ID, createdPurchase.ID)
+	if userOneGetError != nil {
+		t.Fatalf("failed to get purchase for user one: %v", userOneGetError)
+	}
+	if userOnePurchase.Name != "MacBook Air" {
+		t.Fatalf("expected name MacBook Air, got %q", userOnePurchase.Name)
+	}
+
+	// User one can update
+	updatedName := "MacBook Pro"
+	userOnePurchase.Name = updatedName
+	updatedAmount := 30000.0
+	userOnePurchase.ContributionAmount = &updatedAmount
+	updatedPurchase, updateError := plannedPurchaseRepository.Update(ctx, firstUser.ID, userOnePurchase)
+	if updateError != nil {
+		t.Fatalf("failed to update planned purchase: %v", updateError)
+	}
+	if updatedPurchase.Name != "MacBook Pro" || *updatedPurchase.ContributionAmount != 30000 {
+		t.Fatalf("unexpected updated purchase: %+v", updatedPurchase)
+	}
+
+	// User one can delete
+	deleteError := plannedPurchaseRepository.Delete(ctx, firstUser.ID, createdPurchase.ID)
+	if deleteError != nil {
+		t.Fatalf("failed to delete planned purchase: %v", deleteError)
+	}
+
+	// Verify deletion
+	_, afterDeleteError := plannedPurchaseRepository.GetByID(ctx, firstUser.ID, createdPurchase.ID)
+	if !errors.Is(afterDeleteError, domain.ErrPlannedPurchaseNotFound) {
+		t.Fatalf("expected ErrPlannedPurchaseNotFound after delete, got %v", afterDeleteError)
+	}
+}
+
 

@@ -108,7 +108,42 @@ const translation = {
   "slideOf": "Slide {{current}} dari {{total}}",
   "noInsightsYet": "Wawasan akan muncul seiring bertambahnya koleksi Anda",
   "insightsWelcomeTitle": "Kepemilikan Bijak",
-  "insightsWelcomeCaption": "Lacak pembelian Anda dan amati bagaimana biaya hariannya berkembang seiring waktu."
+  "insightsWelcomeCaption": "Lacak pembelian Anda dan amati bagaimana biaya hariannya berkembang seiring waktu.",
+
+  // Planned Purchases
+  "plannedPurchases": "Pembelian Terencana",
+  "planningSubtitle": "Pahami hubungan antara harga dan waktu sebelum melakukan pembelian.",
+  "addPlannedPurchase": "Tambah Pembelian Terencana",
+  "editPlannedPurchase": "Edit Pembelian Terencana",
+  "newPlan": "Rencana Baru",
+  "noPlannedPurchases": "Belum ada pembelian terencana",
+  "noPlannedPurchasesDescription": "Pahami pembelian besar dengan membaginya menjadi kontribusi berulang yang terjangkau sebelum membeli.",
+  "targetItemName": "Nama barang impian",
+  "enterTargetItemName": "mis. Laptop, Kamera, Jaket Musim Dingin",
+  "targetPrice": "Target harga",
+  "enterTargetPrice": "Masukkan target harga",
+  "planningMode": "Arah Perencanaan",
+  "modeContributionToTime": "Kontribusi -> Waktu",
+  "modeTargetDateToContribution": "Target Waktu -> Kontribusi",
+  "recurringContribution": "Kontribusi rutin",
+  "enterContributionAmount": "Masukkan nominal",
+  "cadence": "Frekuensi",
+  "cadenceDaily": "Harian",
+  "cadenceWeekly": "Mingguan",
+  "cadenceMonthly": "Bulanan",
+  "targetDate": "Target tanggal",
+  "timeToReachTarget": "Estimasi waktu mencapai target",
+  "requiredContribution": "Kontribusi yang dibutuhkan",
+  "reachTargetIn": "Sekitar {{periods}} {{cadence}} (~{{days}} hari)",
+  "requiredDaily": "{{amount}}/hari",
+  "requiredWeekly": "{{amount}}/minggu",
+  "requiredMonthly": "{{amount}}/bulan",
+  "planningDisclaimer": "Estimasi waktu dan kontribusi adalah proyeksi perencanaan objektif, bukan jaminan atau nasihat keuangan.",
+  "confirmDeletePlannedPurchase": "Apakah Anda yakin ingin menghapus pembelian terencana ini? Tindakan ini tidak dapat dibatalkan.",
+  "statusPlanned": "Terencana",
+  "exploreFraming": "Eksplorasi Framing",
+  "daysRemaining": "{{days}} hari tersisa"
 };
 
 export default translation;
+

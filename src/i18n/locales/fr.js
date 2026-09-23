@@ -97,7 +97,42 @@ const translation = {
   "errorLoadingEquivalents": "Échec du chargement des équivalents de valeur",
   "equivalentPerDay": "{{count}} {{name}}/jour",
   "equivalentEveryNDays": "1 {{name}} tous les {{count}} jours",
-  "equivalentPerMonth": "{{count}} {{name}}/mois"
+  "equivalentPerMonth": "{{count}} {{name}}/mois",
+
+  // Planned Purchases
+  "plannedPurchases": "Achats Planifiés",
+  "planningSubtitle": "Comprenez la relation entre prix et temps avant d'acheter.",
+  "addPlannedPurchase": "Ajouter un achat planifié",
+  "editPlannedPurchase": "Modifier l'achat planifié",
+  "newPlan": "Nouveau Plan",
+  "noPlannedPurchases": "Aucun achat planifié",
+  "noPlannedPurchasesDescription": "Décomposez les gros achats en contributions récurrentes avant d'acheter.",
+  "targetItemName": "Nom de l'article",
+  "enterTargetItemName": "ex. Ordinateur portable",
+  "targetPrice": "Prix cible",
+  "enterTargetPrice": "Entrez le prix cible",
+  "planningMode": "Direction de planification",
+  "modeContributionToTime": "Contribution -> Temps",
+  "modeTargetDateToContribution": "Date cible -> Contribution",
+  "recurringContribution": "Contribution récurrente",
+  "enterContributionAmount": "Entrez le montant",
+  "cadence": "Fréquence",
+  "cadenceDaily": "Quotidien",
+  "cadenceWeekly": "Hebdomadaire",
+  "cadenceMonthly": "Mensuel",
+  "targetDate": "Date cible",
+  "timeToReachTarget": "Temps estimé pour atteindre l'objectif",
+  "requiredContribution": "Contribution requise",
+  "reachTargetIn": "Environ {{periods}} {{cadence}} (~{{days}} jours)",
+  "requiredDaily": "{{amount}}/jour",
+  "requiredWeekly": "{{amount}}/semaine",
+  "requiredMonthly": "{{amount}}/mois",
+  "planningDisclaimer": "Les estimations sont des projections de planification, pas des conseils financiers.",
+  "confirmDeletePlannedPurchase": "Voulez-vous vraiment supprimer cet achat planifié ?",
+  "statusPlanned": "Planifié",
+  "exploreFraming": "Explorer le cadrage",
+  "daysRemaining": "{{days}} jours restants"
 };
 
 export default translation;
+

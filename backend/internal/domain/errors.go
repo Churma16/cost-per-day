@@ -77,4 +77,37 @@ var (
 
 	// ErrInvalidValueEquivalentCurrency indicates that a value equivalent currency code is missing or unsupported.
 	ErrInvalidValueEquivalentCurrency = errors.New("value equivalent currency code is invalid")
+
+	// ErrPlannedPurchaseNotFound indicates that the requested planned purchase does not exist for the current user.
+	ErrPlannedPurchaseNotFound = errors.New("planned purchase not found")
+
+	// ErrEmptyPlannedPurchaseName indicates that a planned purchase name was omitted or only contains whitespace.
+	ErrEmptyPlannedPurchaseName = errors.New("planned purchase name cannot be empty")
+
+	// ErrInvalidPlannedPurchasePrice indicates that a planned purchase target price is non-positive or non-finite.
+	ErrInvalidPlannedPurchasePrice = errors.New("planned purchase target price must be greater than zero")
+
+	// ErrUnsupportedPlannedPurchasePrice indicates that a planned purchase target price is outside supported range or precision.
+	ErrUnsupportedPlannedPurchasePrice = errors.New("planned purchase target price is outside supported range")
+
+	// ErrInvalidPlannedPurchaseCurrency indicates that a planned purchase currency code is missing or unsupported.
+	ErrInvalidPlannedPurchaseCurrency = errors.New("planned purchase currency code is invalid")
+
+	// ErrInvalidTargetDate indicates that a planned purchase target date is malformed or not in the future.
+	ErrInvalidTargetDate = errors.New("target date must be in the future")
+
+	// ErrInvalidContributionAmount indicates that a contribution amount is non-positive or non-finite.
+	ErrInvalidContributionAmount = errors.New("contribution amount must be greater than zero")
+
+	// ErrUnsupportedContributionAmount indicates that a contribution amount is outside supported range or precision.
+	ErrUnsupportedContributionAmount = errors.New("contribution amount is outside supported range")
+
+	// ErrInvalidContributionCadence indicates that a contribution cadence is not one of daily, weekly, or monthly.
+	ErrInvalidContributionCadence = errors.New("invalid contribution cadence")
+
+	// ErrMissingContributionCadence indicates that a contribution amount was supplied without a cadence.
+	ErrMissingContributionCadence = errors.New("contribution cadence is required when contribution amount is provided")
+
+	// ErrMissingContributionAmount indicates that a contribution cadence was supplied without an amount.
+	ErrMissingContributionAmount = errors.New("contribution amount is required when contribution cadence is provided")
 )

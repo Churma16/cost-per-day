@@ -108,7 +108,42 @@ const translation = {
   "slideOf": "Slide {{current}} of {{total}}",
   "noInsightsYet": "Insights will appear as your collection grows",
   "insightsWelcomeTitle": "Mindful Ownership",
-  "insightsWelcomeCaption": "Track your purchases and see how their daily cost evolves over time."
+  "insightsWelcomeCaption": "Track your purchases and see how their daily cost evolves over time.",
+
+  // Planned Purchases
+  "plannedPurchases": "Planned Purchases",
+  "planningSubtitle": "Understand the relationship between price and time before making a purchase.",
+  "addPlannedPurchase": "Add Planned Purchase",
+  "editPlannedPurchase": "Edit Planned Purchase",
+  "newPlan": "New Plan",
+  "noPlannedPurchases": "No planned purchases yet",
+  "noPlannedPurchasesDescription": "Frame large prospective purchases by breaking them into manageable recurring contributions before buying.",
+  "targetItemName": "Target item name",
+  "enterTargetItemName": "e.g. Laptop, Camera, Winter Coat",
+  "targetPrice": "Target price",
+  "enterTargetPrice": "Enter target price",
+  "planningMode": "Planning Direction",
+  "modeContributionToTime": "Contribution -> Time",
+  "modeTargetDateToContribution": "Target Date -> Contribution",
+  "recurringContribution": "Recurring contribution",
+  "enterContributionAmount": "Enter amount",
+  "cadence": "Cadence",
+  "cadenceDaily": "Daily",
+  "cadenceWeekly": "Weekly",
+  "cadenceMonthly": "Monthly",
+  "targetDate": "Target date",
+  "timeToReachTarget": "Estimated time to reach target",
+  "requiredContribution": "Required contribution",
+  "reachTargetIn": "About {{periods}} {{cadence}} (~{{days}} days)",
+  "requiredDaily": "{{amount}}/day",
+  "requiredWeekly": "{{amount}}/week",
+  "requiredMonthly": "{{amount}}/month",
+  "planningDisclaimer": "Estimated time and contributions are objective planning projections, not financial guarantees or advice.",
+  "confirmDeletePlannedPurchase": "Are you sure you want to delete this planned purchase? This action cannot be undone.",
+  "statusPlanned": "Planned",
+  "exploreFraming": "Explore Framing",
+  "daysRemaining": "{{days}} days remaining"
 };
 
 export default translation;
+
