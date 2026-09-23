@@ -13,6 +13,7 @@ vi.mock('react-i18next', () => ({
     t: (translationKey) => {
       const translationDictionary = {
         settings: 'Settings',
+        loading: 'Loading...',
         language: 'Language',
         currency: 'Currency',
         selectLanguage: 'Select Language',
@@ -36,6 +37,7 @@ vi.mock('react-i18next', () => ({
         enterEquivalentAmount: 'e.g. 2500',
         noEquivalents: 'No personalized value equivalents added yet.',
         confirmDeleteEquivalent: 'Are you sure you want to delete this value equivalent?',
+        errorLoadingEquivalents: 'Failed to load value equivalents',
         cancel: 'Cancel',
         save: 'Save',
         delete: 'Delete'
@@ -329,5 +331,37 @@ describe('Settings component', () => {
     await waitFor(() => {
       expect(mockRemoveEquivalent).toHaveBeenCalledWith('eq-1');
     });
+  });
+
+  test('renders error alert when loading value equivalents fails instead of empty state', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [],
+      isLoading: false,
+      error: new Error('Network error loading equivalents'),
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent
+    });
+
+    render(<Settings />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Network error loading equivalents');
+    expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
+  });
+
+  test('renders loading indicator while value equivalents are loading instead of empty state', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [],
+      isLoading: true,
+      error: null,
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent
+    });
+
+    render(<Settings />);
+
+    expect(screen.getAllByText('Loading...').length).toBeGreaterThan(0);
+    expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
   });
 });

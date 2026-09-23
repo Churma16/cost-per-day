@@ -442,5 +442,25 @@ func TestValueEquivalentRepositoryCRUDAndIsolation(t *testing.T) {
 	if !errors.Is(afterDeleteGetError, domain.ErrValueEquivalentNotFound) {
 		t.Fatalf("expected ErrValueEquivalentNotFound after delete, got: %v", afterDeleteGetError)
 	}
+
+	// Micro-precision normalization stability
+	precisionEquivalent, precisionCreateError := equivalentRepository.Create(ctx, firstUser.ID, domain.ValueEquivalent{
+		Name:         "Sub-Micro Benchmark",
+		Amount:       2.5000008,
+		CurrencyCode: "USD",
+	})
+	if precisionCreateError != nil {
+		t.Fatalf("failed to create precision equivalent: %v", precisionCreateError)
+	}
+	if math.Abs(precisionEquivalent.Amount-2.500001) > 0.0000001 {
+		t.Fatalf("expected created amount to be normalized to 2.500001, got %.9f", precisionEquivalent.Amount)
+	}
+	persistedPrecisionEquivalent, precisionGetError := equivalentRepository.GetByID(ctx, firstUser.ID, precisionEquivalent.ID)
+	if precisionGetError != nil {
+		t.Fatalf("failed to fetch precision equivalent: %v", precisionGetError)
+	}
+	if math.Abs(persistedPrecisionEquivalent.Amount-precisionEquivalent.Amount) > 0.0000001 {
+		t.Fatalf("expected persisted amount %.9f to match created amount %.9f", persistedPrecisionEquivalent.Amount, precisionEquivalent.Amount)
+	}
 }
 

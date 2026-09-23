@@ -94,6 +94,7 @@ const translation = {
   "enterEquivalentAmount": "Masukkan harga",
   "noEquivalents": "Belum ada perbandingan nilai yang ditambahkan",
   "confirmDeleteEquivalent": "Apakah Anda yakin ingin menghapus perbandingan nilai ini?",
+  "errorLoadingEquivalents": "Gagal memuat perbandingan nilai",
   "equivalentPerDay": "{{count}} {{name}}/hari",
   "equivalentEveryNDays": "1 {{name}} setiap {{count}} hari",
   "equivalentPerMonth": "{{count}} {{name}}/bulan"

@@ -23,6 +23,7 @@ function Settings() {
   const { currencyCode, changeCurrency, error: currencyError } = useCurrency();
   const {
     valueEquivalents = [],
+    isLoading: isLoadingEquivalents,
     addEquivalent,
     editEquivalent,
     removeEquivalent,
@@ -514,7 +515,15 @@ function Settings() {
             </button>
           </div>
           <div className="p-4">
-            {valueEquivalents.length === 0 ? (
+            {isLoadingEquivalents ? (
+              <div className="text-center py-6 text-gray-400 text-sm">
+                <p>{t('loading')}</p>
+              </div>
+            ) : equivalentsError ? (
+              <div role="alert" className="p-3 rounded-lg bg-red-50 text-red-700 text-xs font-medium">
+                {equivalentsError.message || t('errorLoadingEquivalents')}
+              </div>
+            ) : valueEquivalents.length === 0 ? (
               <div className="text-center py-6 text-gray-400 text-sm">
                 <p>{t('noEquivalents')}</p>
               </div>

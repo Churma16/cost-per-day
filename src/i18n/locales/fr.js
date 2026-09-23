@@ -94,6 +94,7 @@ const translation = {
   "enterEquivalentAmount": "Entrez le prix",
   "noEquivalents": "Aucun équivalent de valeur ajouté",
   "confirmDeleteEquivalent": "Êtes-vous sûr de vouloir supprimer cet équivalent de valeur ?",
+  "errorLoadingEquivalents": "Échec du chargement des équivalents de valeur",
   "equivalentPerDay": "{{count}} {{name}}/jour",
   "equivalentEveryNDays": "1 {{name}} tous les {{count}} jours",
   "equivalentPerMonth": "{{count}} {{name}}/mois"

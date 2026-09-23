@@ -231,4 +231,46 @@ func TestValueEquivalentEndpoints(t *testing.T) {
 			t.Fatalf("expected 404 for Beta DELETE, got %d", betaDelRec.Code)
 		}
 	})
+
+	t.Run("persists and reloads amount with stable micro precision rounding", func(t *testing.T) {
+		createPayload, _ := json.Marshal(dto.CreateValueEquivalentRequestDTO{
+			Name:         "Precision Benchmark",
+			Amount:       1.0000004,
+			CurrencyCode: "USD",
+		})
+
+		request, _ := http.NewRequest(http.MethodPost, "/api/value-equivalents", bytes.NewBuffer(createPayload))
+		request.Header.Set("Content-Type", "application/json")
+		recorder := httptest.NewRecorder()
+		routerEngine.ServeHTTP(recorder, request)
+
+		if recorder.Code != http.StatusCreated {
+			t.Fatalf("expected 201 Created, got %d: %s", recorder.Code, recorder.Body.String())
+		}
+
+		envelope := parseResponseBody(t, recorder)
+		dataMap := envelope.Data.(map[string]any)
+		equivalentID := dataMap["id"].(string)
+		initialAmount := dataMap["amount"].(float64)
+
+		if initialAmount != 1.0 {
+			t.Fatalf("expected initial normalized amount 1.0, got %v", initialAmount)
+		}
+
+		// Reload from GET endpoint and assert amount remains identical and stable
+		getRequest, _ := http.NewRequest(http.MethodGet, "/api/value-equivalents/"+equivalentID, nil)
+		getRecorder := httptest.NewRecorder()
+		routerEngine.ServeHTTP(getRecorder, getRequest)
+
+		if getRecorder.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK, got %d", getRecorder.Code)
+		}
+		getEnvelope := parseResponseBody(t, getRecorder)
+		getDataMap := getEnvelope.Data.(map[string]any)
+		reloadedAmount := getDataMap["amount"].(float64)
+
+		if reloadedAmount != initialAmount {
+			t.Fatalf("expected reloaded amount %v to match initial amount %v", reloadedAmount, initialAmount)
+		}
+	})
 }

@@ -94,6 +94,7 @@ const translation = {
   "enterEquivalentAmount": "输入价格",
   "noEquivalents": "尚未添加价值等价物",
   "confirmDeleteEquivalent": "确定要删除该价值等价物吗？",
+  "errorLoadingEquivalents": "加载价值等价物失败",
   "equivalentPerDay": "{{count}} {{name}}/天",
   "equivalentEveryNDays": "每 {{count}} 天 1 个 {{name}}",
   "equivalentPerMonth": "{{count}} {{name}}/月"

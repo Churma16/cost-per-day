@@ -94,6 +94,7 @@ const translation = {
   "enterEquivalentAmount": "Enter price",
   "noEquivalents": "No value equivalents added yet",
   "confirmDeleteEquivalent": "Are you sure you want to delete this value equivalent?",
+  "errorLoadingEquivalents": "Failed to load value equivalents",
   "equivalentPerDay": "{{count}} {{name}}/day",
   "equivalentEveryNDays": "1 {{name}} every {{count}} days",
   "equivalentPerMonth": "{{count}} {{name}}/month"

@@ -121,6 +121,7 @@ func (repositoryInstance *ValueEquivalentRepository) Create(ctx context.Context,
 	createdEquivalent := equivalentToCreate
 	createdEquivalent.ID = strconv.FormatInt(generatedID, 10)
 	createdEquivalent.UserID = normalizedUserID
+	createdEquivalent.Amount = convertMicrosToPrice(amountMicros)
 	createdEquivalent.CreatedAt = currentTime
 	createdEquivalent.UpdatedAt = currentTime
 

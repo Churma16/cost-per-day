@@ -126,7 +126,8 @@ func validateValueEquivalent(name string, amount float64, currencyCode string) (
 	if scaledAmount >= float64(math.MaxInt64) {
 		return domain.ValueEquivalent{}, domain.ErrUnsupportedValueEquivalentAmount
 	}
-	if math.Round(scaledAmount) <= 0 {
+	amountMicros := int64(math.Round(scaledAmount))
+	if amountMicros <= 0 {
 		return domain.ValueEquivalent{}, domain.ErrUnsupportedValueEquivalentAmount
 	}
 
@@ -135,9 +136,11 @@ func validateValueEquivalent(name string, amount float64, currencyCode string) (
 		return domain.ValueEquivalent{}, domain.ErrInvalidValueEquivalentCurrency
 	}
 
+	normalizedAmount := float64(amountMicros) / float64(itemPricePrecisionScale)
+
 	return domain.ValueEquivalent{
 		Name:         trimmedName,
-		Amount:       amount,
+		Amount:       normalizedAmount,
 		CurrencyCode: normalizedCurrency,
 	}, nil
 }
