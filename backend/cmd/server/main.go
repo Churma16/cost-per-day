@@ -96,9 +96,11 @@ func main() {
 	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
 	userRepository := sqliterepository.NewUserRepository(databaseConnection)
 	sessionRepository := sqliterepository.NewSessionRepository(databaseConnection)
+	equivalentRepository := sqliterepository.NewValueEquivalentRepository(databaseConnection)
 
 	itemService := service.NewItemService(itemRepository)
 	settingsService := service.NewSettingsService(settingsRepository)
+	equivalentService := service.NewValueEquivalentService(equivalentRepository)
 
 	googleProvider, googleProviderError := googleoidc.NewClient(googleoidc.Config{
 		ClientID:     googleClientID,
@@ -131,6 +133,7 @@ func main() {
 	if authHandlerError != nil {
 		log.Fatalf("[error] Failed to initialize authentication handler: %v\n", authHandlerError)
 	}
+	equivalentHandler := handler.NewValueEquivalentHandler(equivalentService)
 
 	routerEngine := transportHttp.SetupRouter(transportHttp.RouterConfig{
 		AllowedOrigins:         allowedOrigins,
@@ -138,6 +141,7 @@ func main() {
 		SettingsHandler:        settingsHandler,
 		HealthHandler:          healthHandler,
 		AuthHandler:            authHandler,
+		ValueEquivalentHandler: equivalentHandler,
 		StaticDir:              staticDirectory,
 		UserIdentityMiddleware: middleware.SessionIdentity(authService, middleware.DefaultSessionCookieName),
 	})

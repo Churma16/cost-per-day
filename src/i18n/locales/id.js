@@ -80,7 +80,24 @@ const translation = {
   "importWarning": "Peringatan Impor",
   "importConfirmation": "Mengimpor data akan sepenuhnya mengganti semua data yang ada. Lanjutkan?",
   "importSuccess": "Data berhasil diimpor",
-  "importError": "Gagal mengimpor data"
+  "importError": "Gagal mengimpor data",
+
+  // Value Equivalents
+  "valueEquivalents": "Perbandingan Nilai",
+  "valueEquivalentsDescription": "Terjemahkan biaya harian menjadi perbandingan pengeluaran sehari-hari yang akrab.",
+  "addEquivalent": "Tambah Perbandingan",
+  "editEquivalent": "Edit Perbandingan",
+  "deleteEquivalent": "Hapus Perbandingan",
+  "equivalentName": "Nama",
+  "enterEquivalentName": "mis. Kopi, Gorengan",
+  "equivalentAmount": "Harga",
+  "enterEquivalentAmount": "Masukkan harga",
+  "noEquivalents": "Belum ada perbandingan nilai yang ditambahkan",
+  "confirmDeleteEquivalent": "Apakah Anda yakin ingin menghapus perbandingan nilai ini?",
+  "errorLoadingEquivalents": "Gagal memuat perbandingan nilai",
+  "equivalentPerDay": "{{count}} {{name}}/hari",
+  "equivalentEveryNDays": "1 {{name}} setiap {{count}} hari",
+  "equivalentPerMonth": "{{count}} {{name}}/bulan"
 };
 
 export default translation;

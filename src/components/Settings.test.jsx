@@ -4,6 +4,7 @@ import { vi } from 'vitest';
 import Settings from './Settings';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { replaceAllItems } from '../services/api';
 
@@ -12,6 +13,7 @@ vi.mock('react-i18next', () => ({
     t: (translationKey) => {
       const translationDictionary = {
         settings: 'Settings',
+        loading: 'Loading...',
         language: 'Language',
         currency: 'Currency',
         selectLanguage: 'Select Language',
@@ -24,6 +26,21 @@ vi.mock('react-i18next', () => ({
         eur: 'Euro (EUR)',
         cny: 'Chinese Yuan (CNY)',
         idr: 'Indonesian Rupiah (IDR)',
+        valueEquivalents: 'Personalized Value Equivalents',
+        valueEquivalentsDescription: 'Compare item cost per day to everyday goods',
+        addEquivalent: 'Add Equivalent',
+        editEquivalent: 'Edit Equivalent',
+        deleteEquivalent: 'Delete Equivalent',
+        equivalentName: 'Benchmark Name',
+        enterEquivalentName: 'e.g. Gorengan, Coffee',
+        equivalentAmount: 'Benchmark Cost',
+        enterEquivalentAmount: 'e.g. 2500',
+        noEquivalents: 'No personalized value equivalents added yet.',
+        confirmDeleteEquivalent: 'Are you sure you want to delete this value equivalent?',
+        errorLoadingEquivalents: 'Failed to load value equivalents',
+        cancel: 'Cancel',
+        save: 'Save',
+        delete: 'Delete'
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -38,6 +55,10 @@ vi.mock('../contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
 }));
 
+vi.mock('../contexts/ValueEquivalentsContext', () => ({
+  useValueEquivalents: vi.fn()
+}));
+
 vi.mock('../services/api', () => ({
   getAllItems: vi.fn(),
   replaceAllItems: vi.fn()
@@ -46,6 +67,9 @@ vi.mock('../services/api', () => ({
 describe('Settings component', () => {
   const mockChangeCurrency = vi.fn();
   const mockChangeLanguage = vi.fn();
+  const mockAddEquivalent = vi.fn();
+  const mockEditEquivalent = vi.fn();
+  const mockRemoveEquivalent = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -58,6 +82,14 @@ describe('Settings component', () => {
     useCurrency.mockReturnValue({
       currencyCode: 'USD',
       changeCurrency: mockChangeCurrency
+    });
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null
     });
   });
 
@@ -165,5 +197,171 @@ describe('Settings component', () => {
     expect(await screen.findByText(
       'Import failed atomically. Existing server data is unchanged.'
     )).toBeInTheDocument();
+  });
+
+  test('renders empty state message when no value equivalents are saved', () => {
+    render(<Settings />);
+
+    expect(screen.getByText('Personalized Value Equivalents')).toBeInTheDocument();
+    expect(screen.getByText('No personalized value equivalents added yet.')).toBeInTheDocument();
+  });
+
+  test('renders list of value equivalents with their details', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-1', name: 'Gorengan', amount: 2500, currencyCode: 'IDR' },
+        { id: 'eq-2', name: 'Coffee', amount: 15000, currencyCode: 'IDR' }
+      ],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null
+    });
+
+    render(<Settings />);
+
+    expect(screen.getByText('Gorengan')).toBeInTheDocument();
+    expect(screen.getByText('Coffee')).toBeInTheDocument();
+    expect(screen.getAllByText('IDR').length).toBe(2);
+  });
+
+  test('opens add modal and calls addEquivalent with form data on submit', async () => {
+    mockAddEquivalent.mockResolvedValueOnce({
+      id: 'eq-new',
+      name: 'Boba Tea',
+      amount: 25000,
+      currencyCode: 'IDR'
+    });
+
+    render(<Settings />);
+
+    const openAddModalButton = screen.getByRole('button', { name: /Add Equivalent/i });
+    fireEvent.click(openAddModalButton);
+
+    expect(screen.getByPlaceholderText('e.g. Gorengan, Coffee')).toBeInTheDocument();
+
+    const nameInputElement = screen.getByPlaceholderText('e.g. Gorengan, Coffee');
+    const amountInputElement = screen.getByPlaceholderText('e.g. 2500');
+
+    fireEvent.change(nameInputElement, { target: { value: 'Boba Tea' } });
+    fireEvent.change(amountInputElement, { target: { value: '25000' } });
+
+    const submitSaveButton = screen.getByRole('button', { name: /^Save$/i });
+    fireEvent.click(submitSaveButton);
+
+    await waitFor(() => {
+      expect(mockAddEquivalent).toHaveBeenCalledWith({
+        name: 'Boba Tea',
+        amount: 25000,
+        currencyCode: 'USD'
+      });
+    });
+  });
+
+  test('opens edit modal with existing values and calls editEquivalent on submit', async () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-1', name: 'Gorengan', amount: 2500, currencyCode: 'IDR' }
+      ],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null
+    });
+
+    mockEditEquivalent.mockResolvedValueOnce({
+      id: 'eq-1',
+      name: 'Bakwan',
+      amount: 3000,
+      currencyCode: 'IDR'
+    });
+
+    render(<Settings />);
+
+    const editButtonElement = screen.getByLabelText('Edit Equivalent Gorengan');
+    fireEvent.click(editButtonElement);
+
+    const nameInputElement = screen.getByPlaceholderText('e.g. Gorengan, Coffee');
+    const amountInputElement = screen.getByPlaceholderText('e.g. 2500');
+
+    expect(nameInputElement.value).toBe('Gorengan');
+    expect(amountInputElement.value).toBe('2500');
+
+    fireEvent.change(nameInputElement, { target: { value: 'Bakwan' } });
+    fireEvent.change(amountInputElement, { target: { value: '3000' } });
+
+    const submitSaveButton = screen.getByRole('button', { name: /^Save$/i });
+    fireEvent.click(submitSaveButton);
+
+    await waitFor(() => {
+      expect(mockEditEquivalent).toHaveBeenCalledWith('eq-1', {
+        name: 'Bakwan',
+        amount: 3000,
+        currencyCode: 'IDR'
+      });
+    });
+  });
+
+  test('opens delete confirmation dialog and calls removeEquivalent on confirmation', async () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-1', name: 'Gorengan', amount: 2500, currencyCode: 'IDR' }
+      ],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null
+    });
+
+    mockRemoveEquivalent.mockResolvedValueOnce();
+
+    render(<Settings />);
+
+    const deleteButtonElement = screen.getByLabelText('Delete Equivalent Gorengan');
+    fireEvent.click(deleteButtonElement);
+
+    expect(screen.getByText('Are you sure you want to delete this value equivalent?')).toBeInTheDocument();
+
+    const confirmDeleteButton = screen.getByRole('button', { name: /^Delete$/i });
+    fireEvent.click(confirmDeleteButton);
+
+    await waitFor(() => {
+      expect(mockRemoveEquivalent).toHaveBeenCalledWith('eq-1');
+    });
+  });
+
+  test('renders error alert when loading value equivalents fails instead of empty state', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [],
+      isLoading: false,
+      error: new Error('Network error loading equivalents'),
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent
+    });
+
+    render(<Settings />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Network error loading equivalents');
+    expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
+  });
+
+  test('renders loading indicator while value equivalents are loading instead of empty state', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [],
+      isLoading: true,
+      error: null,
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent
+    });
+
+    render(<Settings />);
+
+    expect(screen.getAllByText('Loading...').length).toBeGreaterThan(0);
+    expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
   });
 });

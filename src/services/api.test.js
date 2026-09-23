@@ -8,7 +8,11 @@ import {
   getCurrentUser,
   logoutCurrentUser,
   getGoogleLoginUrl,
-  resolveApiBaseUrl
+  resolveApiBaseUrl,
+  getAllValueEquivalents,
+  createValueEquivalent,
+  updateValueEquivalent,
+  deleteValueEquivalent
 } from './api';
 
 const response = (status, data, message = 'ok') => ({
@@ -202,5 +206,44 @@ describe('frontend API client', () => {
 
     vi.unstubAllEnvs();
     expect(resolveApiBaseUrl()).toBe('');
+  });
+
+  test('performs value equivalents CRUD operations through API boundary', async () => {
+    const sampleEquivalents = [
+      { id: '1', name: 'Coffee', amount: 15000, currencyCode: 'IDR' }
+    ];
+
+    // List
+    global.fetch.mockResolvedValueOnce(response(200, sampleEquivalents, 'value equivalents retrieved'));
+    await expect(getAllValueEquivalents()).resolves.toEqual(sampleEquivalents);
+    expect(global.fetch).toHaveBeenCalledWith('/api/value-equivalents', expect.objectContaining({
+      credentials: 'include'
+    }));
+
+    // Create
+    global.fetch.mockResolvedValueOnce(response(201, sampleEquivalents[0], 'created'));
+    await createValueEquivalent({ name: 'Coffee', amount: 15000, currencyCode: 'idr' });
+    expect(global.fetch.mock.calls[1][0]).toBe('/api/value-equivalents');
+    expect(global.fetch.mock.calls[1][1]).toEqual(expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ name: 'Coffee', amount: 15000, currencyCode: 'IDR' })
+    }));
+
+    // Update
+    global.fetch.mockResolvedValueOnce(response(200, { ...sampleEquivalents[0], amount: 18000 }, 'updated'));
+    await updateValueEquivalent('1', { name: 'Coffee', amount: 18000, currencyCode: 'IDR' });
+    expect(global.fetch.mock.calls[2][0]).toBe('/api/value-equivalents/1');
+    expect(global.fetch.mock.calls[2][1]).toEqual(expect.objectContaining({
+      method: 'PUT',
+      body: JSON.stringify({ name: 'Coffee', amount: 18000, currencyCode: 'IDR' })
+    }));
+
+    // Delete
+    global.fetch.mockResolvedValueOnce(response(200, null, 'deleted'));
+    await deleteValueEquivalent('1');
+    expect(global.fetch.mock.calls[3][0]).toBe('/api/value-equivalents/1');
+    expect(global.fetch.mock.calls[3][1]).toEqual(expect.objectContaining({
+      method: 'DELETE'
+    }));
   });
 });

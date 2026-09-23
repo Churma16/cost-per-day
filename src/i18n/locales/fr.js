@@ -80,7 +80,24 @@ const translation = {
   "importWarning": "Avertissement d'importation",
   "importConfirmation": "L'importation de données remplacera complètement toutes les données existantes. Voulez-vous continuer ?",
   "importSuccess": "Données importées avec succès",
-  "importError": "Échec de l'importation des données"
+  "importError": "Échec de l'importation des données",
+
+  // Value Equivalents
+  "valueEquivalents": "Équivalents de valeur",
+  "valueEquivalentsDescription": "Traduisez les coûts quotidiens en comparaisons de dépenses familières.",
+  "addEquivalent": "Ajouter un équivalent",
+  "editEquivalent": "Modifier l'équivalent",
+  "deleteEquivalent": "Supprimer l'équivalent",
+  "equivalentName": "Nom",
+  "enterEquivalentName": "ex. Café, Croissant",
+  "equivalentAmount": "Prix",
+  "enterEquivalentAmount": "Entrez le prix",
+  "noEquivalents": "Aucun équivalent de valeur ajouté",
+  "confirmDeleteEquivalent": "Êtes-vous sûr de vouloir supprimer cet équivalent de valeur ?",
+  "errorLoadingEquivalents": "Échec du chargement des équivalents de valeur",
+  "equivalentPerDay": "{{count}} {{name}}/jour",
+  "equivalentEveryNDays": "1 {{name}} tous les {{count}} jours",
+  "equivalentPerMonth": "{{count}} {{name}}/mois"
 };
 
 export default translation;

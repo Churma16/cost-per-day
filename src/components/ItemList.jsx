@@ -7,6 +7,8 @@ import { formatCurrency } from '../utils/formatters';
 import { format } from 'date-fns';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
+import { selectBestEquivalent } from '../utils/equivalentCalculator';
 
 const STATUS_TRANSLATION_KEYS = {
   active: 'statusActive',
@@ -25,6 +27,7 @@ function ItemList() {
   const navigate = useNavigate();
   const { setTotalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
+  const { valueEquivalents = [] } = useValueEquivalents();
 
   useEffect(() => {
     const loadItems = async () => {
@@ -83,6 +86,13 @@ function ItemList() {
           const itemStatus = getItemStatus(item);
           const isActive = itemStatus === 'active';
           const statusTranslationKey = STATUS_TRANSLATION_KEYS[itemStatus] || STATUS_TRANSLATION_KEYS.active;
+          const itemCostPerDay = Number(item.grossCostPerDay || 0);
+          const bestEquivalent = selectBestEquivalent(
+            itemCostPerDay,
+            valueEquivalents,
+            currencyCode,
+            t
+          );
 
           return (
             <div
@@ -104,8 +114,13 @@ function ItemList() {
                     {t(isActive ? 'currentCostPerDay' : 'finalGrossCostPerDay')}
                   </p>
                   <p className="text-sm text-gray-700">
-                    {formatCurrency(Number(item.grossCostPerDay || 0), currencyCode)}{t('perDay')}
+                    {formatCurrency(itemCostPerDay, currencyCode)}{t('perDay')}
                   </p>
+                  {bestEquivalent && (
+                    <p className="mt-0.5 text-xs font-medium text-purple-600">
+                      ≈ {bestEquivalent.text}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center">
                   <IoChevronDown
