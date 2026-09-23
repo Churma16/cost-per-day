@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const publicDirectory = path.resolve(process.cwd(), 'public');
+const projectDirectory = process.cwd();
+const publicDirectory = path.resolve(projectDirectory, 'public');
+const manifestFileName = 'manifest-v2.json';
 
 const readPngMetadata = (filePath) => {
   const buffer = fs.readFileSync(filePath);
@@ -37,27 +39,53 @@ const readPngMetadata = (filePath) => {
   return { width, height, chunks };
 };
 
-describe('PWA manifest icons', () => {
+describe('PWA install assets', () => {
   const manifest = JSON.parse(
-    fs.readFileSync(path.join(publicDirectory, 'manifest.json'), 'utf8')
+    fs.readFileSync(path.join(publicDirectory, manifestFileName), 'utf8')
   );
+
+  test('HTML references cache-busted PWA identity assets', () => {
+    const html = fs.readFileSync(path.join(projectDirectory, 'index.html'), 'utf8');
+
+    expect(html).toContain('href="/worthwhile-favicon-v2.ico"');
+    expect(html).toContain('href="/worthwhile-icon-192-v2.png"');
+    expect(html).toContain('href="/manifest-v2.json"');
+    expect(html).not.toContain('href="/manifest.json"');
+  });
+
+  test('manifest has an explicit root identity and standalone scope', () => {
+    expect(manifest.id).toBe('/');
+    expect(manifest.start_url).toBe('/');
+    expect(manifest.scope).toBe('/');
+    expect(manifest.display).toBe('standalone');
+  });
 
   const pngIcons = manifest.icons.filter((icon) => icon.type === 'image/png');
 
-  test.each(pngIcons)('$src exists, matches its declared dimensions, and uses browser-safe metadata', (icon) => {
-    const filePath = path.join(publicDirectory, icon.src);
-    expect(fs.existsSync(filePath)).toBe(true);
-
-    const metadata = readPngMetadata(filePath);
-    const declaredSizes = icon.sizes
-      .split(/\s+/)
-      .map((size) => size.split('x').map(Number));
-
-    expect(declaredSizes).toContainEqual([metadata.width, metadata.height]);
-
-    // The Worthwhile branding rollout introduced embedded iCCP profiles that
-    // coincided with Chromium rejecting installation. Keep install icons
-    // metadata-simple and deterministic.
-    expect(metadata.chunks).not.toContain('iCCP');
+  test('manifest only references versioned PNG install icons', () => {
+    expect(pngIcons.map((icon) => icon.src)).toEqual([
+      '/worthwhile-icon-192-v2.png',
+      '/worthwhile-icon-256-v2.png',
+      '/worthwhile-icon-512-v2.png',
+    ]);
+    expect(pngIcons.every((icon) => icon.purpose === 'any')).toBe(true);
+    expect(pngIcons.some((icon) => icon.sizes.includes('192x192'))).toBe(true);
+    expect(pngIcons.some((icon) => icon.sizes.includes('512x512'))).toBe(true);
   });
+
+  test.each(pngIcons)(
+    '$src exists, matches its declared dimensions, and uses browser-safe metadata',
+    (icon) => {
+      const filePath = path.join(publicDirectory, icon.src.replace(/^\//, ''));
+      expect(fs.existsSync(filePath)).toBe(true);
+
+      const metadata = readPngMetadata(filePath);
+      const declaredSizes = icon.sizes
+        .split(/\s+/)
+        .map((size) => size.split('x').map(Number));
+
+      expect(declaredSizes).toContainEqual([metadata.width, metadata.height]);
+      expect(metadata.chunks).not.toContain('iCCP');
+    }
+  );
 });
