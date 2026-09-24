@@ -283,162 +283,170 @@ function ItemList() {
                       </span>
                     </div>
                     <IoChevronDown
-                      className={`text-gray-400 transition-transform duration-200 text-base ${expandedItem === item.id ? 'rotate-180' : ''}`}
+                      className={`text-gray-400 transition-transform duration-300 ease-out text-base ${expandedItem === item.id ? 'rotate-180' : ''}`}
                     />
                   </div>
                 </div>
 
-                {/* Expanded Details */}
-                {expandedItem === item.id && (
-                  <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-                    <div className="space-y-3">
-                      {/* 2-Column Metadata Grid */}
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100/80">
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
-                            <IoReceiptOutline className="text-sm" />
-                            <span>{t('purchaseAmount')}</span>
+                {/* Expanded Details with Two-Way Smooth Animation */}
+                <div
+                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+                    expandedItem === item.id
+                      ? 'grid-rows-[1fr] opacity-100'
+                      : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                      <div className="space-y-3">
+                        {/* 2-Column Metadata Grid */}
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100/80">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+                              <IoReceiptOutline className="text-sm" />
+                              <span>{t('purchaseAmount')}</span>
+                            </div>
+                            <div className="font-semibold text-gray-900 text-sm tabular-nums">
+                              {formatCurrency(item.price, currencyCode)}
+                            </div>
                           </div>
-                          <div className="font-semibold text-gray-900 text-sm tabular-nums">
-                            {formatCurrency(item.price, currencyCode)}
+
+                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100/80">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+                              <IoCalendarOutline className="text-sm" />
+                              <span>{t('purchaseDate')}</span>
+                            </div>
+                            <div className="font-semibold text-gray-900 text-sm">
+                              {format(new Date(item.purchaseDate), 'yyyy-MM-dd')}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-100/80">
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
-                            <IoCalendarOutline className="text-sm" />
-                            <span>{t('purchaseDate')}</span>
-                          </div>
-                          <div className="font-semibold text-gray-900 text-sm">
-                            {format(new Date(item.purchaseDate), 'yyyy-MM-dd')}
-                          </div>
+                        {/* Full-width Ownership Duration */}
+                        <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 flex items-center justify-between text-xs">
+                          <span className="text-gray-500 font-medium">{t('ownedFor')}</span>
+                          <span className="font-semibold text-gray-900 text-sm">
+                            {item.ownershipDays || 1} {t('ownershipDays')}
+                          </span>
                         </div>
-                      </div>
 
-                      {/* Full-width Ownership Duration */}
-                      <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 flex items-center justify-between text-xs">
-                        <span className="text-gray-500 font-medium">{t('ownedFor')}</span>
-                        <span className="font-semibold text-gray-900 text-sm">
-                          {item.ownershipDays || 1} {t('ownershipDays')}
-                        </span>
-                      </div>
+                        {(item.category || item.brand) && (
+                          <div className="flex items-center gap-4 text-xs bg-gray-50 rounded-lg p-2.5">
+                            {item.category && (
+                              <div>
+                                <span className="text-gray-400 font-normal">{t('category')}: </span>
+                                <span className="font-medium text-gray-700">{item.category}</span>
+                              </div>
+                            )}
+                            {item.brand && (
+                              <div>
+                                <span className="text-gray-400 font-normal">{t('brand')}: </span>
+                                <span className="font-medium text-gray-700">{item.brand}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
-                      {(item.category || item.brand) && (
-                        <div className="flex items-center gap-4 text-xs bg-gray-50 rounded-lg p-2.5">
-                          {item.category && (
+                        {!isActive && item.endedAt && (
+                          <div className="rounded-lg bg-gray-50 p-3">
+                            <div className="text-xs text-gray-500">{t('ownershipEndDate')}</div>
+                            <div className="font-medium">{format(new Date(item.endedAt), 'yyyy-MM-dd')}</div>
+                          </div>
+                        )}
+
+                        {itemStatus === 'sold' && (
+                          <div className="grid gap-3 rounded-lg bg-gray-50 p-3 sm:grid-cols-3">
                             <div>
-                              <span className="text-gray-400 font-normal">{t('category')}: </span>
-                              <span className="font-medium text-gray-700">{item.category}</span>
+                              <div className="text-xs text-gray-500">{t('salePrice')}</div>
+                              <div className="font-medium">{formatCurrency(Number(item.salePrice || 0), currencyCode)}</div>
                             </div>
-                          )}
-                          {item.brand && (
                             <div>
-                              <span className="text-gray-400 font-normal">{t('brand')}: </span>
-                              <span className="font-medium text-gray-700">{item.brand}</span>
+                              <div className="text-xs text-gray-500">{t('netOwnershipCost')}</div>
+                              <div className="font-medium">{formatCurrency(Number(item.netOwnershipCost || 0), currencyCode)}</div>
                             </div>
-                          )}
-                        </div>
-                      )}
-
-                      {!isActive && item.endedAt && (
-                        <div className="rounded-lg bg-gray-50 p-3">
-                          <div className="text-xs text-gray-500">{t('ownershipEndDate')}</div>
-                          <div className="font-medium">{format(new Date(item.endedAt), 'yyyy-MM-dd')}</div>
-                        </div>
-                      )}
-
-                      {itemStatus === 'sold' && (
-                        <div className="grid gap-3 rounded-lg bg-gray-50 p-3 sm:grid-cols-3">
-                          <div>
-                            <div className="text-xs text-gray-500">{t('salePrice')}</div>
-                            <div className="font-medium">{formatCurrency(Number(item.salePrice || 0), currencyCode)}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">{t('netOwnershipCost')}</div>
-                            <div className="font-medium">{formatCurrency(Number(item.netOwnershipCost || 0), currencyCode)}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">{t('netCostPerDay')}</div>
-                            <div className="font-medium">
-                              {formatCurrency(Number(item.netCostPerDay || 0), currencyCode)}{t('perDay')}
+                            <div>
+                              <div className="text-xs text-gray-500">{t('netCostPerDay')}</div>
+                              <div className="font-medium">
+                                {formatCurrency(Number(item.netCostPerDay || 0), currencyCode)}{t('perDay')}
+                              </div>
                             </div>
                           </div>
+                        )}
+
+                        {item.targetType && (
+                          <div className="rounded-lg bg-slate-50 border border-slate-200/80 p-3 space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-medium text-gray-700">{t('targetMilestone')}</span>
+                              <span className="text-gray-500">
+                                {item.targetCostPerDay && `${formatCurrency(item.targetCostPerDay, currencyCode)}/day`}
+                                {item.targetDurationDays && ` (~${item.targetDurationDays} days)`}
+                              </span>
+                            </div>
+
+                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-2 rounded-full transition-all duration-300 ${
+                                  item.targetState === 'beyond_target'
+                                    ? 'bg-teal-700'
+                                    : item.targetState === 'target_reached'
+                                      ? 'bg-emerald-500'
+                                      : 'bg-amber-500'
+                                }`}
+                                style={{ width: `${Math.min(100, Math.max(0, item.progressPercentage ?? item.targetProgressPercentage ?? 0))}%` }}
+                              ></div>
+                            </div>
+
+                            <div className="text-xs text-gray-500 flex justify-between items-center">
+                              <span>
+                                {item.targetState === 'in_progress' && t('remainingDaysToTarget', { days: item.remainingDays ?? item.remainingDaysToTarget ?? 0 })}
+                                {item.targetState === 'beyond_target' && t('daysBeyondTarget', { days: item.daysBeyond ?? item.daysBeyondTarget ?? 0 })}
+                                {item.targetState === 'target_reached' && t('targetStateReached')}
+                                {item.targetState === 'new' && t('targetStateNew')}
+                              </span>
+                              <span className="font-medium text-gray-700">
+                                {Math.round(item.progressPercentage ?? item.targetProgressPercentage ?? 0)}%
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {!isActive && (
+                          <button
+                            type="button"
+                            className="w-full mt-2 flex items-center justify-center gap-2 p-2 bg-teal-50 hover:bg-teal-100 rounded-lg text-sm font-medium text-teal-800 transition-colors border border-teal-200"
+                            onClick={() => setBenchmarkModalItem(item)}
+                          >
+                            <IoScaleOutline className="text-base" /> {t('benchmarkReplacement')}
+                          </button>
+                        )}
+
+                        {/* Action Row: Edit & Delete */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleEditItem(item);
+                            }}
+                          >
+                            <IoPencilOutline className="text-base" /> {t('edit')}
+                          </button>
+                          <button
+                            type="button"
+                            className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-600 transition-colors"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setItemToDelete(item);
+                            }}
+                          >
+                            <IoTrashOutline className="text-base" /> {t('deleteItem')}
+                          </button>
                         </div>
-                      )}
-
-                      {item.targetType && (
-                        <div className="rounded-lg bg-slate-50 border border-slate-200/80 p-3 space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-medium text-gray-700">{t('targetMilestone')}</span>
-                            <span className="text-gray-500">
-                              {item.targetCostPerDay && `${formatCurrency(item.targetCostPerDay, currencyCode)}/day`}
-                              {item.targetDurationDays && ` (~${item.targetDurationDays} days)`}
-                            </span>
-                          </div>
-
-                          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-2 rounded-full transition-all duration-300 ${
-                                item.targetState === 'beyond_target'
-                                  ? 'bg-teal-700'
-                                  : item.targetState === 'target_reached'
-                                    ? 'bg-emerald-500'
-                                    : 'bg-amber-500'
-                              }`}
-                              style={{ width: `${Math.min(100, Math.max(0, item.progressPercentage ?? item.targetProgressPercentage ?? 0))}%` }}
-                            ></div>
-                          </div>
-
-                          <div className="text-xs text-gray-500 flex justify-between items-center">
-                            <span>
-                              {item.targetState === 'in_progress' && t('remainingDaysToTarget', { days: item.remainingDays ?? item.remainingDaysToTarget ?? 0 })}
-                              {item.targetState === 'beyond_target' && t('daysBeyondTarget', { days: item.daysBeyond ?? item.daysBeyondTarget ?? 0 })}
-                              {item.targetState === 'target_reached' && t('targetStateReached')}
-                              {item.targetState === 'new' && t('targetStateNew')}
-                            </span>
-                            <span className="font-medium text-gray-700">
-                              {Math.round(item.progressPercentage ?? item.targetProgressPercentage ?? 0)}%
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {!isActive && (
-                        <button
-                          type="button"
-                          className="w-full mt-2 flex items-center justify-center gap-2 p-2 bg-teal-50 hover:bg-teal-100 rounded-lg text-sm font-medium text-teal-800 transition-colors border border-teal-200"
-                          onClick={() => setBenchmarkModalItem(item)}
-                        >
-                          <IoScaleOutline className="text-base" /> {t('benchmarkReplacement')}
-                        </button>
-                      )}
-
-                      {/* Action Row: Edit & Delete */}
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          type="button"
-                          className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleEditItem(item);
-                          }}
-                        >
-                          <IoPencilOutline className="text-base" /> {t('edit')}
-                        </button>
-                        <button
-                          type="button"
-                          className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-600 transition-colors"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setItemToDelete(item);
-                          }}
-                        >
-                          <IoTrashOutline className="text-base" /> {t('deleteItem')}
-                        </button>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
