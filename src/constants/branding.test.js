@@ -4,6 +4,7 @@ import {
   PRODUCT_TAGLINE,
   PRODUCT_DESCRIPTION,
   PRODUCT_EXPORT_PREFIX,
+  APP_VERSION,
 } from './branding';
 
 describe('branding constants', () => {
@@ -23,5 +24,11 @@ describe('branding constants', () => {
 
   it('defines the product export prefix', () => {
     expect(PRODUCT_EXPORT_PREFIX).toBe('worthwhile-export');
+  });
+
+  it('defines the application version matching semver format', () => {
+    expect(APP_VERSION).toBeDefined();
+    expect(typeof APP_VERSION).toBe('string');
+    expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
