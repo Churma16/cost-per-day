@@ -12,6 +12,7 @@ import {
   updateValueEquivalent,
   deleteValueEquivalent
 } from '../services/api';
+import { queryKeys } from '../query/queryConfig';
 
 vi.mock('../services/api', () => ({
   getAllValueEquivalents: vi.fn(),
@@ -94,6 +95,24 @@ describe('ValueEquivalentsContext', () => {
       expect(screen.getByTestId('equivalents-count')).toHaveTextContent('1');
       expect(screen.getByTestId('item-1')).toHaveTextContent('Gorengan: 2500 IDR');
     });
+  });
+
+  it('keeps cached equivalents visible when a background refresh fails', () => {
+    const cachedEquivalents = [
+      { id: 'cached-1', name: 'Coffee', amount: 15000, currencyCode: 'IDR' }
+    ];
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.valueEquivalents, cachedEquivalents, { updatedAt: 1 });
+    getAllValueEquivalents.mockRejectedValue(new Error('Temporary network failure'));
+
+    testingLibraryRender(
+      <QueryClientProvider client={queryClient}>
+        <ValueEquivalentsProvider><TestConsumer /></ValueEquivalentsProvider>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByTestId('item-cached-1')).toHaveTextContent('Coffee: 15000 IDR');
+    expect(screen.queryByTestId('error-message')).not.toBeInTheDocument();
   });
 
   it('adds, edits, and removes value equivalents optimistically/server updated', async () => {

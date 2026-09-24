@@ -56,7 +56,8 @@ function AddItem() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { currencyCode, currencySymbol } = useCurrency();
-  const { data: items = [], isLoading: itemsLoading, error: itemsError } = useItems();
+  const { data: itemsData, isLoading: itemsLoading, error: itemsError } = useItems();
+  const items = itemsData ?? [];
   const completedItems = items.filter((candidate) => candidate.status && candidate.status !== 'active');
   const invalidateItems = useInvalidateItems();
   const { data: availableCategories = [] } = useCategories();
@@ -115,7 +116,7 @@ function AddItem() {
 
       if (itemsLoading || itemLoaded) return;
 
-      if (itemsError) {
+      if (itemsError && itemsData === undefined) {
         setErrorMessage(itemsError.message || 'Failed to load item. Please check your connection and try again.');
         setLoadFailed(true);
         return;
@@ -154,7 +155,7 @@ function AddItem() {
         setLoadFailed(true);
         setItemLoaded(false);
       }
-  }, [location.pathname, location.search, navigate, items, itemsLoading, itemsError, itemLoaded]);
+  }, [location.pathname, location.search, navigate, items, itemsData, itemsLoading, itemsError, itemLoaded]);
 
   // Close desktop date picker when clicking outside
   useEffect(() => {

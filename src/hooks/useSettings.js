@@ -23,11 +23,16 @@ export const useUpdateSetting = () => {
         ...settings,
         [key]: value,
       }));
-      return { previousSettings };
+      return {
+        previousSettings,
+        hadPreviousSettings: previousSettings !== undefined,
+      };
     },
     onError: (_error, _variables, context) => {
-      if (context?.previousSettings) {
+      if (context?.hadPreviousSettings) {
         queryClient.setQueryData(queryKeys.settings, context.previousSettings);
+      } else {
+        queryClient.removeQueries({ queryKey: queryKeys.settings, exact: true });
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),

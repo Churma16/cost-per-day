@@ -8,6 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { addItem, updateItem, getAllItems } from '../services/api';
 import { useReplacementBenchmark } from '../hooks/useBenchmark';
+import { queryKeys } from '../query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -303,6 +304,34 @@ describe('AddItem component date localization', () => {
     expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toHaveTextContent('Unable to load item.');
     expect(screen.queryByRole('button', { name: 'Delete Item' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  test('populates edit form from cached items when a background refresh fails', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const cachedItem = {
+      id: 'cached-edit-1',
+      name: 'Cached Laptop',
+      price: 1200,
+      purchaseDate: '2026-09-01T12:00:00.000Z',
+      status: 'active',
+      category: 'Tech',
+      brand: 'Example',
+    };
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, [cachedItem], { updatedAt: 1 });
+    getAllItems.mockRejectedValue(new Error('Temporary network failure'));
+
+    testingLibraryRender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/edit?id=cached-edit-1']}>
+          <AddItem />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByDisplayValue('Cached Laptop')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
   test('creates a new item with ownership target configured', async () => {
