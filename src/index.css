@@ -587,23 +587,6 @@ header {
   width: 100%;
 }
 
-/* Page-specific padding classes */
-.home-page-content {
-  padding-top: 0;
-}
-
-.settings-page-content {
-  padding-top: 0;
-}
-
-.form-page-content {
-  padding-top: 0;
-}
-
-.planning-page-content {
-  padding-top: 0;
-}
-
 .app-footer {
   position: fixed;
   bottom: 0;
