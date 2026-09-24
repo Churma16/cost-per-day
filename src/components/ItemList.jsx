@@ -142,6 +142,52 @@ export const formatOwnershipDuration = (ownershipDays, unit = 'days', t, languag
   return `${days} ${daysLabel}`;
 };
 
+export function CalmCycleText({ text, hasCycled }) {
+  const [currentText, setCurrentText] = useState(text);
+  const [previousText, setPreviousText] = useState(null);
+  const [transitionKey, setTransitionKey] = useState(0);
+
+  useEffect(() => {
+    if (text !== currentText) {
+      setPreviousText(currentText);
+      setCurrentText(text);
+      setTransitionKey((previousIndex) => previousIndex + 1);
+
+      const timeoutIdentifier = setTimeout(() => {
+        setPreviousText(null);
+      }, 500);
+
+      return () => clearTimeout(timeoutIdentifier);
+    }
+  }, [text, currentText]);
+
+  if (!previousText || !hasCycled) {
+    return (
+      <span className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap">
+        {currentText}
+      </span>
+    );
+  }
+
+  return (
+    <span className="relative inline-flex items-center justify-end overflow-hidden">
+      <span
+        key={`outgoing-${transitionKey}`}
+        aria-hidden="true"
+        className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap animate-calm-cycle-exit pointer-events-none absolute right-0"
+      >
+        {previousText}
+      </span>
+      <span
+        key={`incoming-${transitionKey}`}
+        className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap animate-calm-cycle animate-calm-cycle-enter"
+      >
+        {currentText}
+      </span>
+    </span>
+  );
+}
+
 function ItemList() {
   const { t, i18n } = useTranslation();
   const [items, setItems] = useState([]);
@@ -372,6 +418,7 @@ function ItemList() {
                           const isInteractive = days >= 30;
                           const currentUnit = durationUnitByItemId[item.id] || 'days';
                           const displayDuration = formatOwnershipDuration(days, currentUnit, t, i18n?.language);
+                          const hasCycled = Boolean(durationUnitByItemId[item.id]);
 
                           return (
                             <button
@@ -383,7 +430,7 @@ function ItemList() {
                                   handleCycleDurationUnit(item.id, days);
                                 }
                               }}
-                              className={`w-full rounded-xl bg-[#F6F7F8] border border-[#E6E8EC] p-3 flex items-center justify-between text-xs transition-colors duration-200 text-left ${
+                              className={`w-full rounded-xl bg-[#F6F7F8] border border-[#E6E8EC] p-3 flex items-center justify-between text-xs transition-[background-color] duration-300 text-left ${
                                 isInteractive
                                   ? 'hover:bg-[#EEF0F3] cursor-pointer'
                                   : 'cursor-default'
@@ -395,7 +442,7 @@ function ItemList() {
                                 <span>{t('ownedFor')}</span>
                                 {isInteractive && (
                                   <IoSyncOutline
-                                    className="text-xs text-[#6F7782] transition-transform duration-300 ease-out"
+                                    className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
                                     style={{
                                       transform: `rotate(${syncRotationByItemId[item.id] || 0}deg)`
                                     }}
@@ -403,16 +450,7 @@ function ItemList() {
                                   />
                                 )}
                               </div>
-                              <span className="overflow-hidden inline-flex items-center">
-                                <span
-                                  key={durationUnitByItemId[item.id] ? displayDuration : 'initial'}
-                                  className={`inline-block font-semibold text-[#20242A] text-sm tabular-nums ${
-                                    durationUnitByItemId[item.id] ? 'animate-calm-cycle' : ''
-                                  }`}
-                                >
-                                  {displayDuration}
-                                </span>
-                              </span>
+                              <CalmCycleText text={displayDuration} hasCycled={hasCycled} />
                             </button>
                           );
                         })()}

@@ -6,7 +6,8 @@ import ItemList, {
   getCategoryIconInfo,
   getStatusBadgeStyle,
   getNextDurationUnit,
-  formatOwnershipDuration
+  formatOwnershipDuration,
+  CalmCycleText
 } from './ItemList';
 import { getAllItems, deleteItem } from '../services/api';
 import { useTotalCost } from '../contexts/TotalCostContext';
@@ -449,5 +450,15 @@ describe('ItemList lifecycle display', () => {
     const mockTId = (key) => ({ unitDays: 'hari', unitMonths: 'bulan', unitYears: 'tahun' }[key] || key);
     expect(formatOwnershipDuration(200, 'months', mockTId, 'id')).toBe('~6,6 bulan');
     expect(formatOwnershipDuration(998, 'years', mockTId, 'id')).toBe('~2,7 tahun');
+  });
+
+  test('CalmCycleText renders dual layers on transition', () => {
+    const { rerender } = render(<CalmCycleText text="200 days" hasCycled={false} />);
+    expect(screen.getByText('200 days')).toBeInTheDocument();
+    expect(screen.getByText('200 days')).not.toHaveClass('animate-calm-cycle-enter');
+
+    rerender(<CalmCycleText text="~6.6 months" hasCycled={true} />);
+    expect(screen.getByText('~6.6 months')).toHaveClass('animate-calm-cycle-enter');
+    expect(screen.getByText('200 days')).toHaveClass('animate-calm-cycle-exit');
   });
 });
