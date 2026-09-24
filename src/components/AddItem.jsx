@@ -206,9 +206,14 @@ function AddItem() {
 
   const numericPrice = Number(price);
   const numericTargetValue = Number(targetValue);
+  const hasValidTarget = targetType !== 'none' &&
+    targetValue !== '' &&
+    Number.isFinite(numericTargetValue) &&
+    numericTargetValue > 0;
+
   const targetFormValid = targetMode === 'benchmark' ||
     targetType === 'none' ||
-    (targetValue !== '' && Number.isFinite(numericTargetValue) && numericTargetValue > 0);
+    hasValidTarget;
 
   const isFormValid = name.trim() !== '' &&
                      numericPrice > 0 &&
@@ -261,9 +266,9 @@ function AddItem() {
       itemData.salePrice = status === 'sold' ? Number(salePrice) : null;
     }
 
-    if (targetMode === 'manual' && targetType !== 'none' && targetValue !== '') {
+    if (hasValidTarget) {
       itemData.targetType = targetType;
-      itemData.targetValue = Number(targetValue);
+      itemData.targetValue = numericTargetValue;
     } else {
       itemData.targetType = null;
       itemData.targetValue = null;

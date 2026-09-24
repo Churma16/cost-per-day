@@ -363,10 +363,12 @@ function ItemList() {
                   id={`item-details-${item.id}`}
                   role="region"
                   aria-labelledby={`item-trigger-${item.id}`}
-                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+                  aria-hidden={expandedItem !== item.id}
+                  inert={expandedItem !== item.id}
+                  className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none ${
                     expandedItem === item.id
-                      ? 'grid-rows-[1fr] opacity-100'
-                      : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                      ? 'grid-rows-[1fr] opacity-100 visible'
+                      : 'grid-rows-[0fr] opacity-0 pointer-events-none invisible'
                   }`}
                 >
                   <div className="overflow-hidden">
@@ -406,6 +408,7 @@ function ItemList() {
                           return (
                             <button
                               type="button"
+                              tabIndex={expandedItem === item.id && isInteractive ? 0 : -1}
                               disabled={!isInteractive}
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -521,6 +524,7 @@ function ItemList() {
                         {!isActive && (
                           <button
                             type="button"
+                            tabIndex={expandedItem === item.id ? 0 : -1}
                             className="w-full mt-2 flex items-center justify-center gap-2 p-2 bg-teal-50 hover:bg-teal-100 rounded-lg text-sm font-medium text-teal-800 transition-colors border border-teal-200"
                             onClick={() => setBenchmarkModalItem(item)}
                           >
@@ -532,6 +536,7 @@ function ItemList() {
                         <div className="flex items-center gap-2 pt-1">
                           <button
                             type="button"
+                            tabIndex={expandedItem === item.id ? 0 : -1}
                             className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#F6F7F8] hover:bg-[#EEF0F3] border border-[#E6E8EC] rounded-lg text-sm font-medium text-[#20242A] transition-colors"
                             onClick={(event) => {
                               event.stopPropagation();
@@ -542,6 +547,7 @@ function ItemList() {
                           </button>
                           <button
                             type="button"
+                            tabIndex={expandedItem === item.id ? 0 : -1}
                             className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-600 transition-colors"
                             onClick={(event) => {
                               event.stopPropagation();

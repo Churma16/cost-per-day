@@ -204,6 +204,63 @@ describe('ItemList lifecycle display', () => {
     expect(triggerButton).toHaveAttribute('aria-expanded', 'false');
   });
 
+  test('removes collapsed-card actions from accessibility tree and keyboard reach until expanded', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'kbd-2',
+        name: 'Wireless Mouse',
+        price: 80,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 2,
+        ownershipDays: 60
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Wireless Mouse')).toBeInTheDocument();
+
+    const detailsRegion = document.getElementById('item-details-kbd-2');
+    expect(detailsRegion).toHaveAttribute('inert');
+    expect(detailsRegion).toHaveAttribute('aria-hidden', 'true');
+    expect(detailsRegion).toHaveClass('invisible');
+
+    // Inner action buttons are not reachable in accessibility tree when collapsed
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+
+    // Verify all buttons inside the collapsed region have tabIndex="-1"
+    const innerButtons = detailsRegion.querySelectorAll('button');
+    innerButtons.forEach((btn) => {
+      expect(btn).toHaveAttribute('tabindex', '-1');
+    });
+
+    // Expand the card
+    const triggerButton = screen.getByRole('button', { name: /Wireless Mouse/i });
+    fireEvent.click(triggerButton);
+
+    // Once expanded, details are visible, not inert, and action buttons are accessible and focusable
+    expect(detailsRegion).not.toHaveAttribute('inert');
+    expect(detailsRegion).toHaveAttribute('aria-hidden', 'false');
+    expect(detailsRegion).toHaveClass('visible');
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveAttribute('tabindex', '0');
+
+    // Collapse the card again
+    fireEvent.click(triggerButton);
+    expect(detailsRegion).toHaveAttribute('inert');
+    expect(detailsRegion).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
   test('displays personalized value equivalent on active item card when currency matches', async () => {
     useValueEquivalents.mockReturnValue({
       valueEquivalents: [

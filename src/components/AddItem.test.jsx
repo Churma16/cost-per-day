@@ -664,6 +664,57 @@ describe('AddItem component date localization', () => {
       }));
     });
   });
+
+  test('preserves existing ownership target on edit when user switches to benchmark mode without applying', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const existingItemWithTarget = {
+      id: 'item-edit-target',
+      name: 'Mechanical Keyboard',
+      price: 150,
+      purchaseDate: '2026-09-01T12:00:00Z',
+      status: 'active',
+      targetType: 'duration',
+      targetValue: 365,
+      grossCostPerDay: 5
+    };
+    getAllItems
+      .mockResolvedValueOnce([existingItemWithTarget])
+      .mockResolvedValueOnce([existingItemWithTarget]);
+    updateItem.mockResolvedValueOnce({ ...existingItemWithTarget });
+
+    render(
+      <MemoryRouter initialEntries={['/edit?id=item-edit-target']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByDisplayValue('Mechanical Keyboard')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('365')).toBeInTheDocument();
+
+    // Switch to benchmark tab to browse benchmarks
+    const fromCompletedItemButton = screen.getByRole('button', { name: 'Based on past item' });
+    fireEvent.click(fromCompletedItemButton);
+
+    // Save should remain enabled
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    expect(saveButton).toBeEnabled();
+
+    // Click Save without applying a benchmark
+    fireEvent.click(saveButton);
+
+    // Verify existing target is preserved rather than silently deleted
+    await waitFor(() => {
+      expect(updateItem).toHaveBeenCalledWith(
+        'item-edit-target',
+        expect.objectContaining({
+          name: 'Mechanical Keyboard',
+          price: 150,
+          targetType: 'duration',
+          targetValue: 365
+        })
+      );
+    });
+  });
 });
 
 
