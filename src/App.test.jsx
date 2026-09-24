@@ -63,15 +63,24 @@ describe('Header route isolation regression tests', () => {
     expect(pageHeaders).toHaveLength(0);
   });
 
-  test('renders exactly one fixed page-header on /planning', async () => {
+  test('renders clean header on /planning without page-header banner', async () => {
     window.history.pushState({}, '', '/planning');
     render(<App />);
     await waitFor(() => {
-      expect(document.querySelector('.page-header')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Planned Purchases');
     });
     const pageHeaders = document.querySelectorAll('.page-header');
-    expect(pageHeaders).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Planned Purchases');
+    expect(pageHeaders).toHaveLength(0);
+  });
+
+  test('renders clean header on /analytics without page-header banner', async () => {
+    window.history.pushState({}, '', '/analytics');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Durability & Ownership');
+    });
+    const pageHeaders = document.querySelectorAll('.page-header');
+    expect(pageHeaders).toHaveLength(0);
   });
 
   test('renders clean header on /add without page-header banner', async () => {

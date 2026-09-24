@@ -579,20 +579,10 @@ header {
 }
 
 /* Layout styles for consistent page structure */
-.page-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  padding-top: 16px;
-  background-image: linear-gradient(to right, #3b82f6, #8b5cf6);
-}
-
 .page-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 100px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   height: 100%;
   width: 100%;
 }
@@ -611,13 +601,7 @@ header {
 }
 
 .planning-page-content {
-  padding-top: 116px;
-}
-
-@media (min-width: 640px) {
-  .planning-page-content {
-    padding-top: 124px;
-  }
+  padding-top: 0;
 }
 
 .app-footer {
@@ -625,22 +609,13 @@ header {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 100px;
-  padding-bottom: 0;
-  z-index: 10;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 20;
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   background-color: rgba(255, 255, 255, 0.96);
   border-top: 1px solid #E6E8EC;
-}
-
-.footer-icon {
-  font-size: 1.75rem;
-  margin: 13px;
-}
-
-.footer-add-icon {
-  font-size: 2rem;
-  margin: 13px;
 }
 
 /* Calm Ownership Duration Cycling Animations (Dual-Layer 500ms) */

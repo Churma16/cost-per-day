@@ -33,65 +33,31 @@ const Header = () => {
   const { totalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
 
-  // Settings and form routes render their own dedicated headers to avoid duplicate/legacy banners
-  if (location.pathname === '/add' || location.pathname === '/edit' || location.pathname === '/settings') {
+  // Non-home routes render their own dedicated headers to maintain clean, predictable page shells
+  if (location.pathname !== '/') {
     return null;
   }
 
-  const isHomeRoute = location.pathname === '/';
-
-  const getTitle = () => {
-    switch (location.pathname) {
-      case '/settings':
-        return t('settings');
-      case '/planning':
-        return t('plannedPurchases');
-      case '/analytics':
-        return t('durabilityAndOwnership');
-      default:
-        return t('totalDailyCost');
-    }
-  };
-
-  // Home route uses a normal-flow hero header calibrated for #48 revamp
-  if (isHomeRoute) {
-    return (
-      <header
-        className="relative z-10 shadow-sm flex-shrink-0 text-white"
-        style={{
-          background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
-        }}
-      >
-        <div className="pt-3 pb-3 px-4 max-w-lg mx-auto">
-          <div>
-            <HeroCarousel />
-            {/* Supporting Context Row: Inside hero at the bottom with thin divider */}
-            <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center justify-between text-white/90 px-1">
-              <span className="text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
-              <span className="font-semibold text-base text-white tracking-tight tabular-nums">
-                {formatCurrency(totalDailyCost, currencyCode)}<span className="text-xs font-normal text-white/75">{t('perDay')}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
-  // Non-home routes preserve the existing fixed .page-header structure and top-spacing offsets until #52
   return (
-    <div
-      className="page-header relative text-white shadow-sm"
+    <header
+      className="relative z-10 shadow-sm flex-shrink-0 text-white"
       style={{
         background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
       }}
     >
-      <div className="text-center py-4 px-4">
-        <h1 className="text-2xl font-bold text-white">
-          {getTitle()}
-        </h1>
+      <div className="pt-3 pb-3 px-4 max-w-lg mx-auto">
+        <div>
+          <HeroCarousel />
+          {/* Supporting Context Row: Inside hero at the bottom with thin divider */}
+          <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center justify-between text-white/90 px-1">
+            <span className="text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
+            <span className="font-semibold text-base text-white tracking-tight tabular-nums">
+              {formatCurrency(totalDailyCost, currencyCode)}<span className="text-xs font-normal text-white/75">{t('perDay')}</span>
+            </span>
+          </div>
+        </div>
       </div>
-    </div>
+    </header>
   );
 };
 

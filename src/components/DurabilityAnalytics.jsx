@@ -50,7 +50,7 @@ function DurabilityAnalytics() {
   };
 
   return (
-    <div className="px-4 pb-12 space-y-6 max-w-4xl mx-auto durability-analytics-content">
+    <div className="px-4 pt-4 pb-12 space-y-6 max-w-4xl mx-auto durability-analytics-content">
       {/* Intro Header */}
       <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white shadow-sm space-y-2">
         <div className="flex items-center gap-2">
