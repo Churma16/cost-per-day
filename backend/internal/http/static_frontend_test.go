@@ -24,7 +24,7 @@ func setupStaticFrontendTestRouter(t *testing.T) *gin.Engine {
 		t.Fatalf("write test index: %v", writeError)
 	}
 
-	assetDirectory := filepath.Join(staticDirectory, "static")
+	assetDirectory := filepath.Join(staticDirectory, "assets")
 	if makeDirectoryError := os.MkdirAll(assetDirectory, 0o755); makeDirectoryError != nil {
 		t.Fatalf("create test asset directory: %v", makeDirectoryError)
 	}
@@ -75,7 +75,7 @@ func TestStaticFrontendServesAssetsAndSPAFallback(t *testing.T) {
 		},
 		{
 			name:             "compiled asset is served directly",
-			requestPath:      "/static/app.js",
+			requestPath:      "/assets/app.js",
 			expectedStatus:   http.StatusOK,
 			expectedBodyText: "console.log('asset')",
 		},
@@ -95,6 +95,22 @@ func TestStaticFrontendServesAssetsAndSPAFallback(t *testing.T) {
 				subTest.Fatalf("expected response to contain %q, got %q", testCase.expectedBodyText, responseRecorder.Body.String())
 			}
 		})
+	}
+}
+
+func TestStaticFrontendDoesNotFallbackMissingAssetsToIndex(t *testing.T) {
+	routerInstance := setupStaticFrontendTestRouter(t)
+
+	request := httptest.NewRequest(http.MethodGet, "/assets/missing-hash.js", nil)
+	responseRecorder := httptest.NewRecorder()
+
+	routerInstance.ServeHTTP(responseRecorder, request)
+
+	if responseRecorder.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", responseRecorder.Code)
+	}
+	if strings.Contains(responseRecorder.Body.String(), "production-spa") {
+		t.Fatal("missing asset was incorrectly handled by SPA fallback")
 	}
 }
 
