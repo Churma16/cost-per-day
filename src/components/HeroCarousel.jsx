@@ -268,7 +268,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       <div className="overflow-hidden w-full">
         <div
           className={`flex ${
-            prefersReducedMotion ? '' : 'transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]'
+            prefersReducedMotion ? '' : 'transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]'
           }`}
           style={{
             transform: `translateX(-${activeSlideIndex * 100}%)`,
@@ -315,7 +315,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
                 onClick={() => handleSelectSlide(slideIndex)}
                 aria-label={t('goToSlide', { number: slideIndex + 1 })}
                 aria-current={isSelected ? 'true' : undefined}
-                className={`h-1 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 ${
+                className={`h-1 rounded-full transition-all duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-white/50 ${
                   isSelected ? 'w-6 bg-white' : 'w-1.5 bg-white/30 hover:bg-white/60'
                 }`}
               />
