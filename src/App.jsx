@@ -61,8 +61,8 @@ const Header = () => {
         {location.pathname === '/' ? (
           <div>
             <HeroCarousel />
-            <div className="mt-4 pt-3 border-t border-white/10 inline-flex items-center justify-center gap-2 text-white/90">
-              <span className="text-xs uppercase tracking-wider font-medium text-white/75">{t('totalDailyCost')}:</span>
+            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between max-w-sm mx-auto text-white/90 px-1">
+              <span className="text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
               <span className="font-semibold text-base text-white tracking-tight tabular-nums">
                 {formatCurrency(totalDailyCost, currencyCode)}<span className="text-xs font-normal text-white/75">{t('perDay')}</span>
               </span>

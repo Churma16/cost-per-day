@@ -2,8 +2,8 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import ItemList from './ItemList';
-import { getAllItems } from '../services/api';
+import ItemList, { getCategoryIconInfo, getStatusBadgeStyle } from './ItemList';
+import { getAllItems, deleteItem } from '../services/api';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
@@ -52,14 +52,23 @@ vi.mock('react-i18next', () => ({
         targetMilestone: 'Target milestone',
         targetStateNew: 'New',
         targetStateReached: 'Target reached',
-        edit: 'Edit'
+        edit: 'Edit',
+        yourItems: 'Your Items',
+        sortedHighestCost: 'Sorted: highest cost',
+        ownedFor: 'Owned for',
+        deleteItem: 'Delete',
+        confirmDelete: 'Confirm Delete',
+        deleteConfirmation: 'Are you sure you want to delete this item? This action cannot be undone.',
+        cancel: 'Cancel',
+        confirm: 'Confirm'
       }[key] || key;
     }
   })
 }));
 
 vi.mock('../services/api', () => ({
-  getAllItems: vi.fn()
+  getAllItems: vi.fn(),
+  deleteItem: vi.fn()
 }));
 
 vi.mock('../contexts/TotalCostContext', () => ({
@@ -302,5 +311,92 @@ describe('ItemList lifecycle display', () => {
 
     expect(screen.getByText('14 days beyond target')).toBeInTheDocument();
     expect(screen.getByText('114%')).toBeInTheDocument();
+  });
+
+  test('renders section header and does not render redundant currentCostPerDay for active items', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: '1',
+        name: 'Jabra Elite 4',
+        price: 100,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 5
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Your Items')).toBeInTheDocument();
+    expect(screen.getByText('Sorted: highest cost')).toBeInTheDocument();
+    expect(screen.getByText('Jabra Elite 4')).toBeInTheDocument();
+    expect(screen.queryByText('Current cost per day')).not.toBeInTheDocument();
+  });
+
+  test('renders owned for duration and handles item deletion with confirmation dialog', async () => {
+    deleteItem.mockResolvedValueOnce(null);
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'item-del-1',
+        name: 'Desk Lamp',
+        price: 50,
+        purchaseDate: '2026-01-01T12:00:00Z',
+        status: 'active',
+        ownershipDays: 200,
+        grossCostPerDay: 0.25
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Desk Lamp')).toBeInTheDocument();
+
+    // Expand card
+    fireEvent.click(screen.getByText('Desk Lamp'));
+
+    expect(screen.getByText('Owned for')).toBeInTheDocument();
+    expect(screen.getByText('200 ownership days')).toBeInTheDocument();
+
+    // Click Delete to open confirmation
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
+    expect(screen.getByText(/Are you sure you want to delete this item\?/i)).toBeInTheDocument();
+
+    // Confirm deletion
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      expect(deleteItem).toHaveBeenCalledWith('item-del-1');
+    });
+  });
+
+  test('getCategoryIconInfo maps categories correctly', () => {
+    const audioInfo = getCategoryIconInfo('Audio', 'Headphones');
+    expect(audioInfo.containerClass).toContain('text-blue-600');
+
+    const monitorInfo = getCategoryIconInfo('Display', 'LG Monitor 24');
+    expect(monitorInfo.containerClass).toContain('text-indigo-600');
+
+    const laptopInfo = getCategoryIconInfo('Computer', 'Asus TUF Laptop');
+    expect(laptopInfo.containerClass).toContain('text-amber-600');
+
+    const genericInfo = getCategoryIconInfo(null, 'Backpack');
+    expect(genericInfo.containerClass).toContain('text-slate-500');
+  });
+
+  test('getStatusBadgeStyle returns restrained semantic classes', () => {
+    expect(getStatusBadgeStyle('active')).toContain('bg-emerald-50 text-emerald-700');
+    expect(getStatusBadgeStyle('sold')).toContain('bg-slate-100 text-slate-700');
+    expect(getStatusBadgeStyle('retired')).toContain('bg-stone-100 text-stone-600');
+    expect(getStatusBadgeStyle('lost')).toContain('bg-rose-50 text-rose-700');
   });
 });

@@ -12,6 +12,9 @@ const translation = {
 
   // Item List
   "noItems": "Belum ada barang",
+  "yourItems": "Barangmu",
+  "sortedHighestCost": "Urut: biaya tertinggi",
+  "ownedFor": "Menemanimu selama",
   "purchaseAmount": "Harga pembelian",
   "purchaseDate": "Tanggal pembelian",
   "daysAgo": "hari",
@@ -109,6 +112,16 @@ const translation = {
   "noInsightsYet": "Wawasan akan muncul seiring bertambahnya koleksi Anda",
   "insightsWelcomeTitle": "Kepemilikan Bijak",
   "insightsWelcomeCaption": "Lacak pembelian Anda dan amati bagaimana biaya hariannya berkembang seiring waktu.",
+  "insightTitleBiggestContributor": "Paling Berpengaruh Saat Ini",
+  "insightTitleBestValue": "Paling Banyak Memberi Nilai",
+  "insightTitleOwnershipCostTrend": "Makin Bernilai Seiring Waktu",
+  "insightTitleRecentPurchaseImpact": "Yang Mengubah Biaya Harianmu",
+  "insightTitleMilestone": "Sebuah Milestone Tercapai",
+  "insightTitlePortfolioMilestone": "Sebuah Milestone Koleksi",
+  "insightTitleEquivalent": "Kalau Dibandingkan dengan Hal Familiar",
+  "insightTitleTarget": "Menuju Targetmu",
+  "insightTitleBenchmark": "Kalau Kamu Menggantinya",
+  "insightTitleDurability": "Yang Bertahan Lebih Lama Untukmu",
 
   // Planned Purchases
   "plannedPurchases": "Pembelian Terencana",
