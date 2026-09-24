@@ -176,6 +176,11 @@ func registerStaticFrontend(routerEngine *gin.Engine, staticDirectory string) {
 			}
 		}
 
+		if requestPath == "/assets" || strings.HasPrefix(requestPath, "/assets/") {
+			context.Status(http.StatusNotFound)
+			return
+		}
+
 		context.File(indexPath)
 	})
 }

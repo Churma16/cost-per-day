@@ -90,6 +90,8 @@ The build files will be created in the `build` folder.
 
 The production Docker image contains both the Go backend and the compiled React frontend. The backend serves the SPA and API from the same origin, while SQLite is expected to live on a persistent mount outside the container filesystem.
 
+Worthwhile currently does not register a service worker. Production frontend updates therefore rely on the Nginx cache policy plus the runtime version check, with no competing service-worker cache or update strategy.
+
 See [docs/production.md](./docs/production.md) for the supported single-VPS topology, HTTPS requirements, persistent-volume permissions, backup/restore steps, upgrade behavior, and the remaining Google OIDC dependency.
 
 ## How to Use

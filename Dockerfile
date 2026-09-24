@@ -7,6 +7,9 @@ RUN npm ci
 
 COPY . .
 
+ARG VITE_APP_VERSION=development
+ENV VITE_APP_VERSION=${VITE_APP_VERSION}
+
 RUN npm run build
 
 FROM golang:1.25.5-alpine AS backend-build
