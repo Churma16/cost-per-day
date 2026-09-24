@@ -23,6 +23,7 @@ import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { formatCurrency } from '../utils/formatters';
 import { useInvalidateDashboard } from '../hooks/useDashboard';
 import { PRODUCT_EXPORT_PREFIX, APP_VERSION } from '../constants/branding';
+import CurrencyInput from './common/CurrencyInput';
 
 function Settings() {
   const { t } = useTranslation();
@@ -833,13 +834,11 @@ function Settings() {
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
                   {t('equivalentAmount')}
                 </label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0.000001"
+                <CurrencyInput
                   required
                   value={equivalentFormAmount}
                   onChange={(event) => setEquivalentFormAmount(event.target.value)}
+                  currencyCode={equivalentFormCurrency}
                   placeholder={t('enterEquivalentAmount')}
                   className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2F7473]/30 focus:border-[#2F7473]"
                 />

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import CurrencyInput from '../common/CurrencyInput';
 
 function ItemStatusCard({
   isEditMode,
@@ -13,6 +14,7 @@ function ItemStatusCard({
   purchaseDateValue,
   currentDateValue,
   currencySymbol,
+  currencyCode,
 }) {
   const { t } = useTranslation();
 
@@ -66,14 +68,12 @@ function ItemStatusCard({
           </label>
           <div className="relative">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{currencySymbol}</div>
-            <input
+            <CurrencyInput
               id="sale-price"
-              type="number"
               value={salePrice}
               onChange={(event) => onSalePriceChange(event.target.value)}
               required
-              min="0"
-              step="0.01"
+              currencyCode={currencyCode}
               placeholder={t('enterSalePrice')}
               className={`w-full px-3 py-2 ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'} rounded-xl border border-[#E6E8EC] bg-white focus:border-teal-600
               focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm`}

@@ -349,6 +349,7 @@ function AddItem() {
               purchaseDate={purchaseDate}
               onPurchaseDateChange={setPurchaseDate}
               currencySymbol={currencySymbol}
+              currencyCode={currencyCode}
               language={language}
               showDatePicker={showDatePicker}
               setShowDatePicker={setShowDatePicker}
@@ -388,6 +389,7 @@ function AddItem() {
               purchaseDateValue={purchaseDateValue}
               currentDateValue={currentDateValue}
               currencySymbol={currencySymbol}
+              currencyCode={currencyCode}
             />
 
             {/* Ownership Target Section Card */}

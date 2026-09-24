@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { DayPicker } from 'react-day-picker';
 import { IoCalendarOutline } from 'react-icons/io5';
 import { formatDisplayDate } from '../../utils/formatters';
+import CurrencyInput from '../common/CurrencyInput';
 
 const setToNoonUTC = (date) => {
   const newDate = new Date(date);
@@ -18,6 +19,7 @@ function ItemRequiredFieldsCard({
   purchaseDate,
   onPurchaseDateChange,
   currencySymbol,
+  currencyCode,
   language,
   showDatePicker,
   setShowDatePicker,
@@ -56,13 +58,11 @@ function ItemRequiredFieldsCard({
         </label>
         <div className="relative">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{currencySymbol}</div>
-          <input
-            type="number"
+          <CurrencyInput
             value={price}
             onChange={(event) => onPriceChange(event.target.value)}
             required
-            min="0.01"
-            step="0.01"
+            currencyCode={currencyCode}
             placeholder={t('enterPrice')}
             className={`w-full px-3 py-2 ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'} rounded-xl border border-[#E6E8EC] focus:border-teal-600 
             focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm`}

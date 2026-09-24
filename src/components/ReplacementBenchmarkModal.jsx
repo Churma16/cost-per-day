@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useReplacementBenchmark } from '../hooks/useBenchmark';
 import { formatCurrency } from '../utils/formatters';
+import CurrencyInput from './common/CurrencyInput';
 
 function ReplacementBenchmarkModal({
   isOpen,
@@ -154,13 +155,11 @@ function ReplacementBenchmarkModal({
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
               {currencySymbol}
             </div>
-            <input
+            <CurrencyInput
               id="candidate-replacement-price"
-              type="number"
               value={candidatePriceInput}
               onChange={handleCandidatePriceChange}
-              min="0.01"
-              step="0.01"
+              currencyCode={currencyCode}
               placeholder={t('enterCandidatePrice')}
               className={`w-full px-3 py-2 ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'} rounded-xl border border-[#E6E8EC] focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm`}
             />
