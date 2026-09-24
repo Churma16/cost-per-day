@@ -81,6 +81,7 @@ describe('PlannedPurchases Component', () => {
   let queryClient;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.restoreAllMocks();
     queryClient = new QueryClient({
       defaultOptions: {
@@ -232,6 +233,33 @@ describe('PlannedPurchases Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/720 days/i)).toBeInTheDocument();
     });
+  });
+
+  it('rejects non-empty recurring contribution of 0 and shows validation error without saving', async () => {
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /new plan/i }));
+
+    const nameInput = screen.getByLabelText(/target item name/i);
+    const priceInput = screen.getByLabelText(/target price/i);
+    const contributionInput = screen.getByLabelText(/recurring contribution/i);
+
+    fireEvent.change(nameInput, { target: { value: 'Headphones' } });
+    fireEvent.change(priceInput, { target: { value: '1000000' } });
+    fireEvent.change(contributionInput, { target: { value: '0' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+
+    expect(plannedPurchaseService.createPlannedPurchase).not.toHaveBeenCalled();
   });
 
   it('renders planned purchase cards with clean rounded periods and no long decimals', async () => {

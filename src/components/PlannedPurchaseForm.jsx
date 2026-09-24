@@ -145,7 +145,11 @@ function PlannedPurchaseForm({
     };
 
     if (planningMode === 'contributionToTime') {
-      if (contributionAmount !== '' && !isNaN(numericContributionAmount) && numericContributionAmount > 0) {
+      if (contributionAmount !== '') {
+        if (isNaN(numericContributionAmount) || numericContributionAmount <= 0) {
+          setValidationError(t('enterContributionAmount'));
+          return;
+        }
         payload.contributionAmount = numericContributionAmount;
         payload.contributionCadence = contributionCadence;
       }

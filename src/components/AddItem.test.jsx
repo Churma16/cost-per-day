@@ -296,6 +296,10 @@ describe('AddItem component date localization', () => {
 
   test('creates a new item with ownership target configured', async () => {
     useLanguage.mockReturnValue({ language: 'en' });
+    useCurrency.mockReturnValue({
+      currencySymbol: '$',
+      currencyCode: 'USD'
+    });
     addItem.mockResolvedValueOnce({ id: '100' });
 
     render(

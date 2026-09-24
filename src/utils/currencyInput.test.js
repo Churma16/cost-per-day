@@ -77,6 +77,34 @@ describe('currencyInput utilities', () => {
       expect(parseCurrencyInputValue('', 'IDR')).toBe('');
     });
 
+    it('handles sequential typing in IDR without corrupting numeric values when appending zeros', () => {
+      // User has '1.000' and types '0' -> browser value is '1.0000'
+      const parsedWithAppendedZero = parseCurrencyInputValue('1.0000', 'IDR');
+      expect(parsedWithAppendedZero).toBe('10000');
+      expect(Number(parsedWithAppendedZero)).toBe(10000);
+      expect(formatCurrencyInputValue(parsedWithAppendedZero, 'IDR')).toBe('10.000');
+
+      // User has '10.000' and types '0' -> browser value is '10.0000'
+      const parsedNextStep = parseCurrencyInputValue('10.0000', 'IDR');
+      expect(parsedNextStep).toBe('100000');
+      expect(Number(parsedNextStep)).toBe(100000);
+      expect(formatCurrencyInputValue(parsedNextStep, 'IDR')).toBe('100.000');
+
+      // User has '100.000' and types '0' -> browser value is '100.0000'
+      const parsedMillion = parseCurrencyInputValue('100.0000', 'IDR');
+      expect(parsedMillion).toBe('1000000');
+      expect(Number(parsedMillion)).toBe(1000000);
+      expect(formatCurrencyInputValue(parsedMillion, 'IDR')).toBe('1.000.000');
+    });
+
+    it('handles editing in the middle of a formatted IDR value without corruption', () => {
+      // Formatted value is '100.000'. User inserts '5' after '10' -> '1050.000'
+      const parsedMiddleEdit = parseCurrencyInputValue('1050.000', 'IDR');
+      expect(parsedMiddleEdit).toBe('1050000');
+      expect(Number(parsedMiddleEdit)).toBe(1050000);
+      expect(formatCurrencyInputValue(parsedMiddleEdit, 'IDR')).toBe('1.050.000');
+    });
+
     it('extracts raw numeric string for USD removing commas while keeping decimals', () => {
       expect(parseCurrencyInputValue('1,234.56', 'USD')).toBe('1234.56');
       expect(parseCurrencyInputValue('$1,500,000', 'USD')).toBe('1500000');

@@ -112,4 +112,68 @@ describe('CurrencyInput component', () => {
 
     expect(handleValueChange).toHaveBeenCalledWith('75000');
   });
+
+  it('handles sequential typing in IDR without corrupting numeric values when appending zeros', () => {
+    function SequentialTypingWrapper() {
+      const [amount, setAmount] = useState('1000');
+      return (
+        <CurrencyInput
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          currencyCode="IDR"
+          placeholder="Enter price"
+        />
+      );
+    }
+
+    render(<SequentialTypingWrapper />);
+    const inputElement = screen.getByPlaceholderText('Enter price');
+    expect(inputElement.value).toBe('1.000');
+
+    // User types '0' at the end of '1.000' -> native input value is '1.0000'
+    fireEvent.change(inputElement, { target: { value: '1.0000' } });
+    expect(inputElement.value).toBe('10.000');
+
+    // User types another '0' at the end of '10.000' -> native input value is '10.0000'
+    fireEvent.change(inputElement, { target: { value: '10.0000' } });
+    expect(inputElement.value).toBe('100.000');
+  });
+
+  it('handles editing in the middle of a formatted IDR value', () => {
+    function MiddleEditingWrapper() {
+      const [amount, setAmount] = useState('100000');
+      return (
+        <CurrencyInput
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          currencyCode="IDR"
+          placeholder="Enter price"
+        />
+      );
+    }
+
+    render(<MiddleEditingWrapper />);
+    const inputElement = screen.getByPlaceholderText('Enter price');
+    expect(inputElement.value).toBe('100.000');
+
+    // User inserts '5' after '10' -> native input value is '1050.000'
+    fireEvent.change(inputElement, { target: { value: '1050.000' } });
+    expect(inputElement.value).toBe('1.050.000');
+  });
+
+  it('forwards min and max attributes to the underlying input element', () => {
+    render(
+      <CurrencyInput
+        value=""
+        currencyCode="USD"
+        placeholder="Enter price"
+        min="0.01"
+        max="9999"
+      />
+    );
+
+    const inputElement = screen.getByPlaceholderText('Enter price');
+    expect(inputElement).toHaveAttribute('min', '0.01');
+    expect(inputElement).toHaveAttribute('max', '9999');
+  });
 });

@@ -117,6 +117,8 @@ function CurrencyInput({
       required={required}
       disabled={disabled}
       autoFocus={autoFocus}
+      min={min}
+      max={max}
       className={className}
       {...otherProps}
     />

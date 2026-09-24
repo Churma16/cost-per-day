@@ -28,6 +28,7 @@ export const getCurrencyInputSeparators = (currencyIdentifier) => {
 
 /**
  * Strips formatting characters to produce a clean raw numeric string suitable for backend and mathematical operations.
+ * For IDR, dots '.' are grouping separators and are always stripped so digits-only are emitted.
  */
 export const parseCurrencyInputValue = (formattedDisplayValue, currencyIdentifier) => {
   if (formattedDisplayValue === undefined || formattedDisplayValue === null) {
@@ -39,40 +40,15 @@ export const parseCurrencyInputValue = (formattedDisplayValue, currencyIdentifie
     return '';
   }
 
-  const normalizedCode = normalizeCurrencyCode(currencyIdentifier);
+  const separatorConfiguration = getCurrencyInputSeparators(currencyIdentifier);
 
-  if (normalizedCode === 'IDR') {
-    const cleanedString = stringValue.replace(/[^\d.,]/g, '');
-    if (cleanedString === '') {
+  if (!separatorConfiguration.supportsDecimals) {
+    // For currencies without decimals (IDR), all non-digits (including dots) are strictly grouping/non-numeric.
+    // Never infer decimal semantics from a single dot.
+    const digitsOnlyString = stringValue.replace(/\D/g, '');
+    if (digitsOnlyString === '') {
       return '';
     }
-
-    // Indonesian decimal separator ',' (comma) e.g. "1.500,50" or "1,5"
-    if (cleanedString.includes(',')) {
-      const parts = cleanedString.split(',');
-      const integerPart = parts[0].replace(/\./g, '');
-      const decimalPart = parts.slice(1).join('');
-      const normalizedNumberString = `${integerPart}.${decimalPart}`.replace(/^0+(?=\d)/, '');
-      return normalizedNumberString;
-    }
-
-    // Handle dots
-    if (cleanedString.includes('.')) {
-      const dotParts = cleanedString.split('.');
-      // Multiple dots (e.g. "15.000.000") are thousand separators
-      if (dotParts.length > 2) {
-        return cleanedString.replace(/\./g, '').replace(/^0+(?=\d)/, '');
-      }
-      // Single dot: if followed by exactly 3 digits (e.g. "1.000"), it's a thousand separator
-      if (dotParts[1].length === 3) {
-        return cleanedString.replace(/\./g, '').replace(/^0+(?=\d)/, '');
-      }
-      // Single dot followed by 1 or 2 digits (e.g. "1.5" or "1.25") is a decimal
-      const normalizedInteger = dotParts[0].replace(/^0+(?=\d)/, '') || '0';
-      return `${normalizedInteger}.${dotParts[1]}`;
-    }
-
-    const digitsOnlyString = cleanedString.replace(/\D/g, '');
     return digitsOnlyString.replace(/^0+(?=\d)/, '');
   }
 
@@ -99,31 +75,24 @@ export const formatCurrencyInputValue = (rawNumericValue, currencyIdentifier) =>
     return '';
   }
 
-  const normalizedCode = normalizeCurrencyCode(currencyIdentifier);
+  const separatorConfiguration = getCurrencyInputSeparators(currencyIdentifier);
   const rawString = String(rawNumericValue).trim();
 
   if (rawString === '') {
     return '';
   }
 
-  if (normalizedCode === 'IDR') {
-    // If rawString contains a decimal point (e.g. "1.5" or "100.5")
-    if (rawString.includes('.')) {
-      const [integerSegment = '', decimalSegment = ''] = rawString.split('.');
-      const normalizedInteger = integerSegment.replace(/\D/g, '').replace(/^0+(?=\d)/, '') || '0';
-      const formattedInteger = normalizedInteger.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-      return decimalSegment !== undefined && decimalSegment !== ''
-        ? `${formattedInteger}.${decimalSegment}`
-        : `${formattedInteger}.`;
-    }
-
+  if (!separatorConfiguration.supportsDecimals) {
     const digitsOnlyString = rawString.replace(/\D/g, '');
     if (digitsOnlyString === '') {
       return '';
     }
 
     const normalizedIntegerString = digitsOnlyString.replace(/^0+(?=\d)/, '');
-    return normalizedIntegerString.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return normalizedIntegerString.replace(
+      /\B(?=(\d{3})+(?!\d))/g,
+      separatorConfiguration.groupSeparator
+    );
   }
 
   // Currencies with decimals (USD, EUR, CNY)
@@ -134,11 +103,10 @@ export const formatCurrencyInputValue = (rawNumericValue, currencyIdentifier) =>
   const normalizedIntegerString = integerSegment.replace(/^0+(?=\d)/, '') || '0';
   const formattedIntegerString = normalizedIntegerString.replace(
     /\B(?=(\d{3})+(?!\d))/g,
-    ','
+    separatorConfiguration.groupSeparator
   );
 
   if (decimalSegment !== undefined) {
-    const separatorConfiguration = getCurrencyInputSeparators(currencyIdentifier);
     const truncatedDecimalSegment = decimalSegment.slice(0, separatorConfiguration.fractionDigits);
     return `${formattedIntegerString}.${truncatedDecimalSegment}`;
   }
