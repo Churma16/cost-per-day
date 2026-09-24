@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { formatCurrency } from '../utils/formatters';
+import CurrencyInput from './common/CurrencyInput';
 
 const getTomorrowDateString = () => {
   const tomorrow = new Date();
@@ -191,13 +192,11 @@ function PlannedPurchaseForm({
           <label htmlFor="planned-purchase-price" className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
             {t('targetPrice')} *
           </label>
-          <input
+          <CurrencyInput
             id="planned-purchase-price"
-            type="number"
-            min="0.01"
-            step="any"
             value={targetPrice}
             onChange={(e) => setTargetPrice(e.target.value)}
+            currencyCode={currencyCode}
             placeholder={t('enterTargetPrice')}
             className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
             required
@@ -283,13 +282,11 @@ function PlannedPurchaseForm({
             <label htmlFor="contribution-amount" className="block text-xs font-medium text-teal-900">
               {t('recurringContribution')}
             </label>
-            <input
+            <CurrencyInput
               id="contribution-amount"
-              type="number"
-              min="0.01"
-              step="any"
               value={contributionAmount}
               onChange={(e) => setContributionAmount(e.target.value)}
+              currencyCode={currencyCode}
               placeholder={t('enterContributionAmount')}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white"
             />

@@ -365,7 +365,7 @@ describe('Settings component', () => {
     const amountInputElement = screen.getByPlaceholderText('e.g. 2500');
 
     expect(nameInputElement.value).toBe('Gorengan');
-    expect(amountInputElement.value).toBe('2500');
+    expect(amountInputElement.value).toBe('2.500');
 
     fireEvent.change(nameInputElement, { target: { value: 'Bakwan' } });
     fireEvent.change(amountInputElement, { target: { value: '3000' } });

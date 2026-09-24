@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../utils/formatters';
+import CurrencyInput from './common/CurrencyInput';
 import {
   IoTimeOutline,
   IoCalendarOutline,
@@ -201,12 +202,10 @@ function PlannedPurchaseCard({
                   <label className="block text-[11px] font-medium text-gray-700 mb-1">
                     {t('recurringContribution')}
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    step="any"
+                  <CurrencyInput
                     value={exploreContributionAmount}
                     onChange={(e) => setExploreContributionAmount(e.target.value)}
+                    currencyCode={currencyCode}
                     placeholder={t('enterContributionAmount')}
                     className="w-full rounded border border-gray-300 p-1.5 text-xs bg-white focus:outline-none focus:border-teal-500"
                   />

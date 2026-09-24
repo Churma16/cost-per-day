@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'motion/react';
 import { IoScaleOutline } from 'react-icons/io5';
 import { formatCurrency } from '../../utils/formatters';
+import CurrencyInput from '../common/CurrencyInput';
 
 function ItemOwnershipTargetCard({
   targetMode,
@@ -120,18 +121,31 @@ function ItemOwnershipTargetCard({
                           {currencySymbol}
                         </div>
                       )}
-                      <input
-                        id="item-target-value"
-                        type="number"
-                        value={targetValue}
-                        onChange={(event) => onTargetValueChange(event.target.value)}
-                        required={targetMode === 'manual' && targetType !== 'none'}
-                        min={targetType === 'duration' ? '1' : '0.01'}
-                        step={targetType === 'duration' ? '1' : '0.01'}
-                        placeholder={targetType === 'cost_per_day' ? t('enterTargetCostPerDay') : t('enterTargetDuration')}
-                        className={`w-full px-3 py-2 ${targetType === 'cost_per_day' ? (currencySymbol.length > 1 ? 'pl-9' : 'pl-7') : ''} rounded-xl border border-[#E6E8EC] bg-white focus:border-teal-600
-                        focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm`}
-                      />
+                      {targetType === 'cost_per_day' ? (
+                        <CurrencyInput
+                          id="item-target-value"
+                          value={targetValue}
+                          onChange={(event) => onTargetValueChange(event.target.value)}
+                          required={targetMode === 'manual' && targetType !== 'none'}
+                          currencyCode={currencyCode}
+                          placeholder={t('enterTargetCostPerDay')}
+                          className={`w-full px-3 py-2 ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'} rounded-xl border border-[#E6E8EC] bg-white focus:border-teal-600
+                          focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm`}
+                        />
+                      ) : (
+                        <input
+                          id="item-target-value"
+                          type="number"
+                          value={targetValue}
+                          onChange={(event) => onTargetValueChange(event.target.value)}
+                          required={targetMode === 'manual' && targetType !== 'none'}
+                          min="1"
+                          step="1"
+                          placeholder={t('enterTargetDuration')}
+                          className="w-full px-3 py-2 rounded-xl border border-[#E6E8EC] bg-white focus:border-teal-600
+                          focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm"
+                        />
+                      )}
                     </div>
                     {equivalentTargetNote && (
                       <p className="text-[11px] font-medium text-teal-700 pt-0.5">
