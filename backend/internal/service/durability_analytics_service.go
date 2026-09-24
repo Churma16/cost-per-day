@@ -305,10 +305,15 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 
 		// Find longest lasting brand and lowest cost brand ONLY from brands satisfying the pattern threshold (isPattern == true / sampleSize >= 2)
 		// AND require at least 2 pattern brands in the category to allow comparison
+		// AND require a unique winner (no tie at rounded precision)
 		var longestLastingBrand *string
-		var maxLifetime float64
+		var maxLifetime float64 = -1
+		var isLifetimeTied bool
+
 		var lowestCostBrand *string
 		var minCost float64 = math.MaxFloat64
+		var isCostTied bool
+
 		var patternBrandCount int
 
 		for _, brandInsight := range brandInsights {
@@ -316,32 +321,50 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 				continue
 			}
 			patternBrandCount++
+
 			if brandInsight.AverageLifetimeDays > maxLifetime {
 				maxLifetime = brandInsight.AverageLifetimeDays
 				longestBrandName := brandInsight.Brand
 				longestLastingBrand = &longestBrandName
+				isLifetimeTied = false
+			} else if brandInsight.AverageLifetimeDays == maxLifetime && maxLifetime > 0 {
+				isLifetimeTied = true
 			}
+
 			if brandInsight.AverageFinalCostPerDay < minCost {
 				minCost = brandInsight.AverageFinalCostPerDay
 				lowestCostBrandName := brandInsight.Brand
 				lowestCostBrand = &lowestCostBrandName
+				isCostTied = false
+			} else if brandInsight.AverageFinalCostPerDay == minCost && minCost < math.MaxFloat64 {
+				isCostTied = true
 			}
 		}
 
-		if patternBrandCount < 2 {
+		if patternBrandCount < 2 || isLifetimeTied {
 			longestLastingBrand = nil
+		}
+		if patternBrandCount < 2 || isCostTied {
 			lowestCostBrand = nil
 		}
 
 		// Generate objective comparison summary
 		var comparisonSummary string
-		if patternBrandCount >= 2 && longestLastingBrand != nil && lowestCostBrand != nil {
-			if *longestLastingBrand == *lowestCostBrand {
-				comparisonSummary = fmt.Sprintf("In your history for %s, %s lasted the longest (%.0f days avg) and also delivered the lowest final cost (%.2f/day).",
-					categoryName, *longestLastingBrand, maxLifetime, minCost)
-			} else {
-				comparisonSummary = fmt.Sprintf("In your history for %s, %s lasted longest (%.0f days avg), while %s achieved the lowest cost per day (%.2f/day).",
-					categoryName, *longestLastingBrand, maxLifetime, *lowestCostBrand, minCost)
+		if patternBrandCount >= 2 {
+			if longestLastingBrand != nil && lowestCostBrand != nil {
+				if *longestLastingBrand == *lowestCostBrand {
+					comparisonSummary = fmt.Sprintf("In your history for %s, %s lasted the longest (%.0f days avg) and also delivered the lowest final cost (%.2f/day).",
+						categoryName, *longestLastingBrand, maxLifetime, minCost)
+				} else {
+					comparisonSummary = fmt.Sprintf("In your history for %s, %s lasted longest (%.0f days avg), while %s achieved the lowest cost per day (%.2f/day).",
+						categoryName, *longestLastingBrand, maxLifetime, *lowestCostBrand, minCost)
+				}
+			} else if longestLastingBrand != nil {
+				comparisonSummary = fmt.Sprintf("In your history for %s, %s lasted longest (%.0f days avg).",
+					categoryName, *longestLastingBrand, maxLifetime)
+			} else if lowestCostBrand != nil {
+				comparisonSummary = fmt.Sprintf("In your history for %s, %s achieved the lowest cost per day (%.2f/day).",
+					categoryName, *lowestCostBrand, minCost)
 			}
 		} else if len(brandInsights) == 1 {
 			comparisonSummary = brandInsights[0].ObservationText
@@ -365,25 +388,31 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 
 	// 4. Identify most frequently replaced category only when there is sufficient replacement evidence (completedCount >= 2 and interval calculated)
 	// AND require at least 2 eligible categories with replacement-interval evidence to allow comparison
+	// AND require a unique winner (no tie at rounded precision)
 	var mostFrequentlyReplacedCategory *domain.FrequentlyReplacedCategory
 	var bestReplacementScore float64 = math.MaxFloat64
 	var eligibleCategoryCount int
+	var isCategoryTied bool
 
 	for _, categoryInsight := range categoryInsights {
 		if categoryInsight.CompletedCount >= 2 && categoryInsight.TypicalReplacementIntervalDays != nil && *categoryInsight.TypicalReplacementIntervalDays > 0 {
 			eligibleCategoryCount++
-			if *categoryInsight.TypicalReplacementIntervalDays < bestReplacementScore {
-				bestReplacementScore = *categoryInsight.TypicalReplacementIntervalDays
+			interval := *categoryInsight.TypicalReplacementIntervalDays
+			if interval < bestReplacementScore {
+				bestReplacementScore = interval
+				isCategoryTied = false
 				mostFrequentlyReplacedCategory = &domain.FrequentlyReplacedCategory{
 					Category:                       categoryInsight.Category,
 					CompletedCount:                 categoryInsight.CompletedCount,
 					TypicalReplacementIntervalDays: categoryInsight.TypicalReplacementIntervalDays,
 				}
+			} else if interval == bestReplacementScore && bestReplacementScore < math.MaxFloat64 {
+				isCategoryTied = true
 			}
 		}
 	}
 
-	if eligibleCategoryCount < 2 {
+	if eligibleCategoryCount < 2 || isCategoryTied {
 		mostFrequentlyReplacedCategory = nil
 	}
 

@@ -533,3 +533,350 @@ func TestDurabilityAnalytics_UnbrandedExcludedFromWinners(t *testing.T) {
 		t.Errorf("expected LowestCostBrand to be nil for unbranded items, got %s", *kitchenCategory.LowestCostBrand)
 	}
 }
+
+// 8. Two pattern brands with equal average lifetime (lifetime tied, unique cost winner)
+func TestDurabilityAnalytics_TwoPatternBrandsEqualLifetime_CostUniqueWinner(t *testing.T) {
+	testContext := context.Background()
+	testUserID := "user-tied-lifetime"
+
+	itemRepository := memory.NewMemoryItemRepository()
+	categoryRepository := memory.NewMemoryCategoryRepository()
+	brandRepository := memory.NewMemoryBrandRepository()
+
+	durabilityService := service.NewDurabilityAnalyticsService(itemRepository, categoryRepository, brandRepository)
+
+	categoryAudio := "Audio"
+	brandSony := "Sony"
+	brandBose := "Bose"
+
+	// Both brands have 2 items lasting exactly 200 days each
+	// Sony: $200 price -> $1.00/day
+	sonyEndOne := "2023-07-20"
+	sonyEndTwo := "2024-07-19"
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-sony-tie-1",
+		UserID:       testUserID,
+		Name:         "Sony Tie 1",
+		Price:        200,
+		PurchaseDate: "2023-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &sonyEndOne,
+		Category:     &categoryAudio,
+		Brand:        &brandSony,
+	})
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-sony-tie-2",
+		UserID:       testUserID,
+		Name:         "Sony Tie 2",
+		Price:        200,
+		PurchaseDate: "2024-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &sonyEndTwo,
+		Category:     &categoryAudio,
+		Brand:        &brandSony,
+	})
+
+	// Bose: $100 price -> $0.50/day (cheaper)
+	boseEndOne := "2023-07-20"
+	boseEndTwo := "2024-07-19"
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-bose-tie-1",
+		UserID:       testUserID,
+		Name:         "Bose Tie 1",
+		Price:        100,
+		PurchaseDate: "2023-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &boseEndOne,
+		Category:     &categoryAudio,
+		Brand:        &brandBose,
+	})
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-bose-tie-2",
+		UserID:       testUserID,
+		Name:         "Bose Tie 2",
+		Price:        100,
+		PurchaseDate: "2024-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &boseEndTwo,
+		Category:     &categoryAudio,
+		Brand:        &brandBose,
+	})
+
+	analytics, err := durabilityService.CalculateDurabilityAnalytics(testContext, testUserID, "", "")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if len(analytics.Categories) != 1 {
+		t.Fatalf("expected 1 category, got %d", len(analytics.Categories))
+	}
+	audioCategory := analytics.Categories[0]
+
+	// Lifetime is tied -> LongestLastingBrand must remain nil (no arbitrary winner)
+	if audioCategory.LongestLastingBrand != nil {
+		t.Errorf("expected LongestLastingBrand to be nil on tied lifetime, got %s", *audioCategory.LongestLastingBrand)
+	}
+
+	// Cost has a unique winner -> Bose is lowest cost
+	if audioCategory.LowestCostBrand == nil {
+		t.Fatalf("expected LowestCostBrand to be Bose, got nil")
+	}
+	if *audioCategory.LowestCostBrand != brandBose {
+		t.Errorf("expected LowestCostBrand to be Bose, got %s", *audioCategory.LowestCostBrand)
+	}
+
+	// Comparison summary reflects the unique cost winner without manufacturing a lifetime winner
+	if !strings.Contains(audioCategory.ComparisonSummaryText, "Bose achieved the lowest cost per day") {
+		t.Errorf("expected summary to reflect cost winner, got %q", audioCategory.ComparisonSummaryText)
+	}
+}
+
+// 9. Two pattern brands with equal average final cost/day (cost tied, unique lifetime winner)
+func TestDurabilityAnalytics_TwoPatternBrandsEqualCost_LifetimeUniqueWinner(t *testing.T) {
+	testContext := context.Background()
+	testUserID := "user-tied-cost"
+
+	itemRepository := memory.NewMemoryItemRepository()
+	categoryRepository := memory.NewMemoryCategoryRepository()
+	brandRepository := memory.NewMemoryBrandRepository()
+
+	durabilityService := service.NewDurabilityAnalyticsService(itemRepository, categoryRepository, brandRepository)
+
+	categoryAudio := "Audio"
+	brandSony := "Sony"
+	brandBose := "Bose"
+
+	// Sony: $200 for 200 days -> $1.00/day
+	sonyEndOne := "2023-07-20"
+	sonyEndTwo := "2024-07-19"
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-sony-tie-cost-1",
+		UserID:       testUserID,
+		Name:         "Sony Tie Cost 1",
+		Price:        200,
+		PurchaseDate: "2023-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &sonyEndOne,
+		Category:     &categoryAudio,
+		Brand:        &brandSony,
+	})
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-sony-tie-cost-2",
+		UserID:       testUserID,
+		Name:         "Sony Tie Cost 2",
+		Price:        200,
+		PurchaseDate: "2024-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &sonyEndTwo,
+		Category:     &categoryAudio,
+		Brand:        &brandSony,
+	})
+
+	// Bose: $100 for 100 days -> $1.00/day (cost is tied, but Sony lasted longer: 200 days vs 100 days)
+	boseEndOne := "2023-04-11"
+	boseEndTwo := "2024-04-10"
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-bose-tie-cost-1",
+		UserID:       testUserID,
+		Name:         "Bose Tie Cost 1",
+		Price:        100,
+		PurchaseDate: "2023-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &boseEndOne,
+		Category:     &categoryAudio,
+		Brand:        &brandBose,
+	})
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-bose-tie-cost-2",
+		UserID:       testUserID,
+		Name:         "Bose Tie Cost 2",
+		Price:        100,
+		PurchaseDate: "2024-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &boseEndTwo,
+		Category:     &categoryAudio,
+		Brand:        &brandBose,
+	})
+
+	analytics, err := durabilityService.CalculateDurabilityAnalytics(testContext, testUserID, "", "")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	audioCategory := analytics.Categories[0]
+
+	// Lifetime has a unique winner -> Sony
+	if audioCategory.LongestLastingBrand == nil {
+		t.Fatalf("expected LongestLastingBrand to be Sony, got nil")
+	}
+	if *audioCategory.LongestLastingBrand != brandSony {
+		t.Errorf("expected LongestLastingBrand to be Sony, got %s", *audioCategory.LongestLastingBrand)
+	}
+
+	// Cost is tied -> LowestCostBrand must remain nil (no arbitrary winner)
+	if audioCategory.LowestCostBrand != nil {
+		t.Errorf("expected LowestCostBrand to be nil on tied cost, got %s", *audioCategory.LowestCostBrand)
+	}
+
+	// Comparison summary reflects the unique lifetime winner
+	if !strings.Contains(audioCategory.ComparisonSummaryText, "Sony lasted longest") {
+		t.Errorf("expected summary to reflect lifetime winner, got %q", audioCategory.ComparisonSummaryText)
+	}
+}
+
+// 10. Two pattern brands with equal average lifetime and equal cost (both tied)
+func TestDurabilityAnalytics_TwoPatternBrandsBothTied(t *testing.T) {
+	testContext := context.Background()
+	testUserID := "user-both-tied"
+
+	itemRepository := memory.NewMemoryItemRepository()
+	categoryRepository := memory.NewMemoryCategoryRepository()
+	brandRepository := memory.NewMemoryBrandRepository()
+
+	durabilityService := service.NewDurabilityAnalyticsService(itemRepository, categoryRepository, brandRepository)
+
+	categoryAudio := "Audio"
+	brandSony := "Sony"
+	brandBose := "Bose"
+
+	// Both Sony and Bose have 2 items lasting 200 days at $200 ($1.00/day)
+	endOne := "2023-07-20"
+	endTwo := "2024-07-19"
+
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-sony-bt-1",
+		UserID:       testUserID,
+		Name:         "Sony 1",
+		Price:        200,
+		PurchaseDate: "2023-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &endOne,
+		Category:     &categoryAudio,
+		Brand:        &brandSony,
+	})
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-sony-bt-2",
+		UserID:       testUserID,
+		Name:         "Sony 2",
+		Price:        200,
+		PurchaseDate: "2024-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &endTwo,
+		Category:     &categoryAudio,
+		Brand:        &brandSony,
+	})
+
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-bose-bt-1",
+		UserID:       testUserID,
+		Name:         "Bose 1",
+		Price:        200,
+		PurchaseDate: "2023-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &endOne,
+		Category:     &categoryAudio,
+		Brand:        &brandBose,
+	})
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-bose-bt-2",
+		UserID:       testUserID,
+		Name:         "Bose 2",
+		Price:        200,
+		PurchaseDate: "2024-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &endTwo,
+		Category:     &categoryAudio,
+		Brand:        &brandBose,
+	})
+
+	analytics, err := durabilityService.CalculateDurabilityAnalytics(testContext, testUserID, "", "")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	audioCategory := analytics.Categories[0]
+
+	// Both lifetime and cost are tied -> both winner fields must be nil
+	if audioCategory.LongestLastingBrand != nil {
+		t.Errorf("expected LongestLastingBrand to be nil, got %s", *audioCategory.LongestLastingBrand)
+	}
+	if audioCategory.LowestCostBrand != nil {
+		t.Errorf("expected LowestCostBrand to be nil, got %s", *audioCategory.LowestCostBrand)
+	}
+	if audioCategory.ComparisonSummaryText != "" {
+		t.Errorf("expected empty comparison summary when both metrics are tied, got %q", audioCategory.ComparisonSummaryText)
+	}
+}
+
+// 11. Two eligible categories with equal replacement intervals (interval tied)
+func TestDurabilityAnalytics_TwoEligibleCategoriesEqualInterval_Tie(t *testing.T) {
+	testContext := context.Background()
+	testUserID := "user-tied-category-intervals"
+
+	itemRepository := memory.NewMemoryItemRepository()
+	categoryRepository := memory.NewMemoryCategoryRepository()
+	brandRepository := memory.NewMemoryBrandRepository()
+
+	durabilityService := service.NewDurabilityAnalyticsService(itemRepository, categoryRepository, brandRepository)
+
+	categoryApparel := "Apparel"
+	categoryFootwear := "Footwear"
+
+	// Both categories have 2 items purchased exactly 182 days apart (same replacement interval)
+	endedOne := "2023-07-01"
+	endedTwo := "2024-01-01"
+
+	// Apparel items
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-apparel-tie-1",
+		UserID:       testUserID,
+		Name:         "Apparel 1",
+		Price:        50,
+		PurchaseDate: "2023-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &endedOne,
+		Category:     &categoryApparel,
+	})
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-apparel-tie-2",
+		UserID:       testUserID,
+		Name:         "Apparel 2",
+		Price:        60,
+		PurchaseDate: "2023-07-02",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &endedTwo,
+		Category:     &categoryApparel,
+	})
+
+	// Footwear items
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-footwear-tie-1",
+		UserID:       testUserID,
+		Name:         "Footwear 1",
+		Price:        80,
+		PurchaseDate: "2023-01-01",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &endedOne,
+		Category:     &categoryFootwear,
+	})
+	_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+		ID:           "item-footwear-tie-2",
+		UserID:       testUserID,
+		Name:         "Footwear 2",
+		Price:        90,
+		PurchaseDate: "2023-07-02",
+		Status:       domain.ItemStatusRetired,
+		EndedAt:      &endedTwo,
+		Category:     &categoryFootwear,
+	})
+
+	analytics, err := durabilityService.CalculateDurabilityAnalytics(testContext, testUserID, "", "")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	// Replacement intervals are identical -> MostFrequentlyReplacedCategory must remain nil (no arbitrary winner)
+	if analytics.MostFrequentlyReplacedCategory != nil {
+		t.Errorf("expected MostFrequentlyReplacedCategory to be nil on tied intervals, got %s", analytics.MostFrequentlyReplacedCategory.Category)
+	}
+}
