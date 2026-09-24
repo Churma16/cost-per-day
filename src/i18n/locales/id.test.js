@@ -16,5 +16,15 @@ describe('Indonesian translation resource', () => {
     expect(translationID.appDescription).toBe(
       'Pahami pembelian besar dari waktu ke waktu, sebelum membeli dan setelah memiliki.'
     );
+    expect(translationEN.itemStatus).toBe('Ownership Journey');
+    expect(translationEN.statusActive).toBe('Still With You');
+    expect(translationEN.statusRetired).toBe('No Longer in Use');
+    expect(translationEN.statusSold).toBe('Changed Hands');
+    expect(translationEN.statusLost).toBe('Lost');
+    expect(translationID.itemStatus).toBe('Perjalanan Kepemilikan');
+    expect(translationID.statusActive).toBe('Masih Bersamamu');
+    expect(translationID.statusRetired).toBe('Selesai Digunakan');
+    expect(translationID.statusSold).toBe('Berpindah Tangan');
+    expect(translationID.statusLost).toBe('Hilang');
   });
 });
