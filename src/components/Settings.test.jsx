@@ -532,4 +532,48 @@ describe('Settings component', () => {
     expect(equivalentBadge).toBeInTheDocument();
     expect(equivalentBadge.querySelector('svg')).toBeInTheDocument();
   });
+
+  test('intercepts clicks during exit window so underlying Settings controls are not triggered and modal close completes', async () => {
+    render(<Settings />);
+
+    // Open language modal
+    const languageTriggerButton = screen.getByRole('button', {
+      name: /language.*english/i
+    });
+    fireEvent.click(languageTriggerButton);
+    expect(screen.getByText('Select Language')).toBeInTheDocument();
+
+    // Start closing language modal by selecting Bahasa Indonesia
+    const indonesianOption = screen.getByRole('button', {
+      name: /Bahasa Indonesia/i
+    });
+    fireEvent.click(indonesianOption);
+
+    // During the 200ms exit window, language modal is closing (still visible with exit animation)
+    // The backdrop overlay covers the full viewport without pointer-events-none
+    const modalBackdrop = screen.getByText('Select Language').closest('.fixed.inset-0');
+    expect(modalBackdrop).toBeInTheDocument();
+    expect(modalBackdrop).not.toHaveClass('pointer-events-none');
+
+    // Attempt to click an underlying Settings control during the 200ms exit window
+    const currencyTriggerButton = screen.getByRole('button', {
+      name: /currency.*us dollar/i
+    });
+    fireEvent.click(currencyTriggerButton);
+
+    // Currency modal must NOT have opened
+    expect(screen.queryByText('Select Currency')).not.toBeInTheDocument();
+
+    // Also clicking on the backdrop itself during exit should be swallowed and not re-trigger or cancel close
+    fireEvent.click(modalBackdrop);
+
+    // Wait for the 200ms close lifecycle to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Select Language')).not.toBeInTheDocument();
+    });
+
+    // After exit completes, underlying controls become interactive again
+    fireEvent.click(currencyTriggerButton);
+    expect(screen.getByText('Select Currency')).toBeInTheDocument();
+  });
 });

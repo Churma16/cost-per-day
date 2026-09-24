@@ -65,6 +65,7 @@ function Settings() {
   const closingTimeoutRef = useRef(null);
 
   const closeModalWithAnimation = (modalType, onClosed) => {
+    if (closingModal) return;
     setClosingModal(modalType);
     if (closingTimeoutRef.current) {
       clearTimeout(closingTimeoutRef.current);
@@ -447,7 +448,9 @@ function Settings() {
             <button
               type="button"
               className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
-              onClick={() => setShowLanguageDropdown(true)}
+              onClick={() => {
+                if (!closingModal) setShowLanguageDropdown(true);
+              }}
               aria-label={`${t('language')}: ${getLanguageName(language)}`}
             >
               <div className="flex items-center gap-3">
@@ -468,7 +471,9 @@ function Settings() {
             <button
               type="button"
               className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
-              onClick={() => setShowCurrencyDropdown(true)}
+              onClick={() => {
+                if (!closingModal) setShowCurrencyDropdown(true);
+              }}
               aria-label={`${t('currency')}: ${selectedCurrencyOption?.symbol} ${selectedCurrencyOption?.name}`}
             >
               <div className="flex items-center gap-3">
@@ -496,7 +501,9 @@ function Settings() {
             <button
               type="button"
               className="text-xs font-semibold text-[#2F7473] hover:text-[#265e5d] flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-teal-50/60"
-              onClick={handleOpenAddEquivalent}
+              onClick={() => {
+                if (!closingModal) handleOpenAddEquivalent();
+              }}
               aria-label={t('addEquivalent')}
             >
               <IoAdd className="text-sm" />
@@ -541,7 +548,9 @@ function Settings() {
                         type="button"
                         aria-label={`${t('editEquivalent')} ${equivalentItem.name}`}
                         className="p-1.5 text-gray-400 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-                        onClick={() => handleOpenEditEquivalent(equivalentItem)}
+                        onClick={() => {
+                          if (!closingModal) handleOpenEditEquivalent(equivalentItem);
+                        }}
                       >
                         <IoPencilOutline className="text-base" />
                       </button>
@@ -549,7 +558,9 @@ function Settings() {
                         type="button"
                         aria-label={`${t('deleteEquivalent')} ${equivalentItem.name}`}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        onClick={() => handleOpenDeleteConfirm(equivalentItem)}
+                        onClick={() => {
+                          if (!closingModal) handleOpenDeleteConfirm(equivalentItem);
+                        }}
                       >
                         <IoTrashOutline className="text-base" />
                       </button>
@@ -571,7 +582,9 @@ function Settings() {
             <button
               type="button"
               className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
-              onClick={handleExportData}
+              onClick={() => {
+                if (!closingModal) handleExportData();
+              }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
@@ -591,7 +604,9 @@ function Settings() {
             <button
               type="button"
               className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
-              onClick={handleImportData}
+              onClick={() => {
+                if (!closingModal) handleImportData();
+              }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
@@ -621,8 +636,10 @@ function Settings() {
           <button
             type="button"
             className="w-full flex items-center justify-center gap-2 py-3 px-3.5 bg-white border border-red-200/90 rounded-2xl text-red-600 hover:bg-red-50/60 active:bg-red-100/60 transition-colors font-medium text-sm shadow-sm disabled:opacity-50"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
+            onClick={() => {
+              if (!closingModal) handleSignOut();
+            }}
+            disabled={isSigningOut || Boolean(closingModal)}
             aria-label={t('signOut')}
             title={user?.displayName || user?.email || t('signOut')}
           >
@@ -646,9 +663,12 @@ function Settings() {
       {(showLanguageDropdown || closingModal === 'language') && (
         <div
           className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
-            closingModal === 'language' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
+            closingModal === 'language' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
           }`}
-          onClick={() => closeModalWithAnimation('language', () => setShowLanguageDropdown(false))}
+          onClick={() => {
+            if (closingModal) return;
+            closeModalWithAnimation('language', () => setShowLanguageDropdown(false));
+          }}
         >
           <div
             className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
@@ -681,9 +701,12 @@ function Settings() {
       {(showCurrencyDropdown || closingModal === 'currency') && (
         <div
           className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
-            closingModal === 'currency' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
+            closingModal === 'currency' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
           }`}
-          onClick={() => closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false))}
+          onClick={() => {
+            if (closingModal) return;
+            closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false));
+          }}
         >
           <div
             className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
@@ -722,8 +745,9 @@ function Settings() {
       {(showImportConfirm || closingModal === 'import') && (
         <div
           className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'import' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
+            closingModal === 'import' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
           }`}
+          onClick={(event) => event.stopPropagation()}
         >
           <div
             className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
@@ -761,8 +785,9 @@ function Settings() {
       {(showEquivalentModal || closingModal === 'equivalent') && (
         <div
           className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'equivalent' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
+            closingModal === 'equivalent' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
           }`}
+          onClick={(event) => event.stopPropagation()}
         >
           <div
             className={`bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl ${
@@ -863,8 +888,9 @@ function Settings() {
       {(showDeleteEquivalentConfirm || closingModal === 'delete') && (showDeleteEquivalentConfirm || activeDeleteTarget) && (
         <div
           className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'delete' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
+            closingModal === 'delete' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
           }`}
+          onClick={(event) => event.stopPropagation()}
         >
           <div
             className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
