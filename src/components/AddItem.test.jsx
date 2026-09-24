@@ -1,5 +1,5 @@
 import React from 'react';
-import { render as testingLibraryRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as testingLibraryRender, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
@@ -29,10 +29,10 @@ vi.mock('react-i18next', () => ({
         date: 'Purchase Date',
         save: 'Save',
         deleteItem: 'Delete Item',
-        itemStatus: 'Item status',
-        statusActive: 'Active',
-        statusRetired: 'Retired',
-        statusSold: 'Sold',
+        itemStatus: 'Ownership Journey',
+        statusActive: 'Still With You',
+        statusRetired: 'No Longer in Use',
+        statusSold: 'Changed Hands',
         statusLost: 'Lost',
         ownershipEndDate: 'Ownership end date',
         salePrice: 'Sale price',
@@ -231,7 +231,13 @@ describe('AddItem component date localization', () => {
 
     expect(await screen.findByDisplayValue('Phone')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Item status'), {
+    const lifecycleSelect = screen.getByLabelText('Ownership Journey');
+    expect(within(lifecycleSelect).getByRole('option', { name: 'Still With You' })).toHaveValue('active');
+    expect(within(lifecycleSelect).getByRole('option', { name: 'No Longer in Use' })).toHaveValue('retired');
+    expect(within(lifecycleSelect).getByRole('option', { name: 'Changed Hands' })).toHaveValue('sold');
+    expect(within(lifecycleSelect).getByRole('option', { name: 'Lost' })).toHaveValue('lost');
+
+    fireEvent.change(lifecycleSelect, {
       target: { value: 'sold' }
     });
     fireEvent.change(screen.getByLabelText('Ownership end date'), {
@@ -274,7 +280,7 @@ describe('AddItem component date localization', () => {
 
     expect(await screen.findByDisplayValue('Phone')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Item status'), {
+    fireEvent.change(screen.getByLabelText('Ownership Journey'), {
       target: { value: 'retired' }
     });
 
