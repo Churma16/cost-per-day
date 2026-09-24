@@ -5,6 +5,8 @@ type CreateItemRequestDTO struct {
 	Name         string   `json:"name"`
 	Price        float64  `json:"price"`
 	PurchaseDate string   `json:"purchaseDate"`
+	Category     *string  `json:"category"`
+	Brand        *string  `json:"brand"`
 	TargetType   *string  `json:"targetType"`
 	TargetValue  *float64 `json:"targetValue"`
 }
@@ -17,6 +19,8 @@ type UpdateItemRequestDTO struct {
 	Status       string   `json:"status"`
 	EndedAt      *string  `json:"endedAt"`
 	SalePrice    *float64 `json:"salePrice"`
+	Category     *string  `json:"category"`
+	Brand        *string  `json:"brand"`
 	TargetType   *string  `json:"targetType"`
 	TargetValue  *float64 `json:"targetValue"`
 }

@@ -57,3 +57,18 @@ type PlannedPurchaseRepository interface {
 	Delete(ctx context.Context, userID string, id string) error
 }
 
+// CategoryRepository defines the persistence contract for user-owned category operations.
+type CategoryRepository interface {
+	List(ctx context.Context, userID string) ([]domain.Category, error)
+	FindOrCreate(ctx context.Context, userID string, name string) (domain.Category, error)
+	GetByID(ctx context.Context, userID string, id int64) (domain.Category, error)
+}
+
+// BrandRepository defines the persistence contract for user-owned brand operations.
+type BrandRepository interface {
+	List(ctx context.Context, userID string) ([]domain.Brand, error)
+	FindOrCreate(ctx context.Context, userID string, name string) (domain.Brand, error)
+	GetByID(ctx context.Context, userID string, id int64) (domain.Brand, error)
+}
+
+

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { IoHomeOutline, IoAddOutline, IoSettingsOutline, IoTimeOutline } from "react-icons/io5";
+import { IoHomeOutline, IoAddOutline, IoSettingsOutline, IoTimeOutline, IoStatsChartOutline } from "react-icons/io5";
 
 function Footer() {
   const [activeIcon, setActiveIcon] = useState(null);
@@ -56,6 +56,18 @@ function Footer() {
           />
           <IoAddOutline className={`footer-add-icon relative z-10 transition-colors duration-300
             ${activeIcon === 'add' ? 'text-white' : location.pathname === '/add' ? 'text-purple-800' : 'text-purple-600 group-hover:text-purple-800'}`} 
+          />
+        </button>
+        <button 
+          className="relative p-3 group"
+          onClick={() => handleIconClick('analytics', '/analytics')}
+          aria-label="Analytics"
+        >
+          <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
+            ${activeIcon === 'analytics' ? 'bg-indigo-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
+          />
+          <IoStatsChartOutline className={`footer-icon relative z-10 transition-colors duration-300
+            ${activeIcon === 'analytics' ? 'text-white' : location.pathname === '/analytics' ? 'text-indigo-800' : 'text-purple-600 group-hover:text-purple-800'}`} 
           />
         </button>
         <button 

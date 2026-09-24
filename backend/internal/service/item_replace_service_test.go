@@ -21,6 +21,8 @@ func TestItemServiceReplaceItemsRejectsInvalidSetWithoutChangingData(t *testing.
 		"2026-09-20T12:00:00Z",
 		nil,
 		nil,
+		nil,
+		nil,
 	)
 	if createError != nil {
 		t.Fatalf("failed to seed original item: %v", createError)

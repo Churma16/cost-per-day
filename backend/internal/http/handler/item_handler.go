@@ -92,6 +92,8 @@ func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 		requestBody.Name,
 		requestBody.Price,
 		requestBody.PurchaseDate,
+		requestBody.Category,
+		requestBody.Brand,
 		targetType,
 		requestBody.TargetValue,
 	)
@@ -142,6 +144,8 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 		domain.ItemStatus(requestBody.Status),
 		requestBody.EndedAt,
 		requestBody.SalePrice,
+		requestBody.Category,
+		requestBody.Brand,
 		targetType,
 		requestBody.TargetValue,
 	)

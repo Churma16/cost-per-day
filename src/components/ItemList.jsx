@@ -148,6 +148,16 @@ function ItemList() {
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                       {t(statusTranslationKey)}
                     </span>
+                    {item.category && (
+                      <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 border border-purple-200">
+                        {item.category}
+                      </span>
+                    )}
+                    {item.brand && (
+                      <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 border border-indigo-200">
+                        {item.brand}
+                      </span>
+                    )}
                     {item.targetState && (
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium border ${getTargetBadgeStyle(item.targetState)}`}>
                         {formatTargetBadgeText(item, t)}
@@ -208,6 +218,23 @@ function ItemList() {
                         </div>
                       </div>
                     </div>
+
+                    {(item.category || item.brand) && (
+                      <div className="flex items-center gap-4 text-xs bg-gray-50 rounded-lg p-2.5">
+                        {item.category && (
+                          <div>
+                            <span className="text-gray-400 font-normal">{t('category')}: </span>
+                            <span className="font-medium text-gray-700">{item.category}</span>
+                          </div>
+                        )}
+                        {item.brand && (
+                          <div>
+                            <span className="text-gray-400 font-normal">{t('brand')}: </span>
+                            <span className="font-medium text-gray-700">{item.brand}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {!isActive && item.endedAt && (
                       <div className="rounded-lg bg-gray-50 p-3">

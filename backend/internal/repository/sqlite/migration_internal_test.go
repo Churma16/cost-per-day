@@ -45,7 +45,7 @@ func TestApplyMigrationRollsBackSchemaAndVersionOnFailure(t *testing.T) {
 	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
-	if schemaVersion != 7 {
-		t.Fatalf("expected schema version to remain 7 after failed migration, got %d", schemaVersion)
+	if schemaVersion != 8 {
+		t.Fatalf("expected schema version to remain 8 after failed migration, got %d", schemaVersion)
 	}
 }

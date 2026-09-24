@@ -8,6 +8,8 @@ type ReplaceItemRequestDTO struct {
 	Status       string   `json:"status"`
 	EndedAt      *string  `json:"endedAt"`
 	SalePrice    *float64 `json:"salePrice"`
+	Category     *string  `json:"category"`
+	Brand        *string  `json:"brand"`
 	TargetType   *string  `json:"targetType"`
 	TargetValue  *float64 `json:"targetValue"`
 }

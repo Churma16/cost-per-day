@@ -9,6 +9,7 @@ import ItemList from './components/ItemList';
 import AddItem from './components/AddItem';
 import Settings from './components/Settings';
 import PlannedPurchases from './components/PlannedPurchases';
+import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import HeroCarousel from './components/HeroCarousel';
@@ -42,6 +43,8 @@ const Header = () => {
         return t('settings');
       case '/planning':
         return t('plannedPurchases');
+      case '/analytics':
+        return t('durabilityAndOwnership');
       default:
         return t('totalDailyCost');
     }
@@ -96,6 +99,7 @@ const MainContent = () => (
     <Routes>
       <Route path="/" element={<ItemList />} />
       <Route path="/planning" element={<PlannedPurchases />} />
+      <Route path="/analytics" element={<DurabilityAnalytics />} />
       <Route path="/add" element={<AddItem />} />
       <Route path="/edit" element={<AddItem />} />
       <Route path="/settings" element={<Settings />} />

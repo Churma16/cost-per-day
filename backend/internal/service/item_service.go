@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -20,6 +21,8 @@ type ItemService interface {
 		name string,
 		price float64,
 		purchaseDate string,
+		category *string,
+		brand *string,
 		targetType *domain.OwnershipTargetType,
 		targetValue *float64,
 	) (domain.Item, error)
@@ -33,6 +36,8 @@ type ItemService interface {
 		status domain.ItemStatus,
 		endedAt *string,
 		salePrice *float64,
+		category *string,
+		brand *string,
 		targetType *domain.OwnershipTargetType,
 		targetValue *float64,
 	) (domain.Item, error)
@@ -49,13 +54,30 @@ type ItemService interface {
 const itemPricePrecisionScale = 1_000_000
 
 type itemServiceImpl struct {
-	itemRepository repository.ItemRepository
+	itemRepository     repository.ItemRepository
+	categoryRepository repository.CategoryRepository
+	brandRepository    repository.BrandRepository
 }
 
-// NewItemService creates a new ItemService instance backed by an ItemRepository.
-func NewItemService(itemRepository repository.ItemRepository) ItemService {
+// NewItemService creates a new ItemService instance backed by an ItemRepository and optional CategoryRepository and BrandRepository.
+func NewItemService(
+	itemRepository repository.ItemRepository,
+	optionalRepositories ...any,
+) ItemService {
+	var categoryRepo repository.CategoryRepository
+	var brandRepo repository.BrandRepository
+	for _, repo := range optionalRepositories {
+		if cr, ok := repo.(repository.CategoryRepository); ok {
+			categoryRepo = cr
+		}
+		if br, ok := repo.(repository.BrandRepository); ok {
+			brandRepo = br
+		}
+	}
 	return &itemServiceImpl{
-		itemRepository: itemRepository,
+		itemRepository:     itemRepository,
+		categoryRepository: categoryRepo,
+		brandRepository:    brandRepo,
 	}
 }
 
@@ -101,6 +123,8 @@ func (serviceInstance *itemServiceImpl) CreateItem(
 	name string,
 	price float64,
 	purchaseDate string,
+	category *string,
+	brand *string,
 	targetType *domain.OwnershipTargetType,
 	targetValue *float64,
 ) (domain.Item, error) {
@@ -109,11 +133,45 @@ func (serviceInstance *itemServiceImpl) CreateItem(
 		return domain.Item{}, identityError
 	}
 
+	var categoryID *int64
+	var categoryName *string
+	if category != nil && strings.TrimSpace(*category) != "" {
+		trimmedCategory := strings.TrimSpace(*category)
+		categoryName = &trimmedCategory
+		if serviceInstance.categoryRepository != nil {
+			cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
+			if catErr != nil {
+				return domain.Item{}, fmt.Errorf("resolve category: %w", catErr)
+			}
+			categoryID = &cat.ID
+			categoryName = &cat.Name
+		}
+	}
+
+	var brandID *int64
+	var brandName *string
+	if brand != nil && strings.TrimSpace(*brand) != "" {
+		trimmedBrand := strings.TrimSpace(*brand)
+		brandName = &trimmedBrand
+		if serviceInstance.brandRepository != nil {
+			b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
+			if bErr != nil {
+				return domain.Item{}, fmt.Errorf("resolve brand: %w", bErr)
+			}
+			brandID = &b.ID
+			brandName = &b.Name
+		}
+	}
+
 	validatedItem, validationError := validateItem(domain.Item{
 		Name:         name,
 		Price:        price,
 		PurchaseDate: purchaseDate,
 		Status:       domain.ItemStatusActive,
+		CategoryID:   categoryID,
+		Category:     categoryName,
+		BrandID:      brandID,
+		Brand:        brandName,
 		TargetType:   targetType,
 		TargetValue:  targetValue,
 	})
@@ -140,6 +198,8 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 	status domain.ItemStatus,
 	endedAt *string,
 	salePrice *float64,
+	category *string,
+	brand *string,
 	targetType *domain.OwnershipTargetType,
 	targetValue *float64,
 ) (domain.Item, error) {
@@ -153,6 +213,36 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		return domain.Item{}, domain.ErrItemNotFound
 	}
 
+	var categoryID *int64
+	var categoryName *string
+	if category != nil && strings.TrimSpace(*category) != "" {
+		trimmedCategory := strings.TrimSpace(*category)
+		categoryName = &trimmedCategory
+		if serviceInstance.categoryRepository != nil {
+			cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
+			if catErr != nil {
+				return domain.Item{}, fmt.Errorf("resolve category: %w", catErr)
+			}
+			categoryID = &cat.ID
+			categoryName = &cat.Name
+		}
+	}
+
+	var brandID *int64
+	var brandName *string
+	if brand != nil && strings.TrimSpace(*brand) != "" {
+		trimmedBrand := strings.TrimSpace(*brand)
+		brandName = &trimmedBrand
+		if serviceInstance.brandRepository != nil {
+			b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
+			if bErr != nil {
+				return domain.Item{}, fmt.Errorf("resolve brand: %w", bErr)
+			}
+			brandID = &b.ID
+			brandName = &b.Name
+		}
+	}
+
 	validatedItem, validationError := validateItem(domain.Item{
 		ID:           trimmedItemID,
 		Name:         name,
@@ -161,6 +251,10 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		Status:       status,
 		EndedAt:      endedAt,
 		SalePrice:    salePrice,
+		CategoryID:   categoryID,
+		Category:     categoryName,
+		BrandID:      brandID,
+		Brand:        brandName,
 		TargetType:   targetType,
 		TargetValue:  targetValue,
 	})
@@ -199,6 +293,31 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, userID
 
 	validatedItems := make([]domain.Item, 0, len(items))
 	for _, item := range items {
+		if item.Category != nil && strings.TrimSpace(*item.Category) != "" {
+			trimmedCategory := strings.TrimSpace(*item.Category)
+			item.Category = &trimmedCategory
+			if serviceInstance.categoryRepository != nil {
+				cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
+				if catErr != nil {
+					return nil, fmt.Errorf("resolve category: %w", catErr)
+				}
+				item.CategoryID = &cat.ID
+				item.Category = &cat.Name
+			}
+		}
+		if item.Brand != nil && strings.TrimSpace(*item.Brand) != "" {
+			trimmedBrand := strings.TrimSpace(*item.Brand)
+			item.Brand = &trimmedBrand
+			if serviceInstance.brandRepository != nil {
+				b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
+				if bErr != nil {
+					return nil, fmt.Errorf("resolve brand: %w", bErr)
+				}
+				item.BrandID = &b.ID
+				item.Brand = &b.Name
+			}
+		}
+
 		validatedItem, validationError := validateItem(item)
 		if validationError != nil {
 			return nil, validationError
@@ -331,6 +450,25 @@ func validateItem(item domain.Item) (domain.Item, error) {
 	validatedItem.Name = trimmedName
 	validatedItem.PurchaseDate = parsedPurchaseDate.Format(time.RFC3339)
 	validatedItem.Status = status
+
+	if item.Category != nil {
+		trimmedCategory := strings.TrimSpace(*item.Category)
+		if trimmedCategory == "" {
+			validatedItem.Category = nil
+			validatedItem.CategoryID = nil
+		} else {
+			validatedItem.Category = &trimmedCategory
+		}
+	}
+	if item.Brand != nil {
+		trimmedBrand := strings.TrimSpace(*item.Brand)
+		if trimmedBrand == "" {
+			validatedItem.Brand = nil
+			validatedItem.BrandID = nil
+		} else {
+			validatedItem.Brand = &trimmedBrand
+		}
+	}
 
 	switch status {
 	case domain.ItemStatusActive:

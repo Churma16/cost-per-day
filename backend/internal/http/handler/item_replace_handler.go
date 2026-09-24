@@ -41,6 +41,8 @@ func (handlerInstance *ItemHandler) ReplaceAll(ginContext *gin.Context) {
 			Status:       domain.ItemStatus(requestItem.Status),
 			EndedAt:      requestItem.EndedAt,
 			SalePrice:    requestItem.SalePrice,
+			Category:     requestItem.Category,
+			Brand:        requestItem.Brand,
 			TargetType:   targetType,
 			TargetValue:  requestItem.TargetValue,
 		})

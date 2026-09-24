@@ -18,11 +18,11 @@ func TestServicesEnforceUserIsolation(t *testing.T) {
 	const userA = "user-a"
 	const userB = "user-b"
 
-	itemA, createAError := itemService.CreateItem(ctx, userA, "User A Laptop", 1200, "2026-09-01T12:00:00Z", nil, nil)
+	itemA, createAError := itemService.CreateItem(ctx, userA, "User A Laptop", 1200, "2026-09-01T12:00:00Z", nil, nil, nil, nil)
 	if createAError != nil {
 		t.Fatalf("create user A item: %v", createAError)
 	}
-	itemB, createBError := itemService.CreateItem(ctx, userB, "User B Phone", 600, "2026-09-02T12:00:00Z", nil, nil)
+	itemB, createBError := itemService.CreateItem(ctx, userB, "User B Phone", 600, "2026-09-02T12:00:00Z", nil, nil, nil, nil)
 	if createBError != nil {
 		t.Fatalf("create user B item: %v", createBError)
 	}
@@ -55,6 +55,8 @@ func TestServicesEnforceUserIsolation(t *testing.T) {
 		1200,
 		"2026-09-01T12:00:00Z",
 		domain.ItemStatusActive,
+		nil,
+		nil,
 		nil,
 		nil,
 		nil,

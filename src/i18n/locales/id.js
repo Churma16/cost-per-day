@@ -191,7 +191,45 @@ const translation = {
   "benchmarkSelectPrompt": "Pilih barang selesai untuk menghitung durasi yang dibutuhkan agar barang pengganti ini menyamai atau melampaui nilainya.",
   "selectCompletedItem": "Pilih barang yang sudah selesai...",
   "useBenchmarkAsTarget": "Terapkan ke Target",
-  "benchmarkUnmatchableZeroCost": "Barang ini memiliki biaya kepemilikan bersih nol atau negatif (dijual sama dengan atau di atas harga beli). Pembelian baru tidak dapat menyamai biaya nol."
+  "benchmarkUnmatchableZeroCost": "Barang ini memiliki biaya kepemilikan bersih nol atau negatif (dijual sama dengan atau di atas harga beli). Pembelian baru tidak dapat menyamai biaya nol.",
+
+  // Taxonomy (Category & Brand)
+  "category": "Kategori",
+  "categoryOptional": "Kategori (Opsional)",
+  "enterCategory": "contoh: Audio, Sepatu, Gadget",
+  "brand": "Merek",
+  "brandOptional": "Merek (Opsional)",
+  "enterBrand": "contoh: Sony, Nike, Apple",
+  "unbranded": "Tanpa Merek",
+
+  // Durability & Ownership Analytics
+  "analytics": "Analitik",
+  "durabilityAndOwnership": "Daya Tahan & Kepemilikan",
+  "durabilityAnalytics": "Analitik Daya Tahan",
+  "durabilitySubtitle": "Riwayat pribadi berapa lama kategori dan merek bertahan, serta biaya kepemilikan sebenarnya seiring waktu.",
+  "filterByCategory": "Filter berdasarkan Kategori",
+  "allCategories": "Semua Kategori",
+  "completedItemsCount": "{{count}} barang selesai",
+  "averageLifespan": "Rata-rata masa pakai",
+  "medianLifespan": "Median masa pakai",
+  "typicalReplacementInterval": "Interval penggantian umum",
+  "mostFrequentlyReplacedCategory": "Kategori paling sering diganti",
+  "longestLastingBrand": "Merek paling awet",
+  "lowestCostBrand": "Biaya per hari terendah",
+  "brandComparison": "Perbandingan Merek",
+  "sampleSize": "{{count}} barang",
+  "patternDetected": "Pola ({{count}} barang)",
+  "singleObservation": "Observasi tunggal (1 barang)",
+  "viewEvidence": "Lihat riwayat barang",
+  "hideEvidence": "Sembunyikan riwayat barang",
+  "noDurabilityDataTitle": "Belum ada riwayat daya tahan",
+  "noDurabilityDataDescription": "Selesaikan atau tandai barang sebagai terjual lengkap dengan kategori dan merek untuk melihat wawasan daya tahan pribadi dan pola perbandingan merek.",
+  "totalSpentOnBrand": "Total pengeluaran: {{amount}}",
+  "observation": "Observasi",
+  "evidence": "Bukti Riwayat",
+  "daysShort": "hari",
+  "netCostShort": "bersih",
+  "grossCostShort": "kotor"
 };
 
 export default translation;
