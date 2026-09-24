@@ -235,31 +235,34 @@ describe('CurrencyInput component', () => {
     expect(handleChange).not.toHaveBeenCalledWith('12534567890');
   });
 
-  it('clamps pasted values longer than 10 digits to 10 digits in IDR', () => {
+  it('rejects pasted IDR values longer than 10 digits without emitting a truncated amount', () => {
     const handleChange = vi.fn();
+    const handleValueChange = vi.fn();
     render(
       <CurrencyInput
-        value=""
+        value="1000"
         onChange={handleChange}
+        onValueChange={handleValueChange}
         currencyCode="IDR"
         placeholder="Enter price"
       />
     );
 
     const inputElement = screen.getByPlaceholderText('Enter price');
-    // Pasting 15 digits
+    expect(inputElement.value).toBe('1.000');
+
     fireEvent.change(inputElement, { target: { value: '123456789012345' } });
 
-    const [, rawValue] = handleChange.mock.calls[0];
-    expect(rawValue).toBe('1234567890');
-    expect(inputElement.value).toBe('1.234.567.890');
+    expect(inputElement.value).toBe('1.000');
+    expect(handleChange).not.toHaveBeenCalled();
+    expect(handleValueChange).not.toHaveBeenCalled();
   });
 
-  it('enforces 9 max integer digits for USD while preserving decimals', () => {
+  it('rejects USD input beyond 9 integer digits instead of truncating the amount', () => {
     const handleChange = vi.fn();
     render(
       <CurrencyInput
-        value=""
+        value="1250.50"
         onChange={handleChange}
         currencyCode="USD"
         placeholder="Enter price"
@@ -267,19 +270,19 @@ describe('CurrencyInput component', () => {
     );
 
     const inputElement = screen.getByPlaceholderText('Enter price');
-    // Pasting 12 integer digits with 2 decimals
+    expect(inputElement.value).toBe('1,250.50');
+
     fireEvent.change(inputElement, { target: { value: '123456789012.50' } });
 
-    const [, rawValue] = handleChange.mock.calls[0];
-    expect(rawValue).toBe('123456789.50');
-    expect(inputElement.value).toBe('123,456,789.50');
+    expect(inputElement.value).toBe('1,250.50');
+    expect(handleChange).not.toHaveBeenCalled();
   });
 
-  it('respects custom maxIntegerDigits prop when provided', () => {
+  it('respects custom maxIntegerDigits by rejecting overflow without changing the value', () => {
     const handleChange = vi.fn();
     render(
       <CurrencyInput
-        value=""
+        value="12345"
         onChange={handleChange}
         currencyCode="IDR"
         maxIntegerDigits={5}
@@ -288,11 +291,11 @@ describe('CurrencyInput component', () => {
     );
 
     const inputElement = screen.getByPlaceholderText('Enter price');
-    // Pasting 7 digits into a field with max 5 digits
+    expect(inputElement.value).toBe('12.345');
+
     fireEvent.change(inputElement, { target: { value: '1234567' } });
 
-    const [, rawValue] = handleChange.mock.calls[0];
-    expect(rawValue).toBe('12345');
     expect(inputElement.value).toBe('12.345');
+    expect(handleChange).not.toHaveBeenCalled();
   });
 });
