@@ -52,13 +52,21 @@ const translation = {
 
   // Settings
   "settings": "Pengaturan",
+  "general": "Umum",
   "language": "Bahasa",
   "selectLanguage": "Pilih Bahasa",
   "currency": "Mata Uang",
   "selectCurrency": "Pilih Mata Uang",
+  "data": "Data",
   "dataManagement": "Pengelolaan Data",
   "exportData": "Ekspor Data",
+  "exportDataSubtitle": "Simpan sebagai file .json",
   "importData": "Impor Data",
+  "importDataSubtitle": "Pulihkan dari file cadangan",
+  "account": "Akun",
+  "signOut": "Keluar akun",
+  "signOutError": "Gagal keluar. Silakan coba lagi.",
+  "versionText": "Versi {{version}}",
 
   // Currencies
   "usd": "Dolar AS (USD)",
@@ -88,6 +96,8 @@ const translation = {
   // Value Equivalents
   "valueEquivalents": "Perbandingan Nilai",
   "valueEquivalentsDescription": "Terjemahkan biaya harian menjadi perbandingan pengeluaran sehari-hari yang akrab.",
+  "valueEquivalentsSubtitle": "Terjemahkan biaya harian jadi hal yang akrab.",
+  "add": "Tambah",
   "addEquivalent": "Tambah Perbandingan",
   "editEquivalent": "Edit Perbandingan",
   "deleteEquivalent": "Hapus Perbandingan",

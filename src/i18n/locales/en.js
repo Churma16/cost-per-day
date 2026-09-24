@@ -52,13 +52,21 @@ const translation = {
   
   // Settings
   "settings": "Settings",
+  "general": "General",
   "language": "Language",
   "selectLanguage": "Select Language",
   "currency": "Currency",
   "selectCurrency": "Select Currency",
+  "data": "Data",
   "dataManagement": "Data Management",
   "exportData": "Export Data",
+  "exportDataSubtitle": "Save as .json file",
   "importData": "Import Data",
+  "importDataSubtitle": "Restore from backup file",
+  "account": "Account",
+  "signOut": "Sign out",
+  "signOutError": "Sign out failed. Please try again.",
+  "versionText": "Version {{version}}",
   
   // Currencies
   "usd": "US Dollar (USD)",
@@ -88,6 +96,8 @@ const translation = {
   // Value Equivalents
   "valueEquivalents": "Value Equivalents",
   "valueEquivalentsDescription": "Translate abstract cost-per-day numbers into familiar everyday spending comparisons.",
+  "valueEquivalentsSubtitle": "Translate daily costs into familiar everyday references.",
+  "add": "Add",
   "addEquivalent": "Add Equivalent",
   "editEquivalent": "Edit Equivalent",
   "deleteEquivalent": "Delete Equivalent",
