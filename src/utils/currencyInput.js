@@ -37,8 +37,7 @@ export const getCurrencyInputSeparators = (currencyIdentifier) => {
  */
 export const parseCurrencyInputValue = (
   formattedDisplayValue,
-  currencyIdentifier,
-  maximumIntegerDigits
+  currencyIdentifier
 ) => {
   if (formattedDisplayValue === undefined || formattedDisplayValue === null) {
     return '';
@@ -58,11 +57,7 @@ export const parseCurrencyInputValue = (
     if (digitsOnlyString === '') {
       return '';
     }
-    const normalizedDigitsString = digitsOnlyString.replace(/^0+(?=\d)/, '');
-    if (maximumIntegerDigits && maximumIntegerDigits > 0) {
-      return normalizedDigitsString.slice(0, maximumIntegerDigits);
-    }
-    return normalizedDigitsString;
+    return digitsOnlyString.replace(/^0+(?=\d)/, '');
   }
 
   // Currencies with decimal support (USD, EUR, CNY)
@@ -77,15 +72,6 @@ export const parseCurrencyInputValue = (
     return '';
   }
 
-  if (maximumIntegerDigits && maximumIntegerDigits > 0) {
-    const [integerPart = '', decimalPart] = sanitizedString.split('.');
-    const truncatedIntegerPart = integerPart.slice(0, maximumIntegerDigits);
-    if (decimalPart !== undefined) {
-      return `${truncatedIntegerPart}.${decimalPart}`;
-    }
-    return truncatedIntegerPart;
-  }
-
   return sanitizedString;
 };
 
@@ -94,8 +80,7 @@ export const parseCurrencyInputValue = (
  */
 export const formatCurrencyInputValue = (
   rawNumericValue,
-  currencyIdentifier,
-  maximumIntegerDigits
+  currencyIdentifier
 ) => {
   if (rawNumericValue === undefined || rawNumericValue === null || rawNumericValue === '') {
     return '';
@@ -114,10 +99,7 @@ export const formatCurrencyInputValue = (
       return '';
     }
 
-    let normalizedIntegerString = digitsOnlyString.replace(/^0+(?=\d)/, '');
-    if (maximumIntegerDigits && maximumIntegerDigits > 0) {
-      normalizedIntegerString = normalizedIntegerString.slice(0, maximumIntegerDigits);
-    }
+    const normalizedIntegerString = digitsOnlyString.replace(/^0+(?=\d)/, '');
     return normalizedIntegerString.replace(
       /\B(?=(\d{3})+(?!\d))/g,
       separatorConfiguration.groupSeparator
@@ -129,10 +111,7 @@ export const formatCurrencyInputValue = (
   const sanitizedString = rawString.replace(/[^0-9.]/g, '');
   const [integerSegment = '', decimalSegment] = sanitizedString.split('.');
 
-  let normalizedIntegerString = integerSegment.replace(/^0+(?=\d)/, '') || '0';
-  if (maximumIntegerDigits && maximumIntegerDigits > 0) {
-    normalizedIntegerString = normalizedIntegerString.slice(0, maximumIntegerDigits);
-  }
+  const normalizedIntegerString = integerSegment.replace(/^0+(?=\d)/, '') || '0';
   const formattedIntegerString = normalizedIntegerString.replace(
     /\B(?=(\d{3})+(?!\d))/g,
     separatorConfiguration.groupSeparator
