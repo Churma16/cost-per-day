@@ -351,7 +351,7 @@ function ItemList() {
                     </div>
                     <IoChevronDown
                       aria-hidden="true"
-                      className={`transition-transform duration-300 ease-out text-base ${
+                      className={`transition-transform duration-300 ease-out motion-reduce:transition-none text-base ${
                         expandedItem === item.id ? 'rotate-180 text-teal-600' : 'text-[#6F7782]'
                       }`}
                     />
@@ -428,7 +428,7 @@ function ItemList() {
                                 <span>{t('ownedFor')}</span>
                                 {isInteractive && (
                                   <IoSyncOutline
-                                    className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+                                    className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
                                     style={{
                                       transform: `rotate(${syncRotationByItemId[item.id] || 0}deg)`
                                     }}
