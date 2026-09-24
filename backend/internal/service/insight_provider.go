@@ -187,8 +187,6 @@ func (provider *MilestoneProvider) Generate(_ context.Context, data DashboardCon
 }
 
 // RecentPurchaseImpactProvider answers: "Why did my total cost/day change sharply after a recent purchase?"
-const recentPurchaseWindowDays = 14
-
 type RecentPurchaseImpactProvider struct{}
 
 func (provider *RecentPurchaseImpactProvider) ID() string {
@@ -200,9 +198,7 @@ func (provider *RecentPurchaseImpactProvider) Generate(_ context.Context, data D
 		return nil, nil
 	}
 
-	// This product window is intentionally mirrored by the frontend lifecycle
-	// presentation rule. Keep both named constants aligned when changing it.
-	recentThreshold := data.Now.UTC().AddDate(0, 0, -recentPurchaseWindowDays)
+	recentThreshold := data.Now.UTC().AddDate(0, 0, -14)
 
 	// Verify that a prior collection existed before the recent threshold,
 	// and calculate what the daily cost was 14 days ago.
