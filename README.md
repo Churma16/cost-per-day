@@ -4,6 +4,10 @@ A progressive web application designed to help you make big purchases make sense
 
 The core cost-per-day calculation remains a central feature: active items calculate your real-time daily cost against the current date, while retired, sold, or lost items preserve a frozen final cost per day based on their recorded ownership lifecycle.
 
+> **Status: Early Beta**
+>
+> Worthwhile is currently in Early Beta. The core product and deployment flows are usable, but behavior, schema, APIs, and UI may still change before a stable 1.0 release. Breaking changes are still possible before 1.0, while persisted user data should continue to be handled deliberately during migrations and refactors.
+
 <div style="text-align: center;">
   <img src="./public/preview.png" alt="drawing" width="200"/>
 </div>

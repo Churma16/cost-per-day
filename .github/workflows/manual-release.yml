@@ -13,6 +13,14 @@ on:
           - 'patch'
           - 'minor'
           - 'major'
+      release_channel:
+        description: 'Release channel (beta by default while Worthwhile is in Early Beta)'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - 'beta'
+          - 'stable'
       dry_run:
         description: 'Dry run (simulate version bump and release notes without pushing tags/releases)'
         required: false
@@ -55,27 +63,56 @@ jobs:
         id: bump
         env:
           RELEASE_TYPE: ${{ inputs.release_type }}
+          RELEASE_CHANNEL: ${{ inputs.release_channel }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           EXTRA_ARGS=""
           if [ "$RELEASE_TYPE" != "auto" ]; then
             EXTRA_ARGS="--release-as $RELEASE_TYPE"
           fi
+          if [ "$RELEASE_CHANNEL" = "beta" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --prerelease beta"
+          fi
 
           if [ "$DRY_RUN" = "true" ]; then
             echo "[INFO] Running simulated version bump and changelog generation (dry-run)"
             npx -y commit-and-tag-version@13.2.1 $EXTRA_ARGS --skip.commit --skip.tag
-            PREDICTED_VERSION=$(node -p "require('./package.json').version")
-            PREDICTED_TAG="v${PREDICTED_VERSION}"
-            echo "RELEASE_TAG=$PREDICTED_TAG" >> "$GITHUB_ENV"
-            echo "[INFO] Predicted dry-run tag: $PREDICTED_TAG"
           else
             echo "[INFO] Running official release bump"
             npx -y commit-and-tag-version@13.2.1 $EXTRA_ARGS
-            NEW_TAG=$(git describe --tags --match="v[0-9]*" --abbrev=0)
-            echo "RELEASE_TAG=$NEW_TAG" >> "$GITHUB_ENV"
-            echo "[INFO] Generated new tag: $NEW_TAG"
           fi
+
+          GENERATED_VERSION=$(node -p "require('./package.json').version")
+          GENERATED_TAG="v${GENERATED_VERSION}"
+
+          if [ "$RELEASE_CHANNEL" = "beta" ]; then
+            case "$GENERATED_VERSION" in
+              *-beta.*)
+                echo "RELEASE_IS_PRERELEASE=true" >> "$GITHUB_ENV"
+                ;;
+              *)
+                echo "[ERROR] Beta release produced non-beta version: $GENERATED_VERSION"
+                exit 1
+                ;;
+            esac
+          else
+            case "$GENERATED_VERSION" in
+              *-*)
+                echo "[ERROR] Stable release produced prerelease version: $GENERATED_VERSION"
+                exit 1
+                ;;
+              *)
+                echo "RELEASE_IS_PRERELEASE=false" >> "$GITHUB_ENV"
+                ;;
+            esac
+          fi
+
+          if [ "$DRY_RUN" != "true" ]; then
+            git rev-parse --verify "refs/tags/$GENERATED_TAG" >/dev/null
+          fi
+
+          echo "RELEASE_TAG=$GENERATED_TAG" >> "$GITHUB_ENV"
+          echo "[INFO] Generated release tag: $GENERATED_TAG"
 
       - name: Generate release notes
         env:
@@ -114,4 +151,4 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           body_path: release-notes.md
-          prerelease: false
+          prerelease: ${{ env.RELEASE_IS_PRERELEASE == 'true' }}
