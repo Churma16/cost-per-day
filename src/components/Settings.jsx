@@ -4,7 +4,7 @@ import {
   IoChevronForward,
   IoLanguageOutline,
   IoCashOutline,
-  IoRestaurantOutline,
+  IoScaleOutline,
   IoCloudDownloadOutline,
   IoCloudUploadOutline,
   IoLogOutOutline,
@@ -58,6 +58,8 @@ function Settings() {
   const [equivalentFormError, setEquivalentFormError] = useState(null);
   const [showDeleteEquivalentConfirm, setShowDeleteEquivalentConfirm] = useState(null);
   const [isSavingEquivalent, setIsSavingEquivalent] = useState(false);
+  const [isDeletingEquivalent, setIsDeletingEquivalent] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const fileInputRef = useRef(null);
   const closingTimeoutRef = useRef(null);
@@ -276,6 +278,8 @@ function Settings() {
   };
 
   const confirmImport = async () => {
+    if (isImporting || closingModal === 'import') return;
+    setIsImporting(true);
     try {
       await replaceAllItems(importData);
       await invalidateDashboard();
@@ -285,7 +289,10 @@ function Settings() {
         type: 'success'
       });
       setTimeout(() => setNotification(null), 3000);
-      closeModalWithAnimation('import', () => setShowImportConfirm(false));
+      closeModalWithAnimation('import', () => {
+        setShowImportConfirm(false);
+        setIsImporting(false);
+      });
     } catch (error) {
       console.error('Error importing data:', error);
       setNotification({
@@ -293,6 +300,7 @@ function Settings() {
         type: 'error'
       });
       setTimeout(() => setNotification(null), 3000);
+      setIsImporting(false);
     }
   };
 
@@ -316,6 +324,7 @@ function Settings() {
 
   const handleSaveEquivalent = async (event) => {
     event.preventDefault();
+    if (isSavingEquivalent || closingModal === 'equivalent') return;
     setEquivalentFormError(null);
 
     const trimmedName = equivalentFormName.trim();
@@ -347,7 +356,10 @@ function Settings() {
       }
       await invalidateDashboard();
 
-      closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false));
+      closeModalWithAnimation('equivalent', () => {
+        setShowEquivalentModal(false);
+        setIsSavingEquivalent(false);
+      });
       setNotification({
         message: t('save'),
         type: 'success'
@@ -356,7 +368,6 @@ function Settings() {
     } catch (saveError) {
       console.error('Error saving value equivalent:', saveError);
       setEquivalentFormError(saveError.message || 'Failed to save value equivalent.');
-    } finally {
       setIsSavingEquivalent(false);
     }
   };
@@ -367,22 +378,27 @@ function Settings() {
   };
 
   const handleCloseDeleteConfirm = () => {
+    if (isDeletingEquivalent || closingModal === 'delete') return;
     closeModalWithAnimation('delete', () => {
       setShowDeleteEquivalentConfirm(null);
       setActiveDeleteTarget(null);
+      setIsDeletingEquivalent(false);
     });
   };
 
   const handleConfirmDeleteEquivalent = async () => {
+    if (isDeletingEquivalent || closingModal === 'delete') return;
     const targetToDelete = showDeleteEquivalentConfirm || activeDeleteTarget;
     if (!targetToDelete) return;
 
+    setIsDeletingEquivalent(true);
     try {
       await removeEquivalent(targetToDelete.id);
       await invalidateDashboard();
       closeModalWithAnimation('delete', () => {
         setShowDeleteEquivalentConfirm(null);
         setActiveDeleteTarget(null);
+        setIsDeletingEquivalent(false);
       });
       setNotification({
         message: t('confirmDelete'),
@@ -396,6 +412,7 @@ function Settings() {
         type: 'error'
       });
       setTimeout(() => setNotification(null), 3000);
+      setIsDeletingEquivalent(false);
     }
   };
 
@@ -509,8 +526,8 @@ function Settings() {
                   {index > 0 && <div className="border-b border-gray-100 mx-3.5" />}
                   <div className="py-2.5 px-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0 border border-amber-100/60">
-                        <IoRestaurantOutline className="text-base" />
+                      <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#2F7473] flex items-center justify-center flex-shrink-0 border border-teal-100/60">
+                        <IoScaleOutline className="text-base" />
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-sm text-gray-900 truncate leading-tight">{equivalentItem.name}</p>
@@ -629,13 +646,13 @@ function Settings() {
       {(showLanguageDropdown || closingModal === 'language') && (
         <div
           className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
-            closingModal === 'language' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+            closingModal === 'language' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
           }`}
           onClick={() => closeModalWithAnimation('language', () => setShowLanguageDropdown(false))}
         >
           <div
             className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
-              closingModal === 'language' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+              closingModal === 'language' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
             }`}
             onClick={(event) => event.stopPropagation()}
           >
@@ -664,13 +681,13 @@ function Settings() {
       {(showCurrencyDropdown || closingModal === 'currency') && (
         <div
           className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
-            closingModal === 'currency' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+            closingModal === 'currency' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
           }`}
           onClick={() => closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false))}
         >
           <div
             className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
-              closingModal === 'currency' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+              closingModal === 'currency' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
             }`}
             onClick={(event) => event.stopPropagation()}
           >
@@ -705,12 +722,12 @@ function Settings() {
       {(showImportConfirm || closingModal === 'import') && (
         <div
           className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'import' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+            closingModal === 'import' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
           }`}
         >
           <div
             className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
-              closingModal === 'import' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+              closingModal === 'import' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
             }`}
           >
             <div className="flex items-center gap-3 text-amber-500">
@@ -721,17 +738,19 @@ function Settings() {
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors duration-200 text-sm"
+                disabled={isImporting || closingModal === 'import'}
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors duration-200 text-sm"
                 onClick={() => closeModalWithAnimation('import', () => setShowImportConfirm(false))}
               >
                 {t('cancel')}
               </button>
               <button
                 type="button"
-                className="flex-1 py-3 px-4 rounded-xl bg-amber-600 text-white font-medium hover:bg-amber-700 transition-all duration-200 text-sm shadow-sm"
+                disabled={isImporting || closingModal === 'import'}
+                className="flex-1 py-3 px-4 rounded-xl bg-amber-600 text-white font-medium hover:bg-amber-700 disabled:opacity-50 transition-all duration-200 text-sm shadow-sm"
                 onClick={confirmImport}
               >
-                {t('confirm')}
+                {isImporting ? t('loading') : t('confirm')}
               </button>
             </div>
           </div>
@@ -742,12 +761,12 @@ function Settings() {
       {(showEquivalentModal || closingModal === 'equivalent') && (
         <div
           className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'equivalent' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+            closingModal === 'equivalent' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
           }`}
         >
           <div
             className={`bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl ${
-              closingModal === 'equivalent' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+              closingModal === 'equivalent' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
             }`}
           >
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -756,7 +775,8 @@ function Settings() {
               </h2>
               <button
                 type="button"
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                disabled={isSavingEquivalent || closingModal === 'equivalent'}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
                 onClick={() => closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))}
               >
                 <IoClose className="text-xl" />
@@ -820,15 +840,15 @@ function Settings() {
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"
-                  disabled={isSavingEquivalent}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors text-sm"
+                  disabled={isSavingEquivalent || closingModal === 'equivalent'}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors text-sm"
                   onClick={() => closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))}
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingEquivalent}
+                  disabled={isSavingEquivalent || closingModal === 'equivalent'}
                   className="flex-1 py-2.5 px-4 rounded-xl bg-[#2F7473] hover:bg-[#265e5d] text-white font-medium transition-all text-sm disabled:opacity-50 shadow-sm"
                 >
                   {isSavingEquivalent ? t('loading') : t('save')}
@@ -843,12 +863,12 @@ function Settings() {
       {(showDeleteEquivalentConfirm || closingModal === 'delete') && (showDeleteEquivalentConfirm || activeDeleteTarget) && (
         <div
           className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'delete' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+            closingModal === 'delete' ? 'animate-calm-backdrop-exit pointer-events-none' : 'animate-calm-backdrop'
           }`}
         >
           <div
             className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
-              closingModal === 'delete' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+              closingModal === 'delete' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
             }`}
           >
             <div className="flex items-center gap-3 text-red-500">
@@ -867,17 +887,19 @@ function Settings() {
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors duration-200 text-sm"
+                disabled={isDeletingEquivalent || closingModal === 'delete'}
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors duration-200 text-sm"
                 onClick={handleCloseDeleteConfirm}
               >
                 {t('cancel')}
               </button>
               <button
                 type="button"
-                className="flex-1 py-3 px-4 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-all duration-200 text-sm"
+                disabled={isDeletingEquivalent || closingModal === 'delete'}
+                className="flex-1 py-3 px-4 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 transition-all duration-200 text-sm"
                 onClick={handleConfirmDeleteEquivalent}
               >
-                {t('delete')}
+                {isDeletingEquivalent ? t('loading') : t('delete')}
               </button>
             </div>
           </div>

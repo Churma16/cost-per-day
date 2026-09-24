@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi } from 'vitest';
 import Settings from './Settings';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -435,5 +435,101 @@ describe('Settings component', () => {
 
     expect(screen.getAllByText('Loading...').length).toBeGreaterThan(0);
     expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
+  });
+
+  test('guards against duplicate equivalent saves during exit animation before unmount completes', async () => {
+    let resolveAdd;
+    mockAddEquivalent.mockImplementation(() => new Promise((resolve) => {
+      resolveAdd = resolve;
+    }));
+
+    render(<Settings />);
+
+    const openAddModalButton = screen.getByRole('button', { name: /Add Equivalent/i });
+    fireEvent.click(openAddModalButton);
+
+    const nameInputElement = screen.getByPlaceholderText('e.g. Gorengan, Coffee');
+    const amountInputElement = screen.getByPlaceholderText('e.g. 2500');
+
+    fireEvent.change(nameInputElement, { target: { value: 'Boba Tea' } });
+    fireEvent.change(amountInputElement, { target: { value: '25000' } });
+
+    const submitSaveButton = screen.getByRole('button', { name: /^Save$/i });
+    fireEvent.click(submitSaveButton);
+
+    expect(mockAddEquivalent).toHaveBeenCalledTimes(1);
+
+    // Resolve the mutation promise
+    await act(async () => {
+      resolveAdd({ id: 'eq-new', name: 'Boba Tea', amount: 25000, currencyCode: 'USD' });
+    });
+
+    // The modal is now in its 200ms exit animation
+    // Attempt another click during the exit window
+    fireEvent.click(submitSaveButton);
+
+    // Mutation function must still be called exactly once
+    expect(mockAddEquivalent).toHaveBeenCalledTimes(1);
+    expect(submitSaveButton).toBeDisabled();
+  });
+
+  test('guards against duplicate equivalent deletion during in-flight mutation and exit animation', async () => {
+    let resolveRemove;
+    mockRemoveEquivalent.mockImplementation(() => new Promise((resolve) => {
+      resolveRemove = resolve;
+    }));
+
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-1', name: 'Gorengan', amount: 2500, currencyCode: 'IDR' }
+      ],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null
+    });
+
+    render(<Settings />);
+
+    const deleteButtonElement = screen.getByLabelText('Delete Equivalent Gorengan');
+    fireEvent.click(deleteButtonElement);
+
+    const confirmDeleteButton = screen.getByRole('button', { name: /^Delete$/i });
+    fireEvent.click(confirmDeleteButton);
+
+    expect(mockRemoveEquivalent).toHaveBeenCalledTimes(1);
+
+    // Rapid second click while in-flight
+    fireEvent.click(confirmDeleteButton);
+    expect(mockRemoveEquivalent).toHaveBeenCalledTimes(1);
+
+    // Resolve the deletion promise
+    await act(async () => {
+      resolveRemove();
+    });
+
+    // Attempt click during exit animation
+    fireEvent.click(confirmDeleteButton);
+    expect(mockRemoveEquivalent).toHaveBeenCalledTimes(1);
+    expect(confirmDeleteButton).toBeDisabled();
+  });
+
+  test('renders generic benchmark scale icon for value equivalents instead of food-specific icons', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-1', name: 'Gasoline', amount: 50000, currencyCode: 'IDR' }
+      ],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null
+    });
+
+    const { container } = render(<Settings />);
+    const equivalentBadge = container.querySelector('.bg-teal-50');
+    expect(equivalentBadge).toBeInTheDocument();
+    expect(equivalentBadge.querySelector('svg')).toBeInTheDocument();
   });
 });
