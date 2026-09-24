@@ -304,6 +304,7 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 		}
 
 		// Find longest lasting brand and lowest cost brand ONLY from brands satisfying the pattern threshold (isPattern == true / sampleSize >= 2)
+		// AND require at least 2 pattern brands in the category to allow comparison
 		var longestLastingBrand *string
 		var maxLifetime float64
 		var lowestCostBrand *string
@@ -325,6 +326,11 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 				lowestCostBrandName := brandInsight.Brand
 				lowestCostBrand = &lowestCostBrandName
 			}
+		}
+
+		if patternBrandCount < 2 {
+			longestLastingBrand = nil
+			lowestCostBrand = nil
 		}
 
 		// Generate objective comparison summary
@@ -358,11 +364,14 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 	}
 
 	// 4. Identify most frequently replaced category only when there is sufficient replacement evidence (completedCount >= 2 and interval calculated)
+	// AND require at least 2 eligible categories with replacement-interval evidence to allow comparison
 	var mostFrequentlyReplacedCategory *domain.FrequentlyReplacedCategory
 	var bestReplacementScore float64 = math.MaxFloat64
+	var eligibleCategoryCount int
 
 	for _, categoryInsight := range categoryInsights {
 		if categoryInsight.CompletedCount >= 2 && categoryInsight.TypicalReplacementIntervalDays != nil && *categoryInsight.TypicalReplacementIntervalDays > 0 {
+			eligibleCategoryCount++
 			if *categoryInsight.TypicalReplacementIntervalDays < bestReplacementScore {
 				bestReplacementScore = *categoryInsight.TypicalReplacementIntervalDays
 				mostFrequentlyReplacedCategory = &domain.FrequentlyReplacedCategory{
@@ -372,6 +381,10 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 				}
 			}
 		}
+	}
+
+	if eligibleCategoryCount < 2 {
+		mostFrequentlyReplacedCategory = nil
 	}
 
 	return domain.DurabilityAnalytics{
