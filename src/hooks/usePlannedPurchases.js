@@ -6,15 +6,15 @@ import {
   updatePlannedPurchase,
   deletePlannedPurchase,
 } from '../services/plannedPurchaseService';
+import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 
-export const PLANNED_PURCHASES_QUERY_KEY = ['planned-purchases'];
+export const PLANNED_PURCHASES_QUERY_KEY = queryKeys.plannedPurchases;
 
 export const usePlannedPurchases = () => {
   return useQuery({
     queryKey: PLANNED_PURCHASES_QUERY_KEY,
     queryFn: fetchPlannedPurchases,
-    staleTime: 30 * 1000,
-    refetchOnMount: 'always',
+    staleTime: SERVER_STATE_STALE_TIME,
     retry: 1,
   });
 };

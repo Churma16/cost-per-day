@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render as testingLibraryRender, screen, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import {
   ValueEquivalentsProvider,
@@ -18,6 +19,13 @@ vi.mock('../services/api', () => ({
   updateValueEquivalent: vi.fn(),
   deleteValueEquivalent: vi.fn()
 }));
+
+const render = (ui) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return testingLibraryRender(ui, {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+};
 
 const TestConsumer = () => {
   const {

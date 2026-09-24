@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getAllItems, deleteItem } from '../services/api';
+import { deleteItem } from '../services/api';
 import {
   IoChevronDown,
   IoScaleOutline,
@@ -20,8 +21,8 @@ import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { selectBestEquivalent } from '../utils/equivalentCalculator';
-import { useInvalidateDashboard } from '../hooks/useDashboard';
-import { useInvalidateDurability } from '../hooks/useDurabilityAnalytics';
+import { useItems, useInvalidateItems } from '../hooks/useItems';
+import { queryKeys } from '../query/queryConfig';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 
 const STATUS_TRANSLATION_KEYS = {
@@ -162,19 +163,18 @@ export function CalmCycleText({ text, hasCycled }) {
 
 function ItemList() {
   const { t, i18n } = useTranslation();
-  const [items, setItems] = useState([]);
   const [expandedItem, setExpandedItem] = useState(null);
   const [benchmarkModalItem, setBenchmarkModalItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
   const navigate = useNavigate();
   const { setTotalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
-  const invalidateDashboard = useInvalidateDashboard();
-  const invalidateDurability = useInvalidateDurability();
+  const queryClient = useQueryClient();
+  const { data: items = [], isLoading, error: itemsError } = useItems();
+  const invalidateItems = useInvalidateItems();
   const [durationUnitByItemId, setDurationUnitByItemId] = useState({});
   const [syncRotationByItemId, setSyncRotationByItemId] = useState({});
 
@@ -190,32 +190,12 @@ function ItemList() {
   };
 
   useEffect(() => {
-    const loadItems = async () => {
-      setIsLoading(true);
-      setErrorMessage(null);
-
-      try {
-        const storedItems = await getAllItems();
-        setItems(storedItems);
-
-        const total = storedItems.reduce((sum, item) => {
-          const itemStatus = item.status || 'active';
-          if (itemStatus !== 'active') {
-            return sum;
-          }
-          return sum + Number(item.grossCostPerDay || 0);
-        }, 0);
-        setTotalDailyCost(total);
-      } catch (error) {
-        console.error('Error loading items:', error);
-        setErrorMessage(error.message || 'Failed to load items from the server.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadItems();
-  }, [setTotalDailyCost]);
+    const total = items.reduce((sum, item) => {
+      const itemStatus = item.status || 'active';
+      return itemStatus === 'active' ? sum + Number(item.grossCostPerDay || 0) : sum;
+    }, 0);
+    setTotalDailyCost(total);
+  }, [items, setTotalDailyCost]);
 
   const handleEditItem = (item) => {
     navigate(`/edit?id=${item.id}`);
@@ -230,18 +210,10 @@ function ItemList() {
     setIsDeleting(true);
     try {
       await deleteItem(itemToDelete.id);
-      await invalidateDashboard();
-      await invalidateDurability();
-      const remainingItems = items.filter((item) => item.id !== itemToDelete.id);
-      setItems(remainingItems);
-      const total = remainingItems.reduce((sum, item) => {
-        const itemStatus = item.status || 'active';
-        if (itemStatus !== 'active') {
-          return sum;
-        }
-        return sum + Number(item.grossCostPerDay || 0);
-      }, 0);
-      setTotalDailyCost(total);
+      queryClient.setQueryData(queryKeys.items, (cachedItems = []) =>
+        cachedItems.filter((item) => String(item.id) !== String(itemToDelete.id))
+      );
+      await invalidateItems();
       setItemToDelete(null);
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -266,9 +238,9 @@ function ItemList() {
         <div className="text-center py-10 text-[#6F7782]">
           <p>{t('loading')}</p>
         </div>
-      ) : errorMessage ? (
+      ) : errorMessage || itemsError ? (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errorMessage}
+          {errorMessage || itemsError?.message || 'Failed to load items from the server.'}
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-10 text-[#6F7782]">

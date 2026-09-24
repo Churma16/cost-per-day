@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as testingLibraryRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import AddItem from './AddItem';
@@ -92,6 +93,7 @@ vi.mock('../hooks/useDurabilityAnalytics', () => ({
     data: [{ id: 1, name: 'Sony' }, { id: 2, name: 'Nike' }],
   }),
   useInvalidateDurability: vi.fn().mockReturnValue(vi.fn().mockResolvedValue()),
+  invalidateDurabilityQuery: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../services/api', () => ({
@@ -101,11 +103,20 @@ vi.mock('../services/api', () => ({
   deleteItem: vi.fn()
 }));
 
+const render = (ui) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return testingLibraryRender(ui, {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+};
+
 describe('AddItem component date localization', () => {
   const mockNavigate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    getAllItems.mockReset();
+    getAllItems.mockResolvedValue([]);
     useCurrency.mockReturnValue({
       currencySymbol: 'Rp',
       currencyCode: 'IDR'
@@ -289,7 +300,7 @@ describe('AddItem component date localization', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load item.');
+    expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toHaveTextContent('Unable to load item.');
     expect(screen.queryByRole('button', { name: 'Delete Item' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });

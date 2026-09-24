@@ -18,11 +18,15 @@ import { TotalCostProvider, useTotalCost } from './contexts/TotalCostContext';
 import { formatCurrency } from './utils/formatters';
 import { MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
+import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
 
 const applicationQueryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: SERVER_STATE_STALE_TIME,
+      gcTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
+      refetchOnMount: true,
     },
   },
 });

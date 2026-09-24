@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchReplacementBenchmark } from '../services/benchmarkService';
+import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 
 export const BENCHMARK_QUERY_KEY = ['replacement-benchmark'];
 
@@ -9,10 +10,10 @@ export const useReplacementBenchmark = (itemId, price, options = {}) => {
   const isEnabled = Boolean(itemId && isValidPrice && (options.enabled ?? true));
 
   return useQuery({
-    queryKey: [...BENCHMARK_QUERY_KEY, itemId, numericPrice],
+    queryKey: queryKeys.replacementBenchmark(itemId, numericPrice),
     queryFn: () => fetchReplacementBenchmark(itemId, numericPrice),
     enabled: isEnabled,
-    staleTime: 60 * 1000,
+    staleTime: SERVER_STATE_STALE_TIME,
     retry: false,
     ...options,
   });

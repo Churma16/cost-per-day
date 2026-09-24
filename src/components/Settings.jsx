@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   IoChevronForward,
@@ -21,11 +22,13 @@ import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { formatCurrency } from '../utils/formatters';
-import { useInvalidateDashboard } from '../hooks/useDashboard';
+import { useInvalidateItems } from '../hooks/useItems';
+import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 import { PRODUCT_EXPORT_PREFIX, APP_VERSION } from '../constants/branding';
 
 function Settings() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { language, changeLanguage, error: languageError } = useLanguage();
   const { currencyCode, changeCurrency, error: currencyError } = useCurrency();
   const { user, signOut, error: authError } = useAuth();
@@ -37,7 +40,7 @@ function Settings() {
     removeEquivalent,
     error: equivalentsError
   } = useValueEquivalents();
-  const invalidateDashboard = useInvalidateDashboard();
+  const invalidateItems = useInvalidateItems();
 
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
@@ -119,7 +122,6 @@ function Settings() {
     setNotification(null);
     try {
       await changeLanguage(code);
-      await invalidateDashboard();
       setNotification(null);
     } catch (error) {
       console.error('Error updating language:', error);
@@ -135,7 +137,6 @@ function Settings() {
     setNotification(null);
     try {
       await changeCurrency(selectedCurrencyCode);
-      await invalidateDashboard();
       setNotification(null);
     } catch (error) {
       console.error('Error updating currency:', error);
@@ -163,7 +164,11 @@ function Settings() {
 
   const handleExportData = async () => {
     try {
-      const items = await getAllItems();
+      const items = await queryClient.fetchQuery({
+        queryKey: queryKeys.items,
+        queryFn: getAllItems,
+        staleTime: SERVER_STATE_STALE_TIME,
+      });
 
       if (!items || items.length === 0) {
         setNotification({
@@ -282,8 +287,9 @@ function Settings() {
     if (isImporting || closingModal === 'import') return;
     setIsImporting(true);
     try {
-      await replaceAllItems(importData);
-      await invalidateDashboard();
+      const replacedItems = await replaceAllItems(importData);
+      queryClient.setQueryData(queryKeys.items, replacedItems);
+      await invalidateItems();
 
       setNotification({
         message: t('importSuccess'),
@@ -355,8 +361,6 @@ function Settings() {
           currencyCode: equivalentFormCurrency
         });
       }
-      await invalidateDashboard();
-
       closeModalWithAnimation('equivalent', () => {
         setShowEquivalentModal(false);
         setIsSavingEquivalent(false);
@@ -395,7 +399,6 @@ function Settings() {
     setIsDeletingEquivalent(true);
     try {
       await removeEquivalent(targetToDelete.id);
-      await invalidateDashboard();
       closeModalWithAnimation('delete', () => {
         setShowDeleteEquivalentConfirm(null);
         setActiveDeleteTarget(null);
