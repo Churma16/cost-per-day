@@ -156,11 +156,16 @@ function ItemList() {
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
   const [durationUnitByItemId, setDurationUnitByItemId] = useState({});
+  const [syncRotationByItemId, setSyncRotationByItemId] = useState({});
 
   const handleCycleDurationUnit = (itemId, days) => {
-    setDurationUnitByItemId((previous) => ({
-      ...previous,
-      [itemId]: getNextDurationUnit(previous[itemId] || 'days', days)
+    setDurationUnitByItemId((previousUnits) => ({
+      ...previousUnits,
+      [itemId]: getNextDurationUnit(previousUnits[itemId] || 'days', days)
+    }));
+    setSyncRotationByItemId((previousRotations) => ({
+      ...previousRotations,
+      [itemId]: (previousRotations[itemId] || 0) + 180
     }));
   };
 
@@ -378,9 +383,9 @@ function ItemList() {
                                   handleCycleDurationUnit(item.id, days);
                                 }
                               }}
-                              className={`w-full rounded-xl bg-[#F6F7F8] border border-[#E6E8EC] p-3 flex items-center justify-between text-xs transition-colors text-left ${
+                              className={`w-full rounded-xl bg-[#F6F7F8] border border-[#E6E8EC] p-3 flex items-center justify-between text-xs transition-colors duration-200 text-left ${
                                 isInteractive
-                                  ? 'hover:bg-[#EEF0F3] cursor-pointer active:scale-[0.99]'
+                                  ? 'hover:bg-[#EEF0F3] cursor-pointer'
                                   : 'cursor-default'
                               }`}
                               title={isInteractive ? t('clickToCycleUnit') : undefined}
@@ -389,11 +394,24 @@ function ItemList() {
                               <div className="flex items-center gap-1.5 text-[#6F7782] font-medium">
                                 <span>{t('ownedFor')}</span>
                                 {isInteractive && (
-                                  <IoSyncOutline className="text-xs text-[#6F7782]" aria-hidden="true" />
+                                  <IoSyncOutline
+                                    className="text-xs text-[#6F7782] transition-transform duration-300 ease-out"
+                                    style={{
+                                      transform: `rotate(${syncRotationByItemId[item.id] || 0}deg)`
+                                    }}
+                                    aria-hidden="true"
+                                  />
                                 )}
                               </div>
-                              <span className="font-semibold text-[#20242A] text-sm tabular-nums">
-                                {displayDuration}
+                              <span className="overflow-hidden inline-flex items-center">
+                                <span
+                                  key={durationUnitByItemId[item.id] ? displayDuration : 'initial'}
+                                  className={`inline-block font-semibold text-[#20242A] text-sm tabular-nums ${
+                                    durationUnitByItemId[item.id] ? 'animate-calm-cycle' : ''
+                                  }`}
+                                >
+                                  {displayDuration}
+                                </span>
                               </span>
                             </button>
                           );

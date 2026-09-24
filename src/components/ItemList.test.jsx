@@ -376,11 +376,15 @@ describe('ItemList lifecycle display', () => {
 
     // Click to cycle duration unit from days to months
     fireEvent.click(screen.getByText('200 days'));
-    expect(screen.getByText('~6.6 months')).toBeInTheDocument();
+    const monthsElement = screen.getByText('~6.6 months');
+    expect(monthsElement).toBeInTheDocument();
+    expect(monthsElement).toHaveClass('animate-calm-cycle');
 
     // Click again to cycle back to days (since 200 < 365)
     fireEvent.click(screen.getByText('~6.6 months'));
-    expect(screen.getByText('200 days')).toBeInTheDocument();
+    const cycledDaysElement = screen.getByText('200 days');
+    expect(cycledDaysElement).toBeInTheDocument();
+    expect(cycledDaysElement).toHaveClass('animate-calm-cycle');
 
     // Click Delete to open confirmation
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
