@@ -6,6 +6,7 @@ import { vi } from 'vitest';
 import ItemList, {
   getCategoryIconInfo,
   getStatusBadgeStyle,
+  getLifecycleTranslationKey,
   getNextDurationUnit,
   formatOwnershipDuration,
   CalmCycleText
@@ -43,6 +44,7 @@ vi.mock('react-i18next', () => ({
       return {
         loading: 'Loading...',
         noItems: 'No items yet',
+        statusActiveEarly: 'Just Joined You',
         statusActive: 'Still With You',
         statusRetired: 'No Longer in Use',
         statusSold: 'Changed Hands',
@@ -185,16 +187,25 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('$6.00/day')).toBeInTheDocument();
   });
 
-  test('keeps active lifecycle quiet while showing human copy for completed states', async () => {
+  test('keeps active lifecycle quiet while showing age-aware human copy when expanded', async () => {
     getAllItems.mockResolvedValueOnce([
+      {
+        id: 'early-active-copy',
+        name: 'New Camera',
+        price: 300,
+        purchaseDate: '2026-09-17T12:00:00Z',
+        status: 'active',
+        ownershipDays: 8,
+        grossCostPerDay: 37.5
+      },
       {
         id: 'active-copy',
         name: 'Active Camera',
         price: 300,
-        purchaseDate: '2026-01-01T12:00:00Z',
+        purchaseDate: '2026-08-19T12:00:00Z',
         status: 'active',
-        ownershipDays: 40,
-        grossCostPerDay: 7.5
+        ownershipDays: 37,
+        grossCostPerDay: 8.11
       },
       {
         id: 'retired-copy',
@@ -222,7 +233,10 @@ describe('ItemList lifecycle display', () => {
       </MemoryRouter>
     );
 
-    const activeTrigger = await screen.findByRole('button', { name: /Active Camera/i });
+    const earlyActiveTrigger = await screen.findByRole('button', { name: /New Camera/i });
+    expect(within(earlyActiveTrigger).queryByText('Just Joined You')).not.toBeInTheDocument();
+
+    const activeTrigger = screen.getByRole('button', { name: /Active Camera/i });
     expect(within(activeTrigger).queryByText('Still With You')).not.toBeInTheDocument();
 
     const retiredTrigger = screen.getByRole('button', { name: /Retired Camera/i });
@@ -231,9 +245,25 @@ describe('ItemList lifecycle display', () => {
     const lostTrigger = screen.getByRole('button', { name: /Lost Camera/i });
     expect(within(lostTrigger).getByText('Lost')).toBeInTheDocument();
 
+    fireEvent.click(earlyActiveTrigger);
+    const earlyActiveDetails = document.getElementById('item-details-early-active-copy');
+    expect(within(earlyActiveDetails).getByText('Just Joined You')).toBeInTheDocument();
+    fireEvent.click(earlyActiveTrigger);
+
     fireEvent.click(activeTrigger);
     const activeDetails = document.getElementById('item-details-active-copy');
     expect(within(activeDetails).getByText('Still With You')).toBeInTheDocument();
+  });
+
+  test('derives the early active presentation without changing lifecycle domain state', () => {
+    expect(getLifecycleTranslationKey('active', 1)).toBe('statusActiveEarly');
+    expect(getLifecycleTranslationKey('active', 8)).toBe('statusActiveEarly');
+    expect(getLifecycleTranslationKey('active', 14)).toBe('statusActiveEarly');
+    expect(getLifecycleTranslationKey('active', 15)).toBe('statusActive');
+    expect(getLifecycleTranslationKey('active', 37)).toBe('statusActive');
+    expect(getLifecycleTranslationKey('retired', 8)).toBe('statusRetired');
+    expect(getLifecycleTranslationKey('sold', 8)).toBe('statusSold');
+    expect(getLifecycleTranslationKey('lost', 8)).toBe('statusLost');
   });
 
   test('keeps cached items visible when a background refresh fails', () => {
