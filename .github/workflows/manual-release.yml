@@ -61,35 +61,21 @@ jobs:
           if [ "$RELEASE_TYPE" != "auto" ]; then
             EXTRA_ARGS="--release-as $RELEASE_TYPE"
           fi
-          if [ "$DRY_RUN" = "true" ]; then
-            EXTRA_ARGS="$EXTRA_ARGS --dry-run"
-          fi
-
-          echo "[INFO] Running commit-and-tag-version with args: $EXTRA_ARGS"
-          OUTPUT=$(npx -y commit-and-tag-version $EXTRA_ARGS)
-          echo "$OUTPUT"
 
           if [ "$DRY_RUN" = "true" ]; then
-            PREDICTED_TAG=$(echo "$OUTPUT" | grep -oE 'tagging release v[0-9]+\.[0-9]+\.[0-9]+[^ ]*' | head -n1 | awk '{print $NF}')
-            if [ -z "$PREDICTED_TAG" ]; then
-              PREDICTED_TAG="v$(node -p "require('./package.json').version")"
-            fi
+            echo "[INFO] Running simulated version bump and changelog generation (dry-run)"
+            npx -y commit-and-tag-version@13.2.1 $EXTRA_ARGS --skip.commit --skip.tag
+            PREDICTED_VERSION=$(node -p "require('./package.json').version")
+            PREDICTED_TAG="v${PREDICTED_VERSION}"
             echo "RELEASE_TAG=$PREDICTED_TAG" >> "$GITHUB_ENV"
             echo "[INFO] Predicted dry-run tag: $PREDICTED_TAG"
           else
+            echo "[INFO] Running official release bump"
+            npx -y commit-and-tag-version@13.2.1 $EXTRA_ARGS
             NEW_TAG=$(git describe --tags --match="v[0-9]*" --abbrev=0)
             echo "RELEASE_TAG=$NEW_TAG" >> "$GITHUB_ENV"
             echo "[INFO] Generated new tag: $NEW_TAG"
           fi
-
-      - name: Push version bump and tag
-        if: ${{ inputs.dry_run == false }}
-        env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
-        run: |
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}"
-          BRANCH=${{ github.ref_name }}
-          git push origin "$BRANCH" --follow-tags
 
       - name: Generate release notes
         env:
@@ -104,6 +90,23 @@ jobs:
         run: |
           echo "### Dry-Run Release Notes Preview (${{ env.RELEASE_TAG }})" >> "$GITHUB_STEP_SUMMARY"
           cat release-notes.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Restore workspace state after dry run
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          echo "[INFO] Restoring workspace state after dry run"
+          git checkout -- .
+          git clean -fd
+          rm -f release-notes.md
+
+      - name: Push version bump and tag
+        if: ${{ inputs.dry_run == false }}
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}"
+          BRANCH=${{ github.ref_name }}
+          git push origin "$BRANCH" --follow-tags
 
       - name: Publish GitHub release
         if: ${{ inputs.dry_run == false }}
