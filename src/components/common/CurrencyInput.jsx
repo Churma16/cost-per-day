@@ -70,45 +70,32 @@ function CurrencyInput({
       .split('')
       .filter((character) => character !== separatorConfiguration.groupSeparator).length;
 
-    const parsedRawValue = parseCurrencyInputValue(rawInputValue, activeCurrencyCode);
-    const [integerSegment = '', decimalSegment] = parsedRawValue.split('.');
-
-    let finalRawNumericString = parsedRawValue;
+    const rawNumericString = parseCurrencyInputValue(rawInputValue, activeCurrencyCode);
+    const [integerSegment = ''] = rawNumericString.split('.');
 
     if (integerSegment.length > effectiveMaxIntegerDigits) {
-      const isSingleCharacterAddition = rawInputValue.length === displayValue.length + 1;
-
-      if (isSingleCharacterAddition) {
-        // Reject single character typing that exceeds maximum allowed integer digits
-        if (inputElementRef.current) {
-          inputElementRef.current.value = displayValue;
-          const restoredCursorPosition = Math.min(
-            Math.max(0, currentCursorPosition - 1),
-            displayValue.length
-          );
-          inputElementRef.current.setSelectionRange(restoredCursorPosition, restoredCursorPosition);
-          requestAnimationFrame(() => {
-            if (inputElementRef.current) {
-              inputElementRef.current.setSelectionRange(
-                restoredCursorPosition,
-                restoredCursorPosition
-              );
-            }
-          });
-        }
-        return;
+      // Reject any overflow instead of truncating it into a different monetary value.
+      if (inputElementRef.current) {
+        inputElementRef.current.value = displayValue;
+        const restoredCursorPosition = Math.min(
+          Math.max(0, currentCursorPosition - 1),
+          displayValue.length
+        );
+        inputElementRef.current.setSelectionRange(restoredCursorPosition, restoredCursorPosition);
+        requestAnimationFrame(() => {
+          if (inputElementRef.current) {
+            inputElementRef.current.setSelectionRange(
+              restoredCursorPosition,
+              restoredCursorPosition
+            );
+          }
+        });
       }
-
-      // Pasted or multi-character insertion: clamp integer digits to maximum limit
-      const truncatedIntegerSegment = integerSegment.slice(0, effectiveMaxIntegerDigits);
-      finalRawNumericString =
-        decimalSegment !== undefined
-          ? `${truncatedIntegerSegment}.${decimalSegment}`
-          : truncatedIntegerSegment;
+      return;
     }
 
     const formattedDisplayString = formatCurrencyInputValue(
-      finalRawNumericString,
+      rawNumericString,
       activeCurrencyCode
     );
 
@@ -134,14 +121,14 @@ function CurrencyInput({
         target: {
           ...event.target,
           name: name || event.target.name,
-          value: finalRawNumericString
+          value: rawNumericString
         }
       };
-      onChange(syntheticChangeEvent, finalRawNumericString);
+      onChange(syntheticChangeEvent, rawNumericString);
     }
 
     if (onValueChange) {
-      onValueChange(finalRawNumericString);
+      onValueChange(rawNumericString);
     }
   };
 
