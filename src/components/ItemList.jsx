@@ -318,9 +318,11 @@ function ItemList() {
                       <p className="text-sm font-semibold text-[#20242A] tabular-nums">
                         {formatCurrency(itemCostPerDay, currencyCode)}
                       </p>
-                      <span className={`text-xs mt-0.5 ${getStatusBadgeStyle(itemStatus)}`}>
-                        {t(statusTranslationKey)}
-                      </span>
+                      {!isActive && (
+                        <span className={`text-xs mt-0.5 ${getStatusBadgeStyle(itemStatus)}`}>
+                          {t(statusTranslationKey)}
+                        </span>
+                      )}
                     </div>
                     <IoChevronDown
                       aria-hidden="true"
@@ -370,7 +372,7 @@ function ItemList() {
                           </div>
                         </div>
 
-                        {/* Full-width Ownership Duration (Interactive Cycle) */}
+                        {/* Full-width Lifecycle + Ownership Duration (Interactive Cycle) */}
                         {(() => {
                           const days = Math.max(1, Number(item.ownershipDays) || 1);
                           const isInteractive = days >= 30;
@@ -395,10 +397,10 @@ function ItemList() {
                                   : 'cursor-default'
                               }`}
                               title={isInteractive ? t('clickToCycleUnit') : undefined}
-                              aria-label={`${t('ownedFor')}: ${displayDuration}`}
+                              aria-label={`${t(statusTranslationKey)}: ${displayDuration}`}
                             >
                               <div className="flex items-center gap-1.5 text-[#6F7782] font-medium">
-                                <span>{t('ownedFor')}</span>
+                                <span>{t(statusTranslationKey)}</span>
                                 {isInteractive && (
                                   <IoSyncOutline
                                     className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
