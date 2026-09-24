@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { IoTrashOutline, IoArrowBack } from 'react-icons/io5';
 import 'react-day-picker/dist/style.css';
-import { addItem, updateItem, getAllItems, deleteItem } from '../services/api';
+import { addItem, updateItem, deleteItem } from '../services/api';
 import { getDateLocale, formatCurrency } from '../utils/formatters';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { useInvalidateDashboard } from '../hooks/useDashboard';
-import { useCategories, useBrands, useInvalidateDurability } from '../hooks/useDurabilityAnalytics';
+import { useCategories, useBrands } from '../hooks/useDurabilityAnalytics';
+import { useItems, useInvalidateItems } from '../hooks/useItems';
+import { queryKeys } from '../query/queryConfig';
 import { parseISO } from 'date-fns';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 import { deriveOwnershipTargetEquivalent } from '../utils/ownershipTargetCalculator';
@@ -39,7 +41,6 @@ function AddItem() {
   const [targetValue, setTargetValue] = useState('');
   const [targetMode, setTargetMode] = useState('manual');
   const [selectedBenchmarkItemId, setSelectedBenchmarkItemId] = useState('');
-  const [completedItems, setCompletedItems] = useState([]);
   const [benchmarkModalOpen, setBenchmarkModalOpen] = useState(false);
   const [benchmarkSourceItem, setBenchmarkSourceItem] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -53,9 +54,12 @@ function AddItem() {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { currencyCode, currencySymbol } = useCurrency();
-  const invalidateDashboard = useInvalidateDashboard();
-  const invalidateDurability = useInvalidateDurability();
+  const { data: itemsData, isLoading: itemsLoading, error: itemsError } = useItems();
+  const items = itemsData ?? [];
+  const completedItems = items.filter((candidate) => candidate.status && candidate.status !== 'active');
+  const invalidateItems = useInvalidateItems();
   const { data: availableCategories = [] } = useCategories();
   const { data: availableBrands = [] } = useBrands();
 
@@ -91,24 +95,8 @@ function AddItem() {
     }
   }, [location.pathname]);
 
-  // Load completed items for optional repeat-buy benchmarking
-  useEffect(() => {
-    let isMounted = true;
-    getAllItems().then((allItems) => {
-      if (!isMounted || !Array.isArray(allItems)) return;
-      const completed = allItems.filter((candidate) => candidate.status && candidate.status !== 'active');
-      setCompletedItems(completed);
-    }).catch(() => {
-      // Non-blocking
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   // Load server-backed item data for edit mode
   useEffect(() => {
-    const loadItem = async () => {
       const searchParams = new URLSearchParams(location.search);
       const editId = searchParams.get('id');
       const isEdit = location.pathname === '/edit';
@@ -125,15 +113,18 @@ function AddItem() {
 
       setIsEditMode(true);
       setEditIndex(editId);
-      setErrorMessage(null);
-      setLoadFailed(false);
-      setItemLoaded(false);
 
-      try {
-        const items = await getAllItems();
-        const itemToEdit = items.find((item) => String(item.id) === String(editId));
+      if (itemsLoading || itemLoaded) return;
 
-        if (itemToEdit) {
+      if (itemsError && itemsData === undefined) {
+        setErrorMessage(itemsError.message || 'Failed to load item. Please check your connection and try again.');
+        setLoadFailed(true);
+        return;
+      }
+
+      const itemToEdit = items.find((item) => String(item.id) === String(editId));
+
+      if (itemToEdit) {
           setName(itemToEdit.name);
           setPrice(itemToEdit.price.toString());
           setCategory(itemToEdit.category || '');
@@ -158,22 +149,13 @@ function AddItem() {
           );
           setItemLoaded(true);
           setLoadFailed(false);
-        } else {
-          console.error('Item not found for editing');
-          setErrorMessage('Item not found. It may have been deleted.');
-          setLoadFailed(true);
-          setItemLoaded(false);
-        }
-      } catch (error) {
-        console.error('Error loading item:', error);
-        setErrorMessage(error.message || 'Failed to load item. Please check your connection and try again.');
+      } else {
+        console.error('Item not found for editing');
+        setErrorMessage('Item not found. It may have been deleted.');
         setLoadFailed(true);
         setItemLoaded(false);
       }
-    };
-
-    loadItem();
-  }, [location.pathname, location.search, navigate]);
+  }, [location.pathname, location.search, navigate, items, itemsData, itemsLoading, itemsError, itemLoaded]);
 
   // Close desktop date picker when clicking outside
   useEffect(() => {
@@ -277,14 +259,14 @@ function AddItem() {
     setErrorMessage(null);
 
     try {
-      if (isEditMode) {
-        await updateItem(editIndex, itemData);
-      } else {
-        await addItem(itemData);
-      }
-
-      await invalidateDashboard();
-      await invalidateDurability();
+      const savedItem = isEditMode
+        ? await updateItem(editIndex, itemData)
+        : await addItem(itemData);
+      queryClient.setQueryData(queryKeys.items, (cachedItems = []) => isEditMode
+        ? cachedItems.map((item) => (String(item.id) === String(editIndex) ? savedItem : item))
+        : [...cachedItems, savedItem]
+      );
+      await invalidateItems();
       navigate('/');
     } catch (error) {
       console.error('Error saving item:', error);
@@ -301,8 +283,10 @@ function AddItem() {
 
     try {
       await deleteItem(editIndex);
-      await invalidateDashboard();
-      await invalidateDurability();
+      queryClient.setQueryData(queryKeys.items, (cachedItems = []) =>
+        cachedItems.filter((item) => String(item.id) !== String(editIndex))
+      );
+      await invalidateItems();
       navigate('/');
     } catch (error) {
       console.error('Error deleting item:', error);

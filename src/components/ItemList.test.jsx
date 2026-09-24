@@ -1,5 +1,6 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as testingLibraryRender, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import ItemList, {
@@ -13,6 +14,7 @@ import { getAllItems, deleteItem } from '../services/api';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
+import { queryKeys } from '../query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -97,12 +99,21 @@ const mockInvalidateDashboard = vi.fn().mockResolvedValue(undefined);
 const mockInvalidateDurability = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../hooks/useDashboard', () => ({
-  useInvalidateDashboard: () => mockInvalidateDashboard
+  useInvalidateDashboard: () => mockInvalidateDashboard,
+  invalidateDashboardQuery: (...args) => mockInvalidateDashboard(...args)
 }));
 
 vi.mock('../hooks/useDurabilityAnalytics', () => ({
-  useInvalidateDurability: () => mockInvalidateDurability
+  useInvalidateDurability: () => mockInvalidateDurability,
+  invalidateDurabilityQuery: (...args) => mockInvalidateDurability(...args)
 }));
+
+const render = (ui) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return testingLibraryRender(ui, {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+};
 
 describe('ItemList lifecycle display', () => {
   const setTotalDailyCost = vi.fn();
@@ -115,7 +126,7 @@ describe('ItemList lifecycle display', () => {
   });
 
   test('uses backend-derived final and net costs for sold history', async () => {
-    getAllItems.mockResolvedValueOnce([
+    getAllItems.mockResolvedValue([
       {
         id: '1',
         name: 'Phone',
@@ -168,6 +179,30 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('$60.00')).toBeInTheDocument();
     expect(screen.getByText('Net cost per day')).toBeInTheDocument();
     expect(screen.getByText('$6.00/day')).toBeInTheDocument();
+  });
+
+  test('keeps cached items visible when a background refresh fails', () => {
+    const cachedItems = [{
+      id: 'cached-1',
+      name: 'Cached Phone',
+      price: 100,
+      purchaseDate: '2026-09-01T12:00:00Z',
+      status: 'active',
+      ownershipDays: 10,
+      grossCostPerDay: 10,
+    }];
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, cachedItems, { updatedAt: 1 });
+    getAllItems.mockRejectedValue(new Error('Temporary network failure'));
+
+    testingLibraryRender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter><ItemList /></MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByText('Cached Phone')).toBeInTheDocument();
+    expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
   test('supports keyboard expansion with aria-expanded and aria-controls attributes', async () => {
@@ -454,7 +489,7 @@ describe('ItemList lifecycle display', () => {
 
   test('renders owned for duration and handles item deletion with confirmation dialog', async () => {
     deleteItem.mockResolvedValueOnce(null);
-    getAllItems.mockResolvedValueOnce([
+    getAllItems.mockResolvedValue([
       {
         id: 'item-del-1',
         name: 'Desk Lamp',

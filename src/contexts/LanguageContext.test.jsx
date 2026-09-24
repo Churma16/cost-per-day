@@ -1,12 +1,13 @@
 import React from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render as testingLibraryRender, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import { LanguageProvider, useLanguage } from './LanguageContext';
-import { getSetting, updateSetting } from '../services/api';
+import { getAllSettings, updateSetting } from '../services/api';
 import i18n from '../i18n';
 
 vi.mock('../services/api', () => ({
-  getSetting: vi.fn(),
+  getAllSettings: vi.fn(),
   updateSetting: vi.fn(),
 }));
 
@@ -27,6 +28,13 @@ const TestLanguageConsumer = () => {
   );
 };
 
+const render = (ui) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return testingLibraryRender(ui, {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+};
+
 describe('LanguageContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,7 +42,7 @@ describe('LanguageContext', () => {
   });
 
   test('loads persisted Indonesian language from storage', async () => {
-    getSetting.mockResolvedValue('id');
+    getAllSettings.mockResolvedValue({ language: 'id' });
 
     render(
       <LanguageProvider>
@@ -53,7 +61,7 @@ describe('LanguageContext', () => {
   test('persists Indonesian and restores it after provider remount', async () => {
     let savedLanguage = 'en';
 
-    getSetting.mockImplementation(async () => savedLanguage);
+    getAllSettings.mockImplementation(async () => ({ language: savedLanguage }));
     updateSetting.mockImplementation(async (key, value) => {
       if (key === 'language') {
         savedLanguage = value;
@@ -92,13 +100,13 @@ describe('LanguageContext', () => {
       expect(screen.getByTestId('language-code')).toHaveTextContent('id');
     });
 
-    expect(getSetting).toHaveBeenCalledTimes(2);
+    expect(getAllSettings).toHaveBeenCalledTimes(2);
     expect(i18n.changeLanguage).toHaveBeenLastCalledWith('id');
   });
 
   test('falls back safely to English when persisted language is deprioritized (fr or zh) or unknown', async () => {
     // Persisted as 'fr'
-    getSetting.mockResolvedValue('fr');
+    getAllSettings.mockResolvedValue({ language: 'fr' });
 
     const frRender = render(
       <LanguageProvider>
@@ -114,7 +122,7 @@ describe('LanguageContext', () => {
     frRender.unmount();
 
     // Persisted as 'zh'
-    getSetting.mockResolvedValue('zh');
+    getAllSettings.mockResolvedValue({ language: 'zh' });
 
     const zhRender = render(
       <LanguageProvider>

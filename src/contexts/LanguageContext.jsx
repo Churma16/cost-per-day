@@ -1,5 +1,5 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { getSetting, updateSetting } from '../services/api';
+import React, { createContext, useContext, useEffect } from 'react';
+import { useSettings, useUpdateSetting } from '../hooks/useSettings';
 import i18n from '../i18n';
 
 export const SUPPORTED_LANGUAGES = ['en', 'id'];
@@ -8,9 +8,7 @@ export const DEFAULT_LANGUAGE = 'en';
 export const sanitizeLanguage = (languageCode) => {
   if (languageCode && typeof languageCode === 'string') {
     const normalized = languageCode.trim().toLowerCase();
-    if (SUPPORTED_LANGUAGES.includes(normalized)) {
-      return normalized;
-    }
+    if (SUPPORTED_LANGUAGES.includes(normalized)) return normalized;
   }
   return DEFAULT_LANGUAGE;
 };
@@ -18,46 +16,21 @@ export const sanitizeLanguage = (languageCode) => {
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  const [loading, setLoading] = useState(true);
-  const [currentLanguage, setCurrentLanguage] = useState(DEFAULT_LANGUAGE);
-  const [error, setError] = useState(null);
+  const settingsQuery = useSettings();
+  const updateSettingMutation = useUpdateSetting();
+  const language = sanitizeLanguage(settingsQuery.data?.language);
 
   useEffect(() => {
-    const loadLanguage = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const rawLanguage = await getSetting('language');
-        const language = sanitizeLanguage(rawLanguage);
-        setCurrentLanguage(language);
-        await i18n.changeLanguage(language);
-      } catch (loadError) {
-        console.error('Error loading language:', loadError);
-        setError(loadError);
-        await i18n.changeLanguage(DEFAULT_LANGUAGE);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadLanguage();
-  }, []);
+    if (!settingsQuery.isLoading) i18n.changeLanguage(language);
+  }, [language, settingsQuery.isLoading]);
 
   const changeLanguage = async (languageCode) => {
-    const sanitizedLanguage = sanitizeLanguage(languageCode);
-    try {
-      setError(null);
-      await updateSetting('language', sanitizedLanguage);
-      await i18n.changeLanguage(sanitizedLanguage);
-      setCurrentLanguage(sanitizedLanguage);
-    } catch (updateError) {
-      console.error('Error changing language:', updateError);
-      setError(updateError);
-      throw updateError;
-    }
+    const nextLanguage = sanitizeLanguage(languageCode);
+    await updateSettingMutation.mutateAsync({ key: 'language', value: nextLanguage });
+    await i18n.changeLanguage(nextLanguage);
   };
 
-  if (loading) {
+  if (settingsQuery.isLoading && !settingsQuery.data) {
     return <div className="flex items-center justify-center h-screen">
       <div className="text-purple-600">Loading...</div>
     </div>;
@@ -65,9 +38,9 @@ export const LanguageProvider = ({ children }) => {
 
   return (
     <LanguageContext.Provider value={{
-      language: currentLanguage,
+      language,
       changeLanguage,
-      error
+      error: settingsQuery.error || updateSettingMutation.error
     }}>
       {children}
     </LanguageContext.Provider>

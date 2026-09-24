@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render as testingLibraryRender, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import Settings from './Settings';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -79,6 +80,13 @@ vi.mock('../services/api', () => ({
   getAllItems: vi.fn(),
   replaceAllItems: vi.fn()
 }));
+
+const render = (ui) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return testingLibraryRender(ui, {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+};
 
 describe('Settings component', () => {
   const mockChangeCurrency = vi.fn();

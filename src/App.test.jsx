@@ -8,7 +8,10 @@ vi.mock('./services/api', async (importOriginal) => {
   return {
     ...actual,
     getCurrentUser: vi.fn(),
-    logoutCurrentUser: vi.fn()
+    logoutCurrentUser: vi.fn(),
+    getAllSettings: vi.fn().mockResolvedValue({ language: 'en', currency: 'USD' }),
+    getAllValueEquivalents: vi.fn().mockResolvedValue([]),
+    getAllItems: vi.fn().mockResolvedValue([])
   };
 });
 

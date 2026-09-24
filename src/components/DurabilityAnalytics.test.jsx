@@ -88,6 +88,25 @@ describe('DurabilityAnalytics Component', () => {
     expect(screen.getByText('Retire or mark items as sold to see insights.')).toBeInTheDocument();
   });
 
+  it('keeps cached analytics visible when a background refresh fails', () => {
+    useDurabilityAnalytics.mockReturnValue({
+      data: {
+        totalCompletedItems: 0,
+        totalCategorizedCompletedItems: 0,
+        mostFrequentlyReplacedCategory: null,
+        categories: [],
+      },
+      isLoading: false,
+      isError: true,
+      error: new Error('Temporary network failure'),
+    });
+
+    render(<DurabilityAnalytics />);
+
+    expect(screen.getByText('No durability history yet')).toBeInTheDocument();
+    expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
+  });
+
   it('renders category and brand durability analytics with pattern and observation badges', () => {
     useDurabilityAnalytics.mockReturnValue({
       data: {

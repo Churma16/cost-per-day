@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render as testingLibraryRender, screen, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import {
   CurrencyProvider,
@@ -9,10 +10,10 @@ import {
   getCurrencyConfig,
   getSupportedCurrencies
 } from './CurrencyContext';
-import { getSetting, updateSetting } from '../services/api';
+import { getAllSettings, updateSetting } from '../services/api';
 
 vi.mock('../services/api', () => ({
-  getSetting: vi.fn(),
+  getAllSettings: vi.fn(),
   updateSetting: vi.fn(),
 }));
 
@@ -31,6 +32,13 @@ const TestCurrencyConsumer = () => {
   );
 };
 
+const render = (ui) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return testingLibraryRender(ui, {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+};
+
 describe('CurrencyContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -38,7 +46,7 @@ describe('CurrencyContext', () => {
 
   describe('Legacy symbol migration', () => {
     test('migrates legacy $ symbol to USD and persists it', async () => {
-      getSetting.mockResolvedValue('$');
+      getAllSettings.mockResolvedValue({ currency: '$' });
       updateSetting.mockResolvedValue(undefined);
 
       render(
@@ -56,7 +64,7 @@ describe('CurrencyContext', () => {
     });
 
     test('migrates legacy € symbol to EUR and persists it', async () => {
-      getSetting.mockResolvedValue('€');
+      getAllSettings.mockResolvedValue({ currency: '€' });
       updateSetting.mockResolvedValue(undefined);
 
       render(
@@ -74,7 +82,7 @@ describe('CurrencyContext', () => {
     });
 
     test('migrates legacy ¥ symbol to CNY and persists it', async () => {
-      getSetting.mockResolvedValue('¥');
+      getAllSettings.mockResolvedValue({ currency: '¥' });
       updateSetting.mockResolvedValue(undefined);
 
       render(
@@ -94,7 +102,7 @@ describe('CurrencyContext', () => {
 
   describe('Standard currency loading and changing', () => {
     test('loads existing IDR code without re-persisting', async () => {
-      getSetting.mockResolvedValue('IDR');
+      getAllSettings.mockResolvedValue({ currency: 'IDR' });
 
       render(
         <CurrencyProvider>
@@ -111,7 +119,7 @@ describe('CurrencyContext', () => {
     });
 
     test('defaults to USD when no currency is saved', async () => {
-      getSetting.mockResolvedValue(null);
+      getAllSettings.mockResolvedValue({});
 
       render(
         <CurrencyProvider>
@@ -127,7 +135,7 @@ describe('CurrencyContext', () => {
     });
 
     test('updates currency and persists to storage when changeCurrency is called', async () => {
-      getSetting.mockResolvedValue('USD');
+      getAllSettings.mockResolvedValue({ currency: 'USD' });
       updateSetting.mockResolvedValue(undefined);
 
       render(
@@ -144,13 +152,15 @@ describe('CurrencyContext', () => {
         screen.getByText('Set IDR').click();
       });
 
-      expect(screen.getByTestId('currency-code')).toHaveTextContent('IDR');
-      expect(screen.getByTestId('currency-symbol')).toHaveTextContent('Rp');
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-code')).toHaveTextContent('IDR');
+        expect(screen.getByTestId('currency-symbol')).toHaveTextContent('Rp');
+      });
       expect(updateSetting).toHaveBeenCalledWith('currency', 'IDR');
     });
 
     test('normalizes legacy symbol when passed to changeCurrency', async () => {
-      getSetting.mockResolvedValue('IDR');
+      getAllSettings.mockResolvedValue({ currency: 'IDR' });
       updateSetting.mockResolvedValue(undefined);
 
       render(
@@ -167,8 +177,10 @@ describe('CurrencyContext', () => {
         screen.getByText('Set Legacy Dollar').click();
       });
 
-      expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
-      expect(screen.getByTestId('currency-symbol')).toHaveTextContent('$');
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
+        expect(screen.getByTestId('currency-symbol')).toHaveTextContent('$');
+      });
       expect(updateSetting).toHaveBeenCalledWith('currency', 'USD');
     });
   });

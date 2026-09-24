@@ -96,13 +96,13 @@ function DurabilityAnalytics() {
       </div>
 
       {/* Loading & Error States */}
-      {isLoading && (
+      {isLoading && analyticsData == null && (
         <div className="text-center py-12 text-gray-500 text-sm">
           {t('loading')}
         </div>
       )}
 
-      {isError && (
+      {isError && analyticsData == null && (
         <div className="rounded-xl bg-red-50 p-4 border border-red-200 flex items-center justify-between">
           <div className="text-sm text-red-700">
             {error?.message || 'Failed to load durability analytics.'}
@@ -118,7 +118,7 @@ function DurabilityAnalytics() {
       )}
 
       {/* Analytics Content */}
-      {!isLoading && !isError && analyticsData && (
+      {analyticsData && (
         <>
           {/* Summary KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

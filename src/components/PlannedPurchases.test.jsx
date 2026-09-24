@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PlannedPurchases from './PlannedPurchases';
 import * as plannedPurchaseService from '../services/plannedPurchaseService';
+import { queryKeys } from '../query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -113,6 +114,26 @@ describe('PlannedPurchases Component', () => {
     await waitFor(() => {
       expect(screen.getByText('No planned purchases yet')).toBeInTheDocument();
     });
+  });
+
+  it('keeps cached plans visible when a background refresh fails', () => {
+    const cachedPlans = [{
+      id: 'cached-plan-1',
+      name: 'Cached Camera',
+      targetPrice: 5000000,
+      currencyCode: 'IDR',
+      contributionAmount: 50000,
+      contributionCadence: 'daily',
+      estimatedPeriods: 100,
+      estimatedDays: 100,
+    }];
+    queryClient.setQueryData(queryKeys.plannedPurchases, cachedPlans, { updatedAt: 1 });
+    plannedPurchaseService.fetchPlannedPurchases.mockRejectedValue(new Error('Temporary network failure'));
+
+    renderComponent();
+
+    expect(screen.getByText('Cached Camera')).toBeInTheDocument();
+    expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
   it('includes planning-page-content class and pt-4 top spacing to match shared shell', async () => {

@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as testingLibraryRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import AddItem from './AddItem';
@@ -7,6 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { addItem, updateItem, getAllItems } from '../services/api';
 import { useReplacementBenchmark } from '../hooks/useBenchmark';
+import { queryKeys } from '../query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -92,6 +94,7 @@ vi.mock('../hooks/useDurabilityAnalytics', () => ({
     data: [{ id: 1, name: 'Sony' }, { id: 2, name: 'Nike' }],
   }),
   useInvalidateDurability: vi.fn().mockReturnValue(vi.fn().mockResolvedValue()),
+  invalidateDurabilityQuery: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../services/api', () => ({
@@ -101,11 +104,20 @@ vi.mock('../services/api', () => ({
   deleteItem: vi.fn()
 }));
 
+const render = (ui) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return testingLibraryRender(ui, {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+};
+
 describe('AddItem component date localization', () => {
   const mockNavigate = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    getAllItems.mockReset();
+    getAllItems.mockResolvedValue([]);
     useCurrency.mockReturnValue({
       currencySymbol: 'Rp',
       currencyCode: 'IDR'
@@ -289,9 +301,37 @@ describe('AddItem component date localization', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load item.');
+    expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toHaveTextContent('Unable to load item.');
     expect(screen.queryByRole('button', { name: 'Delete Item' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  test('populates edit form from cached items when a background refresh fails', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const cachedItem = {
+      id: 'cached-edit-1',
+      name: 'Cached Laptop',
+      price: 1200,
+      purchaseDate: '2026-09-01T12:00:00.000Z',
+      status: 'active',
+      category: 'Tech',
+      brand: 'Example',
+    };
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, [cachedItem], { updatedAt: 1 });
+    getAllItems.mockRejectedValue(new Error('Temporary network failure'));
+
+    testingLibraryRender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/edit?id=cached-edit-1']}>
+          <AddItem />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByDisplayValue('Cached Laptop')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
   test('creates a new item with ownership target configured', async () => {
