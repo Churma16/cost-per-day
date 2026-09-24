@@ -1,15 +1,14 @@
-import axios from 'axios';
-
 export const fetchVersion = async () => {
-  const versionResponse = await axios.get('/version.json', {
+  const response = await fetch('/version.json', {
+    cache: 'no-store',
     headers: {
-      'Cache-Control': 'no-cache',
-      Pragma: 'no-cache',
-    },
-    params: {
-      timestamp: Date.now(),
+      Accept: 'application/json',
     },
   });
 
-  return versionResponse.data;
+  if (!response.ok) {
+    throw new Error(`Version request failed with status ${response.status}`);
+  }
+
+  return response.json();
 };
