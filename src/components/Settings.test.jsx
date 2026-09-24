@@ -8,6 +8,7 @@ import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { replaceAllItems } from '../services/api';
+import { APP_VERSION } from '../constants/branding';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -30,7 +31,7 @@ vi.mock('react-i18next', () => ({
         signOut: 'Sign out',
         signOutError: 'Sign out failed. Please try again.',
         version: 'Version',
-        versionText: options?.version ? `Version ${options.version}` : 'Version 0.1.0',
+        versionText: options?.version ? `Version ${options.version}` : `Version ${APP_VERSION}`,
         usd: 'US Dollar (USD)',
         eur: 'Euro (EUR)',
         cny: 'Chinese Yuan (CNY)',
@@ -131,7 +132,12 @@ describe('Settings component', () => {
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
 
     // Version text
-    expect(screen.getByText('Version 0.1.0')).toBeInTheDocument();
+    expect(screen.getByText(`Version ${APP_VERSION}`)).toBeInTheDocument();
+  });
+
+  test('renders dynamic application version matching configured APP_VERSION', () => {
+    render(<Settings />);
+    expect(screen.getByText(`Version ${APP_VERSION}`)).toBeInTheDocument();
   });
 
   test('renders currency selector with options dynamically generated from canonical config', () => {

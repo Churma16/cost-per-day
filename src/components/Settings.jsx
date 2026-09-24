@@ -22,7 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { formatCurrency } from '../utils/formatters';
 import { useInvalidateDashboard } from '../hooks/useDashboard';
-import { PRODUCT_EXPORT_PREFIX } from '../constants/branding';
+import { PRODUCT_EXPORT_PREFIX, APP_VERSION } from '../constants/branding';
 
 function Settings() {
   const { t } = useTranslation();
@@ -655,7 +655,7 @@ function Settings() {
 
         {/* Version Info */}
         <div className="text-center text-gray-400 text-xs py-2">
-          <p>{t('versionText', { version: '0.1.0' })}</p>
+          <p>{t('versionText', { version: APP_VERSION })}</p>
         </div>
       </div>
 
