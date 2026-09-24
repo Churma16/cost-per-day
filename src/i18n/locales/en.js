@@ -20,6 +20,7 @@ const translation = {
   "daysAgo": "days",
   "edit": "Edit",
   "itemStatus": "Ownership Journey",
+  "statusActiveEarly": "Just Joined You",
   "statusActive": "Still With You",
   "statusRetired": "No Longer in Use",
   "statusSold": "Changed Hands",
