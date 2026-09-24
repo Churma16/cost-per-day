@@ -1,37 +1,46 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchVersion } from './versionService';
-
-vi.mock('axios');
 
 describe('versionService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn());
   });
 
-  it('fetches version.json with no-cache headers and timestamp query param', async () => {
-    const mockVersionData = { version: '1.2.3' };
-    axios.get.mockResolvedValueOnce({ data: mockVersionData });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('fetches version.json with browser caching disabled', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ version: 'build-a' }),
+    });
 
     const result = await fetchVersion();
 
-    expect(result).toEqual(mockVersionData);
-    expect(axios.get).toHaveBeenCalledWith(
-      '/version.json',
-      expect.objectContaining({
-        headers: {
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        },
-        params: expect.objectContaining({
-          timestamp: expect.any(Number),
-        }),
-      })
+    expect(result).toEqual({ version: 'build-a' });
+    expect(fetch).toHaveBeenCalledWith('/version.json', {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+  });
+
+  it('rejects non-success responses', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+    });
+
+    await expect(fetchVersion()).rejects.toThrow(
+      'Version request failed with status 503'
     );
   });
 
-  it('propagates error when network request fails', async () => {
-    axios.get.mockRejectedValueOnce(new Error('Network Error'));
+  it('propagates network errors', async () => {
+    fetch.mockRejectedValueOnce(new Error('Network Error'));
 
     await expect(fetchVersion()).rejects.toThrow('Network Error');
   });
