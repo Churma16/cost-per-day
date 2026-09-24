@@ -74,25 +74,23 @@ describe('Header route isolation regression tests', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Planned Purchases');
   });
 
-  test('renders exactly one header on /add without duplicate header from App shell', async () => {
+  test('renders clean header on /add without page-header banner', async () => {
     window.history.pushState({}, '', '/add');
     render(<App />);
     await waitFor(() => {
-      expect(document.querySelector('.page-header')).toBeInTheDocument();
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Add New Item');
     });
     const pageHeaders = document.querySelectorAll('.page-header');
-    expect(pageHeaders).toHaveLength(1);
+    expect(pageHeaders).toHaveLength(0);
   });
 
-  test('renders exactly one header on /edit without duplicate header from App shell', async () => {
+  test('renders clean header on /edit without page-header banner', async () => {
     window.history.pushState({}, '', '/edit?id=1');
     render(<App />);
     await waitFor(() => {
-      expect(document.querySelector('.page-header')).toBeInTheDocument();
       expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Edit Item');
     });
     const pageHeaders = document.querySelectorAll('.page-header');
-    expect(pageHeaders).toHaveLength(1);
+    expect(pageHeaders).toHaveLength(0);
   });
 });

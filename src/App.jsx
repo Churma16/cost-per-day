@@ -16,6 +16,7 @@ import HeroCarousel from './components/HeroCarousel';
 import { useTranslation } from 'react-i18next';
 import { TotalCostProvider, useTotalCost } from './contexts/TotalCostContext';
 import { formatCurrency } from './utils/formatters';
+import { MotionConfig } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 
 const applicationQueryClient = new QueryClient({
@@ -111,22 +112,24 @@ const MainContent = () => (
 function AuthenticatedApp() {
   return (
     <QueryClientProvider client={applicationQueryClient}>
-      <LanguageProvider>
-        <CurrencyProvider>
-          <ValueEquivalentsProvider>
-            <PageMetadata />
-            <TotalCostProvider>
-              <Router>
-                <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
-                  <Header />
-                  <MainContent />
-                  <Footer />
-                </div>
-              </Router>
-            </TotalCostProvider>
-          </ValueEquivalentsProvider>
-        </CurrencyProvider>
-      </LanguageProvider>
+      <MotionConfig reducedMotion="user">
+        <LanguageProvider>
+          <CurrencyProvider>
+            <ValueEquivalentsProvider>
+              <PageMetadata />
+              <TotalCostProvider>
+                <Router>
+                  <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
+                    <Header />
+                    <MainContent />
+                    <Footer />
+                  </div>
+                </Router>
+              </TotalCostProvider>
+            </ValueEquivalentsProvider>
+          </CurrencyProvider>
+        </LanguageProvider>
+      </MotionConfig>
     </QueryClientProvider>
   );
 }

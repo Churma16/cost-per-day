@@ -86,10 +86,6 @@ header {
   margin-bottom: 20px;
 }
 
-h1 {
-  margin-bottom: 20px;
-}
-
 /* Calculator display area */
 .calculator-display {
   background: #92f6b0;
@@ -611,7 +607,7 @@ h1 {
 }
 
 .form-page-content {
-  padding-top: 80px;
+  padding-top: 0;
 }
 
 .planning-page-content {
@@ -745,6 +741,8 @@ h1 {
   .animate-calm-backdrop-exit,
   .animate-calm-modal-exit {
     animation: none;
-    transform: none;
+    transform: none !important;
+    transition: none !important;
   }
 }
+

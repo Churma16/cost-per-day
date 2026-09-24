@@ -170,6 +170,97 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('$6.00/day')).toBeInTheDocument();
   });
 
+  test('supports keyboard expansion with aria-expanded and aria-controls attributes', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'kbd-1',
+        name: 'Mechanical Keyboard',
+        price: 150,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 5
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Mechanical Keyboard')).toBeInTheDocument();
+
+    const triggerButton = screen.getByRole('button', { name: /Mechanical Keyboard/i });
+    expect(triggerButton).toHaveAttribute('aria-expanded', 'false');
+    expect(triggerButton).toHaveAttribute('aria-controls', 'item-details-kbd-1');
+
+    // Expand via trigger activation
+    fireEvent.click(triggerButton);
+    expect(triggerButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Purchase amount')).toBeInTheDocument();
+
+    // Collapse via trigger activation
+    fireEvent.click(triggerButton);
+    expect(triggerButton).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('removes collapsed-card actions from accessibility tree and keyboard reach until expanded', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'kbd-2',
+        name: 'Wireless Mouse',
+        price: 80,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 2,
+        ownershipDays: 60
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Wireless Mouse')).toBeInTheDocument();
+
+    const detailsRegion = document.getElementById('item-details-kbd-2');
+    expect(detailsRegion).toHaveAttribute('inert');
+    expect(detailsRegion).toHaveAttribute('aria-hidden', 'true');
+    expect(detailsRegion).toHaveClass('invisible');
+
+    // Inner action buttons are not reachable in accessibility tree when collapsed
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+
+    // Verify all buttons inside the collapsed region have tabIndex="-1"
+    const innerButtons = detailsRegion.querySelectorAll('button');
+    innerButtons.forEach((btn) => {
+      expect(btn).toHaveAttribute('tabindex', '-1');
+    });
+
+    // Expand the card
+    const triggerButton = screen.getByRole('button', { name: /Wireless Mouse/i });
+    fireEvent.click(triggerButton);
+
+    // Once expanded, details are visible, not inert, and action buttons are accessible and focusable
+    expect(detailsRegion).not.toHaveAttribute('inert');
+    expect(detailsRegion).toHaveAttribute('aria-hidden', 'false');
+    expect(detailsRegion).toHaveClass('visible');
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveAttribute('tabindex', '0');
+
+    // Collapse the card again
+    fireEvent.click(triggerButton);
+    expect(detailsRegion).toHaveAttribute('inert');
+    expect(detailsRegion).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+  });
+
   test('displays personalized value equivalent on active item card when currency matches', async () => {
     useValueEquivalents.mockReturnValue({
       valueEquivalents: [
@@ -480,5 +571,40 @@ describe('ItemList lifecycle display', () => {
     rerender(<CalmCycleText text="~6.6 months" hasCycled={true} />);
     expect(screen.getByText('~6.6 months')).toHaveClass('animate-calm-cycle-enter');
     expect(screen.getByText('200 days')).toHaveClass('animate-calm-cycle-exit');
+  });
+
+  test('strengthens card border and highlights chevron with teal interaction accent when expanded', async () => {
+    getAllItems.mockResolvedValue([
+      {
+        id: 'item-card-1',
+        name: 'Smart Watch',
+        price: 300,
+        purchaseDate: '2026-01-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 1.5,
+        netCostPerDay: 1.5,
+        ownershipDays: 200
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    const itemName = await screen.findByText('Smart Watch');
+    const cardContainer = itemName.closest('.rounded-2xl');
+    expect(cardContainer).toHaveClass('border-[#E6E8EC]');
+
+    // Find the collapsed row and click to expand
+    fireEvent.click(screen.getByText('Smart Watch'));
+
+    // When expanded, the card border is strengthened with teal-200 and shadow
+    expect(cardContainer).toHaveClass('border-teal-200');
+
+    // The chevron receives the teal-600 interaction accent
+    const chevronIcon = cardContainer.querySelector('.rotate-180');
+    expect(chevronIcon).toHaveClass('text-teal-600');
   });
 });

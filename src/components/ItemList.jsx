@@ -299,12 +299,20 @@ function ItemList() {
             return (
               <div
                 key={item.id}
-                className="bg-white rounded-2xl border border-[#E6E8EC] shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden hover:border-[#D5D8DF] transition-colors"
+                className={`bg-white rounded-2xl overflow-hidden transition-all duration-200 ${
+                  expandedItem === item.id
+                    ? 'border border-teal-200 shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
+                    : 'border border-[#E6E8EC] shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:border-[#D5D8DF]'
+                }`}
               >
                 {/* Collapsed Row */}
-                <div
-                  className="p-3 flex items-center justify-between cursor-pointer gap-3"
+                <button
+                  type="button"
+                  id={`item-trigger-${item.id}`}
+                  aria-expanded={expandedItem === item.id}
+                  aria-controls={`item-details-${item.id}`}
                   onClick={() => toggleItem(item.id)}
+                  className="w-full text-left p-3 flex items-center justify-between cursor-pointer gap-3 bg-transparent border-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset transition-colors rounded-xl"
                 >
                   {/* Left: Category Icon Squircle */}
                   <div
@@ -342,17 +350,25 @@ function ItemList() {
                       </span>
                     </div>
                     <IoChevronDown
-                      className={`text-[#6F7782] transition-transform duration-300 ease-out text-base ${expandedItem === item.id ? 'rotate-180' : ''}`}
+                      aria-hidden="true"
+                      className={`transition-transform duration-300 ease-out motion-reduce:transition-none text-base ${
+                        expandedItem === item.id ? 'rotate-180 text-teal-600' : 'text-[#6F7782]'
+                      }`}
                     />
                   </div>
-                </div>
+                </button>
 
                 {/* Expanded Details with Two-Way Smooth Animation */}
                 <div
-                  className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+                  id={`item-details-${item.id}`}
+                  role="region"
+                  aria-labelledby={`item-trigger-${item.id}`}
+                  aria-hidden={expandedItem !== item.id}
+                  inert={expandedItem !== item.id}
+                  className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none ${
                     expandedItem === item.id
-                      ? 'grid-rows-[1fr] opacity-100'
-                      : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                      ? 'grid-rows-[1fr] opacity-100 visible'
+                      : 'grid-rows-[0fr] opacity-0 pointer-events-none invisible'
                   }`}
                 >
                   <div className="overflow-hidden">
@@ -392,6 +408,7 @@ function ItemList() {
                           return (
                             <button
                               type="button"
+                              tabIndex={expandedItem === item.id && isInteractive ? 0 : -1}
                               disabled={!isInteractive}
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -411,7 +428,7 @@ function ItemList() {
                                 <span>{t('ownedFor')}</span>
                                 {isInteractive && (
                                   <IoSyncOutline
-                                    className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+                                    className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
                                     style={{
                                       transform: `rotate(${syncRotationByItemId[item.id] || 0}deg)`
                                     }}
@@ -467,7 +484,7 @@ function ItemList() {
                           </div>
                         )}
 
-                        {item.targetType && (
+                        {item.targetType && item.targetType !== 'none' && (item.targetCostPerDay || item.targetDurationDays) && (
                           <div className="rounded-lg bg-[#F6F7F8] border border-[#E6E8EC] p-3 space-y-2">
                             <div className="flex items-center justify-between text-xs">
                               <span className="font-medium text-[#20242A]">{t('targetMilestone')}</span>
@@ -507,6 +524,7 @@ function ItemList() {
                         {!isActive && (
                           <button
                             type="button"
+                            tabIndex={expandedItem === item.id ? 0 : -1}
                             className="w-full mt-2 flex items-center justify-center gap-2 p-2 bg-teal-50 hover:bg-teal-100 rounded-lg text-sm font-medium text-teal-800 transition-colors border border-teal-200"
                             onClick={() => setBenchmarkModalItem(item)}
                           >
@@ -518,6 +536,7 @@ function ItemList() {
                         <div className="flex items-center gap-2 pt-1">
                           <button
                             type="button"
+                            tabIndex={expandedItem === item.id ? 0 : -1}
                             className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#F6F7F8] hover:bg-[#EEF0F3] border border-[#E6E8EC] rounded-lg text-sm font-medium text-[#20242A] transition-colors"
                             onClick={(event) => {
                               event.stopPropagation();
@@ -528,6 +547,7 @@ function ItemList() {
                           </button>
                           <button
                             type="button"
+                            tabIndex={expandedItem === item.id ? 0 : -1}
                             className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-600 transition-colors"
                             onClick={(event) => {
                               event.stopPropagation();
