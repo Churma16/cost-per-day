@@ -8,19 +8,21 @@ import {
 
 describe('currencyInput utilities', () => {
   describe('getCurrencyInputSeparators', () => {
-    it('provides dot as thousand separator and no decimals for IDR', () => {
+    it('provides dot as thousand separator, no decimals, and 10 max integer digits for IDR', () => {
       const idrSeparators = getCurrencyInputSeparators('IDR');
       expect(idrSeparators.groupSeparator).toBe('.');
       expect(idrSeparators.supportsDecimals).toBe(false);
       expect(idrSeparators.fractionDigits).toBe(0);
+      expect(idrSeparators.maxIntegerDigits).toBe(10);
     });
 
-    it('provides comma as thousand separator and dot for decimals for USD', () => {
+    it('provides comma as thousand separator, dot for decimals, and 9 max integer digits for USD', () => {
       const usdSeparators = getCurrencyInputSeparators('USD');
       expect(usdSeparators.groupSeparator).toBe(',');
       expect(usdSeparators.decimalSeparator).toBe('.');
       expect(usdSeparators.supportsDecimals).toBe(true);
       expect(usdSeparators.fractionDigits).toBe(2);
+      expect(usdSeparators.maxIntegerDigits).toBe(9);
     });
   });
 
@@ -64,6 +66,11 @@ describe('currencyInput utilities', () => {
 
     it('preserves trailing dot while typing', () => {
       expect(formatCurrencyInputValue('1234.', 'USD')).toBe('1,234.');
+    });
+
+    it('clamps integer digits when maximumIntegerDigits is provided', () => {
+      expect(formatCurrencyInputValue('1234567890123', 'IDR', 10)).toBe('1.234.567.890');
+      expect(formatCurrencyInputValue('1234567890123.45', 'USD', 9)).toBe('123,456,789.45');
     });
   });
 
@@ -109,6 +116,11 @@ describe('currencyInput utilities', () => {
       expect(parseCurrencyInputValue('1,234.56', 'USD')).toBe('1234.56');
       expect(parseCurrencyInputValue('$1,500,000', 'USD')).toBe('1500000');
       expect(parseCurrencyInputValue('', 'USD')).toBe('');
+    });
+
+    it('clamps integer digits when maximumIntegerDigits is provided', () => {
+      expect(parseCurrencyInputValue('12.345.678.901.234', 'IDR', 10)).toBe('1234567890');
+      expect(parseCurrencyInputValue('123,456,789,012.34', 'USD', 9)).toBe('123456789.34');
     });
   });
 

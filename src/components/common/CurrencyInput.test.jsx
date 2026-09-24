@@ -176,4 +176,123 @@ describe('CurrencyInput component', () => {
     expect(inputElement).toHaveAttribute('min', '0.01');
     expect(inputElement).toHaveAttribute('max', '9999');
   });
+
+  it('rejects typing more than 10 integer digits in IDR', () => {
+    const handleChange = vi.fn();
+    function TenDigitWrapper() {
+      const [amount, setAmount] = useState('9999999999');
+      return (
+        <CurrencyInput
+          value={amount}
+          onChange={(event) => {
+            handleChange(event.target.value);
+            setAmount(event.target.value);
+          }}
+          currencyCode="IDR"
+          placeholder="Enter price"
+        />
+      );
+    }
+
+    render(<TenDigitWrapper />);
+    const inputElement = screen.getByPlaceholderText('Enter price');
+    expect(inputElement.value).toBe('9.999.999.999');
+
+    // User attempts to type an 11th digit at the end: '9.999.999.9990'
+    fireEvent.change(inputElement, { target: { value: '9.999.999.9990' } });
+
+    // Keystroke should be rejected: input stays at 10 digits and onChange is not invoked with 11 digits
+    expect(inputElement.value).toBe('9.999.999.999');
+    expect(handleChange).not.toHaveBeenCalledWith('99999999990');
+  });
+
+  it('rejects inserting a digit in the middle when already at 10 digits in IDR', () => {
+    const handleChange = vi.fn();
+    function MiddleInsertOverflowWrapper() {
+      const [amount, setAmount] = useState('1234567890');
+      return (
+        <CurrencyInput
+          value={amount}
+          onChange={(event) => {
+            handleChange(event.target.value);
+            setAmount(event.target.value);
+          }}
+          currencyCode="IDR"
+          placeholder="Enter price"
+        />
+      );
+    }
+
+    render(<MiddleInsertOverflowWrapper />);
+    const inputElement = screen.getByPlaceholderText('Enter price');
+    expect(inputElement.value).toBe('1.234.567.890');
+
+    // User attempts to insert '5' in the middle: '1.2534.567.890'
+    fireEvent.change(inputElement, { target: { value: '1.2534.567.890' } });
+
+    // Keystroke should be rejected
+    expect(inputElement.value).toBe('1.234.567.890');
+    expect(handleChange).not.toHaveBeenCalledWith('12534567890');
+  });
+
+  it('clamps pasted values longer than 10 digits to 10 digits in IDR', () => {
+    const handleChange = vi.fn();
+    render(
+      <CurrencyInput
+        value=""
+        onChange={handleChange}
+        currencyCode="IDR"
+        placeholder="Enter price"
+      />
+    );
+
+    const inputElement = screen.getByPlaceholderText('Enter price');
+    // Pasting 15 digits
+    fireEvent.change(inputElement, { target: { value: '123456789012345' } });
+
+    const [, rawValue] = handleChange.mock.calls[0];
+    expect(rawValue).toBe('1234567890');
+    expect(inputElement.value).toBe('1.234.567.890');
+  });
+
+  it('enforces 9 max integer digits for USD while preserving decimals', () => {
+    const handleChange = vi.fn();
+    render(
+      <CurrencyInput
+        value=""
+        onChange={handleChange}
+        currencyCode="USD"
+        placeholder="Enter price"
+      />
+    );
+
+    const inputElement = screen.getByPlaceholderText('Enter price');
+    // Pasting 12 integer digits with 2 decimals
+    fireEvent.change(inputElement, { target: { value: '123456789012.50' } });
+
+    const [, rawValue] = handleChange.mock.calls[0];
+    expect(rawValue).toBe('123456789.50');
+    expect(inputElement.value).toBe('123,456,789.50');
+  });
+
+  it('respects custom maxIntegerDigits prop when provided', () => {
+    const handleChange = vi.fn();
+    render(
+      <CurrencyInput
+        value=""
+        onChange={handleChange}
+        currencyCode="IDR"
+        maxIntegerDigits={5}
+        placeholder="Enter price"
+      />
+    );
+
+    const inputElement = screen.getByPlaceholderText('Enter price');
+    // Pasting 7 digits into a field with max 5 digits
+    fireEvent.change(inputElement, { target: { value: '1234567' } });
+
+    const [, rawValue] = handleChange.mock.calls[0];
+    expect(rawValue).toBe('12345');
+    expect(inputElement.value).toBe('12.345');
+  });
 });

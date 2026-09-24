@@ -1,5 +1,8 @@
 import { normalizeCurrencyCode, getCurrencyConfig } from './currencyConfig';
 
+export const DEFAULT_MAXIMUM_INTEGER_DIGITS_IDR = 10;
+export const DEFAULT_MAXIMUM_INTEGER_DIGITS_DECIMAL = 9;
+
 /**
  * Returns separator configuration based on currency code.
  * IDR uses dot '.' as group separator and has 0 standard fraction digits for item prices.
@@ -14,7 +17,8 @@ export const getCurrencyInputSeparators = (currencyIdentifier) => {
       groupSeparator: '.',
       decimalSeparator: ',',
       fractionDigits: 0,
-      supportsDecimals: false
+      supportsDecimals: false,
+      maxIntegerDigits: DEFAULT_MAXIMUM_INTEGER_DIGITS_IDR
     };
   }
 
@@ -22,7 +26,8 @@ export const getCurrencyInputSeparators = (currencyIdentifier) => {
     groupSeparator: ',',
     decimalSeparator: '.',
     fractionDigits: currencyConfiguration.fractionDigits ?? 2,
-    supportsDecimals: (currencyConfiguration.fractionDigits ?? 2) > 0
+    supportsDecimals: (currencyConfiguration.fractionDigits ?? 2) > 0,
+    maxIntegerDigits: DEFAULT_MAXIMUM_INTEGER_DIGITS_DECIMAL
   };
 };
 
@@ -30,7 +35,11 @@ export const getCurrencyInputSeparators = (currencyIdentifier) => {
  * Strips formatting characters to produce a clean raw numeric string suitable for backend and mathematical operations.
  * For IDR, dots '.' are grouping separators and are always stripped so digits-only are emitted.
  */
-export const parseCurrencyInputValue = (formattedDisplayValue, currencyIdentifier) => {
+export const parseCurrencyInputValue = (
+  formattedDisplayValue,
+  currencyIdentifier,
+  maximumIntegerDigits
+) => {
   if (formattedDisplayValue === undefined || formattedDisplayValue === null) {
     return '';
   }
@@ -49,7 +58,11 @@ export const parseCurrencyInputValue = (formattedDisplayValue, currencyIdentifie
     if (digitsOnlyString === '') {
       return '';
     }
-    return digitsOnlyString.replace(/^0+(?=\d)/, '');
+    const normalizedDigitsString = digitsOnlyString.replace(/^0+(?=\d)/, '');
+    if (maximumIntegerDigits && maximumIntegerDigits > 0) {
+      return normalizedDigitsString.slice(0, maximumIntegerDigits);
+    }
+    return normalizedDigitsString;
   }
 
   // Currencies with decimal support (USD, EUR, CNY)
@@ -64,13 +77,26 @@ export const parseCurrencyInputValue = (formattedDisplayValue, currencyIdentifie
     return '';
   }
 
+  if (maximumIntegerDigits && maximumIntegerDigits > 0) {
+    const [integerPart = '', decimalPart] = sanitizedString.split('.');
+    const truncatedIntegerPart = integerPart.slice(0, maximumIntegerDigits);
+    if (decimalPart !== undefined) {
+      return `${truncatedIntegerPart}.${decimalPart}`;
+    }
+    return truncatedIntegerPart;
+  }
+
   return sanitizedString;
 };
 
 /**
  * Formats a raw numeric string or number into a user-friendly string with thousand separators.
  */
-export const formatCurrencyInputValue = (rawNumericValue, currencyIdentifier) => {
+export const formatCurrencyInputValue = (
+  rawNumericValue,
+  currencyIdentifier,
+  maximumIntegerDigits
+) => {
   if (rawNumericValue === undefined || rawNumericValue === null || rawNumericValue === '') {
     return '';
   }
@@ -88,7 +114,10 @@ export const formatCurrencyInputValue = (rawNumericValue, currencyIdentifier) =>
       return '';
     }
 
-    const normalizedIntegerString = digitsOnlyString.replace(/^0+(?=\d)/, '');
+    let normalizedIntegerString = digitsOnlyString.replace(/^0+(?=\d)/, '');
+    if (maximumIntegerDigits && maximumIntegerDigits > 0) {
+      normalizedIntegerString = normalizedIntegerString.slice(0, maximumIntegerDigits);
+    }
     return normalizedIntegerString.replace(
       /\B(?=(\d{3})+(?!\d))/g,
       separatorConfiguration.groupSeparator
@@ -100,7 +129,10 @@ export const formatCurrencyInputValue = (rawNumericValue, currencyIdentifier) =>
   const sanitizedString = rawString.replace(/[^0-9.]/g, '');
   const [integerSegment = '', decimalSegment] = sanitizedString.split('.');
 
-  const normalizedIntegerString = integerSegment.replace(/^0+(?=\d)/, '') || '0';
+  let normalizedIntegerString = integerSegment.replace(/^0+(?=\d)/, '') || '0';
+  if (maximumIntegerDigits && maximumIntegerDigits > 0) {
+    normalizedIntegerString = normalizedIntegerString.slice(0, maximumIntegerDigits);
+  }
   const formattedIntegerString = normalizedIntegerString.replace(
     /\B(?=(\d{3})+(?!\d))/g,
     separatorConfiguration.groupSeparator
