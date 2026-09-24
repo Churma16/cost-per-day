@@ -37,24 +37,86 @@ export const getInsightIcon = (kind) => {
   }
 };
 
+const LEGACY_TECHNICAL_TITLES = {
+  'biggest contributor': 'insightTitleBiggestContributor',
+  'kontributor terbesar': 'insightTitleBiggestContributor',
+  'best value': 'insightTitleBestValue',
+  'cost trend': 'insightTitleOwnershipCostTrend',
+  'ownership cost trend': 'insightTitleOwnershipCostTrend',
+  'purchase impact': 'insightTitleRecentPurchaseImpact',
+  'recent purchase impact': 'insightTitleRecentPurchaseImpact',
+  'target progress': 'insightTitleTarget',
+  'ownership target': 'insightTitleTarget',
+  'replacement benchmark': 'insightTitleBenchmark',
+  'repeat-buy benchmark': 'insightTitleBenchmark',
+  'brand durability': 'insightTitleDurability',
+  'durability history': 'insightTitleDurability',
+  'value equivalent': 'insightTitleEquivalent',
+  'equivalent': 'insightTitleEquivalent',
+  'ownership milestone': 'insightTitleMilestone',
+  'milestone': 'insightTitleMilestone',
+  'portfolio milestone': 'insightTitlePortfolioMilestone',
+  'portfolio_milestone': 'insightTitlePortfolioMilestone'
+};
+
+const INSIGHT_KIND_KEY_MAP = {
+  'biggest_contributor': 'insightTitleBiggestContributor',
+  'best_value': 'insightTitleBestValue',
+  'ownership_cost_trend': 'insightTitleOwnershipCostTrend',
+  'recent_purchase_impact': 'insightTitleRecentPurchaseImpact',
+  'milestone': 'insightTitleMilestone',
+  'portfolio_milestone': 'insightTitlePortfolioMilestone',
+  'equivalent': 'insightTitleEquivalent',
+  'target': 'insightTitleTarget',
+  'durability': 'insightTitleDurability'
+};
+
+export const getHumanInsightEyebrow = (insight, t) => {
+  if (!insight) {
+    return '';
+  }
+
+  const rawEyebrow = (insight.eyebrow || '').trim();
+  const normalizedEyebrow = rawEyebrow.toLowerCase();
+
+  if (LEGACY_TECHNICAL_TITLES[normalizedEyebrow]) {
+    const translationKey = LEGACY_TECHNICAL_TITLES[normalizedEyebrow];
+    return t(translationKey);
+  }
+
+  if (!rawEyebrow && insight.kind && INSIGHT_KIND_KEY_MAP[insight.kind]) {
+    return t(INSIGHT_KIND_KEY_MAP[insight.kind]);
+  }
+
+  return rawEyebrow;
+};
+
 export const GenericInsightSlide = ({ insight }) => {
+  const { t } = useTranslation();
   const IconComponent = getInsightIcon(insight.kind);
+  const displayEyebrow = getHumanInsightEyebrow(insight, t);
+
+  const hasSecondary = Boolean(insight.secondary);
+  const hasCaption = Boolean(insight.caption);
 
   return (
-    <div className="flex flex-col items-center justify-center text-center px-10 py-2 h-[155px]">
-      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.14] border border-white/10 backdrop-blur-sm text-white text-xs font-medium uppercase tracking-wider mb-2">
-        {IconComponent && <IconComponent className="text-sm" aria-hidden="true" />}
-        <span>{insight.eyebrow}</span>
-      </div>
-      <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight line-clamp-2 max-w-sm">
+    <div className="flex flex-col items-start justify-center text-left px-1 py-1 min-h-[95px]">
+      {displayEyebrow && (
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 text-white/90 text-[11px] font-medium tracking-wide mb-1">
+          {IconComponent && <IconComponent className="text-xs" aria-hidden="true" />}
+          <span>{displayEyebrow}</span>
+        </div>
+      )}
+      <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight line-clamp-1 max-w-md text-left">
         {insight.primary}
       </h2>
-      <p className="text-base sm:text-lg font-semibold text-white mt-1 tracking-tight tabular-nums font-sans">
-        {insight.secondary}
-      </p>
-      <p className="text-xs sm:text-sm text-white/90 mt-1 max-w-sm line-clamp-2 font-medium">
-        {insight.caption}
-      </p>
+      {(hasSecondary || hasCaption) && (
+        <div className="mt-0.5 flex items-center justify-start gap-1.5 flex-wrap text-xs text-white/90 font-normal text-left">
+          {hasSecondary && <span className="tabular-nums">{insight.secondary}</span>}
+          {hasSecondary && hasCaption && <span className="text-white/40">·</span>}
+          {hasCaption && <span className="text-white/75">{insight.caption}</span>}
+        </div>
+      )}
     </div>
   );
 };
@@ -170,15 +232,15 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
 
   if (insights.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center px-10 py-2 h-[155px]">
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.14] border border-white/10 backdrop-blur-sm text-white text-xs font-medium uppercase tracking-wider mb-2">
-          <IoSparkles className="text-sm" aria-hidden="true" />
+      <div className="flex flex-col items-start justify-center text-left px-4 py-2 min-h-[120px]">
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/25 text-white text-xs font-medium uppercase tracking-wider mb-2">
+          <IoSparkles className="text-xs" aria-hidden="true" />
           <span>{t('insights')}</span>
         </div>
-        <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight text-left">
           {t('insightsWelcomeTitle')}
         </h2>
-        <p className="text-xs sm:text-sm text-white/85 mt-1 max-w-sm">
+        <p className="text-xs sm:text-sm text-white/85 mt-1 max-w-sm text-left">
           {t('insightsWelcomeCaption')}
         </p>
       </div>
@@ -206,7 +268,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       <div className="overflow-hidden w-full">
         <div
           className={`flex ${
-            prefersReducedMotion ? '' : 'transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]'
+            prefersReducedMotion ? '' : 'transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]'
           }`}
           style={{
             transform: `translateX(-${activeSlideIndex * 100}%)`,
@@ -232,46 +294,44 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       </div>
 
       {insights.length > 1 && (
-        <>
-          {/* Previous Slide Button */}
+        <div className="flex items-center justify-start gap-1.5 px-1 mt-1.5 pb-0.5">
+          {/* Previous Slide Button (Screen-reader accessible only) */}
           <button
             type="button"
             onClick={handlePreviousSlide}
             aria-label={t('previousInsight')}
-            className="absolute left-1 top-1/2 -translate-y-1/2 p-2 rounded-full text-white/75 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40 z-10"
+            className="sr-only"
           >
-            <IoChevronBack className="text-lg" aria-hidden="true" />
+            <IoChevronBack aria-hidden="true" />
           </button>
 
-          {/* Next Slide Button */}
+          {/* Dot / Dash Indicators (Left-aligned, dash for active) */}
+          {insights.map((insight, slideIndex) => {
+            const isSelected = slideIndex === activeSlideIndex;
+            return (
+              <button
+                key={`${insight.kind}-${slideIndex}`}
+                type="button"
+                onClick={() => handleSelectSlide(slideIndex)}
+                aria-label={t('goToSlide', { number: slideIndex + 1 })}
+                aria-current={isSelected ? 'true' : undefined}
+                className={`h-1 rounded-full transition-all duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-white/50 ${
+                  isSelected ? 'w-6 bg-white' : 'w-1.5 bg-white/30 hover:bg-white/60'
+                }`}
+              />
+            );
+          })}
+
+          {/* Next Slide Button (Screen-reader accessible only) */}
           <button
             type="button"
             onClick={handleNextSlide}
             aria-label={t('nextInsight')}
-            className="absolute right-1 top-1/2 -translate-y-1/2 p-2 rounded-full text-white/75 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40 z-10"
+            className="sr-only"
           >
-            <IoChevronForward className="text-lg" aria-hidden="true" />
+            <IoChevronForward aria-hidden="true" />
           </button>
-
-          {/* Dot Indicators */}
-          <div className="flex justify-center items-center gap-1.5 mt-2 pb-1">
-            {insights.map((insight, slideIndex) => {
-              const isSelected = slideIndex === activeSlideIndex;
-              return (
-                <button
-                  key={`${insight.kind}-${slideIndex}`}
-                  type="button"
-                  onClick={() => handleSelectSlide(slideIndex)}
-                  aria-label={t('goToSlide', { number: slideIndex + 1 })}
-                  aria-current={isSelected ? 'true' : undefined}
-                  className={`h-1.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 ${
-                    isSelected ? 'w-5 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
-                  }`}
-                />
-              );
-            })}
-          </div>
-        </>
+        </div>
       )}
     </section>
   );

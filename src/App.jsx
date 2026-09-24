@@ -33,12 +33,15 @@ const Header = () => {
   const { currencyCode } = useCurrency();
   const { user, error, signOut } = useAuth();
 
+  // AddItem renders its own dedicated .page-header to avoid duplicate headers on form routes
+  if (location.pathname === '/add' || location.pathname === '/edit') {
+    return null;
+  }
+
+  const isHomeRoute = location.pathname === '/';
+
   const getTitle = () => {
-    switch(location.pathname) {
-      case '/add':
-        return t('addNewItem');
-      case '/edit':
-        return t('editItem');
+    switch (location.pathname) {
       case '/settings':
         return t('settings');
       case '/planning':
@@ -50,6 +53,48 @@ const Header = () => {
     }
   };
 
+  // Home route uses a normal-flow hero header calibrated for #48 revamp
+  if (isHomeRoute) {
+    return (
+      <header
+        className="relative z-10 shadow-sm flex-shrink-0 text-white"
+        style={{
+          background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
+        }}
+      >
+        <div className="pt-3 pb-3 px-4 max-w-lg mx-auto">
+          <div>
+            <HeroCarousel />
+            {/* Supporting Context Row: Inside hero at the bottom with thin divider */}
+            <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center justify-between text-white/90 px-1">
+              <span className="text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
+              <span className="font-semibold text-base text-white tracking-tight tabular-nums">
+                {formatCurrency(totalDailyCost, currencyCode)}<span className="text-xs font-normal text-white/75">{t('perDay')}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="absolute right-3 top-3 text-right">
+          <button
+            type="button"
+            onClick={signOut}
+            className="text-xs text-white/90 hover:text-white"
+            aria-label="Sign out"
+            title={user?.displayName || user?.email || 'Sign out'}
+          >
+            Sign out
+          </button>
+          {error && (
+            <p role="alert" className="mt-1 max-w-40 text-xs text-red-100">
+              Sign out failed. Please try again.
+            </p>
+          )}
+        </div>
+      </header>
+    );
+  }
+
+  // Non-home routes preserve the existing fixed .page-header structure and top-spacing offsets until #52
   return (
     <div
       className="page-header relative text-white shadow-sm"
@@ -58,21 +103,9 @@ const Header = () => {
       }}
     >
       <div className="text-center py-4 px-4 sm:px-16">
-        {location.pathname === '/' ? (
-          <div>
-            <HeroCarousel />
-            <div className="mt-4 pt-3 border-t border-white/10 inline-flex items-center justify-center gap-2 text-white/90">
-              <span className="text-xs uppercase tracking-wider font-medium text-white/75">{t('totalDailyCost')}:</span>
-              <span className="font-semibold text-base text-white tracking-tight tabular-nums">
-                {formatCurrency(totalDailyCost, currencyCode)}<span className="text-xs font-normal text-white/75">{t('perDay')}</span>
-              </span>
-            </div>
-          </div>
-        ) : (
-          <h1 className="text-2xl font-bold text-white">
-            {getTitle()}
-          </h1>
-        )}
+        <h1 className="text-2xl font-bold text-white">
+          {getTitle()}
+        </h1>
       </div>
       <div className="absolute right-3 top-3 text-right">
         <button
@@ -117,7 +150,7 @@ function AuthenticatedApp() {
             <PageMetadata />
             <TotalCostProvider>
               <Router>
-                <div className="mx-auto max-w-[1024px] sm:border-x sm:border-gray-200 h-full bg-gray-50 flex flex-col">
+                <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
                   <Header />
                   <MainContent />
                   <Footer />

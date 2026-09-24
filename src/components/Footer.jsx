@@ -20,7 +20,7 @@ function Footer() {
   };
   
   return (
-    <div className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/90 border-t border-purple-100 app-footer">
+    <div className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/95 border-t border-[#E6E8EC] app-footer">
       <div className="max-w-lg mx-auto px-6 h-full flex justify-around items-center">
         <button 
           className="relative p-3 group"

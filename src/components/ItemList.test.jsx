@@ -2,8 +2,14 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import ItemList from './ItemList';
-import { getAllItems } from '../services/api';
+import ItemList, {
+  getCategoryIconInfo,
+  getStatusBadgeStyle,
+  getNextDurationUnit,
+  formatOwnershipDuration,
+  CalmCycleText
+} from './ItemList';
+import { getAllItems, deleteItem } from '../services/api';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
@@ -45,6 +51,10 @@ vi.mock('react-i18next', () => ({
         purchaseAmount: 'Purchase amount',
         purchaseDate: 'Purchase date',
         ownershipDays: 'ownership days',
+        unitDays: 'days',
+        unitMonths: 'months',
+        unitYears: 'years',
+        clickToCycleUnit: 'Click to switch between days, months, and years',
         ownershipEndDate: 'Ownership end date',
         salePrice: 'Sale price',
         netOwnershipCost: 'Net ownership cost',
@@ -52,14 +62,23 @@ vi.mock('react-i18next', () => ({
         targetMilestone: 'Target milestone',
         targetStateNew: 'New',
         targetStateReached: 'Target reached',
-        edit: 'Edit'
+        edit: 'Edit',
+        yourItems: 'Your Items',
+        sortedHighestCost: 'Sorted: highest cost',
+        ownedFor: 'Owned for',
+        deleteItem: 'Delete',
+        confirmDelete: 'Confirm Delete',
+        deleteConfirmation: 'Are you sure you want to delete this item? This action cannot be undone.',
+        cancel: 'Cancel',
+        confirm: 'Confirm'
       }[key] || key;
     }
   })
 }));
 
 vi.mock('../services/api', () => ({
-  getAllItems: vi.fn()
+  getAllItems: vi.fn(),
+  deleteItem: vi.fn()
 }));
 
 vi.mock('../contexts/TotalCostContext', () => ({
@@ -72,6 +91,17 @@ vi.mock('../contexts/CurrencyContext', () => ({
 
 vi.mock('../contexts/ValueEquivalentsContext', () => ({
   useValueEquivalents: vi.fn()
+}));
+
+const mockInvalidateDashboard = vi.fn().mockResolvedValue(undefined);
+const mockInvalidateDurability = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../hooks/useDashboard', () => ({
+  useInvalidateDashboard: () => mockInvalidateDashboard
+}));
+
+vi.mock('../hooks/useDurabilityAnalytics', () => ({
+  useInvalidateDurability: () => mockInvalidateDurability
 }));
 
 describe('ItemList lifecycle display', () => {
@@ -119,11 +149,11 @@ describe('ItemList lifecycle display', () => {
     expect(await screen.findByText('Phone')).toBeInTheDocument();
     expect(screen.getByText('Sold')).toBeInTheDocument();
     expect(screen.getByText('Final gross cost per day')).toBeInTheDocument();
-    expect(screen.getByText('$10.00/day')).toBeInTheDocument();
+    expect(screen.getByText('$10.00')).toBeInTheDocument();
 
     expect(screen.getByText('Laptop')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('$4.00/day')).toBeInTheDocument();
+    expect(screen.getByText('$4.00')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(setTotalDailyCost).toHaveBeenCalledWith(4);
@@ -258,8 +288,9 @@ describe('ItemList lifecycle display', () => {
       </MemoryRouter>
     );
 
-    // Header badge should display rounded percentage
-    expect(await screen.findByText('In progress (66%)')).toBeInTheDocument();
+    // Collapsed card renders clean title without milestone badge clutter
+    expect(await screen.findByText('Standing Desk')).toBeInTheDocument();
+    expect(screen.queryByText('In progress (66%)')).not.toBeInTheDocument();
 
     // Expand item to view milestone details
     fireEvent.click(screen.getByText('Standing Desk'));
@@ -296,11 +327,158 @@ describe('ItemList lifecycle display', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Beyond target (+14d)')).toBeInTheDocument();
+    // Collapsed card renders cleanly without badge clutter
+    expect(await screen.findByText('Mechanical Keyboard')).toBeInTheDocument();
+    expect(screen.queryByText('Beyond target (+14d)')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Mechanical Keyboard'));
 
     expect(screen.getByText('14 days beyond target')).toBeInTheDocument();
     expect(screen.getByText('114%')).toBeInTheDocument();
+  });
+
+  test('renders section header and does not render redundant currentCostPerDay for active items', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: '1',
+        name: 'Jabra Elite 4',
+        price: 100,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 5
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Your Items')).toBeInTheDocument();
+    expect(screen.getByText('Sorted: highest cost')).toBeInTheDocument();
+    expect(screen.getByText('Jabra Elite 4')).toBeInTheDocument();
+    expect(screen.queryByText('Current cost per day')).not.toBeInTheDocument();
+  });
+
+  test('renders owned for duration and handles item deletion with confirmation dialog', async () => {
+    deleteItem.mockResolvedValueOnce(null);
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'item-del-1',
+        name: 'Desk Lamp',
+        price: 50,
+        purchaseDate: '2026-01-01T12:00:00Z',
+        status: 'active',
+        ownershipDays: 200,
+        grossCostPerDay: 0.25
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Desk Lamp')).toBeInTheDocument();
+
+    // Expand card
+    fireEvent.click(screen.getByText('Desk Lamp'));
+
+    expect(screen.getByText('Owned for')).toBeInTheDocument();
+    expect(screen.getByText('200 days')).toBeInTheDocument();
+
+    // Click to cycle duration unit from days to months
+    fireEvent.click(screen.getByText('200 days'));
+    const monthsElement = screen.getByText('~6.6 months');
+    expect(monthsElement).toBeInTheDocument();
+    expect(monthsElement).toHaveClass('animate-calm-cycle');
+
+    // Click again to cycle back to days (since 200 < 365)
+    fireEvent.click(screen.getByText('~6.6 months'));
+    const cycledDaysElement = screen.getByText('200 days');
+    expect(cycledDaysElement).toBeInTheDocument();
+    expect(cycledDaysElement).toHaveClass('animate-calm-cycle');
+
+    // Click Delete to open confirmation
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
+    expect(screen.getByText(/Are you sure you want to delete this item\?/i)).toBeInTheDocument();
+
+    // Confirm deletion
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => {
+      expect(deleteItem).toHaveBeenCalledWith('item-del-1');
+      expect(mockInvalidateDashboard).toHaveBeenCalled();
+      expect(mockInvalidateDurability).toHaveBeenCalled();
+    });
+  });
+
+  test('getCategoryIconInfo maps categories correctly from category field only', () => {
+    const audioInfo = getCategoryIconInfo('Audio');
+    expect(audioInfo.containerClass).toContain('text-blue-600');
+
+    const monitorInfo = getCategoryIconInfo('Display');
+    expect(monitorInfo.containerClass).toContain('text-indigo-600');
+
+    const laptopInfo = getCategoryIconInfo('Computer');
+    expect(laptopInfo.containerClass).toContain('text-amber-600');
+
+    const genericInfo = getCategoryIconInfo(null);
+    expect(genericInfo.containerClass).toContain('text-slate-500');
+
+    // Regression test: Uncategorized item must not infer category from item name
+    const uncategorizedLaptop = getCategoryIconInfo(null);
+    expect(uncategorizedLaptop.containerClass).toContain('text-slate-500');
+  });
+
+  test('getStatusBadgeStyle returns restrained semantic classes', () => {
+    expect(getStatusBadgeStyle('active')).toContain('text-emerald-600 font-semibold');
+    expect(getStatusBadgeStyle('sold')).toContain('text-slate-500 font-medium');
+    expect(getStatusBadgeStyle('retired')).toContain('text-stone-500 font-medium');
+    expect(getStatusBadgeStyle('lost')).toContain('text-rose-600 font-medium');
+  });
+
+  test('getNextDurationUnit cycles based on ownership duration thresholds', () => {
+    // Under 30 days: stays in days
+    expect(getNextDurationUnit('days', 14)).toBe('days');
+    expect(getNextDurationUnit('months', 14)).toBe('days');
+
+    // 30 to 364 days: cycles days <-> months
+    expect(getNextDurationUnit('days', 100)).toBe('months');
+    expect(getNextDurationUnit('months', 100)).toBe('days');
+
+    // 365+ days: cycles days -> months -> years -> days
+    expect(getNextDurationUnit('days', 400)).toBe('months');
+    expect(getNextDurationUnit('months', 400)).toBe('years');
+    expect(getNextDurationUnit('years', 400)).toBe('days');
+  });
+
+  test('formatOwnershipDuration formats days, months, and years without ownership prefix', () => {
+    const mockT = (key) => ({ unitDays: 'days', unitMonths: 'months', unitYears: 'years' }[key] || key);
+
+    expect(formatOwnershipDuration(1, 'days', mockT, 'en')).toBe('1 day');
+    expect(formatOwnershipDuration(200, 'days', mockT, 'en')).toBe('200 days');
+    expect(formatOwnershipDuration(200, 'months', mockT, 'en')).toBe('~6.6 months');
+    expect(formatOwnershipDuration(730, 'years', mockT, 'en')).toBe('~2 years');
+    expect(formatOwnershipDuration(998, 'years', mockT, 'en')).toBe('~2.7 years');
+
+    // Indonesian localization with decimal comma
+    const mockTId = (key) => ({ unitDays: 'hari', unitMonths: 'bulan', unitYears: 'tahun' }[key] || key);
+    expect(formatOwnershipDuration(200, 'months', mockTId, 'id')).toBe('~6,6 bulan');
+    expect(formatOwnershipDuration(998, 'years', mockTId, 'id')).toBe('~2,7 tahun');
+  });
+
+  test('CalmCycleText renders dual layers on transition', () => {
+    const { rerender } = render(<CalmCycleText text="200 days" hasCycled={false} />);
+    expect(screen.getByText('200 days')).toBeInTheDocument();
+    expect(screen.getByText('200 days')).not.toHaveClass('animate-calm-cycle-enter');
+
+    rerender(<CalmCycleText text="~6.6 months" hasCycled={true} />);
+    expect(screen.getByText('~6.6 months')).toHaveClass('animate-calm-cycle-enter');
+    expect(screen.getByText('200 days')).toHaveClass('animate-calm-cycle-exit');
   });
 });

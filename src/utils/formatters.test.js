@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { formatCurrency, getDateLocale } from './formatters';
+import { formatCurrency, getDateLocale, formatDisplayDate } from './formatters';
 import * as currencyConfigModule from './currencyConfig';
 
 describe('date locale selection', () => {
@@ -12,6 +12,23 @@ describe('date locale selection', () => {
     expect(getDateLocale('fr').code).toBe('fr');
     expect(getDateLocale('zh').code).toBe('zh-CN');
     expect(getDateLocale('unknown').code).toBe('en-US');
+  });
+});
+
+describe('formatDisplayDate utility function', () => {
+  test('formats date string into dd MMM yyyy for English', () => {
+    const formattedDate = formatDisplayDate('2026-09-01T12:00:00Z', 'en');
+    expect(formattedDate).toBe('01 Sep 2026');
+  });
+
+  test('formats date string into dd MMM yyyy for Indonesian', () => {
+    const formattedDate = formatDisplayDate('2026-08-15T12:00:00Z', 'id');
+    expect(formattedDate).toBe('15 Agt 2026');
+  });
+
+  test('returns empty string when date is null or undefined', () => {
+    expect(formatDisplayDate(null)).toBe('');
+    expect(formatDisplayDate(undefined)).toBe('');
   });
 });
 

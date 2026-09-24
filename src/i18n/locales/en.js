@@ -12,6 +12,9 @@ const translation = {
   
   // Item List
   "noItems": "No items yet",
+  "yourItems": "Your Items",
+  "sortedHighestCost": "Sorted: highest cost",
+  "ownedFor": "Owned for",
   "purchaseAmount": "Purchase amount",
   "purchaseDate": "Purchase date",
   "daysAgo": "days",
@@ -109,6 +112,16 @@ const translation = {
   "noInsightsYet": "Insights will appear as your collection grows",
   "insightsWelcomeTitle": "Mindful Ownership",
   "insightsWelcomeCaption": "Track your purchases and see how their daily cost evolves over time.",
+  "insightTitleBiggestContributor": "Most Influential Right Now",
+  "insightTitleBestValue": "Giving the Most Value",
+  "insightTitleOwnershipCostTrend": "Growing More Valuable Over Time",
+  "insightTitleRecentPurchaseImpact": "Shifting Your Daily Cost",
+  "insightTitleMilestone": "A Milestone Reached",
+  "insightTitlePortfolioMilestone": "A Collection Milestone",
+  "insightTitleEquivalent": "Compared to the Familiar",
+  "insightTitleTarget": "Heading Toward Your Target",
+  "insightTitleBenchmark": "If You Replace It",
+  "insightTitleDurability": "Lasting Longer for You",
 
   // Planned Purchases
   "plannedPurchases": "Planned Purchases",
@@ -142,6 +155,8 @@ const translation = {
   "unitDays": "days",
   "unitWeeks": "weeks",
   "unitMonths": "months",
+  "unitYears": "years",
+  "clickToCycleUnit": "Click to switch between days, months, and years",
   "requiredDaily": "{{amount}}/day",
   "requiredWeekly": "{{amount}}/week",
   "requiredMonthly": "{{amount}}/month",

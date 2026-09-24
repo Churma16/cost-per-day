@@ -18,7 +18,17 @@ vi.mock('react-i18next', () => ({
         nextInsight: 'Next insight',
         insightsWelcomeTitle: 'Mindful Ownership',
         insightsWelcomeCaption: 'Track your purchases and see how their daily cost evolves over time.',
-        loading: 'Loading...'
+        loading: 'Loading...',
+        insightTitleBiggestContributor: 'Most Influential Right Now',
+        insightTitleBestValue: 'Giving the Most Value',
+        insightTitleOwnershipCostTrend: 'Growing More Valuable Over Time',
+        insightTitleRecentPurchaseImpact: 'Shifting Your Daily Cost',
+        insightTitleMilestone: 'A Milestone Reached',
+        insightTitlePortfolioMilestone: 'A Collection Milestone',
+        insightTitleEquivalent: 'Compared to the Familiar',
+        insightTitleTarget: 'Heading Toward Your Target',
+        insightTitleBenchmark: 'If You Replace It',
+        insightTitleDurability: 'Lasting Longer for You'
       }[key] || key;
     }
   })
@@ -35,21 +45,21 @@ vi.mock('../hooks/useDashboard', () => ({
 const mockInsights = [
   {
     kind: 'best_value',
-    eyebrow: 'Best Value',
+    eyebrow: 'Giving the Most Value',
     primary: 'Bantal Orthopedic',
     secondary: 'Rp 1.280/day',
     caption: 'Owned for 508 days'
   },
   {
     kind: 'biggest_contributor',
-    eyebrow: 'Biggest Contributor',
+    eyebrow: 'Most Influential Right Now',
     primary: 'Laptop Pro',
     secondary: '41% of your current total cost/day',
     caption: 'Rp 25.000/day'
   },
   {
     kind: 'ownership_cost_trend',
-    eyebrow: 'Ownership Cost Trend',
+    eyebrow: 'Growing More Valuable Over Time',
     primary: 'Your collection is getting cheaper to own',
     secondary: 'down Rp 6.800/day over the last 30 days',
     caption: 'Your purchases are earning their keep over time.'
@@ -86,7 +96,7 @@ describe('HeroCarousel component', () => {
   it('renders the initial insight card with presentation fields', () => {
     render(<HeroCarousel insightsOverride={mockInsights} />);
 
-    expect(screen.getByText('Best Value')).toBeInTheDocument();
+    expect(screen.getByText('Giving the Most Value')).toBeInTheDocument();
     expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
     expect(screen.getByText('Rp 1.280/day')).toBeInTheDocument();
     expect(screen.getByText('Owned for 508 days')).toBeInTheDocument();
@@ -103,7 +113,7 @@ describe('HeroCarousel component', () => {
     fireEvent.click(nextButton);
 
     expect(screen.getByText('Laptop Pro')).toBeInTheDocument();
-    expect(screen.getByText('Biggest Contributor')).toBeInTheDocument();
+    expect(screen.getByText('Most Influential Right Now')).toBeInTheDocument();
 
     // Click Previous
     const previousButton = screen.getByRole('button', { name: 'Previous insight' });
@@ -216,5 +226,22 @@ describe('HeroCarousel component', () => {
     fireEvent.touchEnd(carousel);
 
     expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
+  });
+
+  it('maps legacy technical titles to human interpretation wording', () => {
+    const legacyInsights = [
+      {
+        kind: 'biggest_contributor',
+        eyebrow: 'Biggest Contributor',
+        primary: 'Laptop Pro',
+        secondary: '41% of your daily cost',
+        caption: 'Rp 25.000/day'
+      }
+    ];
+
+    render(<HeroCarousel insightsOverride={legacyInsights} />);
+
+    expect(screen.getByText('Most Influential Right Now')).toBeInTheDocument();
+    expect(screen.queryByText('Biggest Contributor')).not.toBeInTheDocument();
   });
 });
