@@ -94,26 +94,24 @@ const MainContent = () => {
 
 function AuthenticatedApp() {
   return (
-    <QueryClientProvider client={applicationQueryClient}>
-      <MotionConfig reducedMotion="user">
-        <LanguageProvider>
-          <CurrencyProvider>
-            <ValueEquivalentsProvider>
-              <PageMetadata />
-              <TotalCostProvider>
-                <Router>
-                  <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
-                    <Header />
-                    <MainContent />
-                    <Footer />
-                  </div>
-                </Router>
-              </TotalCostProvider>
-            </ValueEquivalentsProvider>
-          </CurrencyProvider>
-        </LanguageProvider>
-      </MotionConfig>
-    </QueryClientProvider>
+    <MotionConfig reducedMotion="user">
+      <LanguageProvider>
+        <CurrencyProvider>
+          <ValueEquivalentsProvider>
+            <PageMetadata />
+            <TotalCostProvider>
+              <Router>
+                <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
+                  <Header />
+                  <MainContent />
+                  <Footer />
+                </div>
+              </Router>
+            </TotalCostProvider>
+          </ValueEquivalentsProvider>
+        </CurrencyProvider>
+      </LanguageProvider>
+    </MotionConfig>
   );
 }
 
@@ -161,13 +159,21 @@ function AuthGate() {
   return <AuthenticatedApp />;
 }
 
-function App() {
+function AppContent() {
   useVersionCheck();
 
   return (
     <AuthProvider>
       <AuthGate />
     </AuthProvider>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={applicationQueryClient}>
+      <AppContent />
+    </QueryClientProvider>
   );
 }
 
