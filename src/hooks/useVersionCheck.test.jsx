@@ -138,9 +138,9 @@ describe('useVersionCheck', () => {
 
     await waitFor(() => {
       expect(fetchVersion).toHaveBeenCalledTimes(1);
+      expect(window.sessionStorage.getItem(VERSION_RELOAD_STORAGE_KEY)).toBeNull();
     });
 
-    expect(window.sessionStorage.getItem(VERSION_RELOAD_STORAGE_KEY)).toBeNull();
     expect(reloadMock).not.toHaveBeenCalled();
   });
 
