@@ -603,7 +603,7 @@ h1 {
 
 /* Page-specific padding classes */
 .home-page-content {
-  padding-top: 150px;
+  padding-top: 0;
 }
 
 .settings-page-content {

@@ -128,11 +128,11 @@ describe('ItemList lifecycle display', () => {
     expect(await screen.findByText('Phone')).toBeInTheDocument();
     expect(screen.getByText('Sold')).toBeInTheDocument();
     expect(screen.getByText('Final gross cost per day')).toBeInTheDocument();
-    expect(screen.getByText('$10.00/day')).toBeInTheDocument();
+    expect(screen.getByText('$10.00')).toBeInTheDocument();
 
     expect(screen.getByText('Laptop')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
-    expect(screen.getByText('$4.00/day')).toBeInTheDocument();
+    expect(screen.getByText('$4.00')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(setTotalDailyCost).toHaveBeenCalledWith(4);
@@ -394,9 +394,9 @@ describe('ItemList lifecycle display', () => {
   });
 
   test('getStatusBadgeStyle returns restrained semantic classes', () => {
-    expect(getStatusBadgeStyle('active')).toContain('bg-emerald-50 text-emerald-700');
-    expect(getStatusBadgeStyle('sold')).toContain('bg-slate-100 text-slate-700');
-    expect(getStatusBadgeStyle('retired')).toContain('bg-stone-100 text-stone-600');
-    expect(getStatusBadgeStyle('lost')).toContain('bg-rose-50 text-rose-700');
+    expect(getStatusBadgeStyle('active')).toContain('text-emerald-600 font-semibold');
+    expect(getStatusBadgeStyle('sold')).toContain('text-slate-500 font-medium');
+    expect(getStatusBadgeStyle('retired')).toContain('text-stone-500 font-medium');
+    expect(getStatusBadgeStyle('lost')).toContain('text-rose-600 font-medium');
   });
 });

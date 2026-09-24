@@ -62,15 +62,15 @@ export const getCategoryIconInfo = (category, itemName) => {
 export const getStatusBadgeStyle = (status) => {
   switch (status) {
     case 'active':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      return 'text-emerald-600 font-semibold';
     case 'sold':
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+      return 'text-slate-500 font-medium';
     case 'retired':
-      return 'bg-stone-100 text-stone-600 border-stone-200';
+      return 'text-stone-500 font-medium';
     case 'lost':
-      return 'bg-rose-50 text-rose-700 border-rose-200';
+      return 'text-rose-600 font-medium';
     default:
-      return 'bg-gray-100 text-gray-600 border-gray-200';
+      return 'text-gray-500 font-medium';
   }
 };
 
@@ -195,7 +195,7 @@ function ItemList() {
   });
 
   return (
-    <div className="px-4 py-6 space-y-4 home-page-content">
+    <div className="px-4 pt-3 pb-8 space-y-2.5 home-page-content max-w-lg mx-auto">
       {isLoading ? (
         <div className="text-center py-10 text-gray-500">
           <p>{t('loading')}</p>
@@ -211,8 +211,8 @@ function ItemList() {
       ) : (
         <>
           {/* Section Header */}
-          <div className="flex items-center justify-between px-1 text-xs">
-            <span className="font-semibold text-gray-900 text-sm">{t('yourItems')}</span>
+          <div className="flex items-center justify-between px-1 text-xs mb-1">
+            <span className="font-bold text-gray-900 text-sm">{t('yourItems')}</span>
             <span className="text-gray-500 font-normal">{t('sortedHighestCost')}</span>
           </div>
 
@@ -233,11 +233,11 @@ function ItemList() {
             return (
               <div
                 key={item.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors"
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors"
               >
                 {/* Collapsed Row */}
                 <div
-                  className="p-3.5 sm:p-4 flex items-center justify-between cursor-pointer gap-3"
+                  className="p-3 flex items-center justify-between cursor-pointer gap-3"
                   onClick={() => toggleItem(item.id)}
                 >
                   {/* Left: Category Icon Squircle */}
@@ -276,9 +276,9 @@ function ItemList() {
                   <div className="flex items-center gap-2.5 flex-shrink-0 text-right">
                     <div className="flex flex-col items-end">
                       <p className="text-sm font-semibold text-gray-900 tabular-nums">
-                        {formatCurrency(itemCostPerDay, currencyCode)}{t('perDay')}
+                        {formatCurrency(itemCostPerDay, currencyCode)}
                       </p>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border mt-0.5 ${getStatusBadgeStyle(itemStatus)}`}>
+                      <span className={`text-xs mt-0.5 ${getStatusBadgeStyle(itemStatus)}`}>
                         {t(statusTranslationKey)}
                       </span>
                     </div>

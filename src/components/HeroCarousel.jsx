@@ -100,18 +100,18 @@ export const GenericInsightSlide = ({ insight }) => {
   const hasCaption = Boolean(insight.caption);
 
   return (
-    <div className="flex flex-col items-center justify-center text-center px-4 sm:px-8 py-2 min-h-[140px]">
+    <div className="flex flex-col items-start justify-center text-left px-1 py-1 min-h-[95px]">
       {displayEyebrow && (
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.12] border border-white/15 backdrop-blur-sm text-white/90 text-xs font-medium tracking-wide mb-2">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 text-white/90 text-[11px] font-medium tracking-wide mb-1">
           {IconComponent && <IconComponent className="text-xs" aria-hidden="true" />}
           <span>{displayEyebrow}</span>
         </div>
       )}
-      <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight line-clamp-2 max-w-sm">
+      <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight line-clamp-1 max-w-md text-left">
         {insight.primary}
       </h2>
       {(hasSecondary || hasCaption) && (
-        <div className="mt-1 flex items-center justify-center gap-1.5 flex-wrap text-xs sm:text-sm text-white/90 font-medium">
+        <div className="mt-0.5 flex items-center justify-start gap-1.5 flex-wrap text-xs text-white/90 font-normal text-left">
           {hasSecondary && <span className="tabular-nums">{insight.secondary}</span>}
           {hasSecondary && hasCaption && <span className="text-white/40">·</span>}
           {hasCaption && <span className="text-white/75">{insight.caption}</span>}
@@ -232,15 +232,15 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
 
   if (insights.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center text-center px-4 sm:px-8 py-2 min-h-[140px]">
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.12] border border-white/15 backdrop-blur-sm text-white text-xs font-medium uppercase tracking-wider mb-2">
+      <div className="flex flex-col items-start justify-center text-left px-4 py-2 min-h-[120px]">
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/25 text-white text-xs font-medium uppercase tracking-wider mb-2">
           <IoSparkles className="text-xs" aria-hidden="true" />
           <span>{t('insights')}</span>
         </div>
-        <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight text-left">
           {t('insightsWelcomeTitle')}
         </h2>
-        <p className="text-xs sm:text-sm text-white/85 mt-1 max-w-sm">
+        <p className="text-xs sm:text-sm text-white/85 mt-1 max-w-sm text-left">
           {t('insightsWelcomeCaption')}
         </p>
       </div>
@@ -294,44 +294,42 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       </div>
 
       {insights.length > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-2 pb-1">
-          {/* Previous Slide Button */}
+        <div className="flex items-center justify-start gap-1.5 px-1 mt-1.5 pb-0.5">
+          {/* Previous Slide Button (Screen-reader accessible only) */}
           <button
             type="button"
             onClick={handlePreviousSlide}
             aria-label={t('previousInsight')}
-            className="p-1 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
+            className="sr-only"
           >
-            <IoChevronBack className="text-base" aria-hidden="true" />
+            <IoChevronBack aria-hidden="true" />
           </button>
 
-          {/* Dot / Dash Indicators */}
-          <div className="flex items-center gap-1.5 px-1">
-            {insights.map((insight, slideIndex) => {
-              const isSelected = slideIndex === activeSlideIndex;
-              return (
-                <button
-                  key={`${insight.kind}-${slideIndex}`}
-                  type="button"
-                  onClick={() => handleSelectSlide(slideIndex)}
-                  aria-label={t('goToSlide', { number: slideIndex + 1 })}
-                  aria-current={isSelected ? 'true' : undefined}
-                  className={`h-1.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 ${
-                    isSelected ? 'w-5 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
-                  }`}
-                />
-              );
-            })}
-          </div>
+          {/* Dot / Dash Indicators (Left-aligned, dash for active) */}
+          {insights.map((insight, slideIndex) => {
+            const isSelected = slideIndex === activeSlideIndex;
+            return (
+              <button
+                key={`${insight.kind}-${slideIndex}`}
+                type="button"
+                onClick={() => handleSelectSlide(slideIndex)}
+                aria-label={t('goToSlide', { number: slideIndex + 1 })}
+                aria-current={isSelected ? 'true' : undefined}
+                className={`h-1 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 ${
+                  isSelected ? 'w-6 bg-white' : 'w-1.5 bg-white/30 hover:bg-white/60'
+                }`}
+              />
+            );
+          })}
 
-          {/* Next Slide Button */}
+          {/* Next Slide Button (Screen-reader accessible only) */}
           <button
             type="button"
             onClick={handleNextSlide}
             aria-label={t('nextInsight')}
-            className="p-1 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
+            className="sr-only"
           >
-            <IoChevronForward className="text-base" aria-hidden="true" />
+            <IoChevronForward aria-hidden="true" />
           </button>
         </div>
       )}

@@ -51,17 +51,18 @@ const Header = () => {
   };
 
   return (
-    <div
-      className="page-header relative text-white shadow-sm"
+    <header
+      className="relative z-10 shadow-sm flex-shrink-0 text-white"
       style={{
         background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
       }}
     >
-      <div className="text-center py-4 px-4 sm:px-16">
+      <div className="pt-3 pb-3 px-4 max-w-lg mx-auto">
         {location.pathname === '/' ? (
           <div>
             <HeroCarousel />
-            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between max-w-sm mx-auto text-white/90 px-1">
+            {/* Supporting Context Row: Inside hero at the bottom with thin divider */}
+            <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center justify-between text-white/90 px-1">
               <span className="text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
               <span className="font-semibold text-base text-white tracking-tight tabular-nums">
                 {formatCurrency(totalDailyCost, currencyCode)}<span className="text-xs font-normal text-white/75">{t('perDay')}</span>
@@ -69,7 +70,7 @@ const Header = () => {
             </div>
           </div>
         ) : (
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-xl font-bold text-white text-center">
             {getTitle()}
           </h1>
         )}
@@ -90,7 +91,7 @@ const Header = () => {
           </p>
         )}
       </div>
-    </div>
+    </header>
   );
 };
 
