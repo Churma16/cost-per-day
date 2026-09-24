@@ -1,11 +1,12 @@
 import React from 'react';
-import { fireEvent, render as testingLibraryRender, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as testingLibraryRender, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import ItemList, {
   getCategoryIconInfo,
   getStatusBadgeStyle,
+  getLifecycleTranslationKey,
   getNextDurationUnit,
   formatOwnershipDuration,
   CalmCycleText
@@ -43,9 +44,10 @@ vi.mock('react-i18next', () => ({
       return {
         loading: 'Loading...',
         noItems: 'No items yet',
-        statusActive: 'Active',
-        statusRetired: 'Retired',
-        statusSold: 'Sold',
+        statusActiveEarly: 'Just Joined You',
+        statusActive: 'Still With You',
+        statusRetired: 'No Longer in Use',
+        statusSold: 'Changed Hands',
         statusLost: 'Lost',
         currentCostPerDay: 'Current cost per day',
         finalGrossCostPerDay: 'Final gross cost per day',
@@ -158,12 +160,14 @@ describe('ItemList lifecycle display', () => {
     );
 
     expect(await screen.findByText('Phone')).toBeInTheDocument();
-    expect(screen.getByText('Sold')).toBeInTheDocument();
+    const phoneTrigger = screen.getByRole('button', { name: /Phone/i });
+    expect(within(phoneTrigger).getByText('Changed Hands')).toBeInTheDocument();
     expect(screen.getByText('Final gross cost per day')).toBeInTheDocument();
     expect(screen.getByText('$10.00')).toBeInTheDocument();
 
     expect(screen.getByText('Laptop')).toBeInTheDocument();
-    expect(screen.getByText('Active')).toBeInTheDocument();
+    const laptopTrigger = screen.getByRole('button', { name: /Laptop/i });
+    expect(within(laptopTrigger).queryByText('Still With You')).not.toBeInTheDocument();
     expect(screen.getByText('$4.00')).toBeInTheDocument();
 
     await waitFor(() => {
@@ -172,6 +176,8 @@ describe('ItemList lifecycle display', () => {
 
     fireEvent.click(screen.getByText('Phone'));
 
+    const phoneDetails = document.getElementById('item-details-1');
+    expect(within(phoneDetails).getByText('Changed Hands')).toBeInTheDocument();
     expect(screen.getByText('Ownership end date')).toBeInTheDocument();
     expect(screen.getByText('Sale price')).toBeInTheDocument();
     expect(screen.getByText('$40.00')).toBeInTheDocument();
@@ -179,6 +185,85 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('$60.00')).toBeInTheDocument();
     expect(screen.getByText('Net cost per day')).toBeInTheDocument();
     expect(screen.getByText('$6.00/day')).toBeInTheDocument();
+  });
+
+  test('keeps active lifecycle quiet while showing age-aware human copy when expanded', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'early-active-copy',
+        name: 'New Camera',
+        price: 300,
+        purchaseDate: '2026-09-17T12:00:00Z',
+        status: 'active',
+        ownershipDays: 8,
+        grossCostPerDay: 37.5
+      },
+      {
+        id: 'active-copy',
+        name: 'Active Camera',
+        price: 300,
+        purchaseDate: '2026-08-19T12:00:00Z',
+        status: 'active',
+        ownershipDays: 37,
+        grossCostPerDay: 8.11
+      },
+      {
+        id: 'retired-copy',
+        name: 'Retired Camera',
+        price: 300,
+        purchaseDate: '2025-01-01T12:00:00Z',
+        status: 'retired',
+        ownershipDays: 365,
+        grossCostPerDay: 0.82
+      },
+      {
+        id: 'lost-copy',
+        name: 'Lost Camera',
+        price: 300,
+        purchaseDate: '2025-01-01T12:00:00Z',
+        status: 'lost',
+        ownershipDays: 200,
+        grossCostPerDay: 1.5
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    const earlyActiveTrigger = await screen.findByRole('button', { name: /New Camera/i });
+    expect(within(earlyActiveTrigger).queryByText('Just Joined You')).not.toBeInTheDocument();
+
+    const activeTrigger = screen.getByRole('button', { name: /Active Camera/i });
+    expect(within(activeTrigger).queryByText('Still With You')).not.toBeInTheDocument();
+
+    const retiredTrigger = screen.getByRole('button', { name: /Retired Camera/i });
+    expect(within(retiredTrigger).getByText('No Longer in Use')).toBeInTheDocument();
+
+    const lostTrigger = screen.getByRole('button', { name: /Lost Camera/i });
+    expect(within(lostTrigger).getByText('Lost')).toBeInTheDocument();
+
+    fireEvent.click(earlyActiveTrigger);
+    const earlyActiveDetails = document.getElementById('item-details-early-active-copy');
+    expect(within(earlyActiveDetails).getByText('Just Joined You')).toBeInTheDocument();
+    fireEvent.click(earlyActiveTrigger);
+
+    fireEvent.click(activeTrigger);
+    const activeDetails = document.getElementById('item-details-active-copy');
+    expect(within(activeDetails).getByText('Still With You')).toBeInTheDocument();
+  });
+
+  test('derives the early active presentation without changing lifecycle domain state', () => {
+    expect(getLifecycleTranslationKey('active', 1)).toBe('statusActiveEarly');
+    expect(getLifecycleTranslationKey('active', 8)).toBe('statusActiveEarly');
+    expect(getLifecycleTranslationKey('active', 14)).toBe('statusActiveEarly');
+    expect(getLifecycleTranslationKey('active', 15)).toBe('statusActive');
+    expect(getLifecycleTranslationKey('active', 37)).toBe('statusActive');
+    expect(getLifecycleTranslationKey('retired', 8)).toBe('statusRetired');
+    expect(getLifecycleTranslationKey('sold', 8)).toBe('statusSold');
+    expect(getLifecycleTranslationKey('lost', 8)).toBe('statusLost');
   });
 
   test('keeps cached items visible when a background refresh fails', () => {
@@ -512,7 +597,8 @@ describe('ItemList lifecycle display', () => {
     // Expand card
     fireEvent.click(screen.getByText('Desk Lamp'));
 
-    expect(screen.getByText('Owned for')).toBeInTheDocument();
+    const detailsRegion = document.getElementById('item-details-item-del-1');
+    expect(within(detailsRegion).getByText('Still With You')).toBeInTheDocument();
     expect(screen.getByText('200 days')).toBeInTheDocument();
 
     // Click to cycle duration unit from days to months

@@ -32,6 +32,22 @@ const STATUS_TRANSLATION_KEYS = {
   lost: 'statusLost'
 };
 
+// Presentation-only mirror of the backend recent-purchase product window used by
+// RecentPurchaseImpactProvider. Keep both named policy constants aligned if the
+// product definition of a "recent purchase" changes.
+const RECENT_PURCHASE_WINDOW_DAYS = 14;
+
+export const getLifecycleTranslationKey = (status, ownershipDays) => {
+  const normalizedStatus = STATUS_TRANSLATION_KEYS[status] ? status : 'active';
+
+  if (normalizedStatus === 'active') {
+    const days = Math.max(1, Number(ownershipDays) || 1);
+    return days <= RECENT_PURCHASE_WINDOW_DAYS ? 'statusActiveEarly' : 'statusActive';
+  }
+
+  return STATUS_TRANSLATION_KEYS[normalizedStatus];
+};
+
 export const getCategoryIconInfo = (category) => {
   const normalizedCategory = String(category || '').trim().toLowerCase();
 
@@ -259,6 +275,7 @@ function ItemList() {
             const itemStatus = getItemStatus(item);
             const isActive = itemStatus === 'active';
             const statusTranslationKey = STATUS_TRANSLATION_KEYS[itemStatus] || STATUS_TRANSLATION_KEYS.active;
+            const lifecycleTranslationKey = getLifecycleTranslationKey(itemStatus, item.ownershipDays);
             const itemCostPerDay = Number(item.grossCostPerDay || 0);
             const bestEquivalent = selectBestEquivalent(
               itemCostPerDay,
@@ -318,9 +335,11 @@ function ItemList() {
                       <p className="text-sm font-semibold text-[#20242A] tabular-nums">
                         {formatCurrency(itemCostPerDay, currencyCode)}
                       </p>
-                      <span className={`text-xs mt-0.5 ${getStatusBadgeStyle(itemStatus)}`}>
-                        {t(statusTranslationKey)}
-                      </span>
+                      {!isActive && (
+                        <span className={`text-xs mt-0.5 ${getStatusBadgeStyle(itemStatus)}`}>
+                          {t(statusTranslationKey)}
+                        </span>
+                      )}
                     </div>
                     <IoChevronDown
                       aria-hidden="true"
@@ -370,7 +389,7 @@ function ItemList() {
                           </div>
                         </div>
 
-                        {/* Full-width Ownership Duration (Interactive Cycle) */}
+                        {/* Full-width Lifecycle + Ownership Duration (Interactive Cycle) */}
                         {(() => {
                           const days = Math.max(1, Number(item.ownershipDays) || 1);
                           const isInteractive = days >= 30;
@@ -395,10 +414,10 @@ function ItemList() {
                                   : 'cursor-default'
                               }`}
                               title={isInteractive ? t('clickToCycleUnit') : undefined}
-                              aria-label={`${t('ownedFor')}: ${displayDuration}`}
+                              aria-label={`${t(lifecycleTranslationKey)}: ${displayDuration}`}
                             >
                               <div className="flex items-center gap-1.5 text-[#6F7782] font-medium">
-                                <span>{t('ownedFor')}</span>
+                                <span>{t(lifecycleTranslationKey)}</span>
                                 {isInteractive && (
                                   <IoSyncOutline
                                     className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
