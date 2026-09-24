@@ -46,6 +46,8 @@ function Settings() {
   const [importData, setImportData] = useState(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(null);
+  const [closingModal, setClosingModal] = useState(null);
+  const [activeDeleteTarget, setActiveDeleteTarget] = useState(null);
 
   // Value Equivalents modal and form state
   const [showEquivalentModal, setShowEquivalentModal] = useState(false);
@@ -58,6 +60,26 @@ function Settings() {
   const [isSavingEquivalent, setIsSavingEquivalent] = useState(false);
 
   const fileInputRef = useRef(null);
+  const closingTimeoutRef = useRef(null);
+
+  const closeModalWithAnimation = (modalType, onClosed) => {
+    setClosingModal(modalType);
+    if (closingTimeoutRef.current) {
+      clearTimeout(closingTimeoutRef.current);
+    }
+    closingTimeoutRef.current = setTimeout(() => {
+      onClosed();
+      setClosingModal(null);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (closingTimeoutRef.current) {
+        clearTimeout(closingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -90,6 +112,7 @@ function Settings() {
   }, [languageError, currencyError]);
 
   const handleLanguageChange = async (code) => {
+    closeModalWithAnimation('language', () => setShowLanguageDropdown(false));
     setNotification(null);
     try {
       await changeLanguage(code);
@@ -102,10 +125,10 @@ function Settings() {
         type: 'error'
       });
     }
-    setShowLanguageDropdown(false);
   };
 
   const handleCurrencyChange = async (selectedCurrencyCode) => {
+    closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false));
     setNotification(null);
     try {
       await changeCurrency(selectedCurrencyCode);
@@ -118,7 +141,6 @@ function Settings() {
         type: 'error'
       });
     }
-    setShowCurrencyDropdown(false);
   };
 
   const handleSignOut = async () => {
@@ -263,7 +285,7 @@ function Settings() {
         type: 'success'
       });
       setTimeout(() => setNotification(null), 3000);
-      setShowImportConfirm(false);
+      closeModalWithAnimation('import', () => setShowImportConfirm(false));
     } catch (error) {
       console.error('Error importing data:', error);
       setNotification({
@@ -325,7 +347,7 @@ function Settings() {
       }
       await invalidateDashboard();
 
-      setShowEquivalentModal(false);
+      closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false));
       setNotification({
         message: t('save'),
         type: 'success'
@@ -339,13 +361,29 @@ function Settings() {
     }
   };
 
+  const handleOpenDeleteConfirm = (equivalentItem) => {
+    setActiveDeleteTarget(equivalentItem);
+    setShowDeleteEquivalentConfirm(equivalentItem);
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    closeModalWithAnimation('delete', () => {
+      setShowDeleteEquivalentConfirm(null);
+      setActiveDeleteTarget(null);
+    });
+  };
+
   const handleConfirmDeleteEquivalent = async () => {
-    if (!showDeleteEquivalentConfirm) return;
+    const targetToDelete = showDeleteEquivalentConfirm || activeDeleteTarget;
+    if (!targetToDelete) return;
 
     try {
-      await removeEquivalent(showDeleteEquivalentConfirm.id);
+      await removeEquivalent(targetToDelete.id);
       await invalidateDashboard();
-      setShowDeleteEquivalentConfirm(null);
+      closeModalWithAnimation('delete', () => {
+        setShowDeleteEquivalentConfirm(null);
+        setActiveDeleteTarget(null);
+      });
       setNotification({
         message: t('confirmDelete'),
         type: 'success'
@@ -494,7 +532,7 @@ function Settings() {
                         type="button"
                         aria-label={`${t('deleteEquivalent')} ${equivalentItem.name}`}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        onClick={() => setShowDeleteEquivalentConfirm(equivalentItem)}
+                        onClick={() => handleOpenDeleteConfirm(equivalentItem)}
                       >
                         <IoTrashOutline className="text-base" />
                       </button>
@@ -588,13 +626,17 @@ function Settings() {
       </div>
 
       {/* Language Selection Modal */}
-      {showLanguageDropdown && (
+      {(showLanguageDropdown || closingModal === 'language') && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setShowLanguageDropdown(false)}
+          className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
+            closingModal === 'language' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+          onClick={() => closeModalWithAnimation('language', () => setShowLanguageDropdown(false))}
         >
           <div
-            className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+            className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
+              closingModal === 'language' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+            }`}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="p-3.5 border-b border-gray-100 bg-slate-50">
@@ -619,13 +661,17 @@ function Settings() {
       )}
 
       {/* Currency Selection Modal */}
-      {showCurrencyDropdown && (
+      {(showCurrencyDropdown || closingModal === 'currency') && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setShowCurrencyDropdown(false)}
+          className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
+            closingModal === 'currency' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+          onClick={() => closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false))}
         >
           <div
-            className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+            className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
+              closingModal === 'currency' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+            }`}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="p-3.5 border-b border-gray-100 bg-slate-50">
@@ -656,9 +702,17 @@ function Settings() {
       )}
 
       {/* Import Confirmation Dialog */}
-      {showImportConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl">
+      {(showImportConfirm || closingModal === 'import') && (
+        <div
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
+            closingModal === 'import' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+        >
+          <div
+            className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
+              closingModal === 'import' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+            }`}
+          >
             <div className="flex items-center gap-3 text-amber-500">
               <IoWarningOutline className="text-2xl" />
               <h2 className="text-xl font-semibold text-gray-800">{t('importWarning')}</h2>
@@ -668,7 +722,7 @@ function Settings() {
               <button
                 type="button"
                 className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors duration-200 text-sm"
-                onClick={() => setShowImportConfirm(false)}
+                onClick={() => closeModalWithAnimation('import', () => setShowImportConfirm(false))}
               >
                 {t('cancel')}
               </button>
@@ -685,9 +739,17 @@ function Settings() {
       )}
 
       {/* Add / Edit Equivalent Modal */}
-      {showEquivalentModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50">
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl">
+      {(showEquivalentModal || closingModal === 'equivalent') && (
+        <div
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
+            closingModal === 'equivalent' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+        >
+          <div
+            className={`bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl ${
+              closingModal === 'equivalent' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+            }`}
+          >
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h2 className="text-lg font-semibold text-gray-800">
                 {editingEquivalent ? t('editEquivalent') : t('addEquivalent')}
@@ -695,7 +757,7 @@ function Settings() {
               <button
                 type="button"
                 className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                onClick={() => setShowEquivalentModal(false)}
+                onClick={() => closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))}
               >
                 <IoClose className="text-xl" />
               </button>
@@ -760,7 +822,7 @@ function Settings() {
                   type="button"
                   disabled={isSavingEquivalent}
                   className="flex-1 py-2.5 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors text-sm"
-                  onClick={() => setShowEquivalentModal(false)}
+                  onClick={() => closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))}
                 >
                   {t('cancel')}
                 </button>
@@ -778,19 +840,27 @@ function Settings() {
       )}
 
       {/* Delete Equivalent Confirmation Dialog */}
-      {showDeleteEquivalentConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl">
+      {(showDeleteEquivalentConfirm || closingModal === 'delete') && (showDeleteEquivalentConfirm || activeDeleteTarget) && (
+        <div
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
+            closingModal === 'delete' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+        >
+          <div
+            className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
+              closingModal === 'delete' ? 'animate-calm-modal-exit' : 'animate-calm-modal-glide'
+            }`}
+          >
             <div className="flex items-center gap-3 text-red-500">
               <IoWarningOutline className="text-2xl" />
               <h2 className="text-xl font-semibold text-gray-800">{t('deleteEquivalent')}</h2>
             </div>
             <p className="text-gray-600 text-sm">{t('confirmDeleteEquivalent')}</p>
             <p className="font-semibold text-gray-800 text-sm bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-              {showDeleteEquivalentConfirm.name} (
+              {(showDeleteEquivalentConfirm || activeDeleteTarget).name} (
               {formatCurrency(
-                Number(showDeleteEquivalentConfirm.amount || 0),
-                showDeleteEquivalentConfirm.currencyCode
+                Number((showDeleteEquivalentConfirm || activeDeleteTarget).amount || 0),
+                (showDeleteEquivalentConfirm || activeDeleteTarget).currencyCode
               )}
               )
             </p>
@@ -798,7 +868,7 @@ function Settings() {
               <button
                 type="button"
                 className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors duration-200 text-sm"
-                onClick={() => setShowDeleteEquivalentConfirm(null)}
+                onClick={handleCloseDeleteConfirm}
               >
                 {t('cancel')}
               </button>
