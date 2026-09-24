@@ -53,15 +53,14 @@ describe('Header route isolation regression tests', () => {
     expect(homeHeader).toHaveClass('relative');
   });
 
-  test('renders exactly one fixed page-header on /settings', async () => {
+  test('renders clean header on /settings without page-header banner', async () => {
     window.history.pushState({}, '', '/settings');
     render(<App />);
     await waitFor(() => {
-      expect(document.querySelector('.page-header')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Settings');
     });
     const pageHeaders = document.querySelectorAll('.page-header');
-    expect(pageHeaders).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Settings');
+    expect(pageHeaders).toHaveLength(0);
   });
 
   test('renders exactly one fixed page-header on /planning', async () => {

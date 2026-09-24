@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  IoChevronDown,
+  IoChevronForward,
+  IoLanguageOutline,
+  IoCashOutline,
+  IoScaleOutline,
   IoCloudDownloadOutline,
   IoCloudUploadOutline,
+  IoLogOutOutline,
   IoWarningOutline,
   IoAdd,
   IoTrashOutline,
@@ -14,6 +18,7 @@ import { getAllItems, replaceAllItems } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { formatCurrency } from '../utils/formatters';
 import { useInvalidateDashboard } from '../hooks/useDashboard';
@@ -23,6 +28,7 @@ function Settings() {
   const { t } = useTranslation();
   const { language, changeLanguage, error: languageError } = useLanguage();
   const { currencyCode, changeCurrency, error: currencyError } = useCurrency();
+  const { user, signOut, error: authError } = useAuth();
   const {
     valueEquivalents = [],
     isLoading: isLoadingEquivalents,
@@ -32,13 +38,16 @@ function Settings() {
     error: equivalentsError
   } = useValueEquivalents();
   const invalidateDashboard = useInvalidateDashboard();
-  
+
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importData, setImportData] = useState(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState(null);
+  const [closingModal, setClosingModal] = useState(null);
+  const [activeDeleteTarget, setActiveDeleteTarget] = useState(null);
 
   // Value Equivalents modal and form state
   const [showEquivalentModal, setShowEquivalentModal] = useState(false);
@@ -49,10 +58,31 @@ function Settings() {
   const [equivalentFormError, setEquivalentFormError] = useState(null);
   const [showDeleteEquivalentConfirm, setShowDeleteEquivalentConfirm] = useState(null);
   const [isSavingEquivalent, setIsSavingEquivalent] = useState(false);
-  
-  const languageRef = useRef(null);
-  const currencyRef = useRef(null);
+  const [isDeletingEquivalent, setIsDeletingEquivalent] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+
   const fileInputRef = useRef(null);
+  const closingTimeoutRef = useRef(null);
+
+  const closeModalWithAnimation = (modalType, onClosed) => {
+    if (closingModal) return;
+    setClosingModal(modalType);
+    if (closingTimeoutRef.current) {
+      clearTimeout(closingTimeoutRef.current);
+    }
+    closingTimeoutRef.current = setTimeout(() => {
+      onClosed();
+      setClosingModal(null);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (closingTimeoutRef.current) {
+        clearTimeout(closingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -69,10 +99,9 @@ function Settings() {
     (currencyOption) => currencyOption.code === currencyCode
   );
 
-  // 根据语言代码获取语言名称
   const getLanguageName = (code) => {
-    const lang = languages.find(lang => lang.code === code);
-    return lang ? lang.name : 'English';
+    const matchedLanguage = languages.find((lang) => lang.code === code);
+    return matchedLanguage ? matchedLanguage.name : 'English';
   };
 
   useEffect(() => {
@@ -85,33 +114,8 @@ function Settings() {
     }
   }, [languageError, currencyError]);
 
-  useEffect(() => {
-    // Just check for loading state
-    const checkLoading = async () => {
-      setIsLoading(false);
-    };
-    checkLoading();
-  }, []);
-
-  // 处理点击外部关闭下拉菜单
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (languageRef.current && !languageRef.current.contains(event.target)) {
-        setShowLanguageDropdown(false);
-      }
-      if (currencyRef.current && !currencyRef.current.contains(event.target)) {
-        setShowCurrencyDropdown(false);
-      }
-    }
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // 更新语言设置
   const handleLanguageChange = async (code) => {
+    closeModalWithAnimation('language', () => setShowLanguageDropdown(false));
     setNotification(null);
     try {
       await changeLanguage(code);
@@ -124,11 +128,10 @@ function Settings() {
         type: 'error'
       });
     }
-    setShowLanguageDropdown(false);
   };
 
-  // 更新货币设置
   const handleCurrencyChange = async (selectedCurrencyCode) => {
+    closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false));
     setNotification(null);
     try {
       await changeCurrency(selectedCurrencyCode);
@@ -141,93 +144,88 @@ function Settings() {
         type: 'error'
       });
     }
-    setShowCurrencyDropdown(false);
   };
 
-  // Export data function
+  const handleSignOut = async () => {
+    setSignOutError(null);
+    setIsSigningOut(true);
+    try {
+      if (signOut) {
+        await signOut();
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+      setSignOutError(error.message || t('signOutError'));
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   const handleExportData = async () => {
     try {
-      // Get all items from the shared backend
       const items = await getAllItems();
-      
-      // Check if there's any data to export
+
       if (!items || items.length === 0) {
         setNotification({
           message: t('noDataForExport'),
           type: 'warning'
         });
-        
-        // Clear notification after 3 seconds
         setTimeout(() => {
           setNotification(null);
         }, 3000);
         return;
       }
-      
-      // Create a data URL for the JSON file
+
       const dataStr = JSON.stringify(items, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      
-      // Create download link and trigger click
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
       const exportFileDefaultName = `${PRODUCT_EXPORT_PREFIX}-${new Date().toISOString().split('T')[0]}.json`;
-      
+
       const linkElement = document.createElement('a');
       linkElement.setAttribute('href', dataUri);
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
-      
-      // Show success notification
+
       setNotification({
         message: t('exportSuccess'),
         type: 'success'
       });
-      
-      // Clear notification after 3 seconds
       setTimeout(() => {
         setNotification(null);
       }, 3000);
     } catch (error) {
       console.error('Error exporting data:', error);
-      
-      // Show error notification
       setNotification({
         message: t('exportError'),
         type: 'error'
       });
-      
-      // Clear notification after 3 seconds
       setTimeout(() => {
         setNotification(null);
       }, 3000);
     }
   };
 
-  // Import data function
   const handleImportData = () => {
-    // Trigger file input click
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
-  
-  // Handle file selection
+
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
-    // Check file type
+
     if (!file.name.endsWith('.json')) {
       setNotification({
         message: t('invalidFileFormat'),
         type: 'error'
       });
       setTimeout(() => setNotification(null), 3000);
-      event.target.value = ''; // Reset file input
+      event.target.value = '';
       return;
     }
-    
+
     try {
-      // Read file content
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -251,14 +249,11 @@ function Settings() {
       });
       setTimeout(() => setNotification(null), 3000);
     }
-    
-    // Reset file input
+
     event.target.value = '';
   };
-  
-  // Validate import data
+
   const validateAndProcessImport = (data) => {
-    // Check if data is an array
     if (!Array.isArray(data)) {
       setNotification({
         message: t('invalidDataFormat'),
@@ -267,8 +262,7 @@ function Settings() {
       setTimeout(() => setNotification(null), 3000);
       return;
     }
-    
-    // Check if each item has required fields
+
     for (const item of data) {
       if (!item.name || !Number.isFinite(Number(item.price)) || Number(item.price) <= 0 || !item.purchaseDate) {
         setNotification({
@@ -279,28 +273,27 @@ function Settings() {
         return;
       }
     }
-    
-    // Data is valid, store it and show confirmation dialog
+
     setImportData(data);
     setShowImportConfirm(true);
   };
-  
-  // Perform the actual import
+
   const confirmImport = async () => {
+    if (isImporting || closingModal === 'import') return;
+    setIsImporting(true);
     try {
-      // Replace server-backed data through the centralized API boundary.
       await replaceAllItems(importData);
       await invalidateDashboard();
-      
-      // Show success notification
+
       setNotification({
         message: t('importSuccess'),
         type: 'success'
       });
       setTimeout(() => setNotification(null), 3000);
-      
-      // Close confirmation dialog
-      setShowImportConfirm(false);
+      closeModalWithAnimation('import', () => {
+        setShowImportConfirm(false);
+        setIsImporting(false);
+      });
     } catch (error) {
       console.error('Error importing data:', error);
       setNotification({
@@ -308,6 +301,7 @@ function Settings() {
         type: 'error'
       });
       setTimeout(() => setNotification(null), 3000);
+      setIsImporting(false);
     }
   };
 
@@ -331,6 +325,7 @@ function Settings() {
 
   const handleSaveEquivalent = async (event) => {
     event.preventDefault();
+    if (isSavingEquivalent || closingModal === 'equivalent') return;
     setEquivalentFormError(null);
 
     const trimmedName = equivalentFormName.trim();
@@ -362,7 +357,10 @@ function Settings() {
       }
       await invalidateDashboard();
 
-      setShowEquivalentModal(false);
+      closeModalWithAnimation('equivalent', () => {
+        setShowEquivalentModal(false);
+        setIsSavingEquivalent(false);
+      });
       setNotification({
         message: t('save'),
         type: 'success'
@@ -371,18 +369,38 @@ function Settings() {
     } catch (saveError) {
       console.error('Error saving value equivalent:', saveError);
       setEquivalentFormError(saveError.message || 'Failed to save value equivalent.');
-    } finally {
       setIsSavingEquivalent(false);
     }
   };
 
-  const handleConfirmDeleteEquivalent = async () => {
-    if (!showDeleteEquivalentConfirm) return;
+  const handleOpenDeleteConfirm = (equivalentItem) => {
+    setActiveDeleteTarget(equivalentItem);
+    setShowDeleteEquivalentConfirm(equivalentItem);
+  };
 
-    try {
-      await removeEquivalent(showDeleteEquivalentConfirm.id);
-      await invalidateDashboard();
+  const handleCloseDeleteConfirm = () => {
+    if (isDeletingEquivalent || closingModal === 'delete') return;
+    closeModalWithAnimation('delete', () => {
       setShowDeleteEquivalentConfirm(null);
+      setActiveDeleteTarget(null);
+      setIsDeletingEquivalent(false);
+    });
+  };
+
+  const handleConfirmDeleteEquivalent = async () => {
+    if (isDeletingEquivalent || closingModal === 'delete') return;
+    const targetToDelete = showDeleteEquivalentConfirm || activeDeleteTarget;
+    if (!targetToDelete) return;
+
+    setIsDeletingEquivalent(true);
+    try {
+      await removeEquivalent(targetToDelete.id);
+      await invalidateDashboard();
+      closeModalWithAnimation('delete', () => {
+        setShowDeleteEquivalentConfirm(null);
+        setActiveDeleteTarget(null);
+        setIsDeletingEquivalent(false);
+      });
       setNotification({
         message: t('confirmDelete'),
         type: 'success'
@@ -395,213 +413,216 @@ function Settings() {
         type: 'error'
       });
       setTimeout(() => setNotification(null), 3000);
+      setIsDeletingEquivalent(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-purple-600">{t('loading')}</div>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className="page-header">
-        <div className="text-center py-4">
-          <h1 className="text-2xl font-bold text-white">
+      <div className="px-4 space-y-4 page-content settings-page-content pb-24">
+        {/* Header */}
+        <div className="pt-6 pb-1 px-1">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
             {t('settings')}
           </h1>
         </div>
-      </div>
-      
-      <div className="px-4 space-y-6 page-content settings-page-content mt-4">
+
         {/* Notification */}
         {notification && (
-          <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg
-            ${notification.type === 'success' ? 'bg-green-500' : 
-              notification.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'} 
-            text-white font-medium`}
+          <div
+            className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg
+            ${notification.type === 'success' ? 'bg-green-600' : notification.type === 'warning' ? 'bg-yellow-600' : 'bg-red-600'} 
+            text-white font-medium text-sm`}
           >
             {notification.message}
           </div>
         )}
 
-        {/* Language Selector */}
-        <div className="bg-white rounded-xl shadow-md">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="text-lg font-medium text-gray-800">{t('language')}</h2>
-          </div>
-          <div className="p-4" ref={languageRef}>
-            <button
-              className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none"
-              onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-            >
-              <span>{getLanguageName(language)}</span>
-              <IoChevronDown className={`transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {showLanguageDropdown && (
-              <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setShowLanguageDropdown(false)}>
-                <div 
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-sm bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="p-3 border-b border-gray-100 bg-purple-50">
-                    <h3 className="text-center font-medium text-purple-800">{t('selectLanguage')}</h3>
-                  </div>
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      className="w-full text-left p-4 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-0"
-                      onClick={() => handleLanguageChange(lang.code)}
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Currency Selector */}
-        <div className="bg-white rounded-xl shadow-md">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="text-lg font-medium text-gray-800">{t('currency')}</h2>
-          </div>
-          <div className="p-4" ref={currencyRef}>
-            <button
-              className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none"
-              onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-            >
-              <span>{selectedCurrencyOption?.symbol} {selectedCurrencyOption?.name}</span>
-              <IoChevronDown className={`transition-transform ${showCurrencyDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {showCurrencyDropdown && (
-              <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setShowCurrencyDropdown(false)}>
-                <div 
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-sm bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="p-3 border-b border-gray-100 bg-purple-50">
-                    <h3 className="text-center font-medium text-purple-800">{t('selectCurrency')}</h3>
-                  </div>
-                  {currencyOptions.map((currencyOption) => (
-                    <button
-                      key={currencyOption.code}
-                      className="w-full text-left p-4 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-0"
-                      onClick={() => handleCurrencyChange(currencyOption.code)}
-                    >
-                      {currencyOption.symbol} {currencyOption.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Value Equivalents */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-medium text-gray-800">{t('valueEquivalents')}</h2>
-              <p className="text-xs text-gray-500 mt-0.5">{t('valueEquivalentsDescription')}</p>
-            </div>
+        {/* Section 1: Umum (General) */}
+        <div>
+          <h2 className="text-xs font-medium text-gray-500 mb-1.5 px-1">
+            {t('general')}
+          </h2>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {/* Language Selector Row */}
             <button
               type="button"
-              className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors"
-              onClick={handleOpenAddEquivalent}
+              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
+              onClick={() => {
+                if (!closingModal) setShowLanguageDropdown(true);
+              }}
+              aria-label={`${t('language')}: ${getLanguageName(language)}`}
             >
-              <IoAdd className="text-base" />
-              <span>{t('addEquivalent')}</span>
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
+                  <IoLanguageOutline className="text-base" />
+                </div>
+                <span className="text-sm font-medium text-gray-800">{t('language')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                <span>{getLanguageName(language)}</span>
+                <IoChevronForward className="text-gray-400 text-sm" />
+              </div>
+            </button>
+
+            <div className="border-b border-gray-100 mx-3.5" />
+
+            {/* Currency Selector Row */}
+            <button
+              type="button"
+              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
+              onClick={() => {
+                if (!closingModal) setShowCurrencyDropdown(true);
+              }}
+              aria-label={`${t('currency')}: ${selectedCurrencyOption?.symbol} ${selectedCurrencyOption?.name}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
+                  <IoCashOutline className="text-base" />
+                </div>
+                <span className="text-sm font-medium text-gray-800">{t('currency')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                <span>
+                  {selectedCurrencyOption?.symbol} {selectedCurrencyOption?.code}
+                </span>
+                <IoChevronForward className="text-gray-400 text-sm" />
+              </div>
             </button>
           </div>
-          <div className="p-4">
-            {isLoadingEquivalents ? (
-              <div className="text-center py-6 text-gray-400 text-sm">
-                <p>{t('loading')}</p>
-              </div>
-            ) : equivalentsError ? (
-              <div role="alert" className="p-3 rounded-lg bg-red-50 text-red-700 text-xs font-medium">
-                {equivalentsError.message || t('errorLoadingEquivalents')}
-              </div>
-            ) : valueEquivalents.length === 0 ? (
-              <div className="text-center py-6 text-gray-400 text-sm">
-                <p>{t('noEquivalents')}</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {valueEquivalents.map((equivalentItem) => (
-                  <div key={equivalentItem.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-800 text-sm">{equivalentItem.name}</span>
-                        <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700">
-                          {equivalentItem.currencyCode}
-                        </span>
+        </div>
+
+        {/* Section 2: Perbandingan Nilai (Value Equivalents) */}
+        <div>
+          <div className="flex items-center justify-between mb-0.5 px-1">
+            <h2 className="text-xs font-medium text-gray-500">
+              {t('valueEquivalents')}
+            </h2>
+            <button
+              type="button"
+              className="text-xs font-semibold text-[#2F7473] hover:text-[#265e5d] flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-teal-50/60"
+              onClick={() => {
+                if (!closingModal) handleOpenAddEquivalent();
+              }}
+              aria-label={t('addEquivalent')}
+            >
+              <IoAdd className="text-sm" />
+              <span>{t('add')}</span>
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mb-1.5 px-1">
+            {t('valueEquivalentsSubtitle')}
+          </p>
+
+          {isLoadingEquivalents ? (
+            <div className="text-center py-6 text-gray-400 text-sm">
+              <p>{t('loading')}</p>
+            </div>
+          ) : equivalentsError ? (
+            <div role="alert" className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-100">
+              {equivalentsError.message || t('errorLoadingEquivalents')}
+            </div>
+          ) : valueEquivalents.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 text-center shadow-sm">
+              <p className="text-sm text-gray-400">{t('noEquivalents')}</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {valueEquivalents.map((equivalentItem, index) => (
+                <React.Fragment key={equivalentItem.id}>
+                  {index > 0 && <div className="border-b border-gray-100 mx-3.5" />}
+                  <div className="py-2.5 px-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#2F7473] flex items-center justify-center flex-shrink-0 border border-teal-100/60">
+                        <IoScaleOutline className="text-base" />
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {formatCurrency(Number(equivalentItem.amount || 0), equivalentItem.currencyCode)}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm text-gray-900 truncate leading-tight">{equivalentItem.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 leading-tight">
+                          {formatCurrency(Number(equivalentItem.amount || 0), equivalentItem.currencyCode)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
                         type="button"
                         aria-label={`${t('editEquivalent')} ${equivalentItem.name}`}
-                        className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                        onClick={() => handleOpenEditEquivalent(equivalentItem)}
+                        className="p-1.5 text-gray-400 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                        onClick={() => {
+                          if (!closingModal) handleOpenEditEquivalent(equivalentItem);
+                        }}
                       >
                         <IoPencilOutline className="text-base" />
                       </button>
                       <button
                         type="button"
                         aria-label={`${t('deleteEquivalent')} ${equivalentItem.name}`}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        onClick={() => setShowDeleteEquivalentConfirm(equivalentItem)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={() => {
+                          if (!closingModal) handleOpenDeleteConfirm(equivalentItem);
+                        }}
                       >
                         <IoTrashOutline className="text-base" />
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Data Management */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="text-lg font-medium text-gray-800">{t('dataManagement')}</h2>
-          </div>
-          <div className="p-4 space-y-3">
-            <button 
-              className="w-full flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-blue-500 to-purple-600 
-              text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 
-              transition-all duration-200 shadow-md hover:shadow-lg"
-              onClick={handleExportData}
+        {/* Section 3: Data */}
+        <div>
+          <h2 className="text-xs font-medium text-gray-500 mb-1.5 px-1">
+            {t('data')}
+          </h2>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {/* Export Row */}
+            <button
+              type="button"
+              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
+              onClick={() => {
+                if (!closingModal) handleExportData();
+              }}
             >
-              <IoCloudDownloadOutline className="text-xl" />
-              {t('exportData')}
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
+                  <IoCloudDownloadOutline className="text-base" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900 leading-tight">{t('exportData')}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t('exportDataSubtitle')}</p>
+                </div>
+              </div>
+              <IoChevronForward className="text-gray-400 text-sm flex-shrink-0" />
             </button>
-            
-            <button 
-              className="w-full flex items-center justify-center gap-2 p-3 bg-white border border-purple-200
-              text-purple-600 rounded-lg font-medium hover:bg-purple-50
-              transition-all duration-200 shadow-sm hover:shadow"
-              onClick={handleImportData}
+
+            <div className="border-b border-gray-100 mx-3.5" />
+
+            {/* Import Row */}
+            <button
+              type="button"
+              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
+              onClick={() => {
+                if (!closingModal) handleImportData();
+              }}
             >
-              <IoCloudUploadOutline className="text-xl" />
-              {t('importData')}
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
+                  <IoCloudUploadOutline className="text-base" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900 leading-tight">{t('importData')}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t('importDataSubtitle')}</p>
+                </div>
+              </div>
+              <IoChevronForward className="text-gray-400 text-sm flex-shrink-0" />
             </button>
-            
+
             {/* Hidden file input */}
-            <input 
-              type="file" 
+            <input
+              type="file"
               ref={fileInputRef}
               className="hidden"
               accept=".json"
@@ -610,35 +631,150 @@ function Settings() {
           </div>
         </div>
 
+        {/* Section 4: Akun / Keluar Akun */}
+        <div>
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-2 py-3 px-3.5 bg-white border border-red-200/90 rounded-2xl text-red-600 hover:bg-red-50/60 active:bg-red-100/60 transition-colors font-medium text-sm shadow-sm disabled:opacity-50"
+            onClick={() => {
+              if (!closingModal) handleSignOut();
+            }}
+            disabled={isSigningOut || Boolean(closingModal)}
+            aria-label={t('signOut')}
+            title={user?.displayName || user?.email || t('signOut')}
+          >
+            <IoLogOutOutline className="text-lg" />
+            <span>{isSigningOut ? t('loading') : t('signOut')}</span>
+          </button>
+          {(signOutError || authError) && (
+            <p role="alert" className="mt-2 text-center text-xs text-red-600">
+              {signOutError || authError?.message || t('signOutError')}
+            </p>
+          )}
+        </div>
+
         {/* Version Info */}
-        <div className="text-center text-gray-500 text-sm mt-8">
-          <p>{t('version')} 0.1.0</p>
+        <div className="text-center text-gray-400 text-xs py-2">
+          <p>{t('versionText', { version: '0.1.0' })}</p>
         </div>
       </div>
-      
+
+      {/* Language Selection Modal */}
+      {(showLanguageDropdown || closingModal === 'language') && (
+        <div
+          className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
+            closingModal === 'language' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+          onClick={() => {
+            if (closingModal) return;
+            closeModalWithAnimation('language', () => setShowLanguageDropdown(false));
+          }}
+        >
+          <div
+            className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
+              closingModal === 'language' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
+            }`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="p-3.5 border-b border-gray-100 bg-slate-50">
+              <h3 className="text-center font-semibold text-sm text-slate-800">
+                {t('selectLanguage')}
+              </h3>
+            </div>
+            {languages.map((lang) => (
+              <button
+                key={lang.code}
+                className={`w-full text-left p-4 hover:bg-slate-50 transition-colors border-b border-gray-100 last:border-0 font-medium text-sm flex items-center justify-between ${
+                  lang.code === language ? 'text-[#2F7473] font-semibold' : 'text-gray-700'
+                }`}
+                onClick={() => handleLanguageChange(lang.code)}
+              >
+                <span>{lang.name}</span>
+                {lang.code === language && <span className="w-2 h-2 rounded-full bg-[#2F7473]" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Currency Selection Modal */}
+      {(showCurrencyDropdown || closingModal === 'currency') && (
+        <div
+          className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
+            closingModal === 'currency' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+          onClick={() => {
+            if (closingModal) return;
+            closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false));
+          }}
+        >
+          <div
+            className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
+              closingModal === 'currency' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
+            }`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="p-3.5 border-b border-gray-100 bg-slate-50">
+              <h3 className="text-center font-semibold text-sm text-slate-800">
+                {t('selectCurrency')}
+              </h3>
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              {currencyOptions.map((currencyOption) => (
+                <button
+                  key={currencyOption.code}
+                  className={`w-full text-left p-4 hover:bg-slate-50 transition-colors border-b border-gray-100 last:border-0 font-medium text-sm flex items-center justify-between ${
+                    currencyOption.code === currencyCode ? 'text-[#2F7473] font-semibold' : 'text-gray-700'
+                  }`}
+                  onClick={() => handleCurrencyChange(currencyOption.code)}
+                >
+                  <span>
+                    {currencyOption.symbol} {currencyOption.name}
+                  </span>
+                  {currencyOption.code === currencyCode && (
+                    <span className="w-2 h-2 rounded-full bg-[#2F7473]" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Import Confirmation Dialog */}
-      {showImportConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl">
+      {(showImportConfirm || closingModal === 'import') && (
+        <div
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
+            closingModal === 'import' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div
+            className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
+              closingModal === 'import' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
+            }`}
+          >
             <div className="flex items-center gap-3 text-amber-500">
               <IoWarningOutline className="text-2xl" />
               <h2 className="text-xl font-semibold text-gray-800">{t('importWarning')}</h2>
             </div>
-            <p className="text-gray-600">{t('importConfirmation')}</p>
+            <p className="text-gray-600 text-sm">{t('importConfirmation')}</p>
             <div className="flex gap-3 pt-2">
-              <button 
-                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium
-                hover:bg-gray-200 transition-colors duration-200"
-                onClick={() => setShowImportConfirm(false)}
+              <button
+                type="button"
+                disabled={isImporting || closingModal === 'import'}
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors duration-200 text-sm"
+                onClick={() => closeModalWithAnimation('import', () => setShowImportConfirm(false))}
               >
                 {t('cancel')}
               </button>
-              <button 
-                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 
-                text-white font-medium hover:from-amber-600 hover:to-amber-700 transition-all duration-200"
+              <button
+                type="button"
+                disabled={isImporting || closingModal === 'import'}
+                className="flex-1 py-3 px-4 rounded-xl bg-amber-600 text-white font-medium hover:bg-amber-700 disabled:opacity-50 transition-all duration-200 text-sm shadow-sm"
                 onClick={confirmImport}
               >
-                {t('confirm')}
+                {isImporting ? t('loading') : t('confirm')}
               </button>
             </div>
           </div>
@@ -646,31 +782,41 @@ function Settings() {
       )}
 
       {/* Add / Edit Equivalent Modal */}
-      {showEquivalentModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50">
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl">
+      {(showEquivalentModal || closingModal === 'equivalent') && (
+        <div
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
+            closingModal === 'equivalent' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div
+            className={`bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl ${
+              closingModal === 'equivalent' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
+            }`}
+          >
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h2 className="text-xl font-semibold text-gray-800">
+              <h2 className="text-lg font-semibold text-gray-800">
                 {editingEquivalent ? t('editEquivalent') : t('addEquivalent')}
               </h2>
               <button
                 type="button"
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                onClick={() => setShowEquivalentModal(false)}
+                disabled={isSavingEquivalent || closingModal === 'equivalent'}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                onClick={() => closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))}
               >
                 <IoClose className="text-xl" />
               </button>
             </div>
 
             {equivalentFormError && (
-              <div className="p-3 rounded-lg bg-red-50 text-red-700 text-xs font-medium">
+              <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-100">
                 {equivalentFormError}
               </div>
             )}
 
             <form onSubmit={handleSaveEquivalent} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
                   {t('equivalentName')}
                 </label>
                 <input
@@ -679,12 +825,12 @@ function Settings() {
                   value={equivalentFormName}
                   onChange={(event) => setEquivalentFormName(event.target.value)}
                   placeholder={t('enterEquivalentName')}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2F7473]/30 focus:border-[#2F7473]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
                   {t('equivalentAmount')}
                 </label>
                 <input
@@ -695,18 +841,18 @@ function Settings() {
                   value={equivalentFormAmount}
                   onChange={(event) => setEquivalentFormAmount(event.target.value)}
                   placeholder={t('enterEquivalentAmount')}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2F7473]/30 focus:border-[#2F7473]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
                   {t('currency')}
                 </label>
                 <select
                   value={equivalentFormCurrency}
                   onChange={(event) => setEquivalentFormCurrency(event.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2F7473]/30 focus:border-[#2F7473] bg-white"
                 >
                   {currencyOptions.map((currencyOption) => (
                     <option key={currencyOption.code} value={currencyOption.code}>
@@ -719,16 +865,16 @@ function Settings() {
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"
-                  disabled={isSavingEquivalent}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors text-sm"
-                  onClick={() => setShowEquivalentModal(false)}
+                  disabled={isSavingEquivalent || closingModal === 'equivalent'}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors text-sm"
+                  onClick={() => closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))}
                 >
                   {t('cancel')}
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingEquivalent}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium hover:from-purple-600 hover:to-purple-700 transition-all text-sm disabled:opacity-50"
+                  disabled={isSavingEquivalent || closingModal === 'equivalent'}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#2F7473] hover:bg-[#265e5d] text-white font-medium transition-all text-sm disabled:opacity-50 shadow-sm"
                 >
                   {isSavingEquivalent ? t('loading') : t('save')}
                 </button>
@@ -739,33 +885,47 @@ function Settings() {
       )}
 
       {/* Delete Equivalent Confirmation Dialog */}
-      {showDeleteEquivalentConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl">
+      {(showDeleteEquivalentConfirm || closingModal === 'delete') && (showDeleteEquivalentConfirm || activeDeleteTarget) && (
+        <div
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
+            closingModal === 'delete' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
+          }`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div
+            className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
+              closingModal === 'delete' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
+            }`}
+          >
             <div className="flex items-center gap-3 text-red-500">
               <IoWarningOutline className="text-2xl" />
               <h2 className="text-xl font-semibold text-gray-800">{t('deleteEquivalent')}</h2>
             </div>
-            <p className="text-gray-600 text-sm">
-              {t('confirmDeleteEquivalent')}
-            </p>
+            <p className="text-gray-600 text-sm">{t('confirmDeleteEquivalent')}</p>
             <p className="font-semibold text-gray-800 text-sm bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-              {showDeleteEquivalentConfirm.name} ({formatCurrency(Number(showDeleteEquivalentConfirm.amount || 0), showDeleteEquivalentConfirm.currencyCode)})
+              {(showDeleteEquivalentConfirm || activeDeleteTarget).name} (
+              {formatCurrency(
+                Number((showDeleteEquivalentConfirm || activeDeleteTarget).amount || 0),
+                (showDeleteEquivalentConfirm || activeDeleteTarget).currencyCode
+              )}
+              )
             </p>
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 transition-colors duration-200 text-sm"
-                onClick={() => setShowDeleteEquivalentConfirm(null)}
+                disabled={isDeletingEquivalent || closingModal === 'delete'}
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors duration-200 text-sm"
+                onClick={handleCloseDeleteConfirm}
               >
                 {t('cancel')}
               </button>
               <button
                 type="button"
-                className="flex-1 py-3 px-4 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-all duration-200 text-sm"
+                disabled={isDeletingEquivalent || closingModal === 'delete'}
+                className="flex-1 py-3 px-4 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 transition-all duration-200 text-sm"
                 onClick={handleConfirmDeleteEquivalent}
               >
-                {t('delete')}
+                {isDeletingEquivalent ? t('loading') : t('delete')}
               </button>
             </div>
           </div>
@@ -775,4 +935,4 @@ function Settings() {
   );
 }
 
-export default Settings; 
+export default Settings;

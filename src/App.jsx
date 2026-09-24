@@ -31,10 +31,9 @@ const Header = () => {
   const { t } = useTranslation();
   const { totalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
-  const { user, error, signOut } = useAuth();
 
-  // AddItem renders its own dedicated .page-header to avoid duplicate headers on form routes
-  if (location.pathname === '/add' || location.pathname === '/edit') {
+  // Settings and form routes render their own dedicated headers to avoid duplicate/legacy banners
+  if (location.pathname === '/add' || location.pathname === '/edit' || location.pathname === '/settings') {
     return null;
   }
 
@@ -74,22 +73,6 @@ const Header = () => {
             </div>
           </div>
         </div>
-        <div className="absolute right-3 top-3 text-right">
-          <button
-            type="button"
-            onClick={signOut}
-            className="text-xs text-white/90 hover:text-white"
-            aria-label="Sign out"
-            title={user?.displayName || user?.email || 'Sign out'}
-          >
-            Sign out
-          </button>
-          {error && (
-            <p role="alert" className="mt-1 max-w-40 text-xs text-red-100">
-              Sign out failed. Please try again.
-            </p>
-          )}
-        </div>
       </header>
     );
   }
@@ -102,26 +85,10 @@ const Header = () => {
         background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
       }}
     >
-      <div className="text-center py-4 px-4 sm:px-16">
+      <div className="text-center py-4 px-4">
         <h1 className="text-2xl font-bold text-white">
           {getTitle()}
         </h1>
-      </div>
-      <div className="absolute right-3 top-3 text-right">
-        <button
-          type="button"
-          onClick={signOut}
-          className="text-xs text-white/90 hover:text-white"
-          aria-label="Sign out"
-          title={user?.displayName || user?.email || 'Sign out'}
-        >
-          Sign out
-        </button>
-        {error && (
-          <p role="alert" className="mt-1 max-w-40 text-xs text-red-100">
-            Sign out failed. Please try again.
-          </p>
-        )}
       </div>
     </div>
   );

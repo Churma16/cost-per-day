@@ -1,33 +1,44 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi } from 'vitest';
 import Settings from './Settings';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { replaceAllItems } from '../services/api';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (translationKey) => {
+    t: (translationKey, options) => {
       const translationDictionary = {
         settings: 'Settings',
+        general: 'General',
         loading: 'Loading...',
         language: 'Language',
         currency: 'Currency',
         selectLanguage: 'Select Language',
         selectCurrency: 'Select Currency',
+        data: 'Data',
         dataManagement: 'Data Management',
         exportData: 'Export Data',
+        exportDataSubtitle: 'Save as .json file',
         importData: 'Import Data',
+        importDataSubtitle: 'Restore from backup file',
+        account: 'Account',
+        signOut: 'Sign out',
+        signOutError: 'Sign out failed. Please try again.',
         version: 'Version',
+        versionText: options?.version ? `Version ${options.version}` : 'Version 0.1.0',
         usd: 'US Dollar (USD)',
         eur: 'Euro (EUR)',
         cny: 'Chinese Yuan (CNY)',
         idr: 'Indonesian Rupiah (IDR)',
         valueEquivalents: 'Personalized Value Equivalents',
         valueEquivalentsDescription: 'Compare item cost per day to everyday goods',
+        valueEquivalentsSubtitle: 'Translate daily costs into familiar everyday references.',
+        add: 'Add',
         addEquivalent: 'Add Equivalent',
         editEquivalent: 'Edit Equivalent',
         deleteEquivalent: 'Delete Equivalent',
@@ -59,6 +70,10 @@ vi.mock('../contexts/ValueEquivalentsContext', () => ({
   useValueEquivalents: vi.fn()
 }));
 
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: vi.fn()
+}));
+
 vi.mock('../services/api', () => ({
   getAllItems: vi.fn(),
   replaceAllItems: vi.fn()
@@ -70,6 +85,7 @@ describe('Settings component', () => {
   const mockAddEquivalent = vi.fn();
   const mockEditEquivalent = vi.fn();
   const mockRemoveEquivalent = vi.fn();
+  const mockSignOut = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -91,6 +107,31 @@ describe('Settings component', () => {
       isLoading: false,
       error: null
     });
+    useAuth.mockReturnValue({
+      user: { id: 'user-1', email: 'test@example.com' },
+      signOut: mockSignOut,
+      error: null
+    });
+  });
+
+  test('renders grouped intent-based sections with consequence subtext', () => {
+    render(<Settings />);
+
+    // Section headers
+    expect(screen.getByRole('heading', { name: 'General', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Personalized Value Equivalents', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Data', level: 2 })).toBeInTheDocument();
+
+    // Consequence subtexts
+    expect(screen.getByText('Translate daily costs into familiar everyday references.')).toBeInTheDocument();
+    expect(screen.getByText('Save as .json file')).toBeInTheDocument();
+    expect(screen.getByText('Restore from backup file')).toBeInTheDocument();
+
+    // Relocated Sign out action
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+
+    // Version text
+    expect(screen.getByText('Version 0.1.0')).toBeInTheDocument();
   });
 
   test('renders currency selector with options dynamically generated from canonical config', () => {
@@ -100,7 +141,9 @@ describe('Settings component', () => {
     expect(supportedCurrenciesList.length).toBeGreaterThan(0);
 
     // Open currency dropdown
-    const currencyDropdownTriggerButton = screen.getByText(/\$ US Dollar \(USD\)/i);
+    const currencyDropdownTriggerButton = screen.getByRole('button', {
+      name: /currency.*us dollar/i
+    });
     expect(currencyDropdownTriggerButton).toBeInTheDocument();
 
     fireEvent.click(currencyDropdownTriggerButton);
@@ -118,7 +161,7 @@ describe('Settings component', () => {
     render(<Settings />);
 
     const languageDropdownTriggerButton = screen.getByRole('button', {
-      name: /English/i
+      name: /language.*english/i
     });
     fireEvent.click(languageDropdownTriggerButton);
 
@@ -139,7 +182,9 @@ describe('Settings component', () => {
   test('calls changeCurrency when a currency option is clicked', () => {
     render(<Settings />);
 
-    const currencyDropdownTriggerButton = screen.getByText(/\$ US Dollar \(USD\)/i);
+    const currencyDropdownTriggerButton = screen.getByRole('button', {
+      name: /currency.*us dollar/i
+    });
     fireEvent.click(currencyDropdownTriggerButton);
 
     const indonesianRupiahOptionButton = screen.getByRole('button', {
@@ -158,7 +203,7 @@ describe('Settings component', () => {
     render(<Settings />);
 
     const openCurrencyDropdown = () => {
-      fireEvent.click(screen.getByText(/\$ US Dollar \(USD\)/i));
+      fireEvent.click(screen.getByRole('button', { name: /currency.*us dollar/i }));
     };
 
     openCurrencyDropdown();
@@ -176,6 +221,28 @@ describe('Settings component', () => {
     await waitFor(() => {
       expect(screen.queryByText('Failed to save currency.')).not.toBeInTheDocument();
     });
+  });
+
+  test('calls signOut when the relocated sign out button is clicked', async () => {
+    render(<Settings />);
+
+    const signOutButton = screen.getByRole('button', { name: 'Sign out' });
+    fireEvent.click(signOutButton);
+
+    await waitFor(() => {
+      expect(mockSignOut).toHaveBeenCalled();
+    });
+  });
+
+  test('displays sign out error message when sign out fails', async () => {
+    mockSignOut.mockRejectedValueOnce(new Error('Network error signing out'));
+
+    render(<Settings />);
+
+    const signOutButton = screen.getByRole('button', { name: 'Sign out' });
+    fireEvent.click(signOutButton);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Network error signing out');
   });
 
   test('surfaces the backend import error message', async () => {
@@ -227,7 +294,8 @@ describe('Settings component', () => {
 
     expect(screen.getByText('Gorengan')).toBeInTheDocument();
     expect(screen.getByText('Coffee')).toBeInTheDocument();
-    expect(screen.getAllByText('IDR').length).toBe(2);
+    expect(screen.getByText(/2.500/)).toBeInTheDocument();
+    expect(screen.getByText(/15.000/)).toBeInTheDocument();
   });
 
   test('opens add modal and calls addEquivalent with form data on submit', async () => {
@@ -367,5 +435,145 @@ describe('Settings component', () => {
 
     expect(screen.getAllByText('Loading...').length).toBeGreaterThan(0);
     expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
+  });
+
+  test('guards against duplicate equivalent saves during exit animation before unmount completes', async () => {
+    let resolveAdd;
+    mockAddEquivalent.mockImplementation(() => new Promise((resolve) => {
+      resolveAdd = resolve;
+    }));
+
+    render(<Settings />);
+
+    const openAddModalButton = screen.getByRole('button', { name: /Add Equivalent/i });
+    fireEvent.click(openAddModalButton);
+
+    const nameInputElement = screen.getByPlaceholderText('e.g. Gorengan, Coffee');
+    const amountInputElement = screen.getByPlaceholderText('e.g. 2500');
+
+    fireEvent.change(nameInputElement, { target: { value: 'Boba Tea' } });
+    fireEvent.change(amountInputElement, { target: { value: '25000' } });
+
+    const submitSaveButton = screen.getByRole('button', { name: /^Save$/i });
+    fireEvent.click(submitSaveButton);
+
+    expect(mockAddEquivalent).toHaveBeenCalledTimes(1);
+
+    // Resolve the mutation promise
+    await act(async () => {
+      resolveAdd({ id: 'eq-new', name: 'Boba Tea', amount: 25000, currencyCode: 'USD' });
+    });
+
+    // The modal is now in its 200ms exit animation
+    // Attempt another click during the exit window
+    fireEvent.click(submitSaveButton);
+
+    // Mutation function must still be called exactly once
+    expect(mockAddEquivalent).toHaveBeenCalledTimes(1);
+    expect(submitSaveButton).toBeDisabled();
+  });
+
+  test('guards against duplicate equivalent deletion during in-flight mutation and exit animation', async () => {
+    let resolveRemove;
+    mockRemoveEquivalent.mockImplementation(() => new Promise((resolve) => {
+      resolveRemove = resolve;
+    }));
+
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-1', name: 'Gorengan', amount: 2500, currencyCode: 'IDR' }
+      ],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null
+    });
+
+    render(<Settings />);
+
+    const deleteButtonElement = screen.getByLabelText('Delete Equivalent Gorengan');
+    fireEvent.click(deleteButtonElement);
+
+    const confirmDeleteButton = screen.getByRole('button', { name: /^Delete$/i });
+    fireEvent.click(confirmDeleteButton);
+
+    expect(mockRemoveEquivalent).toHaveBeenCalledTimes(1);
+
+    // Rapid second click while in-flight
+    fireEvent.click(confirmDeleteButton);
+    expect(mockRemoveEquivalent).toHaveBeenCalledTimes(1);
+
+    // Resolve the deletion promise
+    await act(async () => {
+      resolveRemove();
+    });
+
+    // Attempt click during exit animation
+    fireEvent.click(confirmDeleteButton);
+    expect(mockRemoveEquivalent).toHaveBeenCalledTimes(1);
+    expect(confirmDeleteButton).toBeDisabled();
+  });
+
+  test('renders generic benchmark scale icon for value equivalents instead of food-specific icons', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-1', name: 'Gasoline', amount: 50000, currencyCode: 'IDR' }
+      ],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null
+    });
+
+    const { container } = render(<Settings />);
+    const equivalentBadge = container.querySelector('.bg-teal-50');
+    expect(equivalentBadge).toBeInTheDocument();
+    expect(equivalentBadge.querySelector('svg')).toBeInTheDocument();
+  });
+
+  test('intercepts clicks during exit window so underlying Settings controls are not triggered and modal close completes', async () => {
+    render(<Settings />);
+
+    // Open language modal
+    const languageTriggerButton = screen.getByRole('button', {
+      name: /language.*english/i
+    });
+    fireEvent.click(languageTriggerButton);
+    expect(screen.getByText('Select Language')).toBeInTheDocument();
+
+    // Start closing language modal by selecting Bahasa Indonesia
+    const indonesianOption = screen.getByRole('button', {
+      name: /Bahasa Indonesia/i
+    });
+    fireEvent.click(indonesianOption);
+
+    // During the 200ms exit window, language modal is closing (still visible with exit animation)
+    // The backdrop overlay covers the full viewport without pointer-events-none
+    const modalBackdrop = screen.getByText('Select Language').closest('.fixed.inset-0');
+    expect(modalBackdrop).toBeInTheDocument();
+    expect(modalBackdrop).not.toHaveClass('pointer-events-none');
+
+    // Attempt to click an underlying Settings control during the 200ms exit window
+    const currencyTriggerButton = screen.getByRole('button', {
+      name: /currency.*us dollar/i
+    });
+    fireEvent.click(currencyTriggerButton);
+
+    // Currency modal must NOT have opened
+    expect(screen.queryByText('Select Currency')).not.toBeInTheDocument();
+
+    // Also clicking on the backdrop itself during exit should be swallowed and not re-trigger or cancel close
+    fireEvent.click(modalBackdrop);
+
+    // Wait for the 200ms close lifecycle to complete
+    await waitFor(() => {
+      expect(screen.queryByText('Select Language')).not.toBeInTheDocument();
+    });
+
+    // After exit completes, underlying controls become interactive again
+    fireEvent.click(currencyTriggerButton);
+    expect(screen.getByText('Select Currency')).toBeInTheDocument();
   });
 });
