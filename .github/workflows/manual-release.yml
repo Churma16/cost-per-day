@@ -28,6 +28,13 @@ jobs:
     name: Official release
     runs-on: ubuntu-latest
     steps:
+      - name: Validate release branch
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "[ERROR] Official releases can only be published from the 'main' branch (current ref: ${{ github.ref }})."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -59,10 +66,18 @@ jobs:
           fi
 
           echo "[INFO] Running commit-and-tag-version with args: $EXTRA_ARGS"
-          npx -y commit-and-tag-version $EXTRA_ARGS
+          OUTPUT=$(npx -y commit-and-tag-version $EXTRA_ARGS)
+          echo "$OUTPUT"
 
-          if [ "$DRY_RUN" = "false" ]; then
-            NEW_TAG=$(git describe --tags --abbrev=0)
+          if [ "$DRY_RUN" = "true" ]; then
+            PREDICTED_TAG=$(echo "$OUTPUT" | grep -oE 'tagging release v[0-9]+\.[0-9]+\.[0-9]+[^ ]*' | head -n1 | awk '{print $NF}')
+            if [ -z "$PREDICTED_TAG" ]; then
+              PREDICTED_TAG="v$(node -p "require('./package.json').version")"
+            fi
+            echo "RELEASE_TAG=$PREDICTED_TAG" >> "$GITHUB_ENV"
+            echo "[INFO] Predicted dry-run tag: $PREDICTED_TAG"
+          else
+            NEW_TAG=$(git describe --tags --match="v[0-9]*" --abbrev=0)
             echo "RELEASE_TAG=$NEW_TAG" >> "$GITHUB_ENV"
             echo "[INFO] Generated new tag: $NEW_TAG"
           fi
@@ -77,12 +92,18 @@ jobs:
           git push origin "$BRANCH" --follow-tags
 
       - name: Generate release notes
-        if: ${{ inputs.dry_run == false }}
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ env.RELEASE_TAG }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          IS_DRY_RUN: ${{ inputs.dry_run }}
         run: node .github/scripts/generate-release-notes.mjs
+
+      - name: Display release notes preview
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          echo "### Dry-Run Release Notes Preview (${{ env.RELEASE_TAG }})" >> "$GITHUB_STEP_SUMMARY"
+          cat release-notes.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish GitHub release
         if: ${{ inputs.dry_run == false }}

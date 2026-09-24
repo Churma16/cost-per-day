@@ -6,6 +6,7 @@ const repository = process.env.GITHUB_REPOSITORY || '';
 const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 const tagName = process.env.TAG_NAME || '';
 const outputFile = process.env.OUTPUT_FILE || 'release-notes.md';
+const isDryRun = process.env.IS_DRY_RUN === 'true';
 const version = tagName.replace(/^v/, '');
 
 function requestGitHub(path) {
@@ -42,8 +43,49 @@ function requestGitHub(path) {
   });
 }
 
+function resolveCommitRange(targetTag) {
+  if (!targetTag) {
+    return 'HEAD';
+  }
+
+  // Check if targetTag exists as a git object
+  let tagExists = false;
+  try {
+    execSync(`git rev-parse --verify "refs/tags/${targetTag}"`, {
+      stdio: ['pipe', 'pipe', 'ignore']
+    });
+    tagExists = true;
+  } catch {
+    tagExists = false;
+  }
+
+  let prevTag = '';
+  if (tagExists) {
+    try {
+      prevTag = execSync(`git describe --tags --match="v[0-9]*" --abbrev=0 "${targetTag}^"`, {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'ignore']
+      }).trim();
+    } catch {
+      prevTag = '';
+    }
+    return prevTag ? `${prevTag}..${targetTag}` : targetTag;
+  }
+
+  // If tag doesn't exist yet (e.g. dry-run mode), compare against HEAD
+  try {
+    prevTag = execSync(`git describe --tags --match="v[0-9]*" --abbrev=0 HEAD`, {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
+  } catch {
+    prevTag = '';
+  }
+  return prevTag ? `${prevTag}..HEAD` : 'HEAD';
+}
+
 async function generateReleaseNotes() {
-  console.log(`[INFO] Generating release notes for tag: ${tagName || '(none specified)'}`);
+  console.log(`[INFO] Generating release notes for tag: ${tagName || '(none specified)'} (dry_run: ${isDryRun})`);
   let releaseBody = '';
 
   // 1. Extract version section from CHANGELOG.md if present
@@ -57,73 +99,66 @@ async function generateReleaseNotes() {
     }
   }
 
+  if (isDryRun && !releaseBody) {
+    releaseBody = `*(Dry-run preview: changelog section for ${tagName || 'new release'} will be written by commit-and-tag-version)*`;
+  }
+
   // 2. Extract commit and PR history for this version
   const contributors = new Set();
   const changelogEntries = [];
 
-  if (tagName) {
-    try {
-      let prevTag = '';
-      try {
-        prevTag = execSync(`git describe --tags --abbrev=0 "${tagName}^"`, {
-          encoding: 'utf8',
-          stdio: ['pipe', 'pipe', 'ignore']
-        }).trim();
-      } catch {
-        prevTag = '';
-      }
+  const revRange = resolveCommitRange(tagName);
+  console.log(`[INFO] Comparing commit range: ${revRange}`);
 
-      const revRange = prevTag ? `${prevTag}..${tagName}` : tagName;
-      console.log(`[INFO] Comparing commit range: ${revRange}`);
+  try {
+    const rawCommits = execSync(`git log --pretty=format:"%h%x09%an%x09%s" ${revRange}`, {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
 
-      const rawCommits = execSync(`git log --pretty=format:"%h%x09%an%x09%s" ${revRange}`, {
-        encoding: 'utf8'
-      }).trim();
+    if (rawCommits) {
+      const commitLines = rawCommits.split('\n').filter(Boolean);
 
-      if (rawCommits) {
-        const commitLines = rawCommits.split('\n').filter(Boolean);
+      for (const line of commitLines) {
+        const parts = line.split('\t');
+        const hash = parts[0];
+        const authorName = parts[1];
+        const subject = parts.slice(2).join('\t');
 
-        for (const line of commitLines) {
-          const parts = line.split('\t');
-          const hash = parts[0];
-          const authorName = parts[1];
-          const subject = parts.slice(2).join('\t');
+        // Skip automated release commits
+        if (subject.startsWith('chore(release):') || subject.startsWith('chore(main): release')) {
+          continue;
+        }
 
-          // Skip automated release commits
-          if (subject.startsWith('chore(release):') || subject.startsWith('chore(main): release')) {
-            continue;
-          }
+        // Check if commit came from a PR (e.g., #13 or (#13))
+        const prMatch = subject.match(/\(#?(\d+)\)|#(\d+)/);
+        if (prMatch) {
+          const prNumber = prMatch[1] || prMatch[2];
+          const prData = await requestGitHub(`/pulls/${prNumber}`);
+          const authorLogin = prData && prData.user ? prData.user.login : null;
 
-          // Check if commit came from a PR (e.g., #13 or (#13))
-          const prMatch = subject.match(/\(#?(\d+)\)|#(\d+)/);
-          if (prMatch) {
-            const prNumber = prMatch[1] || prMatch[2];
-            const prData = await requestGitHub(`/pulls/${prNumber}`);
-            const authorLogin = prData && prData.user ? prData.user.login : null;
-
-            if (authorLogin) {
-              contributors.add(`@${authorLogin}`);
-              changelogEntries.push(`* ${subject} by @${authorLogin} in #${prNumber}`);
-            } else {
-              changelogEntries.push(`* ${subject} in #${prNumber}`);
-            }
+          if (authorLogin) {
+            contributors.add(`@${authorLogin}`);
+            changelogEntries.push(`* ${subject} by @${authorLogin} in #${prNumber}`);
           } else {
-            // Direct commit
-            const commitData = await requestGitHub(`/commits/${hash}`);
-            const authorLogin = commitData && commitData.author ? commitData.author.login : null;
+            changelogEntries.push(`* ${subject} in #${prNumber}`);
+          }
+        } else {
+          // Direct commit
+          const commitData = await requestGitHub(`/commits/${hash}`);
+          const authorLogin = commitData && commitData.author ? commitData.author.login : null;
 
-            if (authorLogin) {
-              contributors.add(`@${authorLogin}`);
-              changelogEntries.push(`* ${subject} by @${authorLogin} (${hash})`);
-            } else {
-              changelogEntries.push(`* ${subject} by ${authorName} (${hash})`);
-            }
+          if (authorLogin) {
+            contributors.add(`@${authorLogin}`);
+            changelogEntries.push(`* ${subject} by @${authorLogin} (${hash})`);
+          } else {
+            changelogEntries.push(`* ${subject} by ${authorName} (${hash})`);
           }
         }
       }
-    } catch (error) {
-      console.warn(`[WARN] Could not retrieve commit details: ${error.message}`);
     }
+  } catch (error) {
+    console.warn(`[WARN] Could not retrieve commit details: ${error.message}`);
   }
 
   // 3. Assemble release notes document

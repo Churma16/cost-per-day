@@ -36,7 +36,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           SHORT_SHA=$(git rev-parse --short HEAD)
-          SNAPSHOT_TAG="v${VERSION}-snapshot.${SHORT_SHA}"
+          SNAPSHOT_TAG="snapshot-${VERSION}-${SHORT_SHA}"
           echo "SNAPSHOT_TAG=$SNAPSHOT_TAG" >> "$GITHUB_ENV"
           echo "SNAPSHOT_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "[INFO] Computed snapshot tag: $SNAPSHOT_TAG"
