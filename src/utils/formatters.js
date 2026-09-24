@@ -39,4 +39,9 @@ export const getDateLocale = (language = 'en') => DATE_LOCALES[language] || enUS
 
 export const formatDate = (date, language = 'en') => {
   return format(new Date(date), 'yyyy-MM-dd', { locale: getDateLocale(language) });
+};
+
+export const formatDisplayDate = (date, language = 'en') => {
+  if (!date) return '';
+  return format(new Date(date), 'dd MMM yyyy', { locale: getDateLocale(language) });
 }; 

@@ -155,6 +155,8 @@ const translation = {
   "unitDays": "hari",
   "unitWeeks": "minggu",
   "unitMonths": "bulan",
+  "unitYears": "tahun",
+  "clickToCycleUnit": "Klik untuk beralih antara hari, bulan, dan tahun",
   "requiredDaily": "{{amount}}/hari",
   "requiredWeekly": "{{amount}}/minggu",
   "requiredMonthly": "{{amount}}/bulan",

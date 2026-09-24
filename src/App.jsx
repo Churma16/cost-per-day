@@ -118,7 +118,7 @@ function AuthenticatedApp() {
             <PageMetadata />
             <TotalCostProvider>
               <Router>
-                <div className="mx-auto max-w-[1024px] sm:border-x sm:border-gray-200 h-full bg-gray-50 flex flex-col">
+                <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
                   <Header />
                   <MainContent />
                   <Footer />

@@ -17,12 +17,12 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: none;
-  background-color: #f9fafb; /* Ensure consistent background color with the app */
+  background-color: #F6F7F8; /* Ensure consistent soft neutral canvas */
 }
 
 @layer base {
   body {
-    @apply bg-gray-50;
+    @apply bg-[#F6F7F8];
     -webkit-tap-highlight-color: transparent;
   }
 }
@@ -633,8 +633,8 @@ h1 {
   padding-bottom: 0;
   z-index: 10;
   backdrop-filter: blur(12px);
-  background-color: rgba(255, 255, 255, 0.9);
-  border-top: 1px solid #f3e8ff;
+  background-color: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid #E6E8EC;
 }
 
 .footer-icon {

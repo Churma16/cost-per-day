@@ -12,10 +12,10 @@ import {
   IoReceiptOutline,
   IoCalendarOutline,
   IoPencilOutline,
-  IoTrashOutline
+  IoTrashOutline,
+  IoSyncOutline
 } from 'react-icons/io5';
-import { formatCurrency } from '../utils/formatters';
-import { format } from 'date-fns';
+import { formatCurrency, formatDisplayDate } from '../utils/formatters';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
@@ -111,8 +111,39 @@ const formatTargetBadgeText = (item, t) => {
   }
 };
 
+export const getNextDurationUnit = (currentUnit = 'days', days) => {
+  if (days < 30) {
+    return 'days';
+  }
+  if (days < 365) {
+    return currentUnit === 'days' ? 'months' : 'days';
+  }
+  if (currentUnit === 'days') return 'months';
+  if (currentUnit === 'months') return 'years';
+  return 'days';
+};
+
+export const formatOwnershipDuration = (ownershipDays, unit = 'days', t, language = 'en') => {
+  const days = Math.max(1, Number(ownershipDays) || 1);
+
+  if (unit === 'months' && days >= 30) {
+    const months = (days / 30.4375).toFixed(1).replace(/\.0$/, '');
+    const localizedMonths = language === 'id' ? months.replace('.', ',') : months;
+    return `~${localizedMonths} ${t('unitMonths')}`;
+  }
+
+  if (unit === 'years' && days >= 365) {
+    const years = (days / 365.25).toFixed(1).replace(/\.0$/, '');
+    const localizedYears = language === 'id' ? years.replace('.', ',') : years;
+    return `~${localizedYears} ${t('unitYears')}`;
+  }
+
+  const daysLabel = language === 'en' && days === 1 ? 'day' : t('unitDays');
+  return `${days} ${daysLabel}`;
+};
+
 function ItemList() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [items, setItems] = useState([]);
   const [expandedItem, setExpandedItem] = useState(null);
   const [benchmarkModalItem, setBenchmarkModalItem] = useState(null);
@@ -124,6 +155,14 @@ function ItemList() {
   const { setTotalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
+  const [durationUnitByItemId, setDurationUnitByItemId] = useState({});
+
+  const handleCycleDurationUnit = (itemId, days) => {
+    setDurationUnitByItemId((previous) => ({
+      ...previous,
+      [itemId]: getNextDurationUnit(previous[itemId] || 'days', days)
+    }));
+  };
 
   useEffect(() => {
     const loadItems = async () => {
@@ -197,7 +236,7 @@ function ItemList() {
   return (
     <div className="px-4 pt-3 pb-8 space-y-2.5 home-page-content max-w-lg mx-auto">
       {isLoading ? (
-        <div className="text-center py-10 text-gray-500">
+        <div className="text-center py-10 text-[#6F7782]">
           <p>{t('loading')}</p>
         </div>
       ) : errorMessage ? (
@@ -205,15 +244,15 @@ function ItemList() {
           {errorMessage}
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">
+        <div className="text-center py-10 text-[#6F7782]">
           <p>{t('noItems')}</p>
         </div>
       ) : (
         <>
           {/* Section Header */}
           <div className="flex items-center justify-between px-1 text-xs mb-1">
-            <span className="font-bold text-gray-900 text-sm">{t('yourItems')}</span>
-            <span className="text-gray-500 font-normal">{t('sortedHighestCost')}</span>
+            <span className="font-bold text-[#20242A] text-sm">{t('yourItems')}</span>
+            <span className="text-[#6F7782] font-normal">{t('sortedHighestCost')}</span>
           </div>
 
           {sortedItems.map((item) => {
@@ -233,7 +272,7 @@ function ItemList() {
             return (
               <div
                 key={item.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:border-gray-200 transition-colors"
+                className="bg-white rounded-2xl border border-[#E6E8EC] shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden hover:border-[#D5D8DF] transition-colors"
               >
                 {/* Collapsed Row */}
                 <div
@@ -251,7 +290,7 @@ function ItemList() {
                   {/* Center: Identity + Equivalent / Cue */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <h3 className="font-medium text-gray-900 truncate max-w-[180px] sm:max-w-xs">{item.name}</h3>
+                      <h3 className="font-medium text-[#20242A] truncate max-w-[180px] sm:max-w-xs">{item.name}</h3>
                       {item.targetState && (
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${getTargetBadgeStyle(item.targetState)}`}>
                           {formatTargetBadgeText(item, t)}
@@ -260,12 +299,12 @@ function ItemList() {
                     </div>
                     <div className="mt-0.5 flex items-baseline gap-2 flex-wrap">
                       {!isActive && (
-                        <span className="text-xs text-gray-500 font-normal">
+                        <span className="text-xs text-[#6F7782] font-normal">
                           {t('finalGrossCostPerDay')}
                         </span>
                       )}
                       {bestEquivalent && (
-                        <p className="text-xs text-gray-500 font-normal">
+                        <p className="text-xs text-[#6F7782] font-normal">
                           ≈ {bestEquivalent.text}
                         </p>
                       )}
@@ -275,7 +314,7 @@ function ItemList() {
                   {/* Right: Cost + Status + Chevron */}
                   <div className="flex items-center gap-2.5 flex-shrink-0 text-right">
                     <div className="flex flex-col items-end">
-                      <p className="text-sm font-semibold text-gray-900 tabular-nums">
+                      <p className="text-sm font-semibold text-[#20242A] tabular-nums">
                         {formatCurrency(itemCostPerDay, currencyCode)}
                       </p>
                       <span className={`text-xs mt-0.5 ${getStatusBadgeStyle(itemStatus)}`}>
@@ -283,7 +322,7 @@ function ItemList() {
                       </span>
                     </div>
                     <IoChevronDown
-                      className={`text-gray-400 transition-transform duration-300 ease-out text-base ${expandedItem === item.id ? 'rotate-180' : ''}`}
+                      className={`text-[#6F7782] transition-transform duration-300 ease-out text-base ${expandedItem === item.id ? 'rotate-180' : ''}`}
                     />
                   </div>
                 </div>
@@ -297,76 +336,106 @@ function ItemList() {
                   }`}
                 >
                   <div className="overflow-hidden">
-                    <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+                    <div className="px-4 pb-4 border-t border-[#E6E8EC] pt-3">
                       <div className="space-y-3">
                         {/* 2-Column Metadata Grid */}
                         <div className="grid grid-cols-2 gap-2.5">
-                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100/80">
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+                          <div className="bg-[#F6F7F8] rounded-xl p-3 border border-[#E6E8EC]">
+                            <div className="flex items-center gap-1.5 text-xs text-[#6F7782] mb-1">
                               <IoReceiptOutline className="text-sm" />
                               <span>{t('purchaseAmount')}</span>
                             </div>
-                            <div className="font-semibold text-gray-900 text-sm tabular-nums">
+                            <div className="font-semibold text-[#20242A] text-sm tabular-nums">
                               {formatCurrency(item.price, currencyCode)}
                             </div>
                           </div>
 
-                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100/80">
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+                          <div className="bg-[#F6F7F8] rounded-xl p-3 border border-[#E6E8EC]">
+                            <div className="flex items-center gap-1.5 text-xs text-[#6F7782] mb-1">
                               <IoCalendarOutline className="text-sm" />
                               <span>{t('purchaseDate')}</span>
                             </div>
-                            <div className="font-semibold text-gray-900 text-sm">
-                              {format(new Date(item.purchaseDate), 'yyyy-MM-dd')}
+                            <div className="font-semibold text-[#20242A] text-sm">
+                              {formatDisplayDate(item.purchaseDate, i18n?.language)}
                             </div>
                           </div>
                         </div>
 
-                        {/* Full-width Ownership Duration */}
-                        <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 flex items-center justify-between text-xs">
-                          <span className="text-gray-500 font-medium">{t('ownedFor')}</span>
-                          <span className="font-semibold text-gray-900 text-sm">
-                            {item.ownershipDays || 1} {t('ownershipDays')}
-                          </span>
-                        </div>
+                        {/* Full-width Ownership Duration (Interactive Cycle) */}
+                        {(() => {
+                          const days = Math.max(1, Number(item.ownershipDays) || 1);
+                          const isInteractive = days >= 30;
+                          const currentUnit = durationUnitByItemId[item.id] || 'days';
+                          const displayDuration = formatOwnershipDuration(days, currentUnit, t, i18n?.language);
+
+                          return (
+                            <button
+                              type="button"
+                              disabled={!isInteractive}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (isInteractive) {
+                                  handleCycleDurationUnit(item.id, days);
+                                }
+                              }}
+                              className={`w-full rounded-xl bg-[#F6F7F8] border border-[#E6E8EC] p-3 flex items-center justify-between text-xs transition-colors text-left ${
+                                isInteractive
+                                  ? 'hover:bg-[#EEF0F3] cursor-pointer active:scale-[0.99]'
+                                  : 'cursor-default'
+                              }`}
+                              title={isInteractive ? t('clickToCycleUnit') : undefined}
+                              aria-label={`${t('ownedFor')}: ${displayDuration}`}
+                            >
+                              <div className="flex items-center gap-1.5 text-[#6F7782] font-medium">
+                                <span>{t('ownedFor')}</span>
+                                {isInteractive && (
+                                  <IoSyncOutline className="text-xs text-[#6F7782]" aria-hidden="true" />
+                                )}
+                              </div>
+                              <span className="font-semibold text-[#20242A] text-sm tabular-nums">
+                                {displayDuration}
+                              </span>
+                            </button>
+                          );
+                        })()}
 
                         {(item.category || item.brand) && (
-                          <div className="flex items-center gap-4 text-xs bg-gray-50 rounded-lg p-2.5">
+                          <div className="flex items-center gap-4 text-xs bg-[#F6F7F8] border border-[#E6E8EC] rounded-lg p-2.5">
                             {item.category && (
                               <div>
-                                <span className="text-gray-400 font-normal">{t('category')}: </span>
-                                <span className="font-medium text-gray-700">{item.category}</span>
+                                <span className="text-[#6F7782] font-normal">{t('category')}: </span>
+                                <span className="font-medium text-[#20242A]">{item.category}</span>
                               </div>
                             )}
                             {item.brand && (
                               <div>
-                                <span className="text-gray-400 font-normal">{t('brand')}: </span>
-                                <span className="font-medium text-gray-700">{item.brand}</span>
+                                <span className="text-[#6F7782] font-normal">{t('brand')}: </span>
+                                <span className="font-medium text-[#20242A]">{item.brand}</span>
                               </div>
                             )}
                           </div>
                         )}
 
                         {!isActive && item.endedAt && (
-                          <div className="rounded-lg bg-gray-50 p-3">
-                            <div className="text-xs text-gray-500">{t('ownershipEndDate')}</div>
-                            <div className="font-medium">{format(new Date(item.endedAt), 'yyyy-MM-dd')}</div>
+                          <div className="rounded-lg bg-[#F6F7F8] border border-[#E6E8EC] p-3">
+                            <div className="text-xs text-[#6F7782]">{t('ownershipEndDate')}</div>
+                            <div className="font-medium text-[#20242A]">{formatDisplayDate(item.endedAt, i18n?.language)}</div>
                           </div>
                         )}
 
                         {itemStatus === 'sold' && (
-                          <div className="grid gap-3 rounded-lg bg-gray-50 p-3 sm:grid-cols-3">
+                          <div className="grid gap-3 rounded-lg bg-[#F6F7F8] border border-[#E6E8EC] p-3 sm:grid-cols-3">
                             <div>
-                              <div className="text-xs text-gray-500">{t('salePrice')}</div>
-                              <div className="font-medium">{formatCurrency(Number(item.salePrice || 0), currencyCode)}</div>
+                              <div className="text-xs text-[#6F7782]">{t('salePrice')}</div>
+                              <div className="font-medium text-[#20242A]">{formatCurrency(Number(item.salePrice || 0), currencyCode)}</div>
                             </div>
                             <div>
-                              <div className="text-xs text-gray-500">{t('netOwnershipCost')}</div>
-                              <div className="font-medium">{formatCurrency(Number(item.netOwnershipCost || 0), currencyCode)}</div>
+                              <div className="text-xs text-[#6F7782]">{t('netOwnershipCost')}</div>
+                              <div className="font-medium text-[#20242A]">{formatCurrency(Number(item.netOwnershipCost || 0), currencyCode)}</div>
                             </div>
                             <div>
-                              <div className="text-xs text-gray-500">{t('netCostPerDay')}</div>
-                              <div className="font-medium">
+                              <div className="text-xs text-[#6F7782]">{t('netCostPerDay')}</div>
+                              <div className="font-medium text-[#20242A]">
                                 {formatCurrency(Number(item.netCostPerDay || 0), currencyCode)}{t('perDay')}
                               </div>
                             </div>
@@ -374,16 +443,16 @@ function ItemList() {
                         )}
 
                         {item.targetType && (
-                          <div className="rounded-lg bg-slate-50 border border-slate-200/80 p-3 space-y-2">
+                          <div className="rounded-lg bg-[#F6F7F8] border border-[#E6E8EC] p-3 space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                              <span className="font-medium text-gray-700">{t('targetMilestone')}</span>
-                              <span className="text-gray-500">
+                              <span className="font-medium text-[#20242A]">{t('targetMilestone')}</span>
+                              <span className="text-[#6F7782]">
                                 {item.targetCostPerDay && `${formatCurrency(item.targetCostPerDay, currencyCode)}/day`}
                                 {item.targetDurationDays && ` (~${item.targetDurationDays} days)`}
                               </span>
                             </div>
 
-                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div className="w-full bg-[#E6E8EC] rounded-full h-2 overflow-hidden">
                               <div
                                 className={`h-2 rounded-full transition-all duration-300 ${
                                   item.targetState === 'beyond_target'
@@ -396,14 +465,14 @@ function ItemList() {
                               ></div>
                             </div>
 
-                            <div className="text-xs text-gray-500 flex justify-between items-center">
+                            <div className="text-xs text-[#6F7782] flex justify-between items-center">
                               <span>
                                 {item.targetState === 'in_progress' && t('remainingDaysToTarget', { days: item.remainingDays ?? item.remainingDaysToTarget ?? 0 })}
                                 {item.targetState === 'beyond_target' && t('daysBeyondTarget', { days: item.daysBeyond ?? item.daysBeyondTarget ?? 0 })}
                                 {item.targetState === 'target_reached' && t('targetStateReached')}
                                 {item.targetState === 'new' && t('targetStateNew')}
                               </span>
-                              <span className="font-medium text-gray-700">
+                              <span className="font-medium text-[#20242A]">
                                 {Math.round(item.progressPercentage ?? item.targetProgressPercentage ?? 0)}%
                               </span>
                             </div>
@@ -424,7 +493,7 @@ function ItemList() {
                         <div className="flex items-center gap-2 pt-1">
                           <button
                             type="button"
-                            className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#F6F7F8] hover:bg-[#EEF0F3] border border-[#E6E8EC] rounded-lg text-sm font-medium text-[#20242A] transition-colors"
                             onClick={(event) => {
                               event.stopPropagation();
                               handleEditItem(item);

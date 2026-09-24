@@ -2,7 +2,12 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import ItemList, { getCategoryIconInfo, getStatusBadgeStyle } from './ItemList';
+import ItemList, {
+  getCategoryIconInfo,
+  getStatusBadgeStyle,
+  getNextDurationUnit,
+  formatOwnershipDuration
+} from './ItemList';
 import { getAllItems, deleteItem } from '../services/api';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -45,6 +50,10 @@ vi.mock('react-i18next', () => ({
         purchaseAmount: 'Purchase amount',
         purchaseDate: 'Purchase date',
         ownershipDays: 'ownership days',
+        unitDays: 'days',
+        unitMonths: 'months',
+        unitYears: 'years',
+        clickToCycleUnit: 'Click to switch between days, months, and years',
         ownershipEndDate: 'Ownership end date',
         salePrice: 'Sale price',
         netOwnershipCost: 'Net ownership cost',
@@ -363,7 +372,15 @@ describe('ItemList lifecycle display', () => {
     fireEvent.click(screen.getByText('Desk Lamp'));
 
     expect(screen.getByText('Owned for')).toBeInTheDocument();
-    expect(screen.getByText('200 ownership days')).toBeInTheDocument();
+    expect(screen.getByText('200 days')).toBeInTheDocument();
+
+    // Click to cycle duration unit from days to months
+    fireEvent.click(screen.getByText('200 days'));
+    expect(screen.getByText('~6.6 months')).toBeInTheDocument();
+
+    // Click again to cycle back to days (since 200 < 365)
+    fireEvent.click(screen.getByText('~6.6 months'));
+    expect(screen.getByText('200 days')).toBeInTheDocument();
 
     // Click Delete to open confirmation
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
@@ -398,5 +415,35 @@ describe('ItemList lifecycle display', () => {
     expect(getStatusBadgeStyle('sold')).toContain('text-slate-500 font-medium');
     expect(getStatusBadgeStyle('retired')).toContain('text-stone-500 font-medium');
     expect(getStatusBadgeStyle('lost')).toContain('text-rose-600 font-medium');
+  });
+
+  test('getNextDurationUnit cycles based on ownership duration thresholds', () => {
+    // Under 30 days: stays in days
+    expect(getNextDurationUnit('days', 14)).toBe('days');
+    expect(getNextDurationUnit('months', 14)).toBe('days');
+
+    // 30 to 364 days: cycles days <-> months
+    expect(getNextDurationUnit('days', 100)).toBe('months');
+    expect(getNextDurationUnit('months', 100)).toBe('days');
+
+    // 365+ days: cycles days -> months -> years -> days
+    expect(getNextDurationUnit('days', 400)).toBe('months');
+    expect(getNextDurationUnit('months', 400)).toBe('years');
+    expect(getNextDurationUnit('years', 400)).toBe('days');
+  });
+
+  test('formatOwnershipDuration formats days, months, and years without ownership prefix', () => {
+    const mockT = (key) => ({ unitDays: 'days', unitMonths: 'months', unitYears: 'years' }[key] || key);
+
+    expect(formatOwnershipDuration(1, 'days', mockT, 'en')).toBe('1 day');
+    expect(formatOwnershipDuration(200, 'days', mockT, 'en')).toBe('200 days');
+    expect(formatOwnershipDuration(200, 'months', mockT, 'en')).toBe('~6.6 months');
+    expect(formatOwnershipDuration(730, 'years', mockT, 'en')).toBe('~2 years');
+    expect(formatOwnershipDuration(998, 'years', mockT, 'en')).toBe('~2.7 years');
+
+    // Indonesian localization with decimal comma
+    const mockTId = (key) => ({ unitDays: 'hari', unitMonths: 'bulan', unitYears: 'tahun' }[key] || key);
+    expect(formatOwnershipDuration(200, 'months', mockTId, 'id')).toBe('~6,6 bulan');
+    expect(formatOwnershipDuration(998, 'years', mockTId, 'id')).toBe('~2,7 tahun');
   });
 });

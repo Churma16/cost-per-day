@@ -155,6 +155,8 @@ const translation = {
   "unitDays": "days",
   "unitWeeks": "weeks",
   "unitMonths": "months",
+  "unitYears": "years",
+  "clickToCycleUnit": "Click to switch between days, months, and years",
   "requiredDaily": "{{amount}}/day",
   "requiredWeekly": "{{amount}}/week",
   "requiredMonthly": "{{amount}}/month",
