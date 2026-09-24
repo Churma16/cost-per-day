@@ -22,6 +22,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			"2026-09-01T12:00:00Z",
 			nil,
 			nil,
+			nil,
+			nil,
 		)
 		if createError != nil {
 			t.Fatalf("create item: %v", createError)
@@ -36,6 +38,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			createdItem.PurchaseDate,
 			domain.ItemStatusRetired,
 			&endedAt,
+			nil,
+			nil,
 			nil,
 			nil,
 			nil,
@@ -75,6 +79,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			"2026-09-01T12:00:00Z",
 			nil,
 			nil,
+			nil,
+			nil,
 		)
 		if createError != nil {
 			t.Fatalf("create item: %v", createError)
@@ -93,6 +99,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			&salePrice,
 			nil,
 			nil,
+			nil,
+			nil,
 		)
 		if updateError != nil {
 			t.Fatalf("sell item: %v", updateError)
@@ -108,7 +116,7 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 
 	t.Run("reactivating clears stale lifecycle fields", func(t *testing.T) {
 		itemService := service.NewItemService(memory.NewMemoryItemRepository())
-		createdItem, createError := itemService.CreateItem(ctx, domain.LegacyUserID, "Camera", 120, "2026-09-01T12:00:00Z", nil, nil)
+		createdItem, createError := itemService.CreateItem(ctx, domain.LegacyUserID, "Camera", 120, "2026-09-01T12:00:00Z", nil, nil, nil, nil)
 		if createError != nil {
 			t.Fatalf("create item: %v", createError)
 		}
@@ -126,6 +134,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			&salePrice,
 			nil,
 			nil,
+			nil,
+			nil,
 		)
 		if sellError != nil {
 			t.Fatalf("sell item: %v", sellError)
@@ -140,6 +150,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 			domain.ItemStatusActive,
 			&endedAt,
 			&salePrice,
+			nil,
+			nil,
 			nil,
 			nil,
 		)
@@ -240,7 +252,7 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 		for _, testCase := range testCases {
 			t.Run(testCase.name, func(t *testing.T) {
 				itemService := service.NewItemService(memory.NewMemoryItemRepository())
-				createdItem, createError := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100, "2026-09-01T12:00:00Z", nil, nil)
+				createdItem, createError := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100, "2026-09-01T12:00:00Z", nil, nil, nil, nil)
 				if createError != nil {
 					t.Fatalf("create item: %v", createError)
 				}
@@ -254,6 +266,8 @@ func TestItemLifecycleCalculationsAndValidation(t *testing.T) {
 					testCase.status,
 					testCase.endedAt,
 					testCase.salePrice,
+					nil,
+					nil,
 					nil,
 					nil,
 				)

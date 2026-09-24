@@ -191,7 +191,45 @@ const translation = {
   "benchmarkSelectPrompt": "Select a completed item to calculate how long this replacement must last to match or beat its value.",
   "selectCompletedItem": "Select a completed item...",
   "useBenchmarkAsTarget": "Apply to Target",
-  "benchmarkUnmatchableZeroCost": "This item had a zero or negative net ownership cost (sold at or above purchase price). A new purchase cannot match a zero-cost baseline."
+  "benchmarkUnmatchableZeroCost": "This item had a zero or negative net ownership cost (sold at or above purchase price). A new purchase cannot match a zero-cost baseline.",
+
+  // Taxonomy (Category & Brand)
+  "category": "Category",
+  "categoryOptional": "Category (Optional)",
+  "enterCategory": "e.g. Audio, Footwear, Tech",
+  "brand": "Brand",
+  "brandOptional": "Brand (Optional)",
+  "enterBrand": "e.g. Sony, Nike, Apple",
+  "unbranded": "Unbranded",
+
+  // Durability & Ownership Analytics
+  "analytics": "Analytics",
+  "durabilityAndOwnership": "Durability & Ownership",
+  "durabilityAnalytics": "Durability Analytics",
+  "durabilitySubtitle": "Personal history of how long categories and brands last, and their true cost over time.",
+  "filterByCategory": "Filter by Category",
+  "allCategories": "All Categories",
+  "completedItemsCount": "{{count}} completed items",
+  "averageLifespan": "Average lifespan",
+  "medianLifespan": "Median lifespan",
+  "typicalReplacementInterval": "Typical replacement interval",
+  "mostFrequentlyReplacedCategory": "Most frequently replaced category",
+  "longestLastingBrand": "Longest lasting brand",
+  "lowestCostBrand": "Lowest cost per day",
+  "brandComparison": "Brand Comparison",
+  "sampleSize": "{{count}} items",
+  "patternDetected": "Pattern ({{count}} items)",
+  "singleObservation": "Single observation (1 item)",
+  "viewEvidence": "View item history",
+  "hideEvidence": "Hide item history",
+  "noDurabilityDataTitle": "No durability history yet",
+  "noDurabilityDataDescription": "Retire or mark items as sold with categories and brands to uncover personal durability insights and brand comparison patterns.",
+  "totalSpentOnBrand": "Total spent: {{amount}}",
+  "observation": "Observation",
+  "evidence": "Evidence",
+  "daysShort": "days",
+  "netCostShort": "net",
+  "grossCostShort": "gross"
 };
 
 export default translation;

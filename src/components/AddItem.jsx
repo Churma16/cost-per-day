@@ -9,6 +9,7 @@ import { formatDate, getDateLocale, formatCurrency } from '../utils/formatters';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useInvalidateDashboard } from '../hooks/useDashboard';
+import { useCategories, useBrands, useInvalidateDurability } from '../hooks/useDurabilityAnalytics';
 import { parseISO } from 'date-fns';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 import { deriveOwnershipTargetEquivalent } from '../utils/ownershipTargetCalculator';
@@ -25,6 +26,8 @@ function AddItem() {
   const { language } = useLanguage();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [category, setCategory] = useState('');
+  const [brand, setBrand] = useState('');
   const [purchaseDate, setPurchaseDate] = useState(() => {
     return setToNoonUTC(new Date());
   });
@@ -49,6 +52,9 @@ function AddItem() {
   const [month, setMonth] = useState(purchaseDate);
   const { currencyCode, currencySymbol } = useCurrency();
   const invalidateDashboard = useInvalidateDashboard();
+  const invalidateDurability = useInvalidateDurability();
+  const { data: availableCategories = [] } = useCategories();
+  const { data: availableBrands = [] } = useBrands();
   
   // Get date-fns locale matching the current application language
   const getLocale = () => getDateLocale(language);
@@ -58,6 +64,8 @@ function AddItem() {
     const resetForm = () => {
       setName('');
       setPrice('');
+      setCategory('');
+      setBrand('');
       setPurchaseDate(setToNoonUTC(new Date()));
       setStatus('active');
       setEndedAt('');
@@ -131,6 +139,8 @@ function AddItem() {
         setEditIndex(item.id);
         setName(item.name);
         setPrice(item.price.toString());
+        setCategory(item.category || '');
+        setBrand(item.brand || '');
         setPurchaseDate(setToNoonUTC(parseISO(item.purchaseDate)));
         setStatus(item.status || 'active');
         setEndedAt(item.endedAt ? item.endedAt.slice(0, 10) : '');
@@ -219,6 +229,8 @@ function AddItem() {
       name: name.trim(),
       price: Number(price),
       purchaseDate: setToNoonUTC(purchaseDate).toISOString(),
+      category: category.trim() || null,
+      brand: brand.trim() || null,
     };
 
     if (isEditMode) {
@@ -246,6 +258,7 @@ function AddItem() {
         await addItem(itemData);
       }
       await invalidateDashboard();
+      await invalidateDurability();
       navigate('/');
     } catch (error) {
       console.error('Error saving item:', error);
@@ -263,6 +276,7 @@ function AddItem() {
     try {
       await deleteItem(editIndex);
       await invalidateDashboard();
+      await invalidateDurability();
       navigate('/');
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -320,6 +334,50 @@ function AddItem() {
                   className={`w-full px-4 py-3 ${currencySymbol.length > 1 ? 'pl-11' : 'pl-8'} rounded-xl border border-purple-100 focus:border-purple-300 
                   focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200`}
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="item-category" className="text-sm text-gray-600 font-medium">
+                  {t('categoryOptional')}
+                </label>
+                <input
+                  id="item-category"
+                  type="text"
+                  list="category-suggestions"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder={t('enterCategory')}
+                  className="w-full px-4 py-3 rounded-xl border border-purple-100 focus:border-purple-300 
+                  focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200"
+                />
+                <datalist id="category-suggestions">
+                  {availableCategories.map((categoryOption) => (
+                    <option key={categoryOption.id || categoryOption.name} value={categoryOption.name} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="item-brand" className="text-sm text-gray-600 font-medium">
+                  {t('brandOptional')}
+                </label>
+                <input
+                  id="item-brand"
+                  type="text"
+                  list="brand-suggestions"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder={t('enterBrand')}
+                  className="w-full px-4 py-3 rounded-xl border border-purple-100 focus:border-purple-300 
+                  focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-200"
+                />
+                <datalist id="brand-suggestions">
+                  {availableBrands.map((brandOption) => (
+                    <option key={brandOption.id || brandOption.name} value={brandOption.name} />
+                  ))}
+                </datalist>
               </div>
             </div>
             

@@ -44,6 +44,10 @@ type Item struct {
 	ProgressPercentage *float64           `json:"progressPercentage,omitempty"`
 	TargetReached      *bool              `json:"targetReached,omitempty"`
 	TargetState        *string            `json:"targetState,omitempty"`
+	CategoryID         *int64             `json:"categoryId,omitempty"`
+	Category           *string            `json:"category,omitempty"`
+	BrandID            *int64             `json:"brandId,omitempty"`
+	Brand              *string            `json:"brand,omitempty"`
 	CreatedAt        time.Time            `json:"createdAt,omitempty"`
 	UpdatedAt        time.Time            `json:"updatedAt,omitempty"`
 }

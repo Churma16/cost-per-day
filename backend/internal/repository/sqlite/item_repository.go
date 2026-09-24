@@ -40,10 +40,28 @@ func (repositoryInstance *ItemRepository) List(ctx context.Context, userID strin
 	}
 
 	rows, queryError := repositoryInstance.databaseConnection.QueryContext(ctx, `
-		SELECT user_id, id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, target_type, target_value, created_at, updated_at
+		SELECT
+			items.user_id,
+			items.id,
+			items.name,
+			items.price_micros,
+			items.purchase_date,
+			items.status,
+			items.ended_at,
+			items.sale_price_micros,
+			items.target_type,
+			items.target_value,
+			items.category_id,
+			categories.name,
+			items.brand_id,
+			brands.name,
+			items.created_at,
+			items.updated_at
 		FROM items
-		WHERE user_id = ?
-		ORDER BY id ASC
+		LEFT JOIN categories ON categories.id = items.category_id
+		LEFT JOIN brands ON brands.id = items.brand_id
+		WHERE items.user_id = ?
+		ORDER BY items.id ASC
 	`, normalizedUserID)
 	if queryError != nil {
 		return nil, fmt.Errorf("list items: %w", queryError)
@@ -74,9 +92,27 @@ func (repositoryInstance *ItemRepository) GetByID(ctx context.Context, userID st
 	}
 
 	item, scanError := scanItem(repositoryInstance.databaseConnection.QueryRowContext(ctx, `
-		SELECT user_id, id, name, price_micros, purchase_date, status, ended_at, sale_price_micros, target_type, target_value, created_at, updated_at
+		SELECT
+			items.user_id,
+			items.id,
+			items.name,
+			items.price_micros,
+			items.purchase_date,
+			items.status,
+			items.ended_at,
+			items.sale_price_micros,
+			items.target_type,
+			items.target_value,
+			items.category_id,
+			categories.name,
+			items.brand_id,
+			brands.name,
+			items.created_at,
+			items.updated_at
 		FROM items
-		WHERE user_id = ? AND id = ?
+		LEFT JOIN categories ON categories.id = items.category_id
+		LEFT JOIN brands ON brands.id = items.brand_id
+		WHERE items.user_id = ? AND items.id = ?
 	`, normalizedUserID, itemID))
 	if errors.Is(scanError, sql.ErrNoRows) {
 		return domain.Item{}, domain.ErrItemNotFound
@@ -134,10 +170,12 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 			sale_price_micros,
 			target_type,
 			target_value,
+			category_id,
+			brand_id,
 			created_at,
 			updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		normalizedUserID,
 		itemToCreate.Name,
@@ -148,6 +186,8 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 		nullableInt64(salePriceMicros),
 		nullableTargetType(itemToCreate.TargetType),
 		nullableFloat64(itemToCreate.TargetValue),
+		nullableInt64(itemToCreate.CategoryID),
+		nullableInt64(itemToCreate.BrandID),
 		itemToCreate.CreatedAt.Format(time.RFC3339Nano),
 		itemToCreate.UpdatedAt.Format(time.RFC3339Nano),
 	)
@@ -205,6 +245,8 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID str
 			sale_price_micros = ?,
 			target_type = ?,
 			target_value = ?,
+			category_id = ?,
+			brand_id = ?,
 			updated_at = ?
 		WHERE user_id = ? AND id = ?
 		RETURNING created_at
@@ -217,6 +259,8 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID str
 		nullableInt64(salePriceMicros),
 		nullableTargetType(itemToUpdate.TargetType),
 		nullableFloat64(itemToUpdate.TargetValue),
+		nullableInt64(itemToUpdate.CategoryID),
+		nullableInt64(itemToUpdate.BrandID),
 		itemToUpdate.UpdatedAt.Format(time.RFC3339Nano),
 		normalizedUserID,
 		itemToUpdate.ID,
@@ -265,16 +309,20 @@ func (repositoryInstance *ItemRepository) Delete(ctx context.Context, userID str
 
 func scanItem(scanner itemScanner) (domain.Item, error) {
 	var (
-		itemIdentifier  int64
-		priceMicros     int64
-		statusText      string
-		endedAtText     sql.NullString
-		salePriceMicros sql.NullInt64
-		targetTypeText  sql.NullString
-		targetValueNum  sql.NullFloat64
-		createdAtText   string
-		updatedAtText   string
-		item            domain.Item
+		itemIdentifier   int64
+		priceMicros      int64
+		statusText       string
+		endedAtText      sql.NullString
+		salePriceMicros  sql.NullInt64
+		targetTypeText   sql.NullString
+		targetValueNum   sql.NullFloat64
+		categoryIDNum    sql.NullInt64
+		categoryNameText sql.NullString
+		brandIDNum       sql.NullInt64
+		brandNameText    sql.NullString
+		createdAtText    string
+		updatedAtText    string
+		item             domain.Item
 	)
 
 	scanError := scanner.Scan(
@@ -288,6 +336,10 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 		&salePriceMicros,
 		&targetTypeText,
 		&targetValueNum,
+		&categoryIDNum,
+		&categoryNameText,
+		&brandIDNum,
+		&brandNameText,
 		&createdAtText,
 		&updatedAtText,
 	)
@@ -325,6 +377,22 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 	if targetValueNum.Valid {
 		targetValue := targetValueNum.Float64
 		item.TargetValue = &targetValue
+	}
+	if categoryIDNum.Valid {
+		categoryID := categoryIDNum.Int64
+		item.CategoryID = &categoryID
+	}
+	if categoryNameText.Valid && strings.TrimSpace(categoryNameText.String) != "" {
+		categoryName := categoryNameText.String
+		item.Category = &categoryName
+	}
+	if brandIDNum.Valid {
+		brandID := brandIDNum.Int64
+		item.BrandID = &brandID
+	}
+	if brandNameText.Valid && strings.TrimSpace(brandNameText.String) != "" {
+		brandName := brandNameText.String
+		item.Brand = &brandName
 	}
 	item.CreatedAt = createdAt.UTC()
 	item.UpdatedAt = updatedAt.UTC()

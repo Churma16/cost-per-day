@@ -95,6 +95,12 @@ const toItemPayload = (item) => {
       ? null
       : Number(item.targetValue);
   }
+  if (Object.prototype.hasOwnProperty.call(item, 'category')) {
+    payload.category = item.category === '' || item.category === undefined ? null : item.category;
+  }
+  if (Object.prototype.hasOwnProperty.call(item, 'brand')) {
+    payload.brand = item.brand === '' || item.brand === undefined ? null : item.brand;
+  }
 
   return payload;
 };

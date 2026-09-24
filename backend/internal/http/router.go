@@ -25,6 +25,7 @@ type RouterConfig struct {
 	ValueEquivalentHandler *handler.ValueEquivalentHandler
 	DashboardHandler       *handler.DashboardHandler
 	PlannedPurchaseHandler *handler.PlannedPurchaseHandler
+	DurabilityHandler      *handler.DurabilityHandler
 	StaticDir              string
 	UserIdentityMiddleware gin.HandlerFunc
 }
@@ -110,6 +111,15 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 				plannedPurchaseRouteGroup.PUT("/:id", config.PlannedPurchaseHandler.Update)
 				plannedPurchaseRouteGroup.DELETE("/:id", config.PlannedPurchaseHandler.Delete)
 			}
+		}
+
+		if config.DurabilityHandler != nil {
+			insightsRouteGroup := apiRouteGroup.Group("/insights")
+			{
+				insightsRouteGroup.GET("/durability", config.DurabilityHandler.GetDurabilityAnalytics)
+			}
+			apiRouteGroup.GET("/categories", config.DurabilityHandler.ListCategories)
+			apiRouteGroup.GET("/brands", config.DurabilityHandler.ListBrands)
 		}
 	}
 

@@ -47,7 +47,12 @@ vi.mock('react-i18next', () => ({
         selectCompletedItem: 'Select a completed item...',
         replacementBenchmark: 'Replacement Benchmark',
         candidatePrice: 'Planned replacement price',
-        enterCandidatePrice: 'Enter replacement price',
+        category: 'Category',
+        categoryOptional: 'Category (Optional)',
+        enterCategory: 'e.g. Audio, Footwear, Tech',
+        brand: 'Brand',
+        brandOptional: 'Brand (Optional)',
+        enterBrand: 'e.g. Sony, Nike, Apple',
         useBenchmarkAsTarget: 'Apply to Target',
         benchmarkResultDays: `~${options?.days} days`,
         benchmarkResultRequiredDuration: `Required duration to match prior final rate (${options?.rate}/day)`,
@@ -71,6 +76,16 @@ vi.mock('../hooks/useBenchmark', () => ({
     isLoading: false,
     error: null,
   })
+}));
+
+vi.mock('../hooks/useDurabilityAnalytics', () => ({
+  useCategories: vi.fn().mockReturnValue({
+    data: [{ id: 1, name: 'Audio' }, { id: 2, name: 'Footwear' }],
+  }),
+  useBrands: vi.fn().mockReturnValue({
+    data: [{ id: 1, name: 'Sony' }, { id: 2, name: 'Nike' }],
+  }),
+  useInvalidateDurability: vi.fn().mockReturnValue(vi.fn().mockResolvedValue()),
 }));
 
 vi.mock('../services/api', () => ({
@@ -495,6 +510,37 @@ describe('AddItem component date localization', () => {
         price: 500,
         targetType: 'duration',
         targetValue: 250
+      }));
+    });
+  });
+
+  test('submits optional category and brand when creating an item', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    const nameInput = screen.getByPlaceholderText('Enter item name');
+    const priceInput = screen.getByPlaceholderText('Enter price');
+    const categoryInput = screen.getByPlaceholderText('e.g. Audio, Footwear, Tech');
+    const brandInput = screen.getByPlaceholderText('e.g. Sony, Nike, Apple');
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+
+    fireEvent.change(nameInput, { target: { value: 'Sony WH-1000XM4' } });
+    fireEvent.change(priceInput, { target: { value: '350' } });
+    fireEvent.change(categoryInput, { target: { value: 'Audio' } });
+    fireEvent.change(brandInput, { target: { value: 'Sony' } });
+
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(addItem).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'Sony WH-1000XM4',
+        price: 350,
+        category: 'Audio',
+        brand: 'Sony',
       }));
     });
   });

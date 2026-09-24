@@ -25,6 +25,8 @@ func TestItemService_CreateItem(t *testing.T) {
 			"2026-09-20T12:00:00Z",
 			nil,
 			nil,
+			nil,
+			nil,
 		)
 
 		if serviceError != nil {
@@ -55,6 +57,8 @@ func TestItemService_CreateItem(t *testing.T) {
 			"2026-09-15",
 			nil,
 			nil,
+			nil,
+			nil,
 		)
 
 		if serviceError != nil {
@@ -70,7 +74,7 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)
 
-		_, serviceError := itemService.CreateItem(testContext, domain.LegacyUserID, "   ", 100.0, "2026-09-20T12:00:00Z", nil, nil)
+		_, serviceError := itemService.CreateItem(testContext, domain.LegacyUserID, "   ", 100.0, "2026-09-20T12:00:00Z", nil, nil, nil, nil)
 		if serviceError != domain.ErrEmptyItemName {
 			subTest.Errorf("expected ErrEmptyItemName, got: %v", serviceError)
 		}
@@ -80,12 +84,12 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)
 
-		_, zeroPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Book", 0.0, "2026-09-20T12:00:00Z", nil, nil)
+		_, zeroPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Book", 0.0, "2026-09-20T12:00:00Z", nil, nil, nil, nil)
 		if zeroPriceError != domain.ErrInvalidItemPrice {
 			subTest.Errorf("expected ErrInvalidItemPrice for zero price, got: %v", zeroPriceError)
 		}
 
-		_, negativePriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Book", -15.5, "2026-09-20T12:00:00Z", nil, nil)
+		_, negativePriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Book", -15.5, "2026-09-20T12:00:00Z", nil, nil, nil, nil)
 		if negativePriceError != domain.ErrInvalidItemPrice {
 			subTest.Errorf("expected ErrInvalidItemPrice for negative price, got: %v", negativePriceError)
 		}
@@ -95,17 +99,17 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)
 
-		_, tinyPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Tiny", 0.0000004, "2026-09-20T12:00:00Z", nil, nil)
+		_, tinyPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Tiny", 0.0000004, "2026-09-20T12:00:00Z", nil, nil, nil, nil)
 		if tinyPriceError != domain.ErrUnsupportedItemPrice {
 			subTest.Errorf("expected ErrUnsupportedItemPrice for sub-micro price, got: %v", tinyPriceError)
 		}
 
-		_, boundaryPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Boundary", 9223372036854.7754, "2026-09-20T12:00:00Z", nil, nil)
+		_, boundaryPriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Boundary", 9223372036854.7754, "2026-09-20T12:00:00Z", nil, nil, nil, nil)
 		if boundaryPriceError != domain.ErrUnsupportedItemPrice {
 			subTest.Errorf("expected ErrUnsupportedItemPrice at int64 boundary, got: %v", boundaryPriceError)
 		}
 
-		_, hugePriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Huge", 10000000000000.0, "2026-09-20T12:00:00Z", nil, nil)
+		_, hugePriceError := itemService.CreateItem(testContext, domain.LegacyUserID, "Huge", 10000000000000.0, "2026-09-20T12:00:00Z", nil, nil, nil, nil)
 		if hugePriceError != domain.ErrUnsupportedItemPrice {
 			subTest.Errorf("expected ErrUnsupportedItemPrice for oversized price, got: %v", hugePriceError)
 		}
@@ -115,7 +119,7 @@ func TestItemService_CreateItem(t *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		itemService := service.NewItemService(itemRepository)
 
-		_, invalidDateError := itemService.CreateItem(testContext, domain.LegacyUserID, "Chair", 80.0, "not-a-valid-date", nil, nil)
+		_, invalidDateError := itemService.CreateItem(testContext, domain.LegacyUserID, "Chair", 80.0, "not-a-valid-date", nil, nil, nil, nil)
 		if invalidDateError != domain.ErrInvalidPurchaseDate {
 			subTest.Errorf("expected ErrInvalidPurchaseDate, got: %v", invalidDateError)
 		}
@@ -132,6 +136,8 @@ func TestItemService_GetUpdateDelete(t *testing.T) {
 		"Smart Watch",
 		299.00,
 		"2026-09-01T08:00:00Z",
+		nil,
+		nil,
 		nil,
 		nil,
 	)
@@ -164,6 +170,8 @@ func TestItemService_GetUpdateDelete(t *testing.T) {
 			349.00,
 			"2026-09-02T08:00:00Z",
 			domain.ItemStatusActive,
+			nil,
+			nil,
 			nil,
 			nil,
 			nil,
@@ -211,27 +219,27 @@ func TestItemService_OwnershipTargets(t *testing.T) {
 		val := 5000.0
 
 		// Target type without value
-		_, errNoVal := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100000, "2026-09-01T12:00:00Z", &costType, nil)
+		_, errNoVal := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100000, "2026-09-01T12:00:00Z", nil, nil, &costType, nil)
 		if !errors.Is(errNoVal, domain.ErrMissingOwnershipTargetValue) {
 			subTest.Fatalf("expected ErrMissingOwnershipTargetValue, got %v", errNoVal)
 		}
 
 		// Target value without type
-		_, errNoType := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100000, "2026-09-01T12:00:00Z", nil, &val)
+		_, errNoType := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100000, "2026-09-01T12:00:00Z", nil, nil, nil, &val)
 		if !errors.Is(errNoType, domain.ErrMissingOwnershipTargetType) {
 			subTest.Fatalf("expected ErrMissingOwnershipTargetType, got %v", errNoType)
 		}
 
 		// Invalid target type
 		invalidType := domain.OwnershipTargetType("unknown_type")
-		_, errInvalidType := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100000, "2026-09-01T12:00:00Z", &invalidType, &val)
+		_, errInvalidType := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100000, "2026-09-01T12:00:00Z", nil, nil, &invalidType, &val)
 		if !errors.Is(errInvalidType, domain.ErrInvalidOwnershipTargetType) {
 			subTest.Fatalf("expected ErrInvalidOwnershipTargetType, got %v", errInvalidType)
 		}
 
 		// Non-positive value
 		badVal := -10.0
-		_, errBadVal := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100000, "2026-09-01T12:00:00Z", &costType, &badVal)
+		_, errBadVal := itemService.CreateItem(ctx, domain.LegacyUserID, "Item", 100000, "2026-09-01T12:00:00Z", nil, nil, &costType, &badVal)
 		if !errors.Is(errBadVal, domain.ErrInvalidOwnershipTargetValue) {
 			subTest.Fatalf("expected ErrInvalidOwnershipTargetValue, got %v", errBadVal)
 		}
@@ -244,7 +252,7 @@ func TestItemService_OwnershipTargets(t *testing.T) {
 		costType := domain.OwnershipTargetTypeCostPerDay
 		targetCost := 3500.0 // Price 2.400.000 / 3500 = 685.714 -> 686 days
 
-		item, err := itemService.CreateItem(ctx, domain.LegacyUserID, "TWS", 2400000, "2026-09-20T12:00:00Z", &costType, &targetCost)
+		item, err := itemService.CreateItem(ctx, domain.LegacyUserID, "TWS", 2400000, "2026-09-20T12:00:00Z", nil, nil, &costType, &targetCost)
 		if err != nil {
 			subTest.Fatalf("unexpected error: %v", err)
 		}
@@ -267,7 +275,7 @@ func TestItemService_OwnershipTargets(t *testing.T) {
 		durationType := domain.OwnershipTargetTypeDuration
 		targetDays := 600.0 // Price 2.400.000 / 600 = 4000/day
 
-		item, err := itemService.CreateItem(ctx, domain.LegacyUserID, "Headphones", 2400000, "2026-09-20T12:00:00Z", &durationType, &targetDays)
+		item, err := itemService.CreateItem(ctx, domain.LegacyUserID, "Headphones", 2400000, "2026-09-20T12:00:00Z", nil, nil, &durationType, &targetDays)
 		if err != nil {
 			subTest.Fatalf("unexpected error: %v", err)
 		}
@@ -289,14 +297,14 @@ func TestItemService_OwnershipTargets(t *testing.T) {
 
 		// Created with 10 days target, ended after 15 days -> beyond target
 		endedAt := "2026-09-16T12:00:00Z"
-		created, err := itemService.CreateItem(ctx, domain.LegacyUserID, "Tool", 100.0, "2026-09-01T12:00:00Z", &durationType, &targetDays)
+		created, err := itemService.CreateItem(ctx, domain.LegacyUserID, "Tool", 100.0, "2026-09-01T12:00:00Z", nil, nil, &durationType, &targetDays)
 		if err != nil {
 			subTest.Fatalf("create item error: %v", err)
 		}
 
 		retired, updateErr := itemService.UpdateItem(
 			ctx, domain.LegacyUserID, created.ID, created.Name, created.Price, created.PurchaseDate,
-			domain.ItemStatusRetired, &endedAt, nil, &durationType, &targetDays,
+			domain.ItemStatusRetired, &endedAt, nil, nil, nil, &durationType, &targetDays,
 		)
 		if updateErr != nil {
 			subTest.Fatalf("update item error: %v", updateErr)
@@ -329,14 +337,14 @@ func TestItemService_OwnershipTargets(t *testing.T) {
 		endedAt := "2026-09-11T12:00:00Z" // 10 days
 		salePrice := 40.0                  // Net cost = 100 - 40 = 60; Net cost/day = 60 / 10 = 6/day
 
-		created, err := itemService.CreateItem(ctx, domain.LegacyUserID, "Phone", 100.0, "2026-09-01T12:00:00Z", &costType, &targetCost)
+		created, err := itemService.CreateItem(ctx, domain.LegacyUserID, "Phone", 100.0, "2026-09-01T12:00:00Z", nil, nil, &costType, &targetCost)
 		if err != nil {
 			subTest.Fatalf("create error: %v", err)
 		}
 
 		sold, updateErr := itemService.UpdateItem(
 			ctx, domain.LegacyUserID, created.ID, created.Name, created.Price, created.PurchaseDate,
-			domain.ItemStatusSold, &endedAt, &salePrice, &costType, &targetCost,
+			domain.ItemStatusSold, &endedAt, &salePrice, nil, nil, &costType, &targetCost,
 		)
 		if updateErr != nil {
 			subTest.Fatalf("update error: %v", updateErr)
@@ -362,21 +370,21 @@ func TestItemService_CalculateReplacementBenchmark(t *testing.T) {
 	targetCost := 5.0
 
 	// 1. Seed completed item: price 100, 10 days -> final cost/day = 10. Target cost/day = 5.
-	item, err := itemService.CreateItem(ctx, domain.LegacyUserID, "Previous Headphones", 100.0, "2026-09-01T12:00:00Z", &costType, &targetCost)
+	item, err := itemService.CreateItem(ctx, domain.LegacyUserID, "Previous Headphones", 100.0, "2026-09-01T12:00:00Z", nil, nil, &costType, &targetCost)
 	if err != nil {
 		t.Fatalf("failed to seed item: %v", err)
 	}
 
 	retiredItem, retireErr := itemService.UpdateItem(
 		ctx, domain.LegacyUserID, item.ID, item.Name, item.Price, item.PurchaseDate,
-		domain.ItemStatusRetired, &endedAt, nil, &costType, &targetCost,
+		domain.ItemStatusRetired, &endedAt, nil, nil, nil, &costType, &targetCost,
 	)
 	if retireErr != nil {
 		t.Fatalf("failed to retire item: %v", retireErr)
 	}
 
 	// 2. Active item should be rejected
-	activeItem, _ := itemService.CreateItem(ctx, domain.LegacyUserID, "Active Laptop", 500.0, "2026-09-01T12:00:00Z", nil, nil)
+	activeItem, _ := itemService.CreateItem(ctx, domain.LegacyUserID, "Active Laptop", 500.0, "2026-09-01T12:00:00Z", nil, nil, nil, nil)
 	_, activeBenchmarkErr := itemService.CalculateReplacementBenchmark(ctx, domain.LegacyUserID, activeItem.ID, 600.0)
 	if !errors.Is(activeBenchmarkErr, domain.ErrBenchmarkItemNotCompleted) {
 		t.Fatalf("expected ErrBenchmarkItemNotCompleted, got %v", activeBenchmarkErr)
@@ -434,13 +442,13 @@ func TestItemService_CalculateReplacementBenchmark(t *testing.T) {
 	// 6. Sold item with non-positive net ownership cost (break even salePrice == purchasePrice)
 	salePriceBreakEven := 200.0
 	endDate := "2026-09-11T12:00:00Z"
-	breakEvenSoldItem, createSoldErr := itemService.CreateItem(ctx, domain.LegacyUserID, "Sold Camera", 200.0, "2026-09-01T12:00:00Z", nil, nil)
+	breakEvenSoldItem, createSoldErr := itemService.CreateItem(ctx, domain.LegacyUserID, "Sold Camera", 200.0, "2026-09-01T12:00:00Z", nil, nil, nil, nil)
 	if createSoldErr != nil {
 		t.Fatalf("create sold item error: %v", createSoldErr)
 	}
 	updatedSoldItem, updateSoldErr := itemService.UpdateItem(
 		ctx, domain.LegacyUserID, breakEvenSoldItem.ID, breakEvenSoldItem.Name, breakEvenSoldItem.Price, breakEvenSoldItem.PurchaseDate,
-		domain.ItemStatusSold, &endDate, &salePriceBreakEven, nil, nil,
+		domain.ItemStatusSold, &endDate, &salePriceBreakEven, nil, nil, nil, nil,
 	)
 	if updateSoldErr != nil {
 		t.Fatalf("update sold item error: %v", updateSoldErr)
