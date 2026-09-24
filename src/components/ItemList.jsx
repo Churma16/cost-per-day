@@ -20,6 +20,8 @@ import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { selectBestEquivalent } from '../utils/equivalentCalculator';
+import { useInvalidateDashboard } from '../hooks/useDashboard';
+import { useInvalidateDurability } from '../hooks/useDurabilityAnalytics';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 
 const STATUS_TRANSLATION_KEYS = {
@@ -29,24 +31,31 @@ const STATUS_TRANSLATION_KEYS = {
   lost: 'statusLost'
 };
 
-export const getCategoryIconInfo = (category, itemName) => {
-  const normalizedText = `${category || ''} ${itemName || ''}`.toLowerCase();
+export const getCategoryIconInfo = (category) => {
+  const normalizedCategory = String(category || '').trim().toLowerCase();
 
-  if (/headset|headphone|earphone|audio|tws|earbuds|airpods/i.test(normalizedText)) {
+  if (!normalizedCategory) {
+    return {
+      Icon: IoCubeOutline,
+      containerClass: 'bg-slate-100 text-slate-500 border-slate-200'
+    };
+  }
+
+  if (/headset|headphone|earphone|audio|tws|earbuds|airpods/i.test(normalizedCategory)) {
     return {
       Icon: IoHeadsetOutline,
       containerClass: 'bg-blue-50 text-blue-600 border-blue-100'
     };
   }
 
-  if (/monitor|display|screen|tv|television/i.test(normalizedText)) {
+  if (/monitor|display|screen|tv|television/i.test(normalizedCategory)) {
     return {
       Icon: IoDesktopOutline,
       containerClass: 'bg-indigo-50 text-indigo-600 border-indigo-100'
     };
   }
 
-  if (/laptop|macbook|computer|pc|notebook/i.test(normalizedText)) {
+  if (/laptop|macbook|computer|pc|notebook/i.test(normalizedCategory)) {
     return {
       Icon: IoLaptopOutline,
       containerClass: 'bg-amber-50 text-amber-600 border-amber-100'
@@ -201,6 +210,8 @@ function ItemList() {
   const { setTotalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
+  const invalidateDashboard = useInvalidateDashboard();
+  const invalidateDurability = useInvalidateDurability();
   const [durationUnitByItemId, setDurationUnitByItemId] = useState({});
   const [syncRotationByItemId, setSyncRotationByItemId] = useState({});
 
@@ -256,6 +267,8 @@ function ItemList() {
     setIsDeleting(true);
     try {
       await deleteItem(itemToDelete.id);
+      await invalidateDashboard();
+      await invalidateDurability();
       const remainingItems = items.filter((item) => item.id !== itemToDelete.id);
       setItems(remainingItems);
       const total = remainingItems.reduce((sum, item) => {
@@ -317,7 +330,7 @@ function ItemList() {
               currencyCode,
               t
             );
-            const categoryInfo = getCategoryIconInfo(item.category, item.name);
+            const categoryInfo = getCategoryIconInfo(item.category);
             const CategoryIconComponent = categoryInfo.Icon;
 
             return (

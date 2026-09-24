@@ -93,6 +93,17 @@ vi.mock('../contexts/ValueEquivalentsContext', () => ({
   useValueEquivalents: vi.fn()
 }));
 
+const mockInvalidateDashboard = vi.fn().mockResolvedValue(undefined);
+const mockInvalidateDurability = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../hooks/useDashboard', () => ({
+  useInvalidateDashboard: () => mockInvalidateDashboard
+}));
+
+vi.mock('../hooks/useDurabilityAnalytics', () => ({
+  useInvalidateDurability: () => mockInvalidateDurability
+}));
+
 describe('ItemList lifecycle display', () => {
   const setTotalDailyCost = vi.fn();
 
@@ -398,21 +409,27 @@ describe('ItemList lifecycle display', () => {
 
     await waitFor(() => {
       expect(deleteItem).toHaveBeenCalledWith('item-del-1');
+      expect(mockInvalidateDashboard).toHaveBeenCalled();
+      expect(mockInvalidateDurability).toHaveBeenCalled();
     });
   });
 
-  test('getCategoryIconInfo maps categories correctly', () => {
-    const audioInfo = getCategoryIconInfo('Audio', 'Headphones');
+  test('getCategoryIconInfo maps categories correctly from category field only', () => {
+    const audioInfo = getCategoryIconInfo('Audio');
     expect(audioInfo.containerClass).toContain('text-blue-600');
 
-    const monitorInfo = getCategoryIconInfo('Display', 'LG Monitor 24');
+    const monitorInfo = getCategoryIconInfo('Display');
     expect(monitorInfo.containerClass).toContain('text-indigo-600');
 
-    const laptopInfo = getCategoryIconInfo('Computer', 'Asus TUF Laptop');
+    const laptopInfo = getCategoryIconInfo('Computer');
     expect(laptopInfo.containerClass).toContain('text-amber-600');
 
-    const genericInfo = getCategoryIconInfo(null, 'Backpack');
+    const genericInfo = getCategoryIconInfo(null);
     expect(genericInfo.containerClass).toContain('text-slate-500');
+
+    // Regression test: Uncategorized item must not infer category from item name
+    const uncategorizedLaptop = getCategoryIconInfo(null);
+    expect(uncategorizedLaptop.containerClass).toContain('text-slate-500');
   });
 
   test('getStatusBadgeStyle returns restrained semantic classes', () => {

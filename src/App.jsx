@@ -33,12 +33,15 @@ const Header = () => {
   const { currencyCode } = useCurrency();
   const { user, error, signOut } = useAuth();
 
+  // AddItem renders its own dedicated .page-header to avoid duplicate headers on form routes
+  if (location.pathname === '/add' || location.pathname === '/edit') {
+    return null;
+  }
+
+  const isHomeRoute = location.pathname === '/';
+
   const getTitle = () => {
-    switch(location.pathname) {
-      case '/add':
-        return t('addNewItem');
-      case '/edit':
-        return t('editItem');
+    switch (location.pathname) {
       case '/settings':
         return t('settings');
       case '/planning':
@@ -50,15 +53,16 @@ const Header = () => {
     }
   };
 
-  return (
-    <header
-      className="relative z-10 shadow-sm flex-shrink-0 text-white"
-      style={{
-        background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
-      }}
-    >
-      <div className="pt-3 pb-3 px-4 max-w-lg mx-auto">
-        {location.pathname === '/' ? (
+  // Home route uses a normal-flow hero header calibrated for #48 revamp
+  if (isHomeRoute) {
+    return (
+      <header
+        className="relative z-10 shadow-sm flex-shrink-0 text-white"
+        style={{
+          background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
+        }}
+      >
+        <div className="pt-3 pb-3 px-4 max-w-lg mx-auto">
           <div>
             <HeroCarousel />
             {/* Supporting Context Row: Inside hero at the bottom with thin divider */}
@@ -69,11 +73,39 @@ const Header = () => {
               </span>
             </div>
           </div>
-        ) : (
-          <h1 className="text-xl font-bold text-white text-center">
-            {getTitle()}
-          </h1>
-        )}
+        </div>
+        <div className="absolute right-3 top-3 text-right">
+          <button
+            type="button"
+            onClick={signOut}
+            className="text-xs text-white/90 hover:text-white"
+            aria-label="Sign out"
+            title={user?.displayName || user?.email || 'Sign out'}
+          >
+            Sign out
+          </button>
+          {error && (
+            <p role="alert" className="mt-1 max-w-40 text-xs text-red-100">
+              Sign out failed. Please try again.
+            </p>
+          )}
+        </div>
+      </header>
+    );
+  }
+
+  // Non-home routes preserve the existing fixed .page-header structure and top-spacing offsets until #52
+  return (
+    <div
+      className="page-header relative text-white shadow-sm"
+      style={{
+        background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
+      }}
+    >
+      <div className="text-center py-4 px-4 sm:px-16">
+        <h1 className="text-2xl font-bold text-white">
+          {getTitle()}
+        </h1>
       </div>
       <div className="absolute right-3 top-3 text-right">
         <button
@@ -91,7 +123,7 @@ const Header = () => {
           </p>
         )}
       </div>
-    </header>
+    </div>
   );
 };
 
