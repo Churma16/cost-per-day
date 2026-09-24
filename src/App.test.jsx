@@ -80,10 +80,10 @@ describe('Header route isolation regression tests', () => {
     render(<App />);
     await waitFor(() => {
       expect(document.querySelector('.page-header')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Add New Item');
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Add New Item');
   });
 
   test('renders exactly one header on /edit without duplicate header from App shell', async () => {
@@ -91,9 +91,9 @@ describe('Header route isolation regression tests', () => {
     render(<App />);
     await waitFor(() => {
       expect(document.querySelector('.page-header')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Edit Item');
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Edit Item');
   });
 });

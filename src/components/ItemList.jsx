@@ -83,43 +83,6 @@ export const getStatusBadgeStyle = (status) => {
   }
 };
 
-const getTargetBadgeStyle = (targetState) => {
-  switch (targetState) {
-    case 'new':
-      return 'bg-slate-50 text-slate-700 border-slate-200';
-    case 'in_progress':
-      return 'bg-amber-50 text-amber-700 border-amber-200';
-    case 'target_reached':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'beyond_target':
-      return 'bg-teal-50 text-teal-800 border-teal-200';
-    default:
-      return 'bg-gray-100 text-gray-600 border-gray-200';
-  }
-};
-
-const formatTargetBadgeText = (item, t) => {
-  const percentage = Math.round(item.progressPercentage ?? item.targetProgressPercentage ?? 0);
-  const beyondDays = item.daysBeyond ?? item.daysBeyondTarget ?? 0;
-
-  switch (item.targetState) {
-    case 'new':
-      return t('targetStateNew');
-    case 'in_progress':
-      return t('targetStateInProgress', {
-        percent: percentage
-      });
-    case 'target_reached':
-      return t('targetStateReached');
-    case 'beyond_target':
-      return t('targetStateBeyond', {
-        days: beyondDays
-      });
-    default:
-      return '';
-  }
-};
-
 export const getNextDurationUnit = (currentUnit = 'days', days) => {
   if (days < 30) {
     return 'days';
@@ -353,14 +316,7 @@ function ItemList() {
 
                   {/* Center: Identity + Equivalent / Cue */}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h3 className="font-medium text-[#20242A] truncate max-w-[180px] sm:max-w-xs">{item.name}</h3>
-                      {item.targetState && (
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${getTargetBadgeStyle(item.targetState)}`}>
-                          {formatTargetBadgeText(item, t)}
-                        </span>
-                      )}
-                    </div>
+                    <h3 className="font-medium text-[#20242A] truncate">{item.name}</h3>
                     <div className="mt-0.5 flex items-baseline gap-2 flex-wrap">
                       {!isActive && (
                         <span className="text-xs text-[#6F7782] font-normal">

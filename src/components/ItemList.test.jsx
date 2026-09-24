@@ -288,8 +288,9 @@ describe('ItemList lifecycle display', () => {
       </MemoryRouter>
     );
 
-    // Header badge should display rounded percentage
-    expect(await screen.findByText('In progress (66%)')).toBeInTheDocument();
+    // Collapsed card renders clean title without milestone badge clutter
+    expect(await screen.findByText('Standing Desk')).toBeInTheDocument();
+    expect(screen.queryByText('In progress (66%)')).not.toBeInTheDocument();
 
     // Expand item to view milestone details
     fireEvent.click(screen.getByText('Standing Desk'));
@@ -326,7 +327,9 @@ describe('ItemList lifecycle display', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Beyond target (+14d)')).toBeInTheDocument();
+    // Collapsed card renders cleanly without badge clutter
+    expect(await screen.findByText('Mechanical Keyboard')).toBeInTheDocument();
+    expect(screen.queryByText('Beyond target (+14d)')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Mechanical Keyboard'));
 
