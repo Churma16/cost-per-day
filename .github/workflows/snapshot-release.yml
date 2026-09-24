@@ -54,4 +54,4 @@ jobs:
 
             This is an automated snapshot pre-release built from commit `${{ github.sha }}` on `main`.
 
-            Use this tag (`${{ env.SNAPSHOT_TAG }}`) with `cost-per-use-deployment` to deploy or test preview features before the next official stable release.
+            Use this tag (`${{ env.SNAPSHOT_TAG }}`) with `cost-per-use-deployment` to deploy or test preview features before the next official release.
