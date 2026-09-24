@@ -114,11 +114,13 @@ describe('PlannedPurchases Component', () => {
     });
   });
 
-  it('includes planning-page-content class to avoid mobile header overlap', async () => {
+  it('includes planning-page-content class and pt-4 top spacing to match shared shell', async () => {
     plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
     const { container } = renderComponent();
 
-    expect(container.querySelector('.planning-page-content')).toBeInTheDocument();
+    const planningContainer = container.querySelector('.planning-page-content');
+    expect(planningContainer).toBeInTheDocument();
+    expect(planningContainer).toHaveClass('pt-4');
   });
 
   it('opens create form when clicking New Plan', async () => {

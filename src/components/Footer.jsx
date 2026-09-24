@@ -1,90 +1,77 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { IoHomeOutline, IoAddOutline, IoSettingsOutline, IoTimeOutline, IoStatsChartOutline } from "react-icons/io5";
+import { motion } from 'motion/react';
+import {
+  IoHomeOutline,
+  IoTimeOutline,
+  IoAddOutline,
+  IoStatsChartOutline,
+  IoSettingsOutline,
+} from 'react-icons/io5';
+
+const NAVIGATION_DESTINATIONS = [
+  { key: 'home', path: '/', Icon: IoHomeOutline, label: 'Home' },
+  { key: 'planning', path: '/planning', Icon: IoTimeOutline, label: 'Planning' },
+  { key: 'add', path: '/add', Icon: IoAddOutline, label: 'Add' },
+  { key: 'analytics', path: '/analytics', Icon: IoStatsChartOutline, label: 'Analytics' },
+  { key: 'settings', path: '/settings', Icon: IoSettingsOutline, label: 'Settings' },
+];
 
 function Footer() {
-  const [activeIcon, setActiveIcon] = useState(null);
-  const location = useLocation();
-  const navigate = useNavigate();
+  const currentLocation = useLocation();
+  const navigateToRoute = useNavigate();
 
-  const handleIconClick = (iconName, path) => {
-    setActiveIcon(iconName);
-    setTimeout(() => {
-      setActiveIcon(null);
-    }, 1000);
-    if (path) {
-      setTimeout(() => {
-        navigate(path);
-      }, 150);
-    }
+  const handleNavigationClick = (targetPath) => {
+    navigateToRoute(targetPath);
   };
-  
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-white/95 border-t border-[#E6E8EC] app-footer">
-      <div className="max-w-lg mx-auto px-6 h-full flex justify-around items-center">
-        <button 
-          className="relative p-3 group"
-          onClick={() => handleIconClick('home', '/')}
-          aria-label="Home"
-        >
-          <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
-            ${activeIcon === 'home' ? 'bg-purple-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
-          />
-          <IoHomeOutline className={`footer-icon relative z-10 transition-colors duration-300
-            ${activeIcon === 'home' ? 'text-white' : location.pathname === '/' ? 'text-purple-800' : 'text-purple-600 group-hover:text-purple-800'}`} 
-          />
-        </button>
-        <button 
-          className="relative p-3 group"
-          onClick={() => handleIconClick('planning', '/planning')}
-          aria-label="Planning"
-        >
-          <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
-            ${activeIcon === 'planning' ? 'bg-teal-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
-          />
-          <IoTimeOutline className={`footer-icon relative z-10 transition-colors duration-300
-            ${activeIcon === 'planning' ? 'text-white' : location.pathname === '/planning' ? 'text-teal-800' : 'text-teal-600 group-hover:text-teal-800'}`} 
-          />
-        </button>
-        <button 
-          className="relative p-3 group"
-          onClick={() => handleIconClick('add', '/add')}
-          aria-label="Add"
-        >
-          <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
-            ${activeIcon === 'add' ? 'bg-purple-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
-          />
-          <IoAddOutline className={`footer-add-icon relative z-10 transition-colors duration-300
-            ${activeIcon === 'add' ? 'text-white' : location.pathname === '/add' ? 'text-purple-800' : 'text-purple-600 group-hover:text-purple-800'}`} 
-          />
-        </button>
-        <button 
-          className="relative p-3 group"
-          onClick={() => handleIconClick('analytics', '/analytics')}
-          aria-label="Analytics"
-        >
-          <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
-            ${activeIcon === 'analytics' ? 'bg-indigo-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
-          />
-          <IoStatsChartOutline className={`footer-icon relative z-10 transition-colors duration-300
-            ${activeIcon === 'analytics' ? 'text-white' : location.pathname === '/analytics' ? 'text-indigo-800' : 'text-purple-600 group-hover:text-purple-800'}`} 
-          />
-        </button>
-        <button 
-          className="relative p-3 group"
-          onClick={() => handleIconClick('settings', '/settings')}
-          aria-label="Settings"
-        >
-          <div className={`absolute inset-[4px] rounded-full transition-all duration-300 
-            ${activeIcon === 'settings' ? 'bg-purple-600 scale-100' : 'bg-transparent scale-50 opacity-0'}`} 
-          />
-          <IoSettingsOutline className={`footer-icon relative z-10 transition-colors duration-300
-            ${activeIcon === 'settings' ? 'text-white' : location.pathname === '/settings' ? 'text-purple-800' : 'text-purple-600 group-hover:text-purple-800'}`} 
-          />
-        </button>
+    <nav
+      aria-label="Primary navigation"
+      className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md bg-white/95 border-t border-[#E6E8EC] app-footer"
+    >
+      <div className="max-w-lg mx-auto px-4 h-full flex justify-around items-center">
+        {NAVIGATION_DESTINATIONS.map((destination) => {
+          const isCurrentRouteActive =
+            destination.path === '/'
+              ? currentLocation.pathname === '/'
+              : currentLocation.pathname.startsWith(destination.path);
+
+          const DestinationIconComponent = destination.Icon;
+
+          return (
+            <button
+              key={destination.key}
+              type="button"
+              onClick={() => handleNavigationClick(destination.path)}
+              aria-label={destination.label}
+              aria-current={isCurrentRouteActive ? 'page' : undefined}
+              className="relative flex flex-col items-center justify-center min-w-[48px] min-h-[48px] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] rounded-lg group"
+            >
+              <DestinationIconComponent
+                className={`text-2xl transition-colors duration-150 ${
+                  isCurrentRouteActive
+                    ? 'text-[#2F7473]'
+                    : 'text-gray-400 group-hover:text-gray-600'
+                }`}
+              />
+              <span className="mt-1 h-1 w-full flex items-center justify-center">
+                {isCurrentRouteActive && (
+                  <motion.span
+                    layoutId="activeNavigationIndicator"
+                    data-testid={`active-indicator-${destination.key}`}
+                    aria-hidden="true"
+                    className="w-1 h-1 rounded-full bg-[#2F7473]"
+                    transition={{ type: 'spring', stiffness: 300, damping: 35 }}
+                  />
+                )}
+              </span>
+            </button>
+          );
+        })}
       </div>
-    </div>
+    </nav>
   );
 }
 
-export default Footer; 
+export default Footer;
