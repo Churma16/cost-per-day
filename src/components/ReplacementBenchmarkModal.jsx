@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoClose, IoScaleOutline, IoCalendarOutline, IoCashOutline } from 'react-icons/io5';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useReplacementBenchmark } from '../hooks/useBenchmark';
 import { formatCurrency } from '../utils/formatters';
@@ -16,6 +16,7 @@ function ReplacementBenchmarkModal({
 }) {
   const { t } = useTranslation();
   const { currencyCode, currencySymbol } = useCurrency();
+  const shouldReduceMotion = useReducedMotion();
   const [candidatePriceInput, setCandidatePriceInput] = useState(
     initialCandidatePrice ? String(initialCandidatePrice) : ''
   );
@@ -70,7 +71,7 @@ function ReplacementBenchmarkModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           onClick={(event) => {
             if (event.target === event.currentTarget) {
@@ -83,10 +84,10 @@ function ReplacementBenchmarkModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="benchmark-modal-title"
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16, scale: shouldReduceMotion ? 1 : 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.97 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 12, scale: shouldReduceMotion ? 1 : 0.97 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="bg-white w-full max-w-sm rounded-2xl p-4 space-y-3.5 shadow-xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">

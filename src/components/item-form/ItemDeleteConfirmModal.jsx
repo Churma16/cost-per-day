@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
 function ItemDeleteConfirmModal({
   isOpen,
@@ -8,6 +8,7 @@ function ItemDeleteConfirmModal({
   onConfirm,
 }) {
   const { t } = useTranslation();
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <AnimatePresence>
@@ -17,7 +18,7 @@ function ItemDeleteConfirmModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50"
           onClick={(event) => {
             if (event.target === event.currentTarget) {
@@ -29,10 +30,10 @@ function ItemDeleteConfirmModal({
             key="delete-modal-dialog"
             role="dialog"
             aria-modal="true"
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16, scale: shouldReduceMotion ? 1 : 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.97 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 12, scale: shouldReduceMotion ? 1 : 0.97 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl"
           >
             <h2 className="text-xl font-semibold text-gray-800">{t('confirmDelete')}</h2>

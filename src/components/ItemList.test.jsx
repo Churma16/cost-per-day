@@ -170,6 +170,40 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('$6.00/day')).toBeInTheDocument();
   });
 
+  test('supports keyboard expansion with aria-expanded and aria-controls attributes', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'kbd-1',
+        name: 'Mechanical Keyboard',
+        price: 150,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 5
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Mechanical Keyboard')).toBeInTheDocument();
+
+    const triggerButton = screen.getByRole('button', { name: /Mechanical Keyboard/i });
+    expect(triggerButton).toHaveAttribute('aria-expanded', 'false');
+    expect(triggerButton).toHaveAttribute('aria-controls', 'item-details-kbd-1');
+
+    // Expand via trigger activation
+    fireEvent.click(triggerButton);
+    expect(triggerButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Purchase amount')).toBeInTheDocument();
+
+    // Collapse via trigger activation
+    fireEvent.click(triggerButton);
+    expect(triggerButton).toHaveAttribute('aria-expanded', 'false');
+  });
+
   test('displays personalized value equivalent on active item card when currency matches', async () => {
     useValueEquivalents.mockReturnValue({
       valueEquivalents: [

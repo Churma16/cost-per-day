@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { IoScaleOutline } from 'react-icons/io5';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -20,6 +20,7 @@ function ItemOwnershipTargetCard({
   onOpenBenchmarkModal,
 }) {
   const { t } = useTranslation();
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <div className="bg-white rounded-2xl border border-[#E6E8EC] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-2">
@@ -64,7 +65,7 @@ function ItemOwnershipTargetCard({
           className="flex w-full items-start"
           initial={false}
           animate={{ x: targetMode === 'manual' ? '0%' : '-100%' }}
-          transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.32, ease: [0.16, 1, 0.3, 1] }}
         >
           {/* Panel 1: Set manually (Left) */}
           <div

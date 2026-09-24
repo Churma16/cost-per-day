@@ -617,5 +617,53 @@ describe('AddItem component date localization', () => {
     expect(setManuallyButton).toHaveClass('border-teal-600');
     expect(screen.getByLabelText('Target type')).toBeInTheDocument();
   });
+
+  test('allows saving when manual target is incomplete but user switches to benchmark tab without applying', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    getAllItems.mockResolvedValue([]);
+    addItem.mockResolvedValueOnce({ id: 'item-new' });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    // Fill valid required fields
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'Bluetooth Speaker' }
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), {
+      target: { value: '80' }
+    });
+
+    // In manual mode, select Duration target but leave value empty
+    const targetTypeSelect = screen.getByLabelText('Target type');
+    fireEvent.change(targetTypeSelect, { target: { value: 'duration' } });
+
+    // Save should now be disabled because manual target value is required
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    expect(saveButton).toBeDisabled();
+
+    // Switch to benchmark tab without applying any benchmark
+    const fromCompletedItemButton = screen.getByRole('button', { name: 'Based on past item' });
+    fireEvent.click(fromCompletedItemButton);
+
+    // Save should now be enabled because hidden/unapplied target does not block form completion
+    expect(saveButton).toBeEnabled();
+
+    // Clicking Save submits item with targetType and targetValue null
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(addItem).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'Bluetooth Speaker',
+        price: 80,
+        targetType: null,
+        targetValue: null
+      }));
+    });
+  });
 });
+
 

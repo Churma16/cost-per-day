@@ -306,9 +306,13 @@ function ItemList() {
                 }`}
               >
                 {/* Collapsed Row */}
-                <div
-                  className="p-3 flex items-center justify-between cursor-pointer gap-3"
+                <button
+                  type="button"
+                  id={`item-trigger-${item.id}`}
+                  aria-expanded={expandedItem === item.id}
+                  aria-controls={`item-details-${item.id}`}
                   onClick={() => toggleItem(item.id)}
+                  className="w-full text-left p-3 flex items-center justify-between cursor-pointer gap-3 bg-transparent border-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset transition-colors rounded-xl"
                 >
                   {/* Left: Category Icon Squircle */}
                   <div
@@ -346,15 +350,19 @@ function ItemList() {
                       </span>
                     </div>
                     <IoChevronDown
+                      aria-hidden="true"
                       className={`transition-transform duration-300 ease-out text-base ${
                         expandedItem === item.id ? 'rotate-180 text-teal-600' : 'text-[#6F7782]'
                       }`}
                     />
                   </div>
-                </div>
+                </button>
 
                 {/* Expanded Details with Two-Way Smooth Animation */}
                 <div
+                  id={`item-details-${item.id}`}
+                  role="region"
+                  aria-labelledby={`item-trigger-${item.id}`}
                   className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
                     expandedItem === item.id
                       ? 'grid-rows-[1fr] opacity-100'
