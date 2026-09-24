@@ -32,14 +32,17 @@ const STATUS_TRANSLATION_KEYS = {
   lost: 'statusLost'
 };
 
-const EARLY_ACTIVE_OWNERSHIP_DAYS = 14;
+// Presentation-only mirror of the backend recent-purchase product window used by
+// RecentPurchaseImpactProvider. Keep both named policy constants aligned if the
+// product definition of a "recent purchase" changes.
+const RECENT_PURCHASE_WINDOW_DAYS = 14;
 
 export const getLifecycleTranslationKey = (status, ownershipDays) => {
   const normalizedStatus = STATUS_TRANSLATION_KEYS[status] ? status : 'active';
 
   if (normalizedStatus === 'active') {
     const days = Math.max(1, Number(ownershipDays) || 1);
-    return days <= EARLY_ACTIVE_OWNERSHIP_DAYS ? 'statusActiveEarly' : 'statusActive';
+    return days <= RECENT_PURCHASE_WINDOW_DAYS ? 'statusActiveEarly' : 'statusActive';
   }
 
   return STATUS_TRANSLATION_KEYS[normalizedStatus];
