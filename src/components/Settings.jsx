@@ -363,7 +363,14 @@ function Settings() {
 
   return (
     <>
-      <div className="px-4 space-y-6 page-content settings-page-content pb-24">
+      <div className="px-4 space-y-4 page-content settings-page-content pb-24">
+        {/* Header */}
+        <div className="pt-6 pb-1 px-1">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            {t('settings')}
+          </h1>
+        </div>
+
         {/* Notification */}
         {notification && (
           <div
@@ -377,41 +384,41 @@ function Settings() {
 
         {/* Section 1: Umum (General) */}
         <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+          <h2 className="text-xs font-medium text-gray-500 mb-1.5 px-1">
             {t('general')}
           </h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             {/* Language Selector Row */}
             <button
               type="button"
-              className="w-full flex items-center justify-between p-4 hover:bg-slate-50/70 transition-colors text-left"
+              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
               onClick={() => setShowLanguageDropdown(true)}
               aria-label={`${t('language')}: ${getLanguageName(language)}`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600">
-                  <IoLanguageOutline className="text-lg" />
+                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
+                  <IoLanguageOutline className="text-base" />
                 </div>
                 <span className="text-sm font-medium text-gray-800">{t('language')}</span>
               </div>
               <div className="flex items-center gap-1.5 text-sm text-gray-500">
                 <span>{getLanguageName(language)}</span>
-                <IoChevronForward className="text-gray-400 text-base" />
+                <IoChevronForward className="text-gray-400 text-sm" />
               </div>
             </button>
 
-            <div className="border-b border-gray-100 mx-4" />
+            <div className="border-b border-gray-100 mx-3.5" />
 
             {/* Currency Selector Row */}
             <button
               type="button"
-              className="w-full flex items-center justify-between p-4 hover:bg-slate-50/70 transition-colors text-left"
+              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
               onClick={() => setShowCurrencyDropdown(true)}
               aria-label={`${t('currency')}: ${selectedCurrencyOption?.symbol} ${selectedCurrencyOption?.name}`}
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600">
-                  <IoCashOutline className="text-lg" />
+                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
+                  <IoCashOutline className="text-base" />
                 </div>
                 <span className="text-sm font-medium text-gray-800">{t('currency')}</span>
               </div>
@@ -419,7 +426,7 @@ function Settings() {
                 <span>
                   {selectedCurrencyOption?.symbol} {selectedCurrencyOption?.code}
                 </span>
-                <IoChevronForward className="text-gray-400 text-base" />
+                <IoChevronForward className="text-gray-400 text-sm" />
               </div>
             </button>
           </div>
@@ -427,21 +434,21 @@ function Settings() {
 
         {/* Section 2: Perbandingan Nilai (Value Equivalents) */}
         <div>
-          <div className="flex items-center justify-between mb-1 px-1">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="flex items-center justify-between mb-0.5 px-1">
+            <h2 className="text-xs font-medium text-gray-500">
               {t('valueEquivalents')}
             </h2>
             <button
               type="button"
-              className="text-xs font-semibold text-[#2F7473] hover:text-[#265e5d] flex items-center gap-1 transition-colors px-2 py-1 rounded-md hover:bg-teal-50/60"
+              className="text-xs font-semibold text-[#2F7473] hover:text-[#265e5d] flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-teal-50/60"
               onClick={handleOpenAddEquivalent}
               aria-label={t('addEquivalent')}
             >
-              <IoAdd className="text-base" />
+              <IoAdd className="text-sm" />
               <span>{t('add')}</span>
             </button>
           </div>
-          <p className="text-xs text-gray-500 mb-3 px-1">
+          <p className="text-xs text-gray-400 mb-1.5 px-1">
             {t('valueEquivalentsSubtitle')}
           </p>
 
@@ -454,46 +461,46 @@ function Settings() {
               {equivalentsError.message || t('errorLoadingEquivalents')}
             </div>
           ) : valueEquivalents.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-sm">
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 text-center shadow-sm">
               <p className="text-sm text-gray-400">{t('noEquivalents')}</p>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {valueEquivalents.map((equivalentItem) => (
-                <div
-                  key={equivalentItem.id}
-                  className="bg-white rounded-2xl border border-gray-100 p-3.5 shadow-sm flex items-center justify-between hover:border-gray-200 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0 border border-amber-100/60">
-                      <IoRestaurantOutline className="text-lg" />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {valueEquivalents.map((equivalentItem, index) => (
+                <React.Fragment key={equivalentItem.id}>
+                  {index > 0 && <div className="border-b border-gray-100 mx-3.5" />}
+                  <div className="py-2.5 px-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0 border border-amber-100/60">
+                        <IoRestaurantOutline className="text-base" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm text-gray-900 truncate leading-tight">{equivalentItem.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 leading-tight">
+                          {formatCurrency(Number(equivalentItem.amount || 0), equivalentItem.currencyCode)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm text-gray-900 truncate">{equivalentItem.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {formatCurrency(Number(equivalentItem.amount || 0), equivalentItem.currencyCode)}
-                      </p>
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <button
+                        type="button"
+                        aria-label={`${t('editEquivalent')} ${equivalentItem.name}`}
+                        className="p-1.5 text-gray-400 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                        onClick={() => handleOpenEditEquivalent(equivalentItem)}
+                      >
+                        <IoPencilOutline className="text-base" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`${t('deleteEquivalent')} ${equivalentItem.name}`}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        onClick={() => setShowDeleteEquivalentConfirm(equivalentItem)}
+                      >
+                        <IoTrashOutline className="text-base" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      type="button"
-                      aria-label={`${t('editEquivalent')} ${equivalentItem.name}`}
-                      className="p-2 text-gray-400 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-                      onClick={() => handleOpenEditEquivalent(equivalentItem)}
-                    >
-                      <IoPencilOutline className="text-base" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`${t('deleteEquivalent')} ${equivalentItem.name}`}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      onClick={() => setShowDeleteEquivalentConfirm(equivalentItem)}
-                    >
-                      <IoTrashOutline className="text-base" />
-                    </button>
-                  </div>
-                </div>
+                </React.Fragment>
               ))}
             </div>
           )}
@@ -501,46 +508,46 @@ function Settings() {
 
         {/* Section 3: Data */}
         <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+          <h2 className="text-xs font-medium text-gray-500 mb-1.5 px-1">
             {t('data')}
           </h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             {/* Export Row */}
             <button
               type="button"
-              className="w-full flex items-center justify-between p-4 hover:bg-slate-50/70 transition-colors text-left"
+              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
               onClick={handleExportData}
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
-                  <IoCloudDownloadOutline className="text-lg" />
+                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
+                  <IoCloudDownloadOutline className="text-base" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-gray-900">{t('exportData')}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{t('exportDataSubtitle')}</p>
+                  <p className="font-semibold text-sm text-gray-900 leading-tight">{t('exportData')}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t('exportDataSubtitle')}</p>
                 </div>
               </div>
-              <IoChevronForward className="text-gray-400 text-base flex-shrink-0" />
+              <IoChevronForward className="text-gray-400 text-sm flex-shrink-0" />
             </button>
 
-            <div className="border-b border-gray-100 mx-4" />
+            <div className="border-b border-gray-100 mx-3.5" />
 
             {/* Import Row */}
             <button
               type="button"
-              className="w-full flex items-center justify-between p-4 hover:bg-slate-50/70 transition-colors text-left"
+              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
               onClick={handleImportData}
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
-                  <IoCloudUploadOutline className="text-lg" />
+                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
+                  <IoCloudUploadOutline className="text-base" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-gray-900">{t('importData')}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{t('importDataSubtitle')}</p>
+                  <p className="font-semibold text-sm text-gray-900 leading-tight">{t('importData')}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t('importDataSubtitle')}</p>
                 </div>
               </div>
-              <IoChevronForward className="text-gray-400 text-base flex-shrink-0" />
+              <IoChevronForward className="text-gray-400 text-sm flex-shrink-0" />
             </button>
 
             {/* Hidden file input */}
@@ -558,7 +565,7 @@ function Settings() {
         <div>
           <button
             type="button"
-            className="w-full flex items-center justify-center gap-2.5 p-3.5 bg-white border border-red-200/90 rounded-2xl text-red-600 hover:bg-red-50/60 active:bg-red-100/60 transition-colors font-medium text-sm shadow-sm disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-3 px-3.5 bg-white border border-red-200/90 rounded-2xl text-red-600 hover:bg-red-50/60 active:bg-red-100/60 transition-colors font-medium text-sm shadow-sm disabled:opacity-50"
             onClick={handleSignOut}
             disabled={isSigningOut}
             aria-label={t('signOut')}

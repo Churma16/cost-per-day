@@ -32,8 +32,8 @@ const Header = () => {
   const { totalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
 
-  // AddItem renders its own dedicated .page-header to avoid duplicate headers on form routes
-  if (location.pathname === '/add' || location.pathname === '/edit') {
+  // Settings and form routes render their own dedicated headers to avoid duplicate/legacy banners
+  if (location.pathname === '/add' || location.pathname === '/edit' || location.pathname === '/settings') {
     return null;
   }
 
