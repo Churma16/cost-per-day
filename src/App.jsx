@@ -19,6 +19,7 @@ import { formatCurrency } from './utils/formatters';
 import { MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
+import { useVersionCheck } from './hooks/useVersionCheck';
 
 const applicationQueryClient = new QueryClient({
   defaultOptions: {
@@ -161,6 +162,8 @@ function AuthGate() {
 }
 
 function App() {
+  useVersionCheck();
+
   return (
     <AuthProvider>
       <AuthGate />
