@@ -68,9 +68,9 @@ describe('currencyInput utilities', () => {
       expect(formatCurrencyInputValue('1234.', 'USD')).toBe('1,234.');
     });
 
-    it('clamps integer digits when maximumIntegerDigits is provided', () => {
-      expect(formatCurrencyInputValue('1234567890123', 'IDR', 10)).toBe('1.234.567.890');
-      expect(formatCurrencyInputValue('1234567890123.45', 'USD', 9)).toBe('123,456,789.45');
+    it('formats oversized values without truncating their monetary value', () => {
+      expect(formatCurrencyInputValue('1234567890123', 'IDR')).toBe('1.234.567.890.123');
+      expect(formatCurrencyInputValue('1234567890123.45', 'USD')).toBe('1,234,567,890,123.45');
     });
   });
 
@@ -118,9 +118,9 @@ describe('currencyInput utilities', () => {
       expect(parseCurrencyInputValue('', 'USD')).toBe('');
     });
 
-    it('clamps integer digits when maximumIntegerDigits is provided', () => {
-      expect(parseCurrencyInputValue('12.345.678.901.234', 'IDR', 10)).toBe('1234567890');
-      expect(parseCurrencyInputValue('123,456,789,012.34', 'USD', 9)).toBe('123456789.34');
+    it('parses oversized values without truncating their monetary value', () => {
+      expect(parseCurrencyInputValue('12.345.678.901.234', 'IDR')).toBe('12345678901234');
+      expect(parseCurrencyInputValue('123,456,789,012.34', 'USD')).toBe('123456789012.34');
     });
   });
 
