@@ -11,6 +11,7 @@
     "date-fns": "^4.1.0",
     "i18next": "~22.5.0",
     "i18next-browser-languagedetector": "~7.0.0",
+    "motion": "^13.4.3",
     "react": "^19.0.0",
     "react-datepicker": "^8.0.0",
     "react-day-picker": "^9.5.1",

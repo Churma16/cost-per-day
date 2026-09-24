@@ -9,19 +9,21 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, options) => {
       const dictionary = {
-        replacementBenchmark: 'Replacement Benchmark',
-        benchmarkDescription: 'Compare a planned replacement purchase against this completed item.',
-        candidatePrice: 'Planned replacement price',
-        enterCandidatePrice: 'Enter replacement price',
+        replacementBenchmark: 'Past Item Baseline',
+        benchmarkDescription: "Use your previous item's history to see how long this purchase needs to last to be just as worthwhile.",
+        candidatePrice: 'New item price',
+        enterCandidatePrice: 'Enter new item price',
         previousOwnershipDays: `Duration: ${options?.days} days`,
         previousFinalCostPerDay: `Final cost: ${options?.amount}/day`,
         previousTargetCostPerDay: `Previous target: ${options?.amount}/day`,
-        benchmarkResultRequiredDuration: `Required duration to match prior final rate (${options?.rate}/day)`,
-        benchmarkResultTargetDuration: `Required duration to match prior target (${options?.rate}/day)`,
+        benchmarkResultRequiredDuration: `To match your previous item's value (${options?.rate}/day):`,
+        benchmarkResultTargetDuration: `To match your previous target (${options?.rate}/day):`,
         benchmarkResultDays: `~${options?.days} days`,
-        benchmarkResultDaysToBeat: `Must last at least ${options?.days} days to beat prior rate`,
-        useBenchmarkAsTarget: 'Use as Target',
+        benchmarkResultDaysToBeat: `Lasts longer than ${options?.days} days for even better value`,
+        useBenchmarkAsTarget: 'Set as Ownership Target',
+        benchmarkEmptyHint: `Enter a price above to calculate how long this purchase needs to last to match ${options?.amount}/day.`,
         benchmarkUnmatchableZeroCost: 'This item had a zero or negative net ownership cost (sold at or above purchase price). A new purchase cannot match a zero-cost baseline.',
+        cancel: 'Cancel',
         close: 'Close',
         loading: 'Loading...'
       };
@@ -74,6 +76,22 @@ describe('ReplacementBenchmarkModal component', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('displays empty state prompt and disabled apply button when price is empty', () => {
+    render(
+      <ReplacementBenchmarkModal
+        isOpen={true}
+        onClose={vi.fn()}
+        completedItem={mockCompletedItem}
+        initialCandidatePrice=""
+        onApplyBenchmark={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Enter a price above to calculate/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set as Ownership Target' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
+  });
+
   it('renders completed item details and accepts candidate price or initial candidate price', () => {
     render(
       <ReplacementBenchmarkModal
@@ -84,11 +102,11 @@ describe('ReplacementBenchmarkModal component', () => {
       />
     );
 
-    expect(screen.getByText('Replacement Benchmark')).toBeInTheDocument();
+    expect(screen.getByText('Past Item Baseline')).toBeInTheDocument();
     expect(screen.getByText('Old Headphones')).toBeInTheDocument();
     expect(screen.getByText('Duration: 200 days')).toBeInTheDocument();
 
-    const priceInput = screen.getByPlaceholderText('Enter replacement price');
+    const priceInput = screen.getByPlaceholderText('Enter new item price');
     expect(priceInput.value).toBe('250');
 
     fireEvent.change(priceInput, { target: { value: '300' } });
@@ -123,15 +141,17 @@ describe('ReplacementBenchmarkModal component', () => {
         isOpen={true}
         onClose={onClose}
         completedItem={mockCompletedItem}
+        initialCandidatePrice={300}
         onApplyBenchmark={onApplyBenchmark}
       />
     );
 
     expect(screen.getByText('~200 days')).toBeInTheDocument();
-    expect(screen.getByText('Must last at least 201 days to beat prior rate')).toBeInTheDocument();
+    expect(screen.getByText('Lasts longer than 201 days for even better value')).toBeInTheDocument();
     expect(screen.getByText('~300 days')).toBeInTheDocument();
 
-    const applyButton = screen.getByRole('button', { name: 'Use as Target' });
+    const applyButton = screen.getByRole('button', { name: 'Set as Ownership Target' });
+    expect(applyButton).toBeEnabled();
     fireEvent.click(applyButton);
 
     expect(onApplyBenchmark).toHaveBeenCalledWith(expect.objectContaining({
@@ -152,14 +172,14 @@ describe('ReplacementBenchmarkModal component', () => {
       />
     );
 
-    const priceInput = screen.getByPlaceholderText('Enter replacement price');
+    const priceInput = screen.getByPlaceholderText('Enter new item price');
     fireEvent.change(priceInput, { target: { value: '350' } });
 
     expect(priceInput.value).toBe('350');
     expect(onCandidatePriceChange).toHaveBeenCalledWith('350');
   });
 
-  it('displays unmatchable warning notice and omits apply button when benchmark is unmatchable', () => {
+  it('displays unmatchable warning notice and disables apply button when benchmark is unmatchable', () => {
     const onApplyBenchmark = vi.fn();
 
     useReplacementBenchmark.mockReturnValue({
@@ -186,6 +206,7 @@ describe('ReplacementBenchmarkModal component', () => {
         isOpen={true}
         onClose={vi.fn()}
         completedItem={mockCompletedItem}
+        initialCandidatePrice={300}
         onApplyBenchmark={onApplyBenchmark}
       />
     );
@@ -193,7 +214,7 @@ describe('ReplacementBenchmarkModal component', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'This item had a zero or negative net ownership cost'
     );
-    expect(screen.queryByRole('button', { name: 'Use as Target' })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Required duration to match prior final rate/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set as Ownership Target' })).toBeDisabled();
+    expect(screen.queryByText(/To match your previous item's value/i)).not.toBeInTheDocument();
   });
 });

@@ -299,7 +299,11 @@ function ItemList() {
             return (
               <div
                 key={item.id}
-                className="bg-white rounded-2xl border border-[#E6E8EC] shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden hover:border-[#D5D8DF] transition-colors"
+                className={`bg-white rounded-2xl overflow-hidden transition-all duration-200 ${
+                  expandedItem === item.id
+                    ? 'border border-teal-200 shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
+                    : 'border border-[#E6E8EC] shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:border-[#D5D8DF]'
+                }`}
               >
                 {/* Collapsed Row */}
                 <div
@@ -342,7 +346,9 @@ function ItemList() {
                       </span>
                     </div>
                     <IoChevronDown
-                      className={`text-[#6F7782] transition-transform duration-300 ease-out text-base ${expandedItem === item.id ? 'rotate-180' : ''}`}
+                      className={`transition-transform duration-300 ease-out text-base ${
+                        expandedItem === item.id ? 'rotate-180 text-teal-600' : 'text-[#6F7782]'
+                      }`}
                     />
                   </div>
                 </div>
@@ -467,7 +473,7 @@ function ItemList() {
                           </div>
                         )}
 
-                        {item.targetType && (
+                        {item.targetType && item.targetType !== 'none' && (item.targetCostPerDay || item.targetDurationDays) && (
                           <div className="rounded-lg bg-[#F6F7F8] border border-[#E6E8EC] p-3 space-y-2">
                             <div className="flex items-center justify-between text-xs">
                               <span className="font-medium text-[#20242A]">{t('targetMilestone')}</span>

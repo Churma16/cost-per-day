@@ -42,20 +42,26 @@ vi.mock('react-i18next', () => ({
         targetTypeDuration: 'Target duration (days)',
         enterTargetCostPerDay: 'Enter target cost per day',
         enterTargetDuration: 'Enter target duration in days',
-        benchmarkFromPriorItem: 'Benchmark from completed item',
-        benchmarkSelectPrompt: 'Select a completed item to calculate how long this replacement must last to match or beat its value.',
-        selectCompletedItem: 'Select a completed item...',
-        replacementBenchmark: 'Replacement Benchmark',
-        candidatePrice: 'Planned replacement price',
+        benchmarkFromPriorItem: 'Based on past item',
+        benchmarkSelectPrompt: 'Select a past item to see how long this new purchase needs to last to match its value.',
+        selectCompletedItem: 'Select a past item...',
+        replacementBenchmark: 'Past Item Baseline',
+        candidatePrice: 'New item price',
         category: 'Category',
         categoryOptional: 'Category (Optional)',
         enterCategory: 'e.g. Audio, Footwear, Tech',
         brand: 'Brand',
         brandOptional: 'Brand (Optional)',
         enterBrand: 'e.g. Sony, Nike, Apple',
-        useBenchmarkAsTarget: 'Apply to Target',
+        useBenchmarkAsTarget: 'Set as Ownership Target',
         benchmarkResultDays: `~${options?.days} days`,
-        benchmarkResultRequiredDuration: `Required duration to match prior final rate (${options?.rate}/day)`,
+        benchmarkResultRequiredDuration: `To match your previous item's value (${options?.rate}/day):`,
+        requiredSection: 'REQUIRED',
+        optionalDetailsSection: 'OPTIONAL DETAILS',
+        setManually: 'Set manually',
+        fromCompletedItem: 'Based on past item',
+        ownershipTargetSubheading: 'Choose one way to set a milestone for this item.',
+        back: 'Back',
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -120,7 +126,7 @@ describe('AddItem component date localization', () => {
     // Desktop view by default in JSDOM (window.innerWidth > 768)
     // Find the date picker trigger button
     const datePickerTriggerButton = screen.getByRole('button', {
-      name: /\d{4}-\d{2}-\d{2}/i
+      name: /\d{1,2}\s+[A-Za-z]+\s+\d{4}/i
     });
     expect(datePickerTriggerButton).toBeInTheDocument();
 
@@ -176,7 +182,7 @@ describe('AddItem component date localization', () => {
     );
 
     const datePickerTriggerButton = screen.getByRole('button', {
-      name: /\d{4}-\d{2}-\d{2}/i
+      name: /\d{1,2}\s+[A-Za-z]+\s+\d{4}/i
     });
     fireEvent.click(datePickerTriggerButton);
 
@@ -410,12 +416,15 @@ describe('AddItem component date localization', () => {
       target: { value: '300' }
     });
 
+    // Switch to benchmark tab
+    fireEvent.click(screen.getByRole('button', { name: 'Based on past item' }));
+
     // The benchmark button should initially be disabled until a completed item is explicitly selected
-    const benchmarkButton = await screen.findByRole('button', { name: /Replacement Benchmark/i });
+    const benchmarkButton = await screen.findByRole('button', { name: /Past Item Baseline/i });
     expect(benchmarkButton).toBeDisabled();
 
     // Select the completed item from the dropdown
-    const selectDropdown = screen.getByLabelText('Benchmark from completed item');
+    const selectDropdown = screen.getByLabelText('Based on past item');
     fireEvent.change(selectDropdown, { target: { value: 'old-phone-1' } });
 
     expect(benchmarkButton).toBeEnabled();
@@ -427,7 +436,7 @@ describe('AddItem component date localization', () => {
     expect(screen.getByText('~150 days')).toBeInTheDocument();
 
     // Click Apply to Target
-    const applyButton = screen.getByRole('button', { name: 'Apply to Target' });
+    const applyButton = screen.getByRole('button', { name: 'Set as Ownership Target' });
     fireEvent.click(applyButton);
 
     // Target type should now be 'duration' and value '150'
@@ -484,18 +493,21 @@ describe('AddItem component date localization', () => {
       target: { value: '300' }
     });
 
-    const benchmarkButton = await screen.findByRole('button', { name: /Replacement Benchmark/i });
-    const selectDropdown = screen.getByLabelText('Benchmark from completed item');
+    // Switch to benchmark tab
+    fireEvent.click(screen.getByRole('button', { name: 'Based on past item' }));
+
+    const benchmarkButton = await screen.findByRole('button', { name: /Past Item Baseline/i });
+    const selectDropdown = screen.getByLabelText('Based on past item');
     fireEvent.change(selectDropdown, { target: { value: 'old-phone-2' } });
 
     fireEvent.click(benchmarkButton);
 
-    const modalPriceInput = screen.getByLabelText('Planned replacement price');
+    const modalPriceInput = screen.getByLabelText('New item price');
     fireEvent.change(modalPriceInput, { target: { value: '500' } });
 
     expect(priceInput.value).toBe('500');
 
-    const applyButton = screen.getByRole('button', { name: 'Apply to Target' });
+    const applyButton = screen.getByRole('button', { name: 'Set as Ownership Target' });
     fireEvent.click(applyButton);
 
     expect(priceInput.value).toBe('500');
@@ -543,6 +555,67 @@ describe('AddItem component date localization', () => {
         brand: 'Sony',
       }));
     });
+  });
+
+  test('renders clear back affordance and marks required fields with red asterisks', () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    // Back button
+    const backButton = screen.getByRole('button', { name: 'Back' });
+    expect(backButton).toBeInTheDocument();
+
+    // Required fields: Item name, Price, Purchase date
+    const requiredCard = screen.getByText('REQUIRED').closest('.bg-white');
+    expect(requiredCard).toBeInTheDocument();
+
+    const nameLabel = screen.getByText('Item Name');
+    expect(nameLabel.parentElement).toHaveTextContent('*');
+
+    const priceLabel = screen.getByText('Price');
+    expect(priceLabel.parentElement).toHaveTextContent('*');
+
+    const dateLabel = screen.getByText('Purchase Date');
+    expect(dateLabel.parentElement).toHaveTextContent('*');
+  });
+
+  test('toggles between Set manually and From completed item in ownership target card', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    getAllItems.mockResolvedValue([
+      {
+        id: 'comp-1',
+        name: 'Past Shoes',
+        status: 'retired',
+        grossCostPerDay: 1.0,
+        ownershipDays: 100
+      }
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    // Initial mode is manual
+    const setManuallyButton = screen.getByRole('button', { name: 'Set manually' });
+    const fromCompletedItemButton = screen.getByRole('button', { name: 'Based on past item' });
+    expect(setManuallyButton).toHaveClass('border-teal-600');
+    expect(screen.getByLabelText('Target type')).toBeInTheDocument();
+
+    // Switch to benchmark tab
+    fireEvent.click(fromCompletedItemButton);
+    expect(fromCompletedItemButton).toHaveClass('border-teal-600');
+    expect(await screen.findByLabelText('Based on past item')).toBeInTheDocument();
+
+    // Switch back to manual tab
+    fireEvent.click(setManuallyButton);
+    expect(setManuallyButton).toHaveClass('border-teal-600');
+    expect(screen.getByLabelText('Target type')).toBeInTheDocument();
   });
 });
 

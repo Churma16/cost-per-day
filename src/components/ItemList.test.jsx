@@ -481,4 +481,39 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('~6.6 months')).toHaveClass('animate-calm-cycle-enter');
     expect(screen.getByText('200 days')).toHaveClass('animate-calm-cycle-exit');
   });
+
+  test('strengthens card border and highlights chevron with teal interaction accent when expanded', async () => {
+    getAllItems.mockResolvedValue([
+      {
+        id: 'item-card-1',
+        name: 'Smart Watch',
+        price: 300,
+        purchaseDate: '2026-01-01T12:00:00Z',
+        status: 'active',
+        grossCostPerDay: 1.5,
+        netCostPerDay: 1.5,
+        ownershipDays: 200
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <ItemList />
+      </MemoryRouter>
+    );
+
+    const itemName = await screen.findByText('Smart Watch');
+    const cardContainer = itemName.closest('.rounded-2xl');
+    expect(cardContainer).toHaveClass('border-[#E6E8EC]');
+
+    // Find the collapsed row and click to expand
+    fireEvent.click(screen.getByText('Smart Watch'));
+
+    // When expanded, the card border is strengthened with teal-200 and shadow
+    expect(cardContainer).toHaveClass('border-teal-200');
+
+    // The chevron receives the teal-600 interaction accent
+    const chevronIcon = cardContainer.querySelector('.rotate-180');
+    expect(chevronIcon).toHaveClass('text-teal-600');
+  });
 });
