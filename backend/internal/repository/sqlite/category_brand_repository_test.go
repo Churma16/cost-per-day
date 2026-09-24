@@ -117,4 +117,14 @@ func TestCategoryAndBrandRepository_FindOrCreateAndList(t *testing.T) {
 	if fetchedItem.Brand == nil || *fetchedItem.Brand != itemBrand {
 		t.Fatalf("expected brand %q, got %v", itemBrand, fetchedItem.Brand)
 	}
+
+	// 8. Direct SQLite INSERT with different casing fails UNIQUE(user_id, name COLLATE NOCASE) constraint
+	_, err = databaseConnection.ExecContext(ctx, "INSERT INTO categories (user_id, name, created_at, updated_at) VALUES (?, 'tws', '2026-01-01', '2026-01-01')", userA)
+	if err == nil {
+		t.Fatalf("expected UNIQUE constraint violation when inserting 'tws' for user who already has 'TWS'")
+	}
+	_, err = databaseConnection.ExecContext(ctx, "INSERT INTO brands (user_id, name, created_at, updated_at) VALUES (?, 'sony', '2026-01-01', '2026-01-01')", userA)
+	if err == nil {
+		t.Fatalf("expected UNIQUE constraint violation when inserting 'sony' for user who already has 'Sony'")
+	}
 }

@@ -303,16 +303,18 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 			}
 		}
 
-		// Find longest lasting brand and lowest cost brand
+		// Find longest lasting brand and lowest cost brand ONLY from brands satisfying the pattern threshold (isPattern == true / sampleSize >= 2)
 		var longestLastingBrand *string
 		var maxLifetime float64
 		var lowestCostBrand *string
 		var minCost float64 = math.MaxFloat64
+		var patternBrandCount int
 
 		for _, brandInsight := range brandInsights {
-			if brandInsight.Brand == "Unbranded" {
+			if brandInsight.Brand == "Unbranded" || !brandInsight.IsPattern {
 				continue
 			}
+			patternBrandCount++
 			if brandInsight.AverageLifetimeDays > maxLifetime {
 				maxLifetime = brandInsight.AverageLifetimeDays
 				longestBrandName := brandInsight.Brand
@@ -327,7 +329,7 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 
 		// Generate objective comparison summary
 		var comparisonSummary string
-		if len(brandInsights) >= 2 && longestLastingBrand != nil && lowestCostBrand != nil {
+		if patternBrandCount >= 2 && longestLastingBrand != nil && lowestCostBrand != nil {
 			if *longestLastingBrand == *lowestCostBrand {
 				comparisonSummary = fmt.Sprintf("In your history for %s, %s lasted the longest (%.0f days avg) and also delivered the lowest final cost (%.2f/day).",
 					categoryName, *longestLastingBrand, maxLifetime, minCost)
@@ -355,7 +357,7 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 		})
 	}
 
-	// 4. Identify most frequently replaced category
+	// 4. Identify most frequently replaced category only when there is sufficient replacement evidence (completedCount >= 2 and interval calculated)
 	var mostFrequentlyReplacedCategory *domain.FrequentlyReplacedCategory
 	var bestReplacementScore float64 = math.MaxFloat64
 
@@ -367,21 +369,6 @@ func (serviceInstance *durabilityAnalyticsServiceImpl) CalculateDurabilityAnalyt
 					Category:                       categoryInsight.Category,
 					CompletedCount:                 categoryInsight.CompletedCount,
 					TypicalReplacementIntervalDays: categoryInsight.TypicalReplacementIntervalDays,
-				}
-			}
-		}
-	}
-
-	// Fallback to highest completed count if no intervals are calculated
-	if mostFrequentlyReplacedCategory == nil && len(categoryInsights) > 0 {
-		var maxCompleted int
-		for _, cat := range categoryInsights {
-			if cat.CompletedCount > maxCompleted {
-				maxCompleted = cat.CompletedCount
-				mostFrequentlyReplacedCategory = &domain.FrequentlyReplacedCategory{
-					Category:                       cat.Category,
-					CompletedCount:                 cat.CompletedCount,
-					TypicalReplacementIntervalDays: cat.TypicalReplacementIntervalDays,
 				}
 			}
 		}

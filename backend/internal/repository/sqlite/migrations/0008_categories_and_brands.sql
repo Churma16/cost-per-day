@@ -5,7 +5,7 @@ CREATE TABLE categories (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE(user_id, name)
+    UNIQUE(user_id, name COLLATE NOCASE)
 );
 CREATE INDEX IF NOT EXISTS idx_categories_user ON categories(user_id);
 
@@ -16,7 +16,7 @@ CREATE TABLE brands (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE(user_id, name)
+    UNIQUE(user_id, name COLLATE NOCASE)
 );
 CREATE INDEX IF NOT EXISTS idx_brands_user ON brands(user_id);
 

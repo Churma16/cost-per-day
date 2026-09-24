@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -139,10 +140,11 @@ func (serviceInstance *itemServiceImpl) CreateItem(
 		categoryName = &trimmedCategory
 		if serviceInstance.categoryRepository != nil {
 			cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
-			if catErr == nil {
-				categoryID = &cat.ID
-				categoryName = &cat.Name
+			if catErr != nil {
+				return domain.Item{}, fmt.Errorf("resolve category: %w", catErr)
 			}
+			categoryID = &cat.ID
+			categoryName = &cat.Name
 		}
 	}
 
@@ -153,10 +155,11 @@ func (serviceInstance *itemServiceImpl) CreateItem(
 		brandName = &trimmedBrand
 		if serviceInstance.brandRepository != nil {
 			b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
-			if bErr == nil {
-				brandID = &b.ID
-				brandName = &b.Name
+			if bErr != nil {
+				return domain.Item{}, fmt.Errorf("resolve brand: %w", bErr)
 			}
+			brandID = &b.ID
+			brandName = &b.Name
 		}
 	}
 
@@ -217,10 +220,11 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		categoryName = &trimmedCategory
 		if serviceInstance.categoryRepository != nil {
 			cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
-			if catErr == nil {
-				categoryID = &cat.ID
-				categoryName = &cat.Name
+			if catErr != nil {
+				return domain.Item{}, fmt.Errorf("resolve category: %w", catErr)
 			}
+			categoryID = &cat.ID
+			categoryName = &cat.Name
 		}
 	}
 
@@ -231,10 +235,11 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		brandName = &trimmedBrand
 		if serviceInstance.brandRepository != nil {
 			b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
-			if bErr == nil {
-				brandID = &b.ID
-				brandName = &b.Name
+			if bErr != nil {
+				return domain.Item{}, fmt.Errorf("resolve brand: %w", bErr)
 			}
+			brandID = &b.ID
+			brandName = &b.Name
 		}
 	}
 
@@ -293,10 +298,11 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, userID
 			item.Category = &trimmedCategory
 			if serviceInstance.categoryRepository != nil {
 				cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
-				if catErr == nil {
-					item.CategoryID = &cat.ID
-					item.Category = &cat.Name
+				if catErr != nil {
+					return nil, fmt.Errorf("resolve category: %w", catErr)
 				}
+				item.CategoryID = &cat.ID
+				item.Category = &cat.Name
 			}
 		}
 		if item.Brand != nil && strings.TrimSpace(*item.Brand) != "" {
@@ -304,10 +310,11 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, userID
 			item.Brand = &trimmedBrand
 			if serviceInstance.brandRepository != nil {
 				b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
-				if bErr == nil {
-					item.BrandID = &b.ID
-					item.Brand = &b.Name
+				if bErr != nil {
+					return nil, fmt.Errorf("resolve brand: %w", bErr)
 				}
+				item.BrandID = &b.ID
+				item.Brand = &b.Name
 			}
 		}
 
