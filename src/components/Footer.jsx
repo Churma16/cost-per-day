@@ -62,7 +62,7 @@ function Footer() {
                     data-testid={`active-indicator-${destination.key}`}
                     aria-hidden="true"
                     className="w-1 h-1 rounded-full bg-[#2F7473]"
-                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 35 }}
                   />
                 )}
               </span>
