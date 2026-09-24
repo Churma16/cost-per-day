@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchReplacementBenchmark } from '../services/benchmarkService';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 
-export const BENCHMARK_QUERY_KEY = ['replacement-benchmark'];
+export const BENCHMARK_QUERY_KEY = queryKeys.replacementBenchmarks;
 
 export const useReplacementBenchmark = (itemId, price, options = {}) => {
   const numericPrice = Number(price);

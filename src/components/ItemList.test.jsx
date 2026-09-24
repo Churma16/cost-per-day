@@ -14,6 +14,7 @@ import { getAllItems, deleteItem } from '../services/api';
 import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
+import { queryKeys } from '../query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -178,6 +179,30 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('$60.00')).toBeInTheDocument();
     expect(screen.getByText('Net cost per day')).toBeInTheDocument();
     expect(screen.getByText('$6.00/day')).toBeInTheDocument();
+  });
+
+  test('keeps cached items visible when a background refresh fails', () => {
+    const cachedItems = [{
+      id: 'cached-1',
+      name: 'Cached Phone',
+      price: 100,
+      purchaseDate: '2026-09-01T12:00:00Z',
+      status: 'active',
+      ownershipDays: 10,
+      grossCostPerDay: 10,
+    }];
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, cachedItems, { updatedAt: 1 });
+    getAllItems.mockRejectedValue(new Error('Temporary network failure'));
+
+    testingLibraryRender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter><ItemList /></MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByText('Cached Phone')).toBeInTheDocument();
+    expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
   test('supports keyboard expansion with aria-expanded and aria-controls attributes', async () => {

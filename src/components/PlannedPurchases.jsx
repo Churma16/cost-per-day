@@ -12,7 +12,8 @@ import { IoAddOutline, IoTimeOutline } from 'react-icons/io5';
 
 function PlannedPurchases() {
   const { t } = useTranslation();
-  const { data: plannedPurchases = [], isLoading, isError, error, refetch } = usePlannedPurchases();
+  const { data: plannedPurchasesData, isLoading, isError, error, refetch } = usePlannedPurchases();
+  const plannedPurchases = plannedPurchasesData ?? [];
 
   const createMutation = useCreatePlannedPurchase();
   const updateMutation = useUpdatePlannedPurchase();
@@ -118,11 +119,11 @@ function PlannedPurchases() {
       )}
 
       {/* Loading & Error States */}
-      {isLoading ? (
+      {isLoading && plannedPurchasesData === undefined ? (
         <div className="text-center py-12 text-gray-500">
           <p className="text-sm">{t('loading')}</p>
         </div>
-      ) : isError ? (
+      ) : isError && plannedPurchasesData === undefined ? (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 space-y-2">
           <p>{error?.message || t('errorLoading')}</p>
           <button

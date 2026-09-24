@@ -13,5 +13,6 @@ export const queryKeys = {
   brands: ['brands'],
   settings: ['settings'],
   valueEquivalents: ['value-equivalents'],
+  replacementBenchmarks: ['replacement-benchmark'],
   replacementBenchmark: (itemId, price) => ['replacement-benchmark', String(itemId), Number(price)],
 };

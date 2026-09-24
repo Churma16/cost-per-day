@@ -19,6 +19,7 @@ export const invalidateItemQueries = async (queryClient) => {
 
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.items }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.replacementBenchmarks }),
     invalidateDashboardQuery(queryClient),
     invalidateDurabilityQuery(queryClient),
   ]);

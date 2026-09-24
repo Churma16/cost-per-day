@@ -173,7 +173,8 @@ function ItemList() {
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
   const queryClient = useQueryClient();
-  const { data: items = [], isLoading, error: itemsError } = useItems();
+  const { data: itemsData, isLoading, error: itemsError } = useItems();
+  const items = itemsData ?? [];
   const invalidateItems = useInvalidateItems();
   const [durationUnitByItemId, setDurationUnitByItemId] = useState({});
   const [syncRotationByItemId, setSyncRotationByItemId] = useState({});
@@ -234,11 +235,11 @@ function ItemList() {
 
   return (
     <div className="px-4 pt-3 pb-8 space-y-2.5 home-page-content max-w-lg mx-auto">
-      {isLoading ? (
+      {isLoading && itemsData === undefined ? (
         <div className="text-center py-10 text-[#6F7782]">
           <p>{t('loading')}</p>
         </div>
-      ) : errorMessage || itemsError ? (
+      ) : errorMessage || (itemsError && itemsData === undefined) ? (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage || itemsError?.message || 'Failed to load items from the server.'}
         </div>

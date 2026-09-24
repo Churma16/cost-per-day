@@ -39,6 +39,7 @@ describe('item server-state cache', () => {
     const invalidatedKeys = queryClient.invalidateQueries.mock.calls.map(([filters]) => filters.queryKey);
     expect(invalidatedKeys).toEqual(expect.arrayContaining([
       queryKeys.items,
+      queryKeys.replacementBenchmarks,
       queryKeys.dashboard,
       queryKeys.durabilityRoot,
       queryKeys.categories,
@@ -46,5 +47,15 @@ describe('item server-state cache', () => {
     ]));
     expect(invalidatedKeys).not.toContainEqual(queryKeys.settings);
     expect(invalidatedKeys).not.toContainEqual(queryKeys.valueEquivalents);
+  });
+
+  it('marks cached replacement benchmarks stale after an item mutation', async () => {
+    const queryClient = new QueryClient();
+    const benchmarkKey = queryKeys.replacementBenchmark('completed-1', 1200);
+    queryClient.setQueryData(benchmarkKey, { requiredDurationDays: 400 });
+
+    await invalidateItemQueries(queryClient);
+
+    expect(queryClient.getQueryState(benchmarkKey)?.isInvalidated).toBe(true);
   });
 });

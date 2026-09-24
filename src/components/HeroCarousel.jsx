@@ -218,7 +218,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
     }
   };
 
-  if (isLoading && !insightsOverride) {
+  if (isLoading && dashboardData == null && !insightsOverride) {
     return (
       <div className="flex items-center justify-center p-6 text-white/70 h-[155px]">
         <p className="text-sm animate-pulse">{t('loading')}</p>
@@ -226,7 +226,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
     );
   }
 
-  if (isError && !insightsOverride) {
+  if (isError && dashboardData == null && !insightsOverride) {
     return null;
   }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import HeroCarousel from './HeroCarousel';
+import { useDashboard } from '../hooks/useDashboard';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -35,11 +36,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('../hooks/useDashboard', () => ({
-  useDashboard: () => ({
-    data: null,
-    isLoading: false,
-    isError: false,
-  })
+  useDashboard: vi.fn()
 }));
 
 const mockInsights = [
@@ -69,6 +66,7 @@ const mockInsights = [
 describe('HeroCarousel component', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    useDashboard.mockReturnValue({ data: null, isLoading: false, isError: false });
     window.matchMedia = vi.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
@@ -91,6 +89,20 @@ describe('HeroCarousel component', () => {
 
     expect(screen.getByText('Mindful Ownership')).toBeInTheDocument();
     expect(screen.getByText(/Track your purchases/i)).toBeInTheDocument();
+  });
+
+  it('keeps cached insights visible when a background refresh fails', () => {
+    useDashboard.mockReturnValue({
+      data: { insights: mockInsights },
+      isLoading: false,
+      isError: true,
+      error: new Error('Temporary network failure'),
+    });
+
+    render(<HeroCarousel />);
+
+    expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
 
   it('renders the initial insight card with presentation fields', () => {
