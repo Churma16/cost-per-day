@@ -16,7 +16,7 @@ import HeroCarousel from './components/HeroCarousel';
 import { useTranslation } from 'react-i18next';
 import { TotalCostProvider, useTotalCost } from './contexts/TotalCostContext';
 import { formatCurrency } from './utils/formatters';
-import { MotionConfig } from 'motion/react';
+import { MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 
 const applicationQueryClient = new QueryClient({
@@ -61,19 +61,31 @@ const Header = () => {
   );
 };
 
-const MainContent = () => (
-  <div className="page-content">
-    <Routes>
-      <Route path="/" element={<ItemList />} />
-      <Route path="/planning" element={<PlannedPurchases />} />
-      <Route path="/analytics" element={<DurabilityAnalytics />} />
-      <Route path="/add" element={<AddItem />} />
-      <Route path="/edit" element={<AddItem />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  </div>
-);
+const MainContent = () => {
+  const location = useLocation();
+
+  return (
+    <div className="page-content">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
+        className="h-full w-full"
+      >
+        <Routes location={location}>
+          <Route path="/" element={<ItemList />} />
+          <Route path="/planning" element={<PlannedPurchases />} />
+          <Route path="/analytics" element={<DurabilityAnalytics />} />
+          <Route path="/add" element={<AddItem />} />
+          <Route path="/edit" element={<AddItem />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </motion.div>
+    </div>
+  );
+};
 
 function AuthenticatedApp() {
   return (

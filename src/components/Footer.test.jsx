@@ -48,40 +48,41 @@ describe('Footer Navigation Component', () => {
 
     const homeButton = screen.getByRole('button', { name: 'Home' });
     expect(homeButton).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('active-indicator-home')).toHaveClass('opacity-100');
+    expect(screen.getByTestId('active-indicator-home')).toBeInTheDocument();
 
     const planningButton = screen.getByRole('button', { name: 'Planning' });
     expect(planningButton).not.toHaveAttribute('aria-current');
-    expect(screen.getByTestId('active-indicator-planning')).toHaveClass('opacity-0');
+    expect(screen.queryByTestId('active-indicator-planning')).not.toBeInTheDocument();
   });
 
   it('correctly activates the planning destination when on /planning', () => {
     renderFooterWithInitialRoute('/planning');
 
     expect(screen.getByRole('button', { name: 'Planning' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('active-indicator-planning')).toHaveClass('opacity-100');
+    expect(screen.getByTestId('active-indicator-planning')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Home' })).not.toHaveAttribute('aria-current');
+    expect(screen.queryByTestId('active-indicator-home')).not.toBeInTheDocument();
   });
 
   it('correctly activates the add destination when on /add', () => {
     renderFooterWithInitialRoute('/add');
 
     expect(screen.getByRole('button', { name: 'Add' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('active-indicator-add')).toHaveClass('opacity-100');
+    expect(screen.getByTestId('active-indicator-add')).toBeInTheDocument();
   });
 
   it('correctly activates the analytics destination when on /analytics', () => {
     renderFooterWithInitialRoute('/analytics');
 
     expect(screen.getByRole('button', { name: 'Analytics' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('active-indicator-analytics')).toHaveClass('opacity-100');
+    expect(screen.getByTestId('active-indicator-analytics')).toBeInTheDocument();
   });
 
   it('correctly activates the settings destination when on /settings', () => {
     renderFooterWithInitialRoute('/settings');
 
     expect(screen.getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByTestId('active-indicator-settings')).toHaveClass('opacity-100');
+    expect(screen.getByTestId('active-indicator-settings')).toBeInTheDocument();
   });
 
   it('triggers immediate navigation without delay when a destination is clicked', () => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
 import {
   IoHomeOutline,
   IoTimeOutline,
@@ -54,15 +55,17 @@ function Footer() {
                     : 'text-gray-400 group-hover:text-gray-600'
                 }`}
               />
-              <span
-                data-testid={`active-indicator-${destination.key}`}
-                aria-hidden="true"
-                className={`mt-1 w-1 h-1 rounded-full transition-all duration-150 ${
-                  isCurrentRouteActive
-                    ? 'bg-[#2F7473] opacity-100'
-                    : 'bg-transparent opacity-0'
-                }`}
-              />
+              <span className="mt-1 h-1 w-full flex items-center justify-center">
+                {isCurrentRouteActive && (
+                  <motion.span
+                    layoutId="activeNavigationIndicator"
+                    data-testid={`active-indicator-${destination.key}`}
+                    aria-hidden="true"
+                    className="w-1 h-1 rounded-full bg-[#2F7473]"
+                    transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                  />
+                )}
+              </span>
             </button>
           );
         })}
