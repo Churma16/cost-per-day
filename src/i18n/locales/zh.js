@@ -37,6 +37,7 @@ const translation = {
   "enterPrice": "请输入价格",
   "date": "购买日期",
   "save": "保存",
+  "discardDraft": "丢弃草稿",
   "deleteItem": "删除物品",
   
   // Delete confirmation

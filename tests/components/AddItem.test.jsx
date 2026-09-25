@@ -1,14 +1,20 @@
 import React from 'react';
-import { render as testingLibraryRender, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render as testingLibraryRender, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import AddItem from '../../src/components/AddItem';
 import { useLanguage } from '../../src/contexts/LanguageContext';
 import { useCurrency } from '../../src/contexts/CurrencyContext';
+import { useAuth } from '../../src/contexts/AuthContext';
 import { addItem, updateItem, getAllItems } from '../../src/services/api';
 import { useReplacementBenchmark } from '../../src/hooks/useBenchmark';
 import { queryKeys } from '../../src/query/queryConfig';
+import {
+  ADD_ITEM_DRAFT_WRITE_DELAY_MS,
+  getAddItemDraftStorageKey,
+  writeAddItemDraft,
+} from '../../src/utils/addItemDraft';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -64,6 +70,7 @@ vi.mock('react-i18next', () => ({
         fromCompletedItem: 'Based on past item',
         ownershipTargetSubheading: 'Choose one way to set a milestone for this item.',
         back: 'Back',
+        discardDraft: 'Discard draft',
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -76,6 +83,10 @@ vi.mock('../../src/contexts/LanguageContext', () => ({
 
 vi.mock('../../src/contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
+}));
+
+vi.mock('../../src/contexts/AuthContext', () => ({
+  useAuth: vi.fn()
 }));
 
 vi.mock('../../src/hooks/useBenchmark', () => ({
@@ -111,6 +122,19 @@ const render = (ui) => {
   });
 };
 
+const createDraftData = (overrides = {}) => ({
+  name: 'Laptop',
+  price: '1200',
+  category: 'Tech',
+  brand: 'Example',
+  purchaseDate: '2026-09-20',
+  targetType: 'none',
+  targetValue: '',
+  targetMode: 'manual',
+  selectedBenchmarkItemId: '',
+  ...overrides,
+});
+
 describe('AddItem component date localization', () => {
   const mockNavigate = vi.fn();
 
@@ -122,6 +146,17 @@ describe('AddItem component date localization', () => {
       currencySymbol: 'Rp',
       currencyCode: 'IDR'
     });
+    useAuth.mockReturnValue({
+      user: {
+        id: 'user-1',
+        email: 'user@example.com'
+      }
+    });
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   test('renders Indonesian month names in desktop date picker when language is set to id', () => {
@@ -180,6 +215,193 @@ describe('AddItem component date localization', () => {
         'Unable to reach the server. Check the backend connection and try again.'
       );
     });
+  });
+
+  test('debounces temporary draft writes for user-entered add-item values', () => {
+    vi.useFakeTimers();
+    useLanguage.mockReturnValue({ language: 'en' });
+    const storageKey = getAddItemDraftStorageKey('user-1');
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'Draft Laptop' }
+    });
+
+    expect(window.localStorage.getItem(storageKey)).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(ADD_ITEM_DRAFT_WRITE_DELAY_MS - 1);
+    });
+    expect(window.localStorage.getItem(storageKey)).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    const storedDraft = JSON.parse(window.localStorage.getItem(storageKey));
+    expect(storedDraft.data.name).toBe('Draft Laptop');
+  });
+
+  test('flushes the latest dirty draft when Add Item unmounts before the debounce finishes', () => {
+    vi.useFakeTimers();
+    useLanguage.mockReturnValue({ language: 'en' });
+    const storageKey = getAddItemDraftStorageKey('user-1');
+
+    const view = render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'Navigate-safe draft' }
+    });
+    expect(window.localStorage.getItem(storageKey)).toBeNull();
+
+    view.unmount();
+
+    const storedDraft = JSON.parse(window.localStorage.getItem(storageKey));
+    expect(storedDraft.data.name).toBe('Navigate-safe draft');
+  });
+
+  test('restores a fresh draft after remount without refreshing its TTL', () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const storageKey = getAddItemDraftStorageKey('user-1');
+    const savedAt = Date.now() - 60_000;
+    writeAddItemDraft(
+      'user-1',
+      createDraftData({
+        name: 'Restored Laptop',
+        price: '1500',
+        category: 'Computers',
+        brand: 'Framework',
+        targetType: 'duration',
+        targetValue: '730',
+      }),
+      savedAt
+    );
+
+    const firstRender = render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByDisplayValue('Restored Laptop')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('1500')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Computers')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Framework')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('730')).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(storageKey)).savedAt).toBe(savedAt);
+
+    firstRender.unmount();
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByDisplayValue('Restored Laptop')).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(storageKey)).savedAt).toBe(savedAt);
+  });
+
+  test('does not restore another authenticated user draft', () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    writeAddItemDraft('user-1', createDraftData({ name: 'Private draft' }));
+    useAuth.mockReturnValue({
+      user: {
+        id: 'user-2',
+        email: 'other@example.com'
+      }
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByPlaceholderText('Enter item name')).toHaveValue('');
+    expect(screen.queryByDisplayValue('Private draft')).not.toBeInTheDocument();
+  });
+
+  test('clears the draft after successful item creation', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const storageKey = getAddItemDraftStorageKey('user-1');
+    writeAddItemDraft('user-1', createDraftData());
+    addItem.mockResolvedValueOnce({
+      id: 'created-item',
+      name: 'Laptop',
+      price: 1200,
+      purchaseDate: '2026-09-20T12:00:00.000Z',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(addItem).toHaveBeenCalled();
+      expect(window.localStorage.getItem(storageKey)).toBeNull();
+    });
+  });
+
+  test('preserves the draft when item creation fails', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const storageKey = getAddItemDraftStorageKey('user-1');
+    writeAddItemDraft('user-1', createDraftData());
+    addItem.mockRejectedValueOnce(new Error('Temporary save failure'));
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Temporary save failure');
+    });
+    expect(window.localStorage.getItem(storageKey)).not.toBeNull();
+  });
+
+  test('explicitly discarding the add-item draft clears storage and resets the form', () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const storageKey = getAddItemDraftStorageKey('user-1');
+    writeAddItemDraft(
+      'user-1',
+      createDraftData({
+        name: 'Discard me',
+        price: '450',
+        category: 'Audio',
+        brand: 'Sony',
+      })
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Discard draft' }));
+
+    expect(window.localStorage.getItem(storageKey)).toBeNull();
+    expect(screen.getByPlaceholderText('Enter item name')).toHaveValue('');
+    expect(screen.getByPlaceholderText('Enter price')).toHaveValue('');
+    expect(screen.getByPlaceholderText('e.g. Audio, Footwear, Tech')).toHaveValue('');
+    expect(screen.getByPlaceholderText('e.g. Sony, Nike, Apple')).toHaveValue('');
   });
 
   test('renders English month names in desktop date picker when language is set to en', () => {
