@@ -467,7 +467,8 @@ function Settings() {
           user={user}
           isSigningOut={isSigningOut}
           isInteractionBlocked={Boolean(closingModal)}
-          error={signOutError || authError?.message || null}
+          signOutError={signOutError}
+          authError={authError}
           onSignOut={handleSignOut}
         />
 

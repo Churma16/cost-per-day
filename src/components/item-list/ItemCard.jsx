@@ -178,6 +178,7 @@ function ItemCard({
   const { t, i18n } = useTranslation();
   const [durationUnit, setDurationUnit] = useState('days');
   const [syncRotation, setSyncRotation] = useState(0);
+  const [hasCycledDuration, setHasCycledDuration] = useState(false);
 
   const itemStatus = item.status || 'active';
   const isActive = itemStatus === 'active';
@@ -196,13 +197,13 @@ function ItemCard({
   const days = Math.max(1, Number(item.ownershipDays) || 1);
   const isDurationInteractive = days >= 30;
   const displayDuration = formatOwnershipDuration(days, durationUnit, t, i18n?.language);
-  const hasCycledDuration = durationUnit !== 'days';
 
   const handleCycleDurationUnit = (event) => {
     event.stopPropagation();
     if (!isDurationInteractive) return;
     setDurationUnit((currentUnit) => getNextDurationUnit(currentUnit, days));
     setSyncRotation((currentRotation) => currentRotation + 180);
+    setHasCycledDuration(true);
   };
 
   return (

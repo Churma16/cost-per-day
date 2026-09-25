@@ -6,7 +6,8 @@ function AccountSettingsSection({
   user,
   isSigningOut,
   isInteractionBlocked,
-  error,
+  signOutError,
+  authError,
   onSignOut,
 }) {
   const { t } = useTranslation();
@@ -26,9 +27,9 @@ function AccountSettingsSection({
         <IoLogOutOutline className="text-lg" />
         <span>{isSigningOut ? t('loading') : t('signOut')}</span>
       </button>
-      {error && (
+      {(signOutError || authError) && (
         <p role="alert" className="mt-2 text-center text-xs text-red-600">
-          {error || t('signOutError')}
+          {signOutError || authError?.message || t('signOutError')}
         </p>
       )}
     </div>
