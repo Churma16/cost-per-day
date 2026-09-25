@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +46,7 @@ function ItemList() {
   const [errorMessage, setErrorMessage] = useState(null);
   const [isOrganizationOpen, setIsOrganizationOpen] = useState(false);
   const [organization, setOrganization] = useState(loadHomeOrganization);
+  const organizationTriggerRef = useRef(null);
   const navigate = useNavigate();
   const { setTotalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
@@ -94,6 +95,9 @@ function ItemList() {
     setOrganization(normalized);
     saveHomeOrganization(normalized);
   }, []);
+  const handleOrganizationClose = useCallback(() => {
+    setIsOrganizationOpen(false);
+  }, []);
 
   const organizedGroups = useMemo(
     () => organizeItems(items, organization, i18n?.language),
@@ -120,6 +124,7 @@ function ItemList() {
           <div className="flex items-center justify-between gap-3 px-1 text-xs mb-1">
             <span className="font-bold text-[#20242A] text-sm">{t('yourItems')}</span>
             <button
+              ref={organizationTriggerRef}
               type="button"
               onClick={() => setIsOrganizationOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-full border border-[#D5D8DF] bg-white px-3 py-1.5 font-medium text-[#3F4A54] shadow-sm hover:border-teal-300 hover:text-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
@@ -164,7 +169,8 @@ function ItemList() {
         isOpen={isOrganizationOpen}
         organization={organization}
         onChange={handleOrganizationChange}
-        onClose={() => setIsOrganizationOpen(false)}
+        onClose={handleOrganizationClose}
+        returnFocusRef={organizationTriggerRef}
       />
 
       <ItemDeleteConfirmDialog
