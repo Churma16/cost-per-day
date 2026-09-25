@@ -68,10 +68,10 @@ func setupAuthenticatedTestRouter(t *testing.T) *gin.Engine {
 		t.Fatalf("initialize auth router GORM database: %v", gormError)
 	}
 
-	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepository := sqliterepository.NewItemRepository(gormDB)
 	settingsRepository := sqliterepository.NewSettingsRepository(gormDB)
-	userRepository := sqliterepository.NewUserRepository(databaseConnection)
-	sessionRepository := sqliterepository.NewSessionRepository(databaseConnection)
+	userRepository := sqliterepository.NewUserRepository(gormDB)
+	sessionRepository := sqliterepository.NewSessionRepository(gormDB)
 
 	authService := service.NewAuthService(
 		userRepository,
