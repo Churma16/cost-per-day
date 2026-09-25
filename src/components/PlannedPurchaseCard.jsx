@@ -1,13 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../utils/formatters';
-import { calculateContributionProjection } from '../utils/plannedPurchaseProjection';
-import CurrencyInput from './common/CurrencyInput';
+import PlannedPurchaseExploration from './planned-purchase/PlannedPurchaseExploration';
 import {
-  IoTimeOutline,
   IoCalendarOutline,
   IoCashOutline,
-  IoChevronDown,
   IoCreateOutline,
   IoTrashOutline,
 } from 'react-icons/io5';
@@ -18,51 +15,25 @@ function PlannedPurchaseCard({
   onDelete,
 }) {
   const { t } = useTranslation();
-  const [isExplorationOpen, setIsExplorationOpen] = useState(false);
-  const [exploreContributionAmount, setExploreContributionAmount] = useState(
-    plannedPurchase.contributionAmount !== null && plannedPurchase.contributionAmount !== undefined
-      ? String(plannedPurchase.contributionAmount)
-      : ''
-  );
-  const [exploreCadence, setExploreCadence] = useState(
-    plannedPurchase.contributionCadence || 'daily'
-  );
 
   const currencyCode = plannedPurchase.currencyCode || 'USD';
   const targetPrice = Number(plannedPurchase.targetPrice) || 0;
-
-  const exploredProjection = useMemo(
-    () =>
-      calculateContributionProjection({
-        targetPrice,
-        contributionAmount: parseFloat(exploreContributionAmount),
-        cadence: exploreCadence,
-      }),
-    [exploreContributionAmount, exploreCadence, targetPrice]
-  );
-
-  const exploredPeriodUnit =
-    exploreCadence === 'daily'
-      ? t('unitDays')
-      : exploreCadence === 'weekly'
-      ? t('unitWeeks')
-      : t('unitMonths');
 
   const cadencePer =
     plannedPurchase.contributionCadence === 'daily'
       ? t('cadencePerDaily')
       : plannedPurchase.contributionCadence === 'weekly'
-      ? t('cadencePerWeekly')
-      : plannedPurchase.contributionCadence === 'monthly'
-      ? t('cadencePerMonthly')
-      : '';
+        ? t('cadencePerWeekly')
+        : plannedPurchase.contributionCadence === 'monthly'
+          ? t('cadencePerMonthly')
+          : '';
 
   const periodUnit =
     plannedPurchase.contributionCadence === 'daily'
       ? t('unitDays')
       : plannedPurchase.contributionCadence === 'weekly'
-      ? t('unitWeeks')
-      : t('unitMonths');
+        ? t('unitWeeks')
+        : t('unitMonths');
 
   const isDaily = plannedPurchase.contributionCadence === 'daily';
   const estimatedPeriods = Number(plannedPurchase.estimatedPeriods || 0);
@@ -70,11 +41,9 @@ function PlannedPurchaseCard({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-teal-100 overflow-hidden hover:shadow-md transition-shadow">
-      {/* Top Banner Accent */}
       <div className="h-1.5 bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-600" />
 
       <div className="p-4 sm:p-5 space-y-4">
-        {/* Header: Title, Badge, Price */}
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -111,9 +80,7 @@ function PlannedPurchaseCard({
           </div>
         </div>
 
-        {/* Primary Framing Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-gray-100">
-          {/* Contribution -> Time */}
           {plannedPurchase.contributionAmount && plannedPurchase.contributionCadence && (
             <div className="bg-teal-50/50 rounded-lg p-3 border border-teal-100">
               <div className="flex items-center gap-1.5 text-xs text-teal-900 font-medium mb-1">
@@ -137,7 +104,6 @@ function PlannedPurchaseCard({
             </div>
           )}
 
-          {/* Target Date -> Contribution */}
           {plannedPurchase.targetDate && (
             <div className="bg-cyan-50/50 rounded-lg p-3 border border-cyan-100">
               <div className="flex items-center gap-1.5 text-xs text-cyan-900 font-medium mb-1">
@@ -156,72 +122,12 @@ function PlannedPurchaseCard({
           )}
         </div>
 
-        {/* Interactive Exploration Toggle */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={() => setIsExplorationOpen(!isExplorationOpen)}
-            className="flex items-center justify-between w-full text-xs font-semibold text-teal-700 hover:text-teal-900 py-1"
-          >
-            <span className="flex items-center gap-1">
-              <IoTimeOutline className="text-sm" />
-              {t('exploreFraming')}
-            </span>
-            <IoChevronDown
-              className={`transform transition-transform ${isExplorationOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-
-          {isExplorationOpen && (
-            <div className="mt-2.5 p-3 rounded-lg bg-gray-50 border border-gray-200 text-xs space-y-3">
-              <p className="text-gray-600 text-[11px]">
-                {t('explorePaceDescription')}
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">
-                    {t('cadence')}
-                  </label>
-                  <select
-                    value={exploreCadence}
-                    onChange={(e) => setExploreCadence(e.target.value)}
-                    className="w-full rounded border border-gray-300 p-1.5 text-xs bg-white focus:outline-none focus:border-teal-500"
-                  >
-                    <option value="daily">{t('cadenceDaily')}</option>
-                    <option value="weekly">{t('cadenceWeekly')}</option>
-                    <option value="monthly">{t('cadenceMonthly')}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-1">
-                    {t('recurringContribution')}
-                  </label>
-                  <CurrencyInput
-                    value={exploreContributionAmount}
-                    onChange={(e) => setExploreContributionAmount(e.target.value)}
-                    currencyCode={currencyCode}
-                    placeholder={t('enterContributionAmount')}
-                    className="w-full rounded border border-gray-300 p-1.5 text-xs bg-white focus:outline-none focus:border-teal-500"
-                  />
-                </div>
-              </div>
-
-              {exploredProjection && (
-                <div className="p-2 rounded bg-white border border-teal-100 text-teal-950 font-medium">
-                  {exploreCadence === 'daily'
-                    ? t('reachTargetInDays', { days: exploredProjection.estimatedDays })
-                    : t('reachTargetIn', {
-                        periods: exploredProjection.periods,
-                        periodUnit: exploredPeriodUnit,
-                        days: exploredProjection.estimatedDays,
-                      })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <PlannedPurchaseExploration
+          targetPrice={targetPrice}
+          currencyCode={currencyCode}
+          initialContributionAmount={plannedPurchase.contributionAmount}
+          initialCadence={plannedPurchase.contributionCadence}
+        />
       </div>
     </div>
   );
