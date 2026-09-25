@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,22 @@ import { queryKeys } from '../query/queryConfig';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 import ItemCard from './item-list/ItemCard';
 import ItemDeleteConfirmDialog from './item-list/ItemDeleteConfirmDialog';
+import ItemOrganizationDialog from './item-list/ItemOrganizationDialog';
+import { IoOptionsOutline } from 'react-icons/io5';
+import {
+  loadHomeOrganization,
+  normalizeHomeOrganization,
+  organizeItems,
+  saveHomeOrganization,
+} from '../utils/itemOrganization';
+
+const OWNERSHIP_STATE_LABEL_KEYS = {
+  justJoined: 'statusActiveEarly',
+  stillWithYou: 'statusActive',
+  noLongerInUse: 'statusRetired',
+  changedHands: 'statusSold',
+  lost: 'statusLost',
+};
 
 export {
   getCategoryIconInfo,
@@ -22,12 +38,15 @@ export {
 } from './item-list/ItemCard';
 
 function ItemList() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [expandedItem, setExpandedItem] = useState(null);
   const [benchmarkModalItem, setBenchmarkModalItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [isOrganizationOpen, setIsOrganizationOpen] = useState(false);
+  const [organization, setOrganization] = useState(loadHomeOrganization);
+  const organizationTriggerRef = useRef(null);
   const navigate = useNavigate();
   const { setTotalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
@@ -71,11 +90,20 @@ function ItemList() {
     }
   };
 
-  const sortedItems = [...items].sort((firstItem, secondItem) => {
-    const firstCost = Number(firstItem.grossCostPerDay || 0);
-    const secondCost = Number(secondItem.grossCostPerDay || 0);
-    return secondCost - firstCost;
-  });
+  const handleOrganizationChange = useCallback((nextOrganization) => {
+    const normalized = normalizeHomeOrganization(nextOrganization);
+    setOrganization(normalized);
+    saveHomeOrganization(normalized);
+  }, []);
+  const handleOrganizationClose = useCallback(() => {
+    setIsOrganizationOpen(false);
+  }, []);
+
+  const organizedGroups = useMemo(
+    () => organizeItems(items, organization, i18n?.language),
+    [items, organization, i18n?.language]
+  );
+  const visibleItemCount = organizedGroups.reduce((count, group) => count + group.items.length, 0);
 
   return (
     <div className="px-4 pt-3 pb-8 space-y-2.5 home-page-content max-w-lg mx-auto">
@@ -93,26 +121,57 @@ function ItemList() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between px-1 text-xs mb-1">
+          <div className="flex items-center justify-between gap-3 px-1 text-xs mb-1">
             <span className="font-bold text-[#20242A] text-sm">{t('yourItems')}</span>
-            <span className="text-[#6F7782] font-normal">{t('sortedHighestCost')}</span>
+            <button
+              ref={organizationTriggerRef}
+              type="button"
+              onClick={() => setIsOrganizationOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#D5D8DF] bg-white px-3 py-1.5 font-medium text-[#3F4A54] shadow-sm hover:border-teal-300 hover:text-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+            >
+              <IoOptionsOutline className="text-sm" aria-hidden="true" />
+              {t('organizeItems')}
+            </button>
           </div>
 
-          {sortedItems.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              isExpanded={expandedItem === item.id}
-              onToggle={toggleItem}
-              onEdit={handleEditItem}
-              onDelete={setItemToDelete}
-              onBenchmark={setBenchmarkModalItem}
-              currencyCode={currencyCode}
-              valueEquivalents={valueEquivalents}
-            />
+          {visibleItemCount === 0 ? (
+            <div className="text-center py-10 text-[#6F7782]">
+              <p>{t('noItemsMatchFilter')}</p>
+            </div>
+          ) : organizedGroups.map((group) => (
+            <section key={group.key} className="space-y-2.5" aria-labelledby={organization.groupBy === 'none' ? undefined : `item-group-${group.key}`}>
+              {organization.groupBy !== 'none' && (
+                <h2 id={`item-group-${group.key}`} className="px-1 pt-2 text-xs font-semibold uppercase tracking-wide text-[#6F7782]">
+                  {organization.groupBy === 'ownershipState'
+                    ? t(OWNERSHIP_STATE_LABEL_KEYS[group.key])
+                    : group.key === 'uncategorized' ? t('uncategorized') : group.key}
+                </h2>
+              )}
+              {group.items.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  isExpanded={expandedItem === item.id}
+                  onToggle={toggleItem}
+                  onEdit={handleEditItem}
+                  onDelete={setItemToDelete}
+                  onBenchmark={setBenchmarkModalItem}
+                  currencyCode={currencyCode}
+                  valueEquivalents={valueEquivalents}
+                />
+              ))}
+            </section>
           ))}
         </>
       )}
+
+      <ItemOrganizationDialog
+        isOpen={isOrganizationOpen}
+        organization={organization}
+        onChange={handleOrganizationChange}
+        onClose={handleOrganizationClose}
+        returnFocusRef={organizationTriggerRef}
+      />
 
       <ItemDeleteConfirmDialog
         item={itemToDelete}

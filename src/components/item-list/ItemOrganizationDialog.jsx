@@ -1,0 +1,209 @@
+import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { IoClose, IoOptionsOutline } from 'react-icons/io5';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { GROUP_OPTIONS, OWNERSHIP_STATES, SORT_OPTIONS } from '../../utils/itemOrganization';
+
+const STATE_LABEL_KEYS = {
+  justJoined: 'statusActiveEarly',
+  stillWithYou: 'statusActive',
+  noLongerInUse: 'statusRetired',
+  changedHands: 'statusSold',
+  lost: 'statusLost',
+};
+
+const GROUP_LABEL_KEYS = {
+  ownershipState: 'groupOwnershipState',
+  category: 'category',
+  none: 'groupNone',
+};
+
+const SORT_LABEL_KEYS = {
+  recentlyAcquired: 'sortRecentlyAcquired',
+  oldestOwned: 'sortOldestOwned',
+  nameAscending: 'sortNameAscending',
+  nameDescending: 'sortNameDescending',
+  costDescending: 'sortCostDescending',
+  costAscending: 'sortCostAscending',
+  priceDescending: 'sortPriceDescending',
+  priceAscending: 'sortPriceAscending',
+};
+
+function ItemOrganizationDialog({
+  isOpen,
+  organization,
+  onChange,
+  onClose,
+  returnFocusRef,
+}) {
+  const { t } = useTranslation();
+  const shouldReduceMotion = useReducedMotion();
+  const dialogRef = useRef(null);
+  const closeButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const focusableElements = [...(dialogRef.current?.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+      ) || [])];
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === firstFocusable || !dialogRef.current?.contains(activeElement))) {
+        event.preventDefault();
+        lastFocusable.focus();
+      } else if (!event.shiftKey && (activeElement === lastFocusable || !dialogRef.current?.contains(activeElement))) {
+        event.preventDefault();
+        firstFocusable.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      returnFocusRef?.current?.focus();
+    };
+  }, [isOpen, onClose, returnFocusRef]);
+
+  const allStatesSelected = organization.stateFilters.length === 0;
+  const toggleState = (state) => {
+    const nextStates = organization.stateFilters.includes(state)
+      ? organization.stateFilters.filter((candidate) => candidate !== state)
+      : [...organization.stateFilters, state];
+    onChange({
+      ...organization,
+      stateFilters: nextStates.length === OWNERSHIP_STATES.length ? [] : nextStates,
+    });
+  };
+
+  const backdropVariants = {
+    closed: {
+      opacity: 0,
+      transition: { duration: shouldReduceMotion ? 0 : 0.25, ease: [0.25, 0.8, 0.25, 1] },
+    },
+    open: {
+      opacity: 1,
+      transition: { duration: shouldReduceMotion ? 0 : 0.3, ease: [0.25, 0.8, 0.25, 1] },
+    },
+  };
+  const sheetVariants = {
+    closed: {
+      y: shouldReduceMotion ? '0%' : '100%',
+      transition: { duration: shouldReduceMotion ? 0 : 0.46, ease: [0.4, 0, 0.6, 1] },
+    },
+    open: {
+      y: '0%',
+      transition: { duration: shouldReduceMotion ? 0 : 0.58, ease: [0.25, 0.8, 0.25, 1] },
+    },
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="item-organization-window"
+          initial="closed"
+          animate="open"
+          exit="closed"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+        >
+          <motion.div
+            aria-hidden="true"
+            variants={backdropVariants}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onMouseDown={onClose}
+          />
+          <motion.div
+        ref={dialogRef}
+        variants={sheetVariants}
+        role="dialog"
+        tabIndex={-1}
+        aria-modal="true"
+        aria-labelledby="item-organization-title"
+        className="relative z-10 w-full sm:max-w-md max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white shadow-xl border border-gray-100"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-[#E6E8EC] bg-white">
+          <div className="flex items-center gap-2">
+            <IoOptionsOutline className="text-lg text-[#2F7473]" aria-hidden="true" />
+            <h2 id="item-organization-title" className="font-semibold text-[#20242A]">{t('organizeItems')}</h2>
+          </div>
+          <button ref={closeButtonRef} type="button" onClick={onClose} aria-label={t('close')} className="w-9 h-9 rounded-full flex items-center justify-center text-[#6F7782] hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
+            <IoClose aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-6">
+          <fieldset>
+            <legend className="font-semibold text-sm text-[#20242A] mb-2">{t('filterByOwnershipState')}</legend>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="flex items-center gap-2.5 rounded-xl border border-[#E6E8EC] px-3 py-2.5 text-sm cursor-pointer">
+                <input type="checkbox" checked={allStatesSelected} onChange={() => onChange({ ...organization, stateFilters: [] })} className="accent-[#2F7473]" />
+                {t('allStates')}
+              </label>
+              {OWNERSHIP_STATES.map((state) => (
+                <label key={state} className="flex items-center gap-2.5 rounded-xl border border-[#E6E8EC] px-3 py-2.5 text-sm cursor-pointer">
+                  <input type="checkbox" checked={!allStatesSelected && organization.stateFilters.includes(state)} onChange={() => toggleState(state)} className="accent-[#2F7473]" />
+                  {t(STATE_LABEL_KEYS[state])}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="font-semibold text-sm text-[#20242A] mb-2">{t('groupBy')}</legend>
+            <div className="space-y-2">
+              {GROUP_OPTIONS.map((option) => (
+                <label key={option} className="flex items-center gap-2.5 rounded-xl border border-[#E6E8EC] px-3 py-2.5 text-sm cursor-pointer">
+                  <input type="radio" name="home-group-by" value={option} checked={organization.groupBy === option} onChange={() => onChange({ ...organization, groupBy: option })} className="accent-[#2F7473]" />
+                  {t(GROUP_LABEL_KEYS[option])}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="font-semibold text-sm text-[#20242A] mb-2">{t('sortBy')}</legend>
+            <div className="space-y-2">
+              {SORT_OPTIONS.map((option) => (
+                <label key={option} className="flex items-center gap-2.5 rounded-xl border border-[#E6E8EC] px-3 py-2.5 text-sm cursor-pointer">
+                  <input type="radio" name="home-sort-by" value={option} checked={organization.sortBy === option} onChange={() => onChange({ ...organization, sortBy: option })} className="accent-[#2F7473]" />
+                  {t(SORT_LABEL_KEYS[option])}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        </div>
+
+        <div className="sticky bottom-0 p-4 border-t border-[#E6E8EC] bg-white">
+          <button type="button" onClick={onClose} className="w-full rounded-xl bg-[#2F7473] px-4 py-3 text-sm font-semibold text-white hover:bg-[#286563] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-teal-600">
+            {t('done')}
+          </button>
+        </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+export default ItemOrganizationDialog;
