@@ -57,6 +57,22 @@ describe('Header route isolation regression tests', () => {
     expect(homeHeader.closest('.min-h-full')).toBeInTheDocument();
   });
 
+  test('allows route content to grow while page-content remains the scroll container', async () => {
+    window.history.pushState({}, '', '/');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.page-content')).toBeInTheDocument();
+    });
+
+    const pageContent = document.querySelector('.page-content');
+    const routeTransition = pageContent.firstElementChild;
+
+    expect(pageContent.tagName).toBe('MAIN');
+    expect(routeTransition).toHaveClass('min-h-full', 'w-full');
+    expect(routeTransition).not.toHaveClass('h-full');
+  });
+
   test('renders clean header on /settings without page-header banner', async () => {
     window.history.pushState({}, '', '/settings');
     render(<App />);

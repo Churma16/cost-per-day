@@ -581,6 +581,7 @@ header {
 /* Layout styles for consistent page structure */
 .page-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   height: 100%;
@@ -597,7 +598,7 @@ header {
   z-index: 20;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background-color: rgba(255, 255, 255, 0.96);
+  background-color: rgba(246, 247, 248, 0.96);
   border-top: 1px solid #E6E8EC;
 }
 
