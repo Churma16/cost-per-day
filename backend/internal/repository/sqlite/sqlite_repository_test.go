@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gorm.io/gorm"
+
 	"cost-per-day/backend/internal/domain"
 	sqliterepository "cost-per-day/backend/internal/repository/sqlite"
 )
@@ -25,6 +27,16 @@ func openTestDatabase(t *testing.T) (*sql.DB, string) {
 	})
 
 	return databaseConnection, databasePath
+}
+
+func newTestGORM(t *testing.T, databaseConnection *sql.DB) *gorm.DB {
+	t.Helper()
+
+	gormDB, gormError := sqliterepository.NewGORM(databaseConnection)
+	if gormError != nil {
+		t.Fatalf("initialize test GORM database: %v", gormError)
+	}
+	return gormDB
 }
 
 func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
@@ -259,7 +271,7 @@ func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 
 func TestSQLiteSettingsRepositoryReadAndUpdate(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
-	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
+	settingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, databaseConnection))
 	ctx := context.Background()
 
 	settings, getAllError := settingsRepository.GetAll(ctx, domain.LegacyUserID)
@@ -310,7 +322,7 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 	}
 
 	firstItemRepository := sqliterepository.NewItemRepository(firstConnection)
-	firstSettingsRepository := sqliterepository.NewSettingsRepository(firstConnection)
+	firstSettingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, firstConnection))
 
 	createdItem, createError := firstItemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
 		Name:         "Orthopedic Pillow",
@@ -335,7 +347,7 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 	defer secondConnection.Close()
 
 	secondItemRepository := sqliterepository.NewItemRepository(secondConnection)
-	secondSettingsRepository := sqliterepository.NewSettingsRepository(secondConnection)
+	secondSettingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, secondConnection))
 
 	persistedItem, getItemError := secondItemRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID)
 	if getItemError != nil {
