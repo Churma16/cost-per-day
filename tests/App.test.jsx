@@ -81,6 +81,9 @@ describe('Header route isolation regression tests', () => {
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);
+    expect(document.querySelectorAll('.page-content')).toHaveLength(1);
+    expect(document.querySelector('.page-content')).toHaveAttribute('class', 'page-content');
+    expect(document.querySelector('.settings-page-content')).not.toHaveClass('page-content');
   });
 
   test('renders clean header on /planning without page-header banner', async () => {
@@ -111,6 +114,9 @@ describe('Header route isolation regression tests', () => {
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);
+    expect(document.querySelectorAll('.page-content')).toHaveLength(1);
+    expect(document.querySelector('.page-content')).toHaveAttribute('class', 'page-content');
+    expect(document.querySelector('.form-page-content')).not.toHaveClass('page-content');
   });
 
   test('renders clean header on /edit without page-header banner', async () => {
@@ -121,5 +127,8 @@ describe('Header route isolation regression tests', () => {
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);
+    expect(document.querySelectorAll('.page-content')).toHaveLength(1);
+    expect(document.querySelector('.page-content')).toHaveAttribute('class', 'page-content');
+    expect(document.querySelector('.form-page-content')).not.toHaveClass('page-content');
   });
 });
