@@ -2,17 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
-  IoChevronForward,
-  IoLanguageOutline,
-  IoCashOutline,
-  IoScaleOutline,
-  IoCloudDownloadOutline,
-  IoCloudUploadOutline,
-  IoLogOutOutline,
   IoWarningOutline,
-  IoAdd,
-  IoTrashOutline,
-  IoPencilOutline,
   IoClose
 } from 'react-icons/io5';
 import { getAllItems, replaceAllItems } from '../services/api';
@@ -26,6 +16,10 @@ import { useInvalidateItems } from '../hooks/useItems';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 import { PRODUCT_EXPORT_PREFIX, APP_VERSION } from '../constants/branding';
 import CurrencyInput from './common/CurrencyInput';
+import GeneralSettingsSection from './settings/GeneralSettingsSection';
+import ValueEquivalentsSection from './settings/ValueEquivalentsSection';
+import DataManagementSection from './settings/DataManagementSection';
+import AccountSettingsSection from './settings/AccountSettingsSection';
 
 function Settings() {
   const { t } = useTranslation();
@@ -442,220 +436,40 @@ function Settings() {
           </div>
         )}
 
-        {/* Section 1: Umum (General) */}
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 mb-1.5 px-1">
-            {t('general')}
-          </h2>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {/* Language Selector Row */}
-            <button
-              type="button"
-              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
-              onClick={() => {
-                if (!closingModal) setShowLanguageDropdown(true);
-              }}
-              aria-label={`${t('language')}: ${getLanguageName(language)}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
-                  <IoLanguageOutline className="text-base" />
-                </div>
-                <span className="text-sm font-medium text-gray-800">{t('language')}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                <span>{getLanguageName(language)}</span>
-                <IoChevronForward className="text-gray-400 text-sm" />
-              </div>
-            </button>
+        <GeneralSettingsSection
+          language={language}
+          languageName={getLanguageName(language)}
+          selectedCurrencyOption={selectedCurrencyOption}
+          isInteractionBlocked={Boolean(closingModal)}
+          onOpenLanguage={() => setShowLanguageDropdown(true)}
+          onOpenCurrency={() => setShowCurrencyDropdown(true)}
+        />
 
-            <div className="border-b border-gray-100 mx-3.5" />
+        <ValueEquivalentsSection
+          valueEquivalents={valueEquivalents}
+          isLoading={isLoadingEquivalents}
+          error={equivalentsError}
+          isInteractionBlocked={Boolean(closingModal)}
+          onAdd={handleOpenAddEquivalent}
+          onEdit={handleOpenEditEquivalent}
+          onDelete={handleOpenDeleteConfirm}
+        />
 
-            {/* Currency Selector Row */}
-            <button
-              type="button"
-              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
-              onClick={() => {
-                if (!closingModal) setShowCurrencyDropdown(true);
-              }}
-              aria-label={`${t('currency')}: ${selectedCurrencyOption?.symbol} ${selectedCurrencyOption?.name}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
-                  <IoCashOutline className="text-base" />
-                </div>
-                <span className="text-sm font-medium text-gray-800">{t('currency')}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                <span>
-                  {selectedCurrencyOption?.symbol} {selectedCurrencyOption?.code}
-                </span>
-                <IoChevronForward className="text-gray-400 text-sm" />
-              </div>
-            </button>
-          </div>
-        </div>
+        <DataManagementSection
+          fileInputRef={fileInputRef}
+          isInteractionBlocked={Boolean(closingModal)}
+          onExport={handleExportData}
+          onImport={handleImportData}
+          onFileChange={handleFileChange}
+        />
 
-        {/* Section 2: Perbandingan Nilai (Value Equivalents) */}
-        <div>
-          <div className="flex items-center justify-between mb-0.5 px-1">
-            <h2 className="text-xs font-medium text-gray-500">
-              {t('valueEquivalents')}
-            </h2>
-            <button
-              type="button"
-              className="text-xs font-semibold text-[#2F7473] hover:text-[#265e5d] flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-teal-50/60"
-              onClick={() => {
-                if (!closingModal) handleOpenAddEquivalent();
-              }}
-              aria-label={t('addEquivalent')}
-            >
-              <IoAdd className="text-sm" />
-              <span>{t('add')}</span>
-            </button>
-          </div>
-          <p className="text-xs text-gray-400 mb-1.5 px-1">
-            {t('valueEquivalentsSubtitle')}
-          </p>
-
-          {isLoadingEquivalents ? (
-            <div className="text-center py-6 text-gray-400 text-sm">
-              <p>{t('loading')}</p>
-            </div>
-          ) : equivalentsError ? (
-            <div role="alert" className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-100">
-              {equivalentsError.message || t('errorLoadingEquivalents')}
-            </div>
-          ) : valueEquivalents.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 text-center shadow-sm">
-              <p className="text-sm text-gray-400">{t('noEquivalents')}</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              {valueEquivalents.map((equivalentItem, index) => (
-                <React.Fragment key={equivalentItem.id}>
-                  {index > 0 && <div className="border-b border-gray-100 mx-3.5" />}
-                  <div className="py-2.5 px-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-teal-50 text-[#2F7473] flex items-center justify-center flex-shrink-0 border border-teal-100/60">
-                        <IoScaleOutline className="text-base" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm text-gray-900 truncate leading-tight">{equivalentItem.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5 leading-tight">
-                          {formatCurrency(Number(equivalentItem.amount || 0), equivalentItem.currencyCode)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <button
-                        type="button"
-                        aria-label={`${t('editEquivalent')} ${equivalentItem.name}`}
-                        className="p-1.5 text-gray-400 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-                        onClick={() => {
-                          if (!closingModal) handleOpenEditEquivalent(equivalentItem);
-                        }}
-                      >
-                        <IoPencilOutline className="text-base" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`${t('deleteEquivalent')} ${equivalentItem.name}`}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        onClick={() => {
-                          if (!closingModal) handleOpenDeleteConfirm(equivalentItem);
-                        }}
-                      >
-                        <IoTrashOutline className="text-base" />
-                      </button>
-                    </div>
-                  </div>
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Section 3: Data */}
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 mb-1.5 px-1">
-            {t('data')}
-          </h2>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {/* Export Row */}
-            <button
-              type="button"
-              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
-              onClick={() => {
-                if (!closingModal) handleExportData();
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
-                  <IoCloudDownloadOutline className="text-base" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-gray-900 leading-tight">{t('exportData')}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t('exportDataSubtitle')}</p>
-                </div>
-              </div>
-              <IoChevronForward className="text-gray-400 text-sm flex-shrink-0" />
-            </button>
-
-            <div className="border-b border-gray-100 mx-3.5" />
-
-            {/* Import Row */}
-            <button
-              type="button"
-              className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
-              onClick={() => {
-                if (!closingModal) handleImportData();
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
-                  <IoCloudUploadOutline className="text-base" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-gray-900 leading-tight">{t('importData')}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t('importDataSubtitle')}</p>
-                </div>
-              </div>
-              <IoChevronForward className="text-gray-400 text-sm flex-shrink-0" />
-            </button>
-
-            {/* Hidden file input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept=".json"
-              onChange={handleFileChange}
-            />
-          </div>
-        </div>
-
-        {/* Section 4: Akun / Keluar Akun */}
-        <div>
-          <button
-            type="button"
-            className="w-full flex items-center justify-center gap-2 py-3 px-3.5 bg-white border border-red-200/90 rounded-2xl text-red-600 hover:bg-red-50/60 active:bg-red-100/60 transition-colors font-medium text-sm shadow-sm disabled:opacity-50"
-            onClick={() => {
-              if (!closingModal) handleSignOut();
-            }}
-            disabled={isSigningOut || Boolean(closingModal)}
-            aria-label={t('signOut')}
-            title={user?.displayName || user?.email || t('signOut')}
-          >
-            <IoLogOutOutline className="text-lg" />
-            <span>{isSigningOut ? t('loading') : t('signOut')}</span>
-          </button>
-          {(signOutError || authError) && (
-            <p role="alert" className="mt-2 text-center text-xs text-red-600">
-              {signOutError || authError?.message || t('signOutError')}
-            </p>
-          )}
-        </div>
+        <AccountSettingsSection
+          user={user}
+          isSigningOut={isSigningOut}
+          isInteractionBlocked={Boolean(closingModal)}
+          error={signOutError || authError?.message || null}
+          onSignOut={handleSignOut}
+        />
 
         {/* Version Info */}
         <div className="text-center text-gray-400 text-xs py-2">
