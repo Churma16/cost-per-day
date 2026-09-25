@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/repository"
 )
@@ -17,15 +19,15 @@ type plannedPurchaseScanner interface {
 	Scan(destinations ...any) error
 }
 
-// PlannedPurchaseRepository implements repository.PlannedPurchaseRepository using user-scoped SQLite queries.
+// PlannedPurchaseRepository implements repository.PlannedPurchaseRepository using user-scoped SQLite queries through GORM.
 type PlannedPurchaseRepository struct {
-	databaseConnection *sql.DB
+	database *gorm.DB
 }
 
-// NewPlannedPurchaseRepository creates a SQLite-backed planned purchase repository.
-func NewPlannedPurchaseRepository(databaseConnection *sql.DB) repository.PlannedPurchaseRepository {
+// NewPlannedPurchaseRepository creates a GORM-backed planned purchase repository.
+func NewPlannedPurchaseRepository(database *gorm.DB) repository.PlannedPurchaseRepository {
 	return &PlannedPurchaseRepository{
-		databaseConnection: databaseConnection,
+		database: database,
 	}
 }
 
@@ -36,12 +38,12 @@ func (repositoryInstance *PlannedPurchaseRepository) List(ctx context.Context, u
 		return nil, identityError
 	}
 
-	rows, queryError := repositoryInstance.databaseConnection.QueryContext(ctx, `
+	rows, queryError := repositoryInstance.database.WithContext(ctx).Raw(`
 		SELECT user_id, id, name, target_price_micros, currency_code, target_date, contribution_amount_micros, contribution_cadence, created_at, updated_at
 		FROM planned_purchases
 		WHERE user_id = ?
 		ORDER BY id ASC
-	`, normalizedUserID)
+	`, normalizedUserID).Rows()
 	if queryError != nil {
 		return nil, fmt.Errorf("list planned purchases: %w", queryError)
 	}
@@ -75,11 +77,11 @@ func (repositoryInstance *PlannedPurchaseRepository) GetByID(ctx context.Context
 		return domain.PlannedPurchase{}, domain.ErrPlannedPurchaseNotFound
 	}
 
-	plannedPurchase, scanError := scanPlannedPurchase(repositoryInstance.databaseConnection.QueryRowContext(ctx, `
+	plannedPurchase, scanError := scanPlannedPurchase(repositoryInstance.database.WithContext(ctx).Raw(`
 		SELECT user_id, id, name, target_price_micros, currency_code, target_date, contribution_amount_micros, contribution_cadence, created_at, updated_at
 		FROM planned_purchases
 		WHERE user_id = ? AND id = ?
-	`, normalizedUserID, parsedID))
+	`, normalizedUserID, parsedID).Row())
 	if errors.Is(scanError, sql.ErrNoRows) {
 		return domain.PlannedPurchase{}, domain.ErrPlannedPurchaseNotFound
 	}
@@ -124,17 +126,14 @@ func (repositoryInstance *PlannedPurchaseRepository) Create(ctx context.Context,
 	currentTime := time.Now().UTC()
 	formattedTimestamp := currentTime.Format(time.RFC3339Nano)
 
-	executionResult, insertError := repositoryInstance.databaseConnection.ExecContext(ctx, `
+	var generatedID int64
+	insertError := repositoryInstance.database.WithContext(ctx).Raw(`
 		INSERT INTO planned_purchases (user_id, name, target_price_micros, currency_code, target_date, contribution_amount_micros, contribution_cadence, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`, normalizedUserID, strings.TrimSpace(purchaseToCreate.Name), targetPriceMicros, strings.TrimSpace(purchaseToCreate.CurrencyCode), targetDateValue, contributionAmountMicrosValue, contributionCadenceValue, formattedTimestamp, formattedTimestamp)
+		RETURNING id
+	`, normalizedUserID, strings.TrimSpace(purchaseToCreate.Name), targetPriceMicros, strings.TrimSpace(purchaseToCreate.CurrencyCode), targetDateValue, contributionAmountMicrosValue, contributionCadenceValue, formattedTimestamp, formattedTimestamp).Row().Scan(&generatedID)
 	if insertError != nil {
 		return domain.PlannedPurchase{}, fmt.Errorf("insert planned purchase: %w", insertError)
-	}
-
-	generatedID, idError := executionResult.LastInsertId()
-	if idError != nil {
-		return domain.PlannedPurchase{}, fmt.Errorf("retrieve planned purchase last insert identifier: %w", idError)
 	}
 
 	createdPurchase := purchaseToCreate
@@ -186,20 +185,16 @@ func (repositoryInstance *PlannedPurchaseRepository) Update(ctx context.Context,
 	currentTime := time.Now().UTC()
 	formattedTimestamp := currentTime.Format(time.RFC3339Nano)
 
-	executionResult, updateError := repositoryInstance.databaseConnection.ExecContext(ctx, `
+	updateResult := repositoryInstance.database.WithContext(ctx).Exec(`
 		UPDATE planned_purchases
 		SET name = ?, target_price_micros = ?, currency_code = ?, target_date = ?, contribution_amount_micros = ?, contribution_cadence = ?, updated_at = ?
 		WHERE user_id = ? AND id = ?
 	`, strings.TrimSpace(purchaseToUpdate.Name), targetPriceMicros, strings.TrimSpace(purchaseToUpdate.CurrencyCode), targetDateValue, contributionAmountMicrosValue, contributionCadenceValue, formattedTimestamp, normalizedUserID, parsedID)
-	if updateError != nil {
-		return domain.PlannedPurchase{}, fmt.Errorf("update planned purchase: %w", updateError)
+	if updateResult.Error != nil {
+		return domain.PlannedPurchase{}, fmt.Errorf("update planned purchase: %w", updateResult.Error)
 	}
 
-	affectedRows, rowsAffectedError := executionResult.RowsAffected()
-	if rowsAffectedError != nil {
-		return domain.PlannedPurchase{}, fmt.Errorf("inspect planned purchase rows affected: %w", rowsAffectedError)
-	}
-	if affectedRows == 0 {
+	if updateResult.RowsAffected == 0 {
 		return domain.PlannedPurchase{}, domain.ErrPlannedPurchaseNotFound
 	}
 
@@ -223,19 +218,15 @@ func (repositoryInstance *PlannedPurchaseRepository) Delete(ctx context.Context,
 		return domain.ErrPlannedPurchaseNotFound
 	}
 
-	executionResult, deleteError := repositoryInstance.databaseConnection.ExecContext(ctx, `
+	deleteResult := repositoryInstance.database.WithContext(ctx).Exec(`
 		DELETE FROM planned_purchases
 		WHERE user_id = ? AND id = ?
 	`, normalizedUserID, parsedID)
-	if deleteError != nil {
-		return fmt.Errorf("delete planned purchase: %w", deleteError)
+	if deleteResult.Error != nil {
+		return fmt.Errorf("delete planned purchase: %w", deleteResult.Error)
 	}
 
-	affectedRows, rowsAffectedError := executionResult.RowsAffected()
-	if rowsAffectedError != nil {
-		return fmt.Errorf("inspect planned purchase delete rows affected: %w", rowsAffectedError)
-	}
-	if affectedRows == 0 {
+	if deleteResult.RowsAffected == 0 {
 		return domain.ErrPlannedPurchaseNotFound
 	}
 
