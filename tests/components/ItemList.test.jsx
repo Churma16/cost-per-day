@@ -625,6 +625,41 @@ describe('ItemList lifecycle display', () => {
     expect(dialog.previousElementSibling).toHaveClass('bg-black/40');
   });
 
+  test('contains keyboard focus in the organization dialog and restores it to the trigger', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'focus-item',
+        name: 'Camera',
+        price: 300,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        ownershipDays: 25,
+        grossCostPerDay: 12,
+      },
+    ]);
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+    await screen.findByText('Camera');
+
+    const trigger = screen.getByRole('button', { name: 'Sort & group' });
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    const closeButton = screen.getByRole('button', { name: 'Close' });
+    const doneButton = screen.getByRole('button', { name: 'Done' });
+    expect(closeButton).toHaveFocus();
+
+    doneButton.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(closeButton).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(doneButton).toHaveFocus();
+
+    fireEvent.click(doneButton);
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
   test('keeps the organization window mounted for its calm closing animation', async () => {
     getAllItems.mockResolvedValueOnce([
       {
