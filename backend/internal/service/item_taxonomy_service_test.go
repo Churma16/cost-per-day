@@ -84,6 +84,154 @@ func TestItemService_CategoryAndBrandFindOrCreate(t *testing.T) {
 	}
 }
 
+func TestItemService_TaxonomyResolutionSharedAcrossWriteFlows(t *testing.T) {
+	ctx := context.Background()
+	itemRepo := memory.NewMemoryItemRepository()
+	catRepo := memory.NewMemoryCategoryRepository()
+	brandRepo := memory.NewMemoryBrandRepository()
+	itemService := service.NewItemService(itemRepo, catRepo, brandRepo)
+
+	const userID = "user-taxonomy-shared"
+
+	categoryName := "Audio"
+	brandName := "Sony"
+	createdItem, createError := itemService.CreateItem(
+		ctx,
+		userID,
+		"Headphones",
+		300,
+		"2026-01-01T12:00:00Z",
+		&categoryName,
+		&brandName,
+		nil,
+		nil,
+	)
+	if createError != nil {
+		t.Fatalf("create item: %v", createError)
+	}
+	if createdItem.CategoryID == nil || createdItem.BrandID == nil {
+		t.Fatalf("expected canonical taxonomy IDs, got category=%v brand=%v", createdItem.CategoryID, createdItem.BrandID)
+	}
+
+	canonicalCategoryID := *createdItem.CategoryID
+	canonicalBrandID := *createdItem.BrandID
+
+	updatedCategory := "  audio  "
+	updatedBrand := "  sony  "
+	updatedItem, updateError := itemService.UpdateItem(
+		ctx,
+		userID,
+		createdItem.ID,
+		createdItem.Name,
+		createdItem.Price,
+		createdItem.PurchaseDate,
+		domain.ItemStatusActive,
+		nil,
+		nil,
+		&updatedCategory,
+		&updatedBrand,
+		nil,
+		nil,
+	)
+	if updateError != nil {
+		t.Fatalf("update item: %v", updateError)
+	}
+	if updatedItem.CategoryID == nil || *updatedItem.CategoryID != canonicalCategoryID {
+		t.Fatalf("expected update to reuse category ID %d, got %v", canonicalCategoryID, updatedItem.CategoryID)
+	}
+	if updatedItem.BrandID == nil || *updatedItem.BrandID != canonicalBrandID {
+		t.Fatalf("expected update to reuse brand ID %d, got %v", canonicalBrandID, updatedItem.BrandID)
+	}
+	if updatedItem.Category == nil || *updatedItem.Category != "Audio" {
+		t.Fatalf("expected canonical category name Audio after update, got %v", updatedItem.Category)
+	}
+	if updatedItem.Brand == nil || *updatedItem.Brand != "Sony" {
+		t.Fatalf("expected canonical brand name Sony after update, got %v", updatedItem.Brand)
+	}
+
+	replacementCategory := " AUDIO "
+	replacementBrand := " SONY "
+	replacedItems, replaceError := itemService.ReplaceItems(ctx, userID, []domain.Item{
+		{
+			Name:         "Replacement Headphones",
+			Price:        250,
+			PurchaseDate: "2026-02-01T12:00:00Z",
+			Category:     &replacementCategory,
+			Brand:        &replacementBrand,
+		},
+	})
+	if replaceError != nil {
+		t.Fatalf("replace items: %v", replaceError)
+	}
+	if len(replacedItems) != 1 {
+		t.Fatalf("expected one replacement item, got %d", len(replacedItems))
+	}
+	replacedItem := replacedItems[0]
+	if replacedItem.CategoryID == nil || *replacedItem.CategoryID != canonicalCategoryID {
+		t.Fatalf("expected replace to reuse category ID %d, got %v", canonicalCategoryID, replacedItem.CategoryID)
+	}
+	if replacedItem.BrandID == nil || *replacedItem.BrandID != canonicalBrandID {
+		t.Fatalf("expected replace to reuse brand ID %d, got %v", canonicalBrandID, replacedItem.BrandID)
+	}
+	if replacedItem.Category == nil || *replacedItem.Category != "Audio" {
+		t.Fatalf("expected canonical category name Audio after replace, got %v", replacedItem.Category)
+	}
+	if replacedItem.Brand == nil || *replacedItem.Brand != "Sony" {
+		t.Fatalf("expected canonical brand name Sony after replace, got %v", replacedItem.Brand)
+	}
+
+	otherUserCategory := "Audio"
+	otherUserBrand := "Sony"
+	otherUserItem, otherUserError := itemService.CreateItem(
+		ctx,
+		"other-user",
+		"Other Headphones",
+		200,
+		"2026-03-01T12:00:00Z",
+		&otherUserCategory,
+		&otherUserBrand,
+		nil,
+		nil,
+	)
+	if otherUserError != nil {
+		t.Fatalf("create item for other user: %v", otherUserError)
+	}
+	if otherUserItem.CategoryID == nil || *otherUserItem.CategoryID == canonicalCategoryID {
+		t.Fatalf("expected category resolution to remain user-scoped, got %v", otherUserItem.CategoryID)
+	}
+	if otherUserItem.BrandID == nil || *otherUserItem.BrandID == canonicalBrandID {
+		t.Fatalf("expected brand resolution to remain user-scoped, got %v", otherUserItem.BrandID)
+	}
+
+	blankCategory := "   "
+	blankBrand := "   "
+	staleCategoryID := int64(999)
+	staleBrandID := int64(999)
+	blankItems, blankError := itemService.ReplaceItems(ctx, userID, []domain.Item{
+		{
+			Name:         "Uncategorized Item",
+			Price:        100,
+			PurchaseDate: "2026-04-01T12:00:00Z",
+			CategoryID:   &staleCategoryID,
+			Category:     &blankCategory,
+			BrandID:      &staleBrandID,
+			Brand:        &blankBrand,
+		},
+	})
+	if blankError != nil {
+		t.Fatalf("replace item with blank taxonomy: %v", blankError)
+	}
+	if len(blankItems) != 1 {
+		t.Fatalf("expected one item after blank taxonomy replace, got %d", len(blankItems))
+	}
+	if blankItems[0].CategoryID != nil || blankItems[0].Category != nil {
+		t.Fatalf("expected blank category to clear category fields, got ID=%v name=%v", blankItems[0].CategoryID, blankItems[0].Category)
+	}
+	if blankItems[0].BrandID != nil || blankItems[0].Brand != nil {
+		t.Fatalf("expected blank brand to clear brand fields, got ID=%v name=%v", blankItems[0].BrandID, blankItems[0].Brand)
+	}
+}
+
 func TestItemService_TaxonomyPersistenceFailurePropagation(t *testing.T) {
 	ctx := context.Background()
 	userID := "user-tax-err"

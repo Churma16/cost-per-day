@@ -133,48 +133,22 @@ func (serviceInstance *itemServiceImpl) CreateItem(
 		return domain.Item{}, identityError
 	}
 
-	var categoryID *int64
-	var categoryName *string
-	if category != nil && strings.TrimSpace(*category) != "" {
-		trimmedCategory := strings.TrimSpace(*category)
-		categoryName = &trimmedCategory
-		if serviceInstance.categoryRepository != nil {
-			cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
-			if catErr != nil {
-				return domain.Item{}, fmt.Errorf("resolve category: %w", catErr)
-			}
-			categoryID = &cat.ID
-			categoryName = &cat.Name
-		}
-	}
-
-	var brandID *int64
-	var brandName *string
-	if brand != nil && strings.TrimSpace(*brand) != "" {
-		trimmedBrand := strings.TrimSpace(*brand)
-		brandName = &trimmedBrand
-		if serviceInstance.brandRepository != nil {
-			b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
-			if bErr != nil {
-				return domain.Item{}, fmt.Errorf("resolve brand: %w", bErr)
-			}
-			brandID = &b.ID
-			brandName = &b.Name
-		}
-	}
-
-	validatedItem, validationError := validateItem(domain.Item{
+	rawItem := domain.Item{
 		Name:         name,
 		Price:        price,
 		PurchaseDate: purchaseDate,
 		Status:       domain.ItemStatusActive,
-		CategoryID:   categoryID,
-		Category:     categoryName,
-		BrandID:      brandID,
-		Brand:        brandName,
+		Category:     category,
+		Brand:        brand,
 		TargetType:   targetType,
 		TargetValue:  targetValue,
-	})
+	}
+	resolvedItem, taxonomyError := serviceInstance.resolveItemTaxonomy(ctx, normalizedUserID, rawItem)
+	if taxonomyError != nil {
+		return domain.Item{}, taxonomyError
+	}
+
+	validatedItem, validationError := validateItem(resolvedItem)
 	if validationError != nil {
 		return domain.Item{}, validationError
 	}
@@ -213,37 +187,7 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		return domain.Item{}, domain.ErrItemNotFound
 	}
 
-	var categoryID *int64
-	var categoryName *string
-	if category != nil && strings.TrimSpace(*category) != "" {
-		trimmedCategory := strings.TrimSpace(*category)
-		categoryName = &trimmedCategory
-		if serviceInstance.categoryRepository != nil {
-			cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
-			if catErr != nil {
-				return domain.Item{}, fmt.Errorf("resolve category: %w", catErr)
-			}
-			categoryID = &cat.ID
-			categoryName = &cat.Name
-		}
-	}
-
-	var brandID *int64
-	var brandName *string
-	if brand != nil && strings.TrimSpace(*brand) != "" {
-		trimmedBrand := strings.TrimSpace(*brand)
-		brandName = &trimmedBrand
-		if serviceInstance.brandRepository != nil {
-			b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
-			if bErr != nil {
-				return domain.Item{}, fmt.Errorf("resolve brand: %w", bErr)
-			}
-			brandID = &b.ID
-			brandName = &b.Name
-		}
-	}
-
-	validatedItem, validationError := validateItem(domain.Item{
+	rawItem := domain.Item{
 		ID:           trimmedItemID,
 		Name:         name,
 		Price:        price,
@@ -251,13 +195,17 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 		Status:       status,
 		EndedAt:      endedAt,
 		SalePrice:    salePrice,
-		CategoryID:   categoryID,
-		Category:     categoryName,
-		BrandID:      brandID,
-		Brand:        brandName,
+		Category:     category,
+		Brand:        brand,
 		TargetType:   targetType,
 		TargetValue:  targetValue,
-	})
+	}
+	resolvedItem, taxonomyError := serviceInstance.resolveItemTaxonomy(ctx, normalizedUserID, rawItem)
+	if taxonomyError != nil {
+		return domain.Item{}, taxonomyError
+	}
+
+	validatedItem, validationError := validateItem(resolvedItem)
 	if validationError != nil {
 		return domain.Item{}, validationError
 	}
@@ -293,32 +241,12 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, userID
 
 	validatedItems := make([]domain.Item, 0, len(items))
 	for _, item := range items {
-		if item.Category != nil && strings.TrimSpace(*item.Category) != "" {
-			trimmedCategory := strings.TrimSpace(*item.Category)
-			item.Category = &trimmedCategory
-			if serviceInstance.categoryRepository != nil {
-				cat, catErr := serviceInstance.categoryRepository.FindOrCreate(ctx, normalizedUserID, trimmedCategory)
-				if catErr != nil {
-					return nil, fmt.Errorf("resolve category: %w", catErr)
-				}
-				item.CategoryID = &cat.ID
-				item.Category = &cat.Name
-			}
-		}
-		if item.Brand != nil && strings.TrimSpace(*item.Brand) != "" {
-			trimmedBrand := strings.TrimSpace(*item.Brand)
-			item.Brand = &trimmedBrand
-			if serviceInstance.brandRepository != nil {
-				b, bErr := serviceInstance.brandRepository.FindOrCreate(ctx, normalizedUserID, trimmedBrand)
-				if bErr != nil {
-					return nil, fmt.Errorf("resolve brand: %w", bErr)
-				}
-				item.BrandID = &b.ID
-				item.Brand = &b.Name
-			}
+		resolvedItem, taxonomyError := serviceInstance.resolveItemTaxonomy(ctx, normalizedUserID, item)
+		if taxonomyError != nil {
+			return nil, taxonomyError
 		}
 
-		validatedItem, validationError := validateItem(item)
+		validatedItem, validationError := validateItem(resolvedItem)
 		if validationError != nil {
 			return nil, validationError
 		}
@@ -415,6 +343,52 @@ func (serviceInstance *itemServiceImpl) CalculateReplacementBenchmark(
 	return benchmark, nil
 }
 
+// resolveItemTaxonomy normalizes optional taxonomy names and resolves canonical user-scoped entries.
+func (serviceInstance *itemServiceImpl) resolveItemTaxonomy(
+	ctx context.Context,
+	userID string,
+	item domain.Item,
+) (domain.Item, error) {
+	resolvedItem := item
+
+	if item.Category != nil {
+		trimmedCategory := strings.TrimSpace(*item.Category)
+		if trimmedCategory == "" {
+			resolvedItem.CategoryID = nil
+			resolvedItem.Category = nil
+		} else {
+			resolvedItem.Category = &trimmedCategory
+			if serviceInstance.categoryRepository != nil {
+				category, categoryError := serviceInstance.categoryRepository.FindOrCreate(ctx, userID, trimmedCategory)
+				if categoryError != nil {
+					return domain.Item{}, fmt.Errorf("resolve category: %w", categoryError)
+				}
+				resolvedItem.CategoryID = &category.ID
+				resolvedItem.Category = &category.Name
+			}
+		}
+	}
+
+	if item.Brand != nil {
+		trimmedBrand := strings.TrimSpace(*item.Brand)
+		if trimmedBrand == "" {
+			resolvedItem.BrandID = nil
+			resolvedItem.Brand = nil
+		} else {
+			resolvedItem.Brand = &trimmedBrand
+			if serviceInstance.brandRepository != nil {
+				brand, brandError := serviceInstance.brandRepository.FindOrCreate(ctx, userID, trimmedBrand)
+				if brandError != nil {
+					return domain.Item{}, fmt.Errorf("resolve brand: %w", brandError)
+				}
+				resolvedItem.BrandID = &brand.ID
+				resolvedItem.Brand = &brand.Name
+			}
+		}
+	}
+
+	return resolvedItem, nil
+}
 
 func validateItem(item domain.Item) (domain.Item, error) {
 	trimmedName := strings.TrimSpace(item.Name)
