@@ -147,7 +147,7 @@ func TestOpenRejectsDatabaseFromNewerSchemaBeforeChangingJournalMode(t *testing.
 
 func TestSQLiteItemRepositoryCRUD(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
-	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepository := sqliterepository.NewItemRepository(newTestGORM(t, databaseConnection))
 	ctx := context.Background()
 
 	createdItem, createError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
@@ -321,7 +321,7 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 		t.Fatalf("failed to open first database connection: %v", firstOpenError)
 	}
 
-	firstItemRepository := sqliterepository.NewItemRepository(firstConnection)
+	firstItemRepository := sqliterepository.NewItemRepository(newTestGORM(t, firstConnection))
 	firstSettingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, firstConnection))
 
 	createdItem, createError := firstItemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
@@ -346,7 +346,7 @@ func TestSQLiteDataPersistsAcrossReopen(t *testing.T) {
 	}
 	defer secondConnection.Close()
 
-	secondItemRepository := sqliterepository.NewItemRepository(secondConnection)
+	secondItemRepository := sqliterepository.NewItemRepository(newTestGORM(t, secondConnection))
 	secondSettingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, secondConnection))
 
 	persistedItem, getItemError := secondItemRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID)
@@ -370,7 +370,7 @@ func TestValueEquivalentRepositoryCRUDAndIsolation(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()
 
-	userRepository := sqliterepository.NewUserRepository(databaseConnection)
+	userRepository := sqliterepository.NewUserRepository(newTestGORM(t, databaseConnection))
 	firstUser, firstUserError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
 		ID:          "user-first",
 		GoogleSub:   "sub-first",
@@ -485,7 +485,7 @@ func TestPlannedPurchaseRepositoryUserIsolationAndOperations(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()
 
-	userRepository := sqliterepository.NewUserRepository(databaseConnection)
+	userRepository := sqliterepository.NewUserRepository(newTestGORM(t, databaseConnection))
 	firstUser, firstUserError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
 		ID:          "user-planned-one",
 		GoogleSub:   "google-sub-user-one",
@@ -506,7 +506,7 @@ func TestPlannedPurchaseRepositoryUserIsolationAndOperations(t *testing.T) {
 		t.Fatalf("failed to create second user: %v", secondUserError)
 	}
 
-	plannedPurchaseRepository := sqliterepository.NewPlannedPurchaseRepository(databaseConnection)
+	plannedPurchaseRepository := sqliterepository.NewPlannedPurchaseRepository(newTestGORM(t, databaseConnection))
 
 	// User one creates a planned purchase with both target date and contribution
 	targetDate := "2027-06-01"
@@ -590,7 +590,7 @@ func TestPlannedPurchaseRepositoryUserIsolationAndOperations(t *testing.T) {
 func TestSQLiteItemOwnershipTargetPersistence(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()
-	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepository := sqliterepository.NewItemRepository(newTestGORM(t, databaseConnection))
 
 	costTargetType := domain.OwnershipTargetTypeCostPerDay
 	targetCostValue := 4000.0
@@ -678,7 +678,7 @@ func TestValueEquivalentRepositoryErrorHandlingAndEdgeCases(t *testing.T) {
 	}
 
 	equivalentRepository := sqliterepository.NewValueEquivalentRepository(gormInstance)
-	userRepository := sqliterepository.NewUserRepository(databaseConnection)
+	userRepository := sqliterepository.NewUserRepository(gormInstance)
 
 	firstUser, userError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
 		ID:          "user-equiv-1",
