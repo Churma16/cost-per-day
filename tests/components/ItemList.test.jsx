@@ -19,6 +19,7 @@ import { queryKeys } from '../../src/query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
+    i18n: { language: 'en' },
     t: (key, options) => {
       if (key === 'equivalentPerDay') {
         return `${options?.count} ${options?.name}/day`;
@@ -69,6 +70,25 @@ vi.mock('react-i18next', () => ({
         edit: 'Edit',
         yourItems: 'Your Items',
         sortedHighestCost: 'Sorted: highest cost',
+        organizeItems: 'Sort & group',
+        filterByOwnershipState: 'Filter by ownership state',
+        allStates: 'All states',
+        groupBy: 'Group by',
+        groupOwnershipState: 'Ownership state',
+        groupNone: 'None',
+        sortBy: 'Sort',
+        sortRecentlyAcquired: 'Recently acquired',
+        sortOldestOwned: 'Oldest owned',
+        sortNameAscending: 'Name: A to Z',
+        sortNameDescending: 'Name: Z to A',
+        sortCostDescending: 'Cost per day: high to low',
+        sortCostAscending: 'Cost per day: low to high',
+        sortPriceDescending: 'Price: high to low',
+        sortPriceAscending: 'Price: low to high',
+        uncategorized: 'Uncategorized',
+        noItemsMatchFilter: 'No items match this filter',
+        done: 'Done',
+        close: 'Close',
         ownedFor: 'Owned for',
         deleteItem: 'Delete',
         confirmDelete: 'Confirm Delete',
@@ -117,11 +137,22 @@ const render = (ui) => {
   });
 };
 
+const createMemoryStorage = () => {
+  const values = new Map();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: (key) => values.delete(key),
+    clear: () => values.clear(),
+  };
+};
+
 describe('ItemList lifecycle display', () => {
   const setTotalDailyCost = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('localStorage', createMemoryStorage());
     useTotalCost.mockReturnValue({ setTotalDailyCost });
     useCurrency.mockReturnValue({ currencyCode: 'USD' });
     useValueEquivalents.mockReturnValue({ valueEquivalents: [] });
@@ -548,7 +579,7 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('114%')).toBeInTheDocument();
   });
 
-  test('renders section header and does not render redundant currentCostPerDay for active items', async () => {
+  test('renders the compact organization entry point without redundant active-item cost copy', async () => {
     getAllItems.mockResolvedValueOnce([
       {
         id: '1',
@@ -567,9 +598,54 @@ describe('ItemList lifecycle display', () => {
     );
 
     expect(await screen.findByText('Your Items')).toBeInTheDocument();
-    expect(screen.getByText('Sorted: highest cost')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeInTheDocument();
     expect(screen.getByText('Jabra Elite 4')).toBeInTheDocument();
     expect(screen.queryByText('Current cost per day')).not.toBeInTheDocument();
+  });
+
+  test('filters multiple lifecycle presentation states and persists organization choices', async () => {
+    getAllItems.mockResolvedValue([
+      { id: 'new', name: 'New Camera', price: 300, purchaseDate: '2026-09-20T12:00:00Z', status: 'active', ownershipDays: 6, grossCostPerDay: 50 },
+      { id: 'active', name: 'Old Camera', price: 300, purchaseDate: '2026-01-01T12:00:00Z', status: 'active', ownershipDays: 200, grossCostPerDay: 1.5 },
+      { id: 'sold', name: 'Sold Camera', price: 200, purchaseDate: '2025-01-01T12:00:00Z', status: 'sold', ownershipDays: 100, grossCostPerDay: 2 },
+    ]);
+
+    const firstRender = render(<MemoryRouter><ItemList /></MemoryRouter>);
+    expect(await screen.findByText('New Camera')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sort & group' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Just Joined You' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Changed Hands' }));
+    expect(screen.queryByText('Old Camera')).not.toBeInTheDocument();
+    expect(screen.getByText('New Camera')).toBeInTheDocument();
+    expect(screen.getByText('Sold Camera')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: 'None' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Name: Z to A' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    firstRender.unmount();
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+    expect(await screen.findByText('Sold Camera')).toBeInTheDocument();
+    expect(screen.getByText('New Camera')).toBeInTheDocument();
+    expect(screen.queryByText('Old Camera')).not.toBeInTheDocument();
+  });
+
+  test('normalizes deselecting the final state back to All states', async () => {
+    getAllItems.mockResolvedValue([
+      { id: 'active', name: 'Active Item', price: 10, purchaseDate: '2026-01-01T12:00:00Z', status: 'active', ownershipDays: 100, grossCostPerDay: 1 },
+      { id: 'lost', name: 'Lost Item', price: 20, purchaseDate: '2025-01-01T12:00:00Z', status: 'lost', ownershipDays: 100, grossCostPerDay: 2 },
+    ]);
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+    await screen.findByText('Active Item');
+    fireEvent.click(screen.getByRole('button', { name: 'Sort & group' }));
+    const lostCheckbox = screen.getByRole('checkbox', { name: 'Lost' });
+    fireEvent.click(lostCheckbox);
+    expect(screen.queryByText('Active Item')).not.toBeInTheDocument();
+    fireEvent.click(lostCheckbox);
+    expect(screen.getByRole('checkbox', { name: 'All states' })).toBeChecked();
+    expect(screen.getByText('Active Item')).toBeInTheDocument();
+    expect(screen.getByText('Lost Item')).toBeInTheDocument();
   });
 
   test('renders owned for duration and handles item deletion with confirmation dialog', async () => {
