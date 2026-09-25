@@ -2,11 +2,11 @@ import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAllItems } from '../services/api';
-import { queryKeys } from '../query/queryConfig';
-import { invalidateItemQueries, useItems } from './useItems';
+import { getAllItems } from '../../src/services/api';
+import { queryKeys } from '../../src/query/queryConfig';
+import { invalidateItemQueries, useItems } from '../../src/hooks/useItems';
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   getAllItems: vi.fn(),
 }));
 

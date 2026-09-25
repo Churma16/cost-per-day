@@ -10,10 +10,10 @@ import {
   useCategories,
   useBrands,
   invalidateDurabilityQuery,
-} from './useDurabilityAnalytics';
-import * as durabilityService from '../services/durabilityService';
+} from '../../src/hooks/useDurabilityAnalytics';
+import * as durabilityService from '../../src/services/durabilityService';
 
-vi.mock('../services/durabilityService', () => ({
+vi.mock('../../src/services/durabilityService', () => ({
   fetchDurabilityAnalytics: vi.fn(),
   fetchCategories: vi.fn(),
   fetchBrands: vi.fn(),

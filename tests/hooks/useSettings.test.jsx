@@ -2,11 +2,11 @@ import React from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { updateSetting } from '../services/api';
-import { queryKeys } from '../query/queryConfig';
-import { useUpdateSetting } from './useSettings';
+import { updateSetting } from '../../src/services/api';
+import { queryKeys } from '../../src/query/queryConfig';
+import { useUpdateSetting } from '../../src/hooks/useSettings';
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   getAllSettings: vi.fn(),
   updateSetting: vi.fn(),
 }));

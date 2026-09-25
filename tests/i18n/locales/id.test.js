@@ -1,5 +1,5 @@
-import translationEN from './en';
-import translationID from './id';
+import translationEN from '../../../src/i18n/locales/en';
+import translationID from '../../../src/i18n/locales/id';
 
 describe('Indonesian translation resource', () => {
   test('defines every translation key available in English', () => {

@@ -9,10 +9,10 @@ import {
   useUpdatePlannedPurchase,
   useDeletePlannedPurchase,
   invalidatePlannedPurchasesQuery,
-} from './usePlannedPurchases';
-import * as plannedPurchaseService from '../services/plannedPurchaseService';
+} from '../../src/hooks/usePlannedPurchases';
+import * as plannedPurchaseService from '../../src/services/plannedPurchaseService';
 
-vi.mock('../services/plannedPurchaseService', () => ({
+vi.mock('../../src/services/plannedPurchaseService', () => ({
   fetchPlannedPurchases: vi.fn(),
   createPlannedPurchase: vi.fn(),
   updatePlannedPurchase: vi.fn(),

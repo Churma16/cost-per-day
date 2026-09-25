@@ -5,10 +5,10 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import {
   VERSION_RELOAD_STORAGE_KEY,
   useVersionCheck,
-} from './useVersionCheck';
-import { fetchVersion } from '../services/versionService';
+} from '../../src/hooks/useVersionCheck';
+import { fetchVersion } from '../../src/services/versionService';
 
-vi.mock('../services/versionService', () => ({
+vi.mock('../../src/services/versionService', () => ({
   fetchVersion: vi.fn(),
 }));
 
