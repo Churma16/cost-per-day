@@ -14,7 +14,7 @@ import {
   updateValueEquivalent,
   deleteValueEquivalent,
   getReplacementBenchmark
-} from './api';
+} from '../../src/services/api';
 
 const response = (status, data, message = 'ok') => ({
   ok: status >= 200 && status < 300,

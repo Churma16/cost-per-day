@@ -3,7 +3,7 @@ import {
   fetchDurabilityAnalytics,
   fetchCategories,
   fetchBrands,
-} from './durabilityService';
+} from '../../src/services/durabilityService';
 
 const response = (status, data, message = 'Success') => ({
   ok: status >= 200 && status < 300,

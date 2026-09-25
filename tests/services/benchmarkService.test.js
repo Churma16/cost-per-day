@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchReplacementBenchmark } from './benchmarkService';
-import * as apiModule from './api';
+import { fetchReplacementBenchmark } from '../../src/services/benchmarkService';
+import * as apiModule from '../../src/services/api';
 
 describe('benchmarkService', () => {
   beforeEach(() => {

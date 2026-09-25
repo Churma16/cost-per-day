@@ -5,7 +5,7 @@ import {
   apiRequestEnvelope,
   buildApiUrl,
   resolveApiBaseUrl,
-} from './httpClient';
+} from '../../src/services/httpClient';
 
 const response = (status, envelope) => ({
   ok: status >= 200 && status < 300,

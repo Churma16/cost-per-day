@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchDashboardData } from './dashboardService';
+import { fetchDashboardData } from '../../src/services/dashboardService';
 
 const response = (status, data, message = 'Success') => ({
   ok: status >= 200 && status < 300,

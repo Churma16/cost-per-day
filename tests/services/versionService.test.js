@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchVersion } from './versionService';
+import { fetchVersion } from '../../src/services/versionService';
 
 describe('versionService', () => {
   beforeEach(() => {

@@ -5,7 +5,7 @@ import {
   createPlannedPurchase,
   updatePlannedPurchase,
   deletePlannedPurchase,
-} from './plannedPurchaseService';
+} from '../../src/services/plannedPurchaseService';
 
 const response = (status, data, message = 'Success') => ({
   ok: status >= 200 && status < 300,
