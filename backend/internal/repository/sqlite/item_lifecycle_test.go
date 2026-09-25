@@ -14,7 +14,7 @@ import (
 func TestSQLiteLifecyclePersistence(t *testing.T) {
 	databaseConnection, databasePath := openTestDatabase(t)
 	ctx := context.Background()
-	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepository := sqliterepository.NewItemRepository(newTestGORM(t, databaseConnection))
 
 	endedAt := "2026-09-11T12:00:00Z"
 	salePrice := 40.25
@@ -40,7 +40,7 @@ func TestSQLiteLifecyclePersistence(t *testing.T) {
 	}
 	defer reopenedConnection.Close()
 
-	reopenedRepository := sqliterepository.NewItemRepository(reopenedConnection)
+	reopenedRepository := sqliterepository.NewItemRepository(newTestGORM(t, reopenedConnection))
 	persistedItem, getError := reopenedRepository.GetByID(ctx, domain.LegacyUserID, createdItem.ID)
 	if getError != nil {
 		t.Fatalf("get lifecycle item: %v", getError)
@@ -115,7 +115,7 @@ func TestLifecycleMigrationTreatsLegacyRowsAsActive(t *testing.T) {
 		t.Fatalf("expected schema version 8, got %d", schemaVersion)
 	}
 
-	itemRepository := sqliterepository.NewItemRepository(migratedDatabase)
+	itemRepository := sqliterepository.NewItemRepository(newTestGORM(t, migratedDatabase))
 	migratedItem, getError := itemRepository.GetByID(ctx, domain.LegacyUserID, "1")
 	if getError != nil {
 		t.Fatalf("get migrated item: %v", getError)

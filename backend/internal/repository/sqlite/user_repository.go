@@ -8,18 +8,20 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/repository"
 )
 
-// UserRepository implements local user persistence and Google subject mapping in SQLite.
+// UserRepository implements local user persistence and Google subject mapping in SQLite through GORM.
 type UserRepository struct {
-	databaseConnection *sql.DB
+	database *gorm.DB
 }
 
-// NewUserRepository creates a SQLite-backed user repository.
-func NewUserRepository(databaseConnection *sql.DB) repository.UserRepository {
-	return &UserRepository{databaseConnection: databaseConnection}
+// NewUserRepository creates a GORM-backed user repository.
+func NewUserRepository(database *gorm.DB) repository.UserRepository {
+	return &UserRepository{database: database}
 }
 
 // GetByID returns one local user by the application-owned identifier.
@@ -29,11 +31,11 @@ func (repositoryInstance *UserRepository) GetByID(ctx context.Context, userID st
 		return domain.User{}, domain.ErrUserNotFound
 	}
 
-	user, scanError := scanUser(repositoryInstance.databaseConnection.QueryRowContext(ctx, `
+	user, scanError := scanUser(repositoryInstance.database.WithContext(ctx).Raw(`
 		SELECT id, google_sub, email, display_name, avatar_url, created_at, updated_at
 		FROM users
 		WHERE id = ?
-	`, normalizedUserID))
+	`, normalizedUserID).Row())
 	if errors.Is(scanError, sql.ErrNoRows) {
 		return domain.User{}, domain.ErrUserNotFound
 	}
@@ -63,13 +65,13 @@ func (repositoryInstance *UserRepository) FindOrCreateGoogleUser(ctx context.Con
 	}
 	candidate.UpdatedAt = now
 
-	transaction, beginError := repositoryInstance.databaseConnection.BeginTx(ctx, nil)
-	if beginError != nil {
-		return domain.User{}, fmt.Errorf("begin google user mapping: %w", beginError)
+	transaction := repositoryInstance.database.WithContext(ctx).Begin()
+	if transaction.Error != nil {
+		return domain.User{}, fmt.Errorf("begin google user mapping: %w", transaction.Error)
 	}
 	defer transaction.Rollback()
 
-	_, insertError := transaction.ExecContext(ctx, `
+	insertResult := transaction.Exec(`
 		INSERT OR IGNORE INTO users (
 			id, google_sub, email, display_name, avatar_url, created_at, updated_at
 		)
@@ -83,11 +85,11 @@ func (repositoryInstance *UserRepository) FindOrCreateGoogleUser(ctx context.Con
 		candidate.CreatedAt.Format(time.RFC3339Nano),
 		candidate.UpdatedAt.Format(time.RFC3339Nano),
 	)
-	if insertError != nil {
-		return domain.User{}, fmt.Errorf("create google user: %w", insertError)
+	if insertResult.Error != nil {
+		return domain.User{}, fmt.Errorf("create google user: %w", insertResult.Error)
 	}
 
-	if _, updateError := transaction.ExecContext(ctx, `
+	updateResult := transaction.Exec(`
 		UPDATE users
 		SET email = ?, display_name = ?, avatar_url = ?, updated_at = ?
 		WHERE google_sub = ?
@@ -97,21 +99,22 @@ func (repositoryInstance *UserRepository) FindOrCreateGoogleUser(ctx context.Con
 		candidate.AvatarURL,
 		candidate.UpdatedAt.Format(time.RFC3339Nano),
 		candidate.GoogleSub,
-	); updateError != nil {
-		return domain.User{}, fmt.Errorf("refresh google user profile: %w", updateError)
+	)
+	if updateResult.Error != nil {
+		return domain.User{}, fmt.Errorf("refresh google user profile: %w", updateResult.Error)
 	}
 
-	user, scanError := scanUser(transaction.QueryRowContext(ctx, `
+	user, scanError := scanUser(transaction.Raw(`
 		SELECT id, google_sub, email, display_name, avatar_url, created_at, updated_at
 		FROM users
 		WHERE google_sub = ?
-	`, candidate.GoogleSub))
+	`, candidate.GoogleSub).Row())
 	if scanError != nil {
 		return domain.User{}, fmt.Errorf("read google user mapping: %w", scanError)
 	}
 
-	if commitError := transaction.Commit(); commitError != nil {
-		return domain.User{}, fmt.Errorf("commit google user mapping: %w", commitError)
+	if commitResult := transaction.Commit(); commitResult.Error != nil {
+		return domain.User{}, fmt.Errorf("commit google user mapping: %w", commitResult.Error)
 	}
 
 	return user, nil

@@ -10,7 +10,7 @@ import (
 
 func TestItemRepositoryReplaceAllRollsBackOnMidReplacementFailure(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
-	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepository := sqliterepository.NewItemRepository(newTestGORM(t, databaseConnection))
 	ctx := context.Background()
 
 	originalItem, createError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{
@@ -52,7 +52,7 @@ func TestItemRepositoryReplaceAllRollsBackOnMidReplacementFailure(t *testing.T) 
 
 func TestItemRepositoryReplaceAllCommitsCompleteReplacement(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
-	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepository := sqliterepository.NewItemRepository(newTestGORM(t, databaseConnection))
 	ctx := context.Background()
 
 	if _, createError := itemRepository.Create(ctx, domain.LegacyUserID, domain.Item{

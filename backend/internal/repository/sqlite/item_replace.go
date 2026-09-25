@@ -16,16 +16,15 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, userID
 		return nil, identityError
 	}
 
-	transaction, beginError := repositoryInstance.databaseConnection.BeginTx(ctx, nil)
-	if beginError != nil {
-		return nil, fmt.Errorf("begin item replacement: %w", beginError)
+	transaction := repositoryInstance.database.WithContext(ctx).Begin()
+	if transaction.Error != nil {
+		return nil, fmt.Errorf("begin item replacement: %w", transaction.Error)
 	}
-	defer func() {
-		_ = transaction.Rollback()
-	}()
+	defer transaction.Rollback()
 
-	if _, deleteError := transaction.ExecContext(ctx, "DELETE FROM items WHERE user_id = ?", normalizedUserID); deleteError != nil {
-		return nil, fmt.Errorf("clear items for replacement: %w", deleteError)
+	deleteResult := transaction.Exec("DELETE FROM items WHERE user_id = ?", normalizedUserID)
+	if deleteResult.Error != nil {
+		return nil, fmt.Errorf("clear items for replacement: %w", deleteResult.Error)
 	}
 
 	createdItems := make([]domain.Item, 0, len(items))
@@ -54,7 +53,8 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, userID
 		itemToCreate.CreatedAt = currentTimestamp
 		itemToCreate.UpdatedAt = currentTimestamp
 
-		insertResult, insertError := transaction.ExecContext(ctx, `
+		var itemIdentifier int64
+		insertError := transaction.Raw(`
 			INSERT INTO items (
 				user_id,
 				name,
@@ -71,6 +71,7 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, userID
 				updated_at
 			)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			RETURNING id
 		`,
 			normalizedUserID,
 			itemToCreate.Name,
@@ -85,22 +86,17 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, userID
 			nullableInt64(itemToCreate.BrandID),
 			itemToCreate.CreatedAt.Format(time.RFC3339Nano),
 			itemToCreate.UpdatedAt.Format(time.RFC3339Nano),
-		)
+		).Row().Scan(&itemIdentifier)
 		if insertError != nil {
 			return nil, fmt.Errorf("create replacement item: %w", insertError)
-		}
-
-		itemIdentifier, identifierError := insertResult.LastInsertId()
-		if identifierError != nil {
-			return nil, fmt.Errorf("read replacement item identifier: %w", identifierError)
 		}
 
 		itemToCreate.ID = strconv.FormatInt(itemIdentifier, 10)
 		createdItems = append(createdItems, itemToCreate)
 	}
 
-	if commitError := transaction.Commit(); commitError != nil {
-		return nil, fmt.Errorf("commit item replacement: %w", commitError)
+	if commitResult := transaction.Commit(); commitResult.Error != nil {
+		return nil, fmt.Errorf("commit item replacement: %w", commitResult.Error)
 	}
 
 	return createdItems, nil

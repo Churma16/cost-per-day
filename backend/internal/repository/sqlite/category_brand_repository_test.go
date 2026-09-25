@@ -76,7 +76,7 @@ func TestCategoryAndBrandRepository_FindOrCreateAndList(t *testing.T) {
 	}
 
 	// 5. Item with category and brand
-	itemRepo := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepo := sqliterepository.NewItemRepository(gormDB)
 	itemCategory := cat1.Name
 	itemBrand := brand1.Name
 	createdItem, err := itemRepo.Create(ctx, userA, domain.Item{

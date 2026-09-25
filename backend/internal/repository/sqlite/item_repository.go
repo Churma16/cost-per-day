@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/repository"
 )
@@ -20,15 +22,15 @@ type itemScanner interface {
 	Scan(destinations ...any) error
 }
 
-// ItemRepository implements repository.ItemRepository using user-scoped SQLite queries.
+// ItemRepository implements repository.ItemRepository using user-scoped SQLite queries through GORM.
 type ItemRepository struct {
-	databaseConnection *sql.DB
+	database *gorm.DB
 }
 
-// NewItemRepository creates a SQLite-backed item repository.
-func NewItemRepository(databaseConnection *sql.DB) repository.ItemRepository {
+// NewItemRepository creates a GORM-backed item repository.
+func NewItemRepository(database *gorm.DB) repository.ItemRepository {
 	return &ItemRepository{
-		databaseConnection: databaseConnection,
+		database: database,
 	}
 }
 
@@ -39,7 +41,7 @@ func (repositoryInstance *ItemRepository) List(ctx context.Context, userID strin
 		return nil, identityError
 	}
 
-	rows, queryError := repositoryInstance.databaseConnection.QueryContext(ctx, `
+	rows, queryError := repositoryInstance.database.WithContext(ctx).Raw(`
 		SELECT
 			items.user_id,
 			items.id,
@@ -62,7 +64,7 @@ func (repositoryInstance *ItemRepository) List(ctx context.Context, userID strin
 		LEFT JOIN brands ON brands.id = items.brand_id
 		WHERE items.user_id = ?
 		ORDER BY items.id ASC
-	`, normalizedUserID)
+	`, normalizedUserID).Rows()
 	if queryError != nil {
 		return nil, fmt.Errorf("list items: %w", queryError)
 	}
@@ -91,7 +93,7 @@ func (repositoryInstance *ItemRepository) GetByID(ctx context.Context, userID st
 		return domain.Item{}, identityError
 	}
 
-	item, scanError := scanItem(repositoryInstance.databaseConnection.QueryRowContext(ctx, `
+	item, scanError := scanItem(repositoryInstance.database.WithContext(ctx).Raw(`
 		SELECT
 			items.user_id,
 			items.id,
@@ -113,7 +115,7 @@ func (repositoryInstance *ItemRepository) GetByID(ctx context.Context, userID st
 		LEFT JOIN categories ON categories.id = items.category_id
 		LEFT JOIN brands ON brands.id = items.brand_id
 		WHERE items.user_id = ? AND items.id = ?
-	`, normalizedUserID, itemID))
+	`, normalizedUserID, itemID).Row())
 	if errors.Is(scanError, sql.ErrNoRows) {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
@@ -159,7 +161,8 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 	itemToCreate.UpdatedAt = currentTimestamp
 	itemToCreate.UserID = normalizedUserID
 
-	insertResult, insertError := repositoryInstance.databaseConnection.ExecContext(ctx, `
+	var itemIdentifier int64
+	insertError := repositoryInstance.database.WithContext(ctx).Raw(`
 		INSERT INTO items (
 			user_id,
 			name,
@@ -176,6 +179,7 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 			updated_at
 		)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		RETURNING id
 	`,
 		normalizedUserID,
 		itemToCreate.Name,
@@ -190,14 +194,9 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 		nullableInt64(itemToCreate.BrandID),
 		itemToCreate.CreatedAt.Format(time.RFC3339Nano),
 		itemToCreate.UpdatedAt.Format(time.RFC3339Nano),
-	)
+	).Row().Scan(&itemIdentifier)
 	if insertError != nil {
 		return domain.Item{}, fmt.Errorf("create item: %w", insertError)
-	}
-
-	itemIdentifier, identifierError := insertResult.LastInsertId()
-	if identifierError != nil {
-		return domain.Item{}, fmt.Errorf("read created item identifier: %w", identifierError)
 	}
 
 	itemToCreate.ID = strconv.FormatInt(itemIdentifier, 10)
@@ -234,7 +233,7 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID str
 	itemToUpdate.UpdatedAt = time.Now().UTC()
 
 	var createdAtText string
-	updateError := repositoryInstance.databaseConnection.QueryRowContext(ctx, `
+	updateError := repositoryInstance.database.WithContext(ctx).Raw(`
 		UPDATE items
 		SET
 			name = ?,
@@ -264,7 +263,7 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID str
 		itemToUpdate.UpdatedAt.Format(time.RFC3339Nano),
 		normalizedUserID,
 		itemToUpdate.ID,
-	).Scan(&createdAtText)
+	).Row().Scan(&createdAtText)
 	if errors.Is(updateError, sql.ErrNoRows) {
 		return domain.Item{}, domain.ErrItemNotFound
 	}
@@ -288,19 +287,15 @@ func (repositoryInstance *ItemRepository) Delete(ctx context.Context, userID str
 		return identityError
 	}
 
-	deleteResult, deleteError := repositoryInstance.databaseConnection.ExecContext(ctx, `
+	deleteResult := repositoryInstance.database.WithContext(ctx).Exec(`
 		DELETE FROM items
 		WHERE user_id = ? AND id = ?
 	`, normalizedUserID, itemID)
-	if deleteError != nil {
-		return fmt.Errorf("delete item: %w", deleteError)
+	if deleteResult.Error != nil {
+		return fmt.Errorf("delete item: %w", deleteResult.Error)
 	}
 
-	affectedRows, rowsError := deleteResult.RowsAffected()
-	if rowsError != nil {
-		return fmt.Errorf("read deleted item count: %w", rowsError)
-	}
-	if affectedRows == 0 {
+	if deleteResult.RowsAffected == 0 {
 		return domain.ErrItemNotFound
 	}
 
