@@ -1,25 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import {
-  IoWarningOutline,
-  IoClose
-} from 'react-icons/io5';
 import { getAllItems, replaceAllItems } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
-import { formatCurrency } from '../utils/formatters';
 import { useInvalidateItems } from '../hooks/useItems';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 import { PRODUCT_EXPORT_PREFIX, APP_VERSION } from '../constants/branding';
-import CurrencyInput from './common/CurrencyInput';
 import GeneralSettingsSection from './settings/GeneralSettingsSection';
 import ValueEquivalentsSection from './settings/ValueEquivalentsSection';
 import DataManagementSection from './settings/DataManagementSection';
 import AccountSettingsSection from './settings/AccountSettingsSection';
+import LanguageSelectionModal from './settings/LanguageSelectionModal';
+import CurrencySelectionModal from './settings/CurrencySelectionModal';
+import ImportConfirmDialog from './settings/ImportConfirmDialog';
+import EquivalentFormModal from './settings/EquivalentFormModal';
+import DeleteEquivalentConfirmDialog from './settings/DeleteEquivalentConfirmDialog';
 
 function Settings() {
   const { t } = useTranslation();
@@ -478,276 +477,65 @@ function Settings() {
         </div>
       </div>
 
-      {/* Language Selection Modal */}
-      {(showLanguageDropdown || closingModal === 'language') && (
-        <div
-          className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
-            closingModal === 'language' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
-          }`}
-          onClick={() => {
-            if (closingModal) return;
-            closeModalWithAnimation('language', () => setShowLanguageDropdown(false));
-          }}
-        >
-          <div
-            className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
-              closingModal === 'language' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
-            }`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="p-3.5 border-b border-gray-100 bg-slate-50">
-              <h3 className="text-center font-semibold text-sm text-slate-800">
-                {t('selectLanguage')}
-              </h3>
-            </div>
-            {languages.map((lang) => (
-              <button
-                key={lang.code}
-                className={`w-full text-left p-4 hover:bg-slate-50 transition-colors border-b border-gray-100 last:border-0 font-medium text-sm flex items-center justify-between ${
-                  lang.code === language ? 'text-[#2F7473] font-semibold' : 'text-gray-700'
-                }`}
-                onClick={() => handleLanguageChange(lang.code)}
-              >
-                <span>{lang.name}</span>
-                {lang.code === language && <span className="w-2 h-2 rounded-full bg-[#2F7473]" />}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <LanguageSelectionModal
+        isOpen={showLanguageDropdown}
+        isClosing={closingModal === 'language'}
+        languages={languages}
+        selectedLanguage={language}
+        onSelect={handleLanguageChange}
+        onRequestClose={() =>
+          closeModalWithAnimation('language', () => setShowLanguageDropdown(false))
+        }
+      />
 
-      {/* Currency Selection Modal */}
-      {(showCurrencyDropdown || closingModal === 'currency') && (
-        <div
-          className={`fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ${
-            closingModal === 'currency' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
-          }`}
-          onClick={() => {
-            if (closingModal) return;
-            closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false));
-          }}
-        >
-          <div
-            className={`w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ${
-              closingModal === 'currency' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
-            }`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="p-3.5 border-b border-gray-100 bg-slate-50">
-              <h3 className="text-center font-semibold text-sm text-slate-800">
-                {t('selectCurrency')}
-              </h3>
-            </div>
-            <div className="max-h-72 overflow-y-auto">
-              {currencyOptions.map((currencyOption) => (
-                <button
-                  key={currencyOption.code}
-                  className={`w-full text-left p-4 hover:bg-slate-50 transition-colors border-b border-gray-100 last:border-0 font-medium text-sm flex items-center justify-between ${
-                    currencyOption.code === currencyCode ? 'text-[#2F7473] font-semibold' : 'text-gray-700'
-                  }`}
-                  onClick={() => handleCurrencyChange(currencyOption.code)}
-                >
-                  <span>
-                    {currencyOption.symbol} {currencyOption.name}
-                  </span>
-                  {currencyOption.code === currencyCode && (
-                    <span className="w-2 h-2 rounded-full bg-[#2F7473]" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <CurrencySelectionModal
+        isOpen={showCurrencyDropdown}
+        isClosing={closingModal === 'currency'}
+        currencyOptions={currencyOptions}
+        selectedCurrencyCode={currencyCode}
+        onSelect={handleCurrencyChange}
+        onRequestClose={() =>
+          closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false))
+        }
+      />
 
-      {/* Import Confirmation Dialog */}
-      {(showImportConfirm || closingModal === 'import') && (
-        <div
-          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'import' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
-          }`}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div
-            className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
-              closingModal === 'import' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
-            }`}
-          >
-            <div className="flex items-center gap-3 text-amber-500">
-              <IoWarningOutline className="text-2xl" />
-              <h2 className="text-xl font-semibold text-gray-800">{t('importWarning')}</h2>
-            </div>
-            <p className="text-gray-600 text-sm">{t('importConfirmation')}</p>
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isImporting || closingModal === 'import'}
-                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors duration-200 text-sm"
-                onClick={() => closeModalWithAnimation('import', () => setShowImportConfirm(false))}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                disabled={isImporting || closingModal === 'import'}
-                className="flex-1 py-3 px-4 rounded-xl bg-amber-600 text-white font-medium hover:bg-amber-700 disabled:opacity-50 transition-all duration-200 text-sm shadow-sm"
-                onClick={confirmImport}
-              >
-                {isImporting ? t('loading') : t('confirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImportConfirmDialog
+        isOpen={showImportConfirm}
+        isClosing={closingModal === 'import'}
+        isImporting={isImporting}
+        onCancel={() =>
+          closeModalWithAnimation('import', () => setShowImportConfirm(false))
+        }
+        onConfirm={confirmImport}
+      />
 
-      {/* Add / Edit Equivalent Modal */}
-      {(showEquivalentModal || closingModal === 'equivalent') && (
-        <div
-          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'equivalent' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
-          }`}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div
-            className={`bg-white w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl ${
-              closingModal === 'equivalent' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
-            }`}
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-semibold text-gray-800">
-                {editingEquivalent ? t('editEquivalent') : t('addEquivalent')}
-              </h2>
-              <button
-                type="button"
-                disabled={isSavingEquivalent || closingModal === 'equivalent'}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
-                onClick={() => closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))}
-              >
-                <IoClose className="text-xl" />
-              </button>
-            </div>
+      <EquivalentFormModal
+        isOpen={showEquivalentModal}
+        isClosing={closingModal === 'equivalent'}
+        editingEquivalent={editingEquivalent}
+        formName={equivalentFormName}
+        formAmount={equivalentFormAmount}
+        formCurrency={equivalentFormCurrency}
+        formError={equivalentFormError}
+        currencyOptions={currencyOptions}
+        isSaving={isSavingEquivalent}
+        onNameChange={setEquivalentFormName}
+        onAmountChange={setEquivalentFormAmount}
+        onCurrencyChange={setEquivalentFormCurrency}
+        onCancel={() =>
+          closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))
+        }
+        onSubmit={handleSaveEquivalent}
+      />
 
-            {equivalentFormError && (
-              <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-100">
-                {equivalentFormError}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveEquivalent} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
-                  {t('equivalentName')}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={equivalentFormName}
-                  onChange={(event) => setEquivalentFormName(event.target.value)}
-                  placeholder={t('enterEquivalentName')}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2F7473]/30 focus:border-[#2F7473]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
-                  {t('equivalentAmount')}
-                </label>
-                <CurrencyInput
-                  required
-                  value={equivalentFormAmount}
-                  onChange={(event) => setEquivalentFormAmount(event.target.value)}
-                  currencyCode={equivalentFormCurrency}
-                  placeholder={t('enterEquivalentAmount')}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2F7473]/30 focus:border-[#2F7473]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">
-                  {t('currency')}
-                </label>
-                <select
-                  value={equivalentFormCurrency}
-                  onChange={(event) => setEquivalentFormCurrency(event.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2F7473]/30 focus:border-[#2F7473] bg-white"
-                >
-                  {currencyOptions.map((currencyOption) => (
-                    <option key={currencyOption.code} value={currencyOption.code}>
-                      {currencyOption.code} ({currencyOption.symbol}) - {currencyOption.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  disabled={isSavingEquivalent || closingModal === 'equivalent'}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors text-sm"
-                  onClick={() => closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))}
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingEquivalent || closingModal === 'equivalent'}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#2F7473] hover:bg-[#265e5d] text-white font-medium transition-all text-sm disabled:opacity-50 shadow-sm"
-                >
-                  {isSavingEquivalent ? t('loading') : t('save')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Equivalent Confirmation Dialog */}
-      {(showDeleteEquivalentConfirm || closingModal === 'delete') && (showDeleteEquivalentConfirm || activeDeleteTarget) && (
-        <div
-          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50 ${
-            closingModal === 'delete' ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop'
-          }`}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div
-            className={`bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl ${
-              closingModal === 'delete' ? 'animate-calm-modal-exit pointer-events-none' : 'animate-calm-modal-glide'
-            }`}
-          >
-            <div className="flex items-center gap-3 text-red-500">
-              <IoWarningOutline className="text-2xl" />
-              <h2 className="text-xl font-semibold text-gray-800">{t('deleteEquivalent')}</h2>
-            </div>
-            <p className="text-gray-600 text-sm">{t('confirmDeleteEquivalent')}</p>
-            <p className="font-semibold text-gray-800 text-sm bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-              {(showDeleteEquivalentConfirm || activeDeleteTarget).name} (
-              {formatCurrency(
-                Number((showDeleteEquivalentConfirm || activeDeleteTarget).amount || 0),
-                (showDeleteEquivalentConfirm || activeDeleteTarget).currencyCode
-              )}
-              )
-            </p>
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isDeletingEquivalent || closingModal === 'delete'}
-                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors duration-200 text-sm"
-                onClick={handleCloseDeleteConfirm}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                disabled={isDeletingEquivalent || closingModal === 'delete'}
-                className="flex-1 py-3 px-4 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-50 transition-all duration-200 text-sm"
-                onClick={handleConfirmDeleteEquivalent}
-              >
-                {isDeletingEquivalent ? t('loading') : t('delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteEquivalentConfirmDialog
+        target={showDeleteEquivalentConfirm || activeDeleteTarget}
+        isOpen={Boolean(showDeleteEquivalentConfirm)}
+        isClosing={closingModal === 'delete'}
+        isDeleting={isDeletingEquivalent}
+        onCancel={handleCloseDeleteConfirm}
+        onConfirm={handleConfirmDeleteEquivalent}
+      />
     </>
   );
 }
