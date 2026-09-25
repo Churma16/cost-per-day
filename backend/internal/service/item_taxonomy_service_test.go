@@ -84,7 +84,6 @@ func TestItemService_CategoryAndBrandFindOrCreate(t *testing.T) {
 	}
 }
 
-
 func TestItemService_TaxonomyResolutionSharedAcrossWriteFlows(t *testing.T) {
 	ctx := context.Background()
 	itemRepo := memory.NewMemoryItemRepository()
