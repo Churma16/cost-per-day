@@ -5,7 +5,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY . .
+COPY index.html vite.config.mjs postcss.config.mjs tailwind.config.js ./
+COPY public ./public
+COPY src ./src
 
 ARG VITE_APP_VERSION=development
 ENV VITE_APP_VERSION=${VITE_APP_VERSION}
@@ -46,7 +48,7 @@ USER app
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=6 \
   CMD wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1
 
 ENTRYPOINT ["/app/cost-per-day"]
