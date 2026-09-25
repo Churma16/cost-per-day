@@ -16,12 +16,29 @@ import (
 
 	"cost-per-day/backend/internal/auth/googleoidc"
 	"cost-per-day/backend/internal/domain"
+	"cost-per-day/backend/internal/repository"
 	sqliterepository "cost-per-day/backend/internal/repository/sqlite"
 	"cost-per-day/backend/internal/service"
 	appHttp "cost-per-day/backend/internal/http"
 	"cost-per-day/backend/internal/http/handler"
 	"cost-per-day/backend/internal/http/middleware"
 )
+
+const (
+	developmentUserID      = "dev-local"
+	developmentIdentitySub = "development-auth-bypass"
+	developmentUserEmail   = "dev@local"
+	developmentUserName    = "Local Developer"
+)
+
+func ensureDevelopmentUser(ctx context.Context, userRepository repository.UserRepository) (domain.User, error) {
+	return userRepository.FindOrCreateGoogleUser(ctx, domain.User{
+		ID:          developmentUserID,
+		GoogleSub:   developmentIdentitySub,
+		Email:       developmentUserEmail,
+		DisplayName: developmentUserName,
+	})
+}
 
 func main() {
 	serverHost := strings.TrimSpace(os.Getenv("HOST"))
@@ -77,12 +94,10 @@ func main() {
 	googleClientID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
 	googleClientSecret := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET"))
 	sessionSecret := strings.TrimSpace(os.Getenv("SESSION_SECRET"))
-	legacyOwnerGoogleSub := strings.TrimSpace(os.Getenv("LEGACY_OWNER_GOOGLE_SUB"))
-
-	authDisabled := strings.EqualFold(os.Getenv("AUTH_DISABLED"), "true") || strings.EqualFold(os.Getenv("DEV_AUTH_BYPASS"), "true")
+	authDisabled := strings.EqualFold(os.Getenv("AUTH_DISABLED"), "true")
 	if !authDisabled && (googleClientID == "" || googleClientSecret == "" || sessionSecret == "") {
 		if ginMode != gin.ReleaseMode {
-			log.Println("[info] Development mode without Google OIDC credentials. Enabling dev auth bypass (using legacy user).")
+			log.Println("[info] Development mode without Google OIDC credentials. Enabling development auth bypass.")
 			authDisabled = true
 		} else {
 			log.Fatal("[error] GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and SESSION_SECRET are required")
@@ -127,8 +142,14 @@ func main() {
 	var identityMiddleware gin.HandlerFunc
 
 	if authDisabled {
-		log.Println("[info] Authentication is bypassed for local development. Requests use legacy user.")
-		identityMiddleware = middleware.StaticUserIdentity(domain.LegacyUserID)
+		log.Println("[info] Authentication is bypassed for local development. Requests use the explicit development user.")
+		developmentContext, cancelDevelopmentContext := context.WithTimeout(context.Background(), 5*time.Second)
+		developmentUser, developmentUserError := ensureDevelopmentUser(developmentContext, userRepository)
+		cancelDevelopmentContext()
+		if developmentUserError != nil {
+			log.Fatalf("[error] Failed to initialize development auth user: %v\n", developmentUserError)
+		}
+		identityMiddleware = middleware.StaticUserIdentity(developmentUser.ID)
 	} else {
 		googleRedirectURI := strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URI"))
 		if googleRedirectURI == "" {
@@ -143,16 +164,7 @@ func main() {
 		if googleProviderError != nil {
 			log.Fatalf("[error] Failed to initialize Google OIDC client: %v\n", googleProviderError)
 		}
-		authService := service.NewAuthService(userRepository, sessionRepository, googleProvider, legacyOwnerGoogleSub)
-		configurationContext, cancelConfigurationContext := context.WithTimeout(context.Background(), 5*time.Second)
-		configurationError := authService.ValidateConfiguration(configurationContext)
-		cancelConfigurationContext()
-		if configurationError != nil {
-			if errors.Is(configurationError, domain.ErrLegacyOwnerBootstrapRequired) {
-				log.Fatal("[error] Existing pre-auth data requires LEGACY_OWNER_GOOGLE_SUB before authentication can be enabled")
-			}
-			log.Fatalf("[error] Failed to validate authentication configuration: %v\n", configurationError)
-		}
+		authService := service.NewAuthService(userRepository, sessionRepository, googleProvider)
 
 		createdAuthHandler, authHandlerError := handler.NewAuthHandler(handler.AuthHandlerConfig{
 			AuthService:   authService,
