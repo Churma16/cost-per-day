@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.2",
-    "axios": "^1.20.0",
     "date-fns": "^4.1.0",
     "i18next": "~22.5.0",
     "i18next-browser-languagedetector": "~7.0.0",
