@@ -54,6 +54,7 @@ describe('Header route isolation regression tests', () => {
     expect(pageHeaders).toHaveLength(0);
     const homeHeader = document.querySelector('header');
     expect(homeHeader).toHaveClass('sticky');
+    expect(homeHeader.closest('.min-h-full')).toBeInTheDocument();
   });
 
   test('renders clean header on /settings without page-header banner', async () => {
