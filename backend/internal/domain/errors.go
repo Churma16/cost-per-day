@@ -15,9 +15,6 @@ var (
 	// ErrInvalidExternalIdentity indicates that an external identity cannot be mapped to a local user.
 	ErrInvalidExternalIdentity = errors.New("invalid external identity")
 
-	// ErrLegacyOwnerBootstrapRequired indicates that meaningful legacy-owned data must be claimed by the configured verified Google subject before normal sign-ins are allowed.
-	ErrLegacyOwnerBootstrapRequired = errors.New("legacy owner bootstrap is required")
-
 	// ErrItemNotFound indicates that the requested item does not exist for the current user.
 	ErrItemNotFound = errors.New("item not found")
 

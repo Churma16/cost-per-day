@@ -116,7 +116,7 @@ For an upgrade that requires recovery, restore a known-good database backup and 
 | `SESSION_SECRET` | Secret used to sign short-lived OIDC state/nonce cookies; minimum 32 characters | required |
 | `APP_BASE_URL` | Public frontend origin used after authentication | required |
 | `GOOGLE_REDIRECT_URI` | Google callback URI; defaults to `APP_BASE_URL/auth/google/callback` | derived |
-| `LEGACY_OWNER_GOOGLE_SUB` | Optional verified Google subject allowed to adopt the pre-auth `legacy` user during upgrade | empty |
+| `AUTH_DISABLED` | Development-only authentication bypass using an explicit local development user | `false` |
 
 Keep `DATABASE_PATH` on persistent storage in container or VPS deployments so application restarts and redeploys retain data. The production image sets `HOST=0.0.0.0` and `STATIC_DIR=/app/web`, which is a read-only application directory separate from the SQLite mount.
 
@@ -153,7 +153,7 @@ npm run server:build
 
 Both backend-only commands use the shared runner, which loads `backend/.env` before starting the selected backend mode.
 
-For local split frontend/backend development, configure a Google web OAuth client with `http://localhost:8080/auth/google/callback` as an authorized redirect URI, set `APP_BASE_URL=http://localhost:3000`, and provide the required secrets from `.env.example`. The service will start on `http://127.0.0.1:8080` and create the configured SQLite database if it does not already exist.
+For local split frontend/backend development, the shared runner automatically enables development auth bypass when Google OIDC credentials are absent. The bypass uses the explicit local user `dev-local`; it does not reuse historical production ownership. Set `AUTH_DISABLED=true` explicitly when the same behavior is needed outside the shared runner. To exercise real Google sign-in locally, configure a Google web OAuth client with `http://localhost:8080/auth/google/callback`, set `APP_BASE_URL=http://localhost:3000`, and provide the required secrets from `.env.example`.
 
 ### Running Tests
 
@@ -230,8 +230,8 @@ Item and settings endpoints require the application session cookie. Google acces
 
 The application session cookie is `HttpOnly` and `SameSite=Lax`. It is also `Secure` whenever `APP_BASE_URL` uses HTTPS, which is required for internet-exposed deployments. Credentialed CORS uses exact origin matching; wildcard origins are rejected when the authenticated server starts.
 
-### Upgrading Existing Single-User Data
+### Historical User IDs
 
-Migration v3 preserves pre-authentication items and settings under the deterministic local user `legacy`. Before the first authenticated login on an upgraded database, set `LEGACY_OWNER_GOOGLE_SUB` to the existing owner's verified Google OIDC `sub`. Only a token verified by Google with that exact subject can adopt the `legacy` user. The subject is then persisted on that local user, so the environment variable may be removed after a successful bootstrap login.
+Migration v3 remains unchanged because it records how pre-authentication databases were upgraded to user ownership. An already-adopted user may therefore still have the local ID `legacy`; once that row has a Google subject, authentication treats it exactly like any other returning user and does not rename the stored identifier.
 
-Do not use email as the bootstrap identity key and do not set this value to a subject that is not the intended existing data owner. When meaningful unclaimed legacy data exists, startup fails if `LEGACY_OWNER_GOOGLE_SUB` is missing, and sign-in refuses subjects that do not match the configured owner. Untouched built-in `language=en` and `currency=USD` defaults alone do not trigger this migration guard.
+Unclaimed pre-authentication ownership without a persisted Google subject is no longer a supported runtime compatibility state during early beta. If such historical data still exists, recovery may require a manual database repair or reset rather than reintroducing the retired authentication bootstrap path.

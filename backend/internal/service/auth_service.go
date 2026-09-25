@@ -33,9 +33,8 @@ type GoogleIdentityProvider interface {
 type AuthService struct {
 	userRepository    repository.UserRepository
 	sessionRepository repository.SessionRepository
-	googleProvider        GoogleIdentityProvider
-	legacyOwnerGoogleSub string
-	now                   func() time.Time
+	googleProvider    GoogleIdentityProvider
+	now               func() time.Time
 }
 
 // NewAuthService creates the authentication application service.
@@ -43,27 +42,13 @@ func NewAuthService(
 	userRepository repository.UserRepository,
 	sessionRepository repository.SessionRepository,
 	googleProvider GoogleIdentityProvider,
-	legacyOwnerGoogleSub string,
 ) *AuthService {
 	return &AuthService{
-		userRepository:       userRepository,
-		sessionRepository:    sessionRepository,
-		googleProvider:       googleProvider,
-		legacyOwnerGoogleSub: strings.TrimSpace(legacyOwnerGoogleSub),
-		now:                  func() time.Time { return time.Now().UTC() },
+		userRepository:    userRepository,
+		sessionRepository: sessionRepository,
+		googleProvider:    googleProvider,
+		now:               func() time.Time { return time.Now().UTC() },
 	}
-}
-
-// ValidateConfiguration prevents startup with meaningful unclaimed legacy data and no explicit verified-sub bootstrap mapping.
-func (serviceInstance *AuthService) ValidateConfiguration(ctx context.Context) error {
-	bootstrapRequired, bootstrapError := serviceInstance.userRepository.NeedsLegacyOwnerBootstrap(ctx)
-	if bootstrapError != nil {
-		return bootstrapError
-	}
-	if bootstrapRequired && serviceInstance.legacyOwnerGoogleSub == "" {
-		return domain.ErrLegacyOwnerBootstrapRequired
-	}
-	return nil
 }
 
 // GoogleAuthorizationURL builds the provider redirect without exposing provider tokens to domain code.
@@ -94,30 +79,12 @@ func (serviceInstance *AuthService) CompleteGoogleLogin(
 		AvatarURL:   strings.TrimSpace(identity.AvatarURL),
 	}
 
-	bootstrapRequired, bootstrapError := serviceInstance.userRepository.NeedsLegacyOwnerBootstrap(ctx)
-	if bootstrapError != nil {
-		return domain.User{}, "", time.Time{}, bootstrapError
+	userID, identifierError := randomToken(18)
+	if identifierError != nil {
+		return domain.User{}, "", time.Time{}, identifierError
 	}
-	if bootstrapRequired {
-		if serviceInstance.legacyOwnerGoogleSub == "" || identity.Subject != serviceInstance.legacyOwnerGoogleSub {
-			return domain.User{}, "", time.Time{}, domain.ErrLegacyOwnerBootstrapRequired
-		}
-	}
-
-	var (
-		user      domain.User
-		userError error
-	)
-	if serviceInstance.legacyOwnerGoogleSub != "" && identity.Subject == serviceInstance.legacyOwnerGoogleSub {
-		user, userError = serviceInstance.userRepository.BindGoogleIdentity(ctx, domain.LegacyUserID, candidate)
-	} else {
-		userID, identifierError := randomToken(18)
-		if identifierError != nil {
-			return domain.User{}, "", time.Time{}, identifierError
-		}
-		candidate.ID = "usr_" + userID
-		user, userError = serviceInstance.userRepository.FindOrCreateGoogleUser(ctx, candidate)
-	}
+	candidate.ID = "usr_" + userID
+	user, userError := serviceInstance.userRepository.FindOrCreateGoogleUser(ctx, candidate)
 	if userError != nil {
 		return domain.User{}, "", time.Time{}, userError
 	}
