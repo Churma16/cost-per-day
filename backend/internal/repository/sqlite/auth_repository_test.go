@@ -13,7 +13,8 @@ import (
 func TestGoogleUserMappingUsesSubjectAndReusesLocalUser(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()
-	userRepository := sqliterepository.NewUserRepository(databaseConnection)
+	gormDB := newTestGORM(t, databaseConnection)
+	userRepository := sqliterepository.NewUserRepository(gormDB)
 
 	first, firstError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
 		ID:          "user-first",
@@ -58,8 +59,9 @@ func TestGoogleUserMappingUsesSubjectAndReusesLocalUser(t *testing.T) {
 func TestSQLiteSessionRepositoryCreatesResolvesExpiresAndDeletesSessions(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()
-	userRepository := sqliterepository.NewUserRepository(databaseConnection)
-	sessionRepository := sqliterepository.NewSessionRepository(databaseConnection)
+	gormDB := newTestGORM(t, databaseConnection)
+	userRepository := sqliterepository.NewUserRepository(gormDB)
+	sessionRepository := sqliterepository.NewSessionRepository(gormDB)
 
 	user, userError := userRepository.FindOrCreateGoogleUser(ctx, domain.User{
 		ID:        "session-user",
