@@ -603,6 +603,53 @@ describe('ItemList lifecycle display', () => {
     expect(screen.queryByText('Current cost per day')).not.toBeInTheDocument();
   });
 
+  test('renders separate backdrop and sliding dialog layers for organization motion', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'animated-item',
+        name: 'Camera',
+        price: 300,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        ownershipDays: 25,
+        grossCostPerDay: 12,
+      },
+    ]);
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+    await screen.findByText('Camera');
+    fireEvent.click(screen.getByRole('button', { name: 'Sort & group' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Sort & group' });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog.previousElementSibling).toHaveClass('bg-black/40');
+  });
+
+  test('keeps the organization window mounted for its calm closing animation', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'closing-animation-item',
+        name: 'Headphones',
+        price: 150,
+        purchaseDate: '2026-09-01T12:00:00Z',
+        status: 'active',
+        ownershipDays: 25,
+        grossCostPerDay: 6,
+      },
+    ]);
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+    await screen.findByText('Headphones');
+    fireEvent.click(screen.getByRole('button', { name: 'Sort & group' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    expect(screen.getByRole('dialog', { name: 'Sort & group' })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Sort & group' })).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+  });
+
   test('filters multiple lifecycle presentation states and persists organization choices', async () => {
     getAllItems.mockResolvedValue([
       { id: 'new', name: 'New Camera', price: 300, purchaseDate: '2026-09-20T12:00:00Z', status: 'active', ownershipDays: 6, grossCostPerDay: 50 },

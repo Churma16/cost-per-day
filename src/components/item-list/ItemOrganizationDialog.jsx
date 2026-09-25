@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoClose, IoOptionsOutline } from 'react-icons/io5';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { GROUP_OPTIONS, OWNERSHIP_STATES, SORT_OPTIONS } from '../../utils/itemOrganization';
 
 const STATE_LABEL_KEYS = {
@@ -30,6 +31,7 @@ const SORT_LABEL_KEYS = {
 
 function ItemOrganizationDialog({ isOpen, organization, onChange, onClose }) {
   const { t } = useTranslation();
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -39,8 +41,6 @@ function ItemOrganizationDialog({ isOpen, organization, onChange, onClose }) {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const allStatesSelected = organization.stateFilters.length === 0;
   const toggleState = (state) => {
@@ -53,18 +53,49 @@ function ItemOrganizationDialog({ isOpen, organization, onChange, onClose }) {
     });
   };
 
+  const backdropVariants = {
+    closed: {
+      opacity: 0,
+      transition: { duration: shouldReduceMotion ? 0 : 0.25, ease: [0.25, 0.8, 0.25, 1] },
+    },
+    open: {
+      opacity: 1,
+      transition: { duration: shouldReduceMotion ? 0 : 0.3, ease: [0.25, 0.8, 0.25, 1] },
+    },
+  };
+  const sheetVariants = {
+    closed: {
+      y: shouldReduceMotion ? '0%' : '100%',
+      transition: { duration: shouldReduceMotion ? 0 : 0.46, ease: [0.4, 0, 0.6, 1] },
+    },
+    open: {
+      y: '0%',
+      transition: { duration: shouldReduceMotion ? 0 : 0.58, ease: [0.25, 0.8, 0.25, 1] },
+    },
+  };
+
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="item-organization-window"
+          initial="closed"
+          animate="open"
+          exit="closed"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+        >
+          <motion.div
+            aria-hidden="true"
+            variants={backdropVariants}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onMouseDown={onClose}
+          />
+          <motion.div
+        variants={sheetVariants}
         role="dialog"
         aria-modal="true"
         aria-labelledby="item-organization-title"
-        className="w-full sm:max-w-md max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white shadow-xl border border-gray-100"
+        className="relative z-10 w-full sm:max-w-md max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white shadow-xl border border-gray-100"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-[#E6E8EC] bg-white">
           <div className="flex items-center gap-2">
@@ -123,8 +154,10 @@ function ItemOrganizationDialog({ isOpen, organization, onChange, onClose }) {
             {t('done')}
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
