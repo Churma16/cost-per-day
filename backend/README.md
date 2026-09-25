@@ -234,4 +234,4 @@ The application session cookie is `HttpOnly` and `SameSite=Lax`. It is also `Sec
 
 Migration v3 remains unchanged because it records how pre-authentication databases were upgraded to user ownership. An already-adopted user may therefore still have the local ID `legacy`; once that row has a Google subject, authentication treats it exactly like any other returning user and does not rename the stored identifier.
 
-Before deploying a release that removes the retired adoption path, verify the deployed database has no meaningful unclaimed pre-authentication data. Production verification steps are documented in `docs/production.md`.
+Unclaimed pre-authentication ownership without a persisted Google subject is no longer a supported runtime compatibility state during early beta. If such historical data still exists, recovery may require a manual database repair or reset rather than reintroducing the retired authentication bootstrap path.
