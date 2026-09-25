@@ -3,12 +3,12 @@ import { render as testingLibraryRender, screen, fireEvent, waitFor, within } fr
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
-import AddItem from './AddItem';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useCurrency } from '../contexts/CurrencyContext';
-import { addItem, updateItem, getAllItems } from '../services/api';
-import { useReplacementBenchmark } from '../hooks/useBenchmark';
-import { queryKeys } from '../query/queryConfig';
+import AddItem from '../../src/components/AddItem';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { useCurrency } from '../../src/contexts/CurrencyContext';
+import { addItem, updateItem, getAllItems } from '../../src/services/api';
+import { useReplacementBenchmark } from '../../src/hooks/useBenchmark';
+import { queryKeys } from '../../src/query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -70,15 +70,15 @@ vi.mock('react-i18next', () => ({
   })
 }));
 
-vi.mock('../contexts/LanguageContext', () => ({
+vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: vi.fn()
 }));
 
-vi.mock('../contexts/CurrencyContext', () => ({
+vi.mock('../../src/contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
 }));
 
-vi.mock('../hooks/useBenchmark', () => ({
+vi.mock('../../src/hooks/useBenchmark', () => ({
   useReplacementBenchmark: vi.fn().mockReturnValue({
     data: null,
     isLoading: false,
@@ -86,7 +86,7 @@ vi.mock('../hooks/useBenchmark', () => ({
   })
 }));
 
-vi.mock('../hooks/useDurabilityAnalytics', () => ({
+vi.mock('../../src/hooks/useDurabilityAnalytics', () => ({
   useCategories: vi.fn().mockReturnValue({
     data: [{ id: 1, name: 'Audio' }, { id: 2, name: 'Footwear' }],
   }),
@@ -97,7 +97,7 @@ vi.mock('../hooks/useDurabilityAnalytics', () => ({
   invalidateDurabilityQuery: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   addItem: vi.fn(),
   updateItem: vi.fn(),
   getAllItems: vi.fn().mockResolvedValue([]),

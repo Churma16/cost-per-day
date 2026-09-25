@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
-import Footer from './Footer';
+import Footer from '../../src/components/Footer';
 
 const mockedNavigate = vi.fn();
 

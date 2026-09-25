@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import DurabilityAnalytics from './DurabilityAnalytics';
-import { useDurabilityAnalytics, useCategories } from '../hooks/useDurabilityAnalytics';
-import { useCurrency } from '../contexts/CurrencyContext';
+import DurabilityAnalytics from '../../src/components/DurabilityAnalytics';
+import { useDurabilityAnalytics, useCategories } from '../../src/hooks/useDurabilityAnalytics';
+import { useCurrency } from '../../src/contexts/CurrencyContext';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -39,12 +39,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../hooks/useDurabilityAnalytics', () => ({
+vi.mock('../../src/hooks/useDurabilityAnalytics', () => ({
   useDurabilityAnalytics: vi.fn(),
   useCategories: vi.fn(),
 }));
 
-vi.mock('../contexts/CurrencyContext', () => ({
+vi.mock('../../src/contexts/CurrencyContext', () => ({
   useCurrency: vi.fn(),
 }));
 

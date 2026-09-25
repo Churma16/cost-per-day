@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import CurrencyInput from './CurrencyInput';
+import CurrencyInput from '../../../src/components/common/CurrencyInput';
 
 describe('CurrencyInput component', () => {
   it('formats initial raw value with IDR thousand separators', () => {

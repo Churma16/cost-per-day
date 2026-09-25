@@ -1,9 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import App from './App';
-import { ApiError, getCurrentUser } from './services/api';
+import App from '../src/App';
+import { ApiError, getCurrentUser } from '../src/services/api';
 
-vi.mock('./services/api', async (importOriginal) => {
+vi.mock('../src/services/api', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,

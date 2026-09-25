@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import ItemCard from './ItemCard';
+import ItemCard from '../../../src/components/item-list/ItemCard';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
