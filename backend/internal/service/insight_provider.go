@@ -17,7 +17,7 @@ type InsightProvider interface {
 	Generate(ctx context.Context, data DashboardContext) (*domain.DashboardInsight, error)
 }
 
-// BestValueProvider answers: "Which purchase has been most worth it so far?"
+// BestValueProvider answers: "Which active item currently has the lowest daily ownership cost?"
 type BestValueProvider struct{}
 
 func (provider *BestValueProvider) ID() string {
@@ -45,12 +45,12 @@ func (provider *BestValueProvider) Generate(_ context.Context, data DashboardCon
 	}
 
 	isIndonesian := data.Language == "id"
-	eyebrow := "Giving the Most Value"
+	eyebrow := "Lowest Daily Cost So Far"
 	caption := fmt.Sprintf("With you for %d days", bestItem.OwnershipDays)
 	perDaySuffix := "/day"
 
 	if isIndonesian {
-		eyebrow = "Paling Banyak Memberi Nilai"
+		eyebrow = "Biaya Harian Terendah Saat Ini"
 		caption = fmt.Sprintf("Menemanimu selama %d hari", bestItem.OwnershipDays)
 		perDaySuffix = "/hari"
 	}
@@ -168,12 +168,12 @@ func (provider *MilestoneProvider) Generate(_ context.Context, data DashboardCon
 	isIndonesian := data.Language == "id"
 	eyebrow := "A Milestone Reached"
 	secondary := fmt.Sprintf("Reached %s", bestMilestoneLabel)
-	caption := fmt.Sprintf("Now down to %s/day", data.FormatCurrency(bestMilestoneItem.GrossCostPerDay))
+	caption := fmt.Sprintf("Now at %s/day", data.FormatCurrency(bestMilestoneItem.GrossCostPerDay))
 
 	if isIndonesian {
 		eyebrow = "Sebuah Milestone Tercapai"
 		secondary = fmt.Sprintf("Mencapai %s", bestMilestoneIdLabel)
-		caption = fmt.Sprintf("Kini turun ke %s/hari", data.FormatCurrency(bestMilestoneItem.GrossCostPerDay))
+		caption = fmt.Sprintf("Sekarang %s/hari", data.FormatCurrency(bestMilestoneItem.GrossCostPerDay))
 	}
 
 	return &domain.DashboardInsight{
@@ -264,13 +264,13 @@ func (provider *RecentPurchaseImpactProvider) Generate(_ context.Context, data D
 
 	isIndonesian := data.Language == "id"
 	eyebrow := "Shifting Your Daily Cost"
-	secondary := "Currently driving most of your daily cost increase"
-	caption := "New purchases start expensive."
+	secondary := "A major contributor to your current daily ownership cost"
+	caption := "A new purchase starts with its cost spread across fewer ownership days."
 
 	if isIndonesian {
 		eyebrow = "Yang Mengubah Biaya Harianmu"
-		secondary = "Mendorong sebagian besar kenaikan biaya harianmu"
-		caption = "Barang baru mulai dengan biaya harian tinggi."
+		secondary = "Memberi kontribusi besar pada biaya kepemilikan harianmu saat ini"
+		caption = "Pada awal kepemilikan, harga beli masih terbagi ke lebih sedikit hari."
 	}
 
 	return &domain.DashboardInsight{
@@ -371,14 +371,14 @@ func (provider *OwnershipCostTrendProvider) Generate(_ context.Context, data Das
 
 		// Collection became cheaper to own over the comparison period
 		decreaseAmount := math.Abs(delta)
-		primary := "Your collection is getting cheaper to own"
-		secondary := fmt.Sprintf("down %s/day over the last 30 days", data.FormatCurrency(decreaseAmount))
-		caption := "Your purchases are earning their keep over time."
+		primary := "Your daily ownership cost is lower than 30 days ago"
+		secondary := fmt.Sprintf("%s/day lower than 30 days ago", data.FormatCurrency(decreaseAmount))
+		caption := "More ownership time spreads the purchase cost across more days."
 
 		if isIndonesian {
-			primary = "Koleksi barangmu semakin terjangkau per hari"
-			secondary = fmt.Sprintf("turun %s/hari selama 30 hari terakhir", data.FormatCurrency(decreaseAmount))
-			caption = "Barangmu semakin bernilai seiring waktu pemakaian."
+			primary = "Biaya kepemilikan harianmu lebih rendah dibanding 30 hari lalu"
+			secondary = fmt.Sprintf("%s/hari lebih rendah dibanding 30 hari lalu", data.FormatCurrency(decreaseAmount))
+			caption = "Semakin lama dimiliki, harga beli terbagi ke lebih banyak hari."
 		}
 
 		return &domain.DashboardInsight{
@@ -392,23 +392,23 @@ func (provider *OwnershipCostTrendProvider) Generate(_ context.Context, data Das
 	}
 
 	// Cost increased, attribute to newly added item if possible
-	primary := "Your ownership cost increased"
+	primary := "Your daily ownership cost is higher than 30 days ago"
 	var secondary string
 	if newlyAddedHighestCostItem != nil {
-		secondary = fmt.Sprintf("up after adding %s", newlyAddedHighestCostItem.Name)
+		secondary = fmt.Sprintf("%s was added during this period", newlyAddedHighestCostItem.Name)
 	} else {
-		secondary = fmt.Sprintf("up %s/day over the last 30 days", data.FormatCurrency(delta))
+		secondary = fmt.Sprintf("%s/day higher than 30 days ago", data.FormatCurrency(delta))
 	}
-	caption := "New purchases start expensive."
+	caption := "A new purchase starts with its cost spread across fewer ownership days."
 
 	if isIndonesian {
-		primary = "Biaya kepemilikanmu meningkat"
+		primary = "Biaya kepemilikan harianmu lebih tinggi dibanding 30 hari lalu"
 		if newlyAddedHighestCostItem != nil {
-			secondary = fmt.Sprintf("naik setelah menambah %s", newlyAddedHighestCostItem.Name)
+			secondary = fmt.Sprintf("%s ditambahkan dalam periode ini", newlyAddedHighestCostItem.Name)
 		} else {
-			secondary = fmt.Sprintf("naik %s/hari selama 30 hari terakhir", data.FormatCurrency(delta))
+			secondary = fmt.Sprintf("%s/hari lebih tinggi dibanding 30 hari lalu", data.FormatCurrency(delta))
 		}
-		caption = "Barang baru mulai dengan biaya harian tinggi."
+		caption = "Pada awal kepemilikan, harga beli masih terbagi ke lebih sedikit hari."
 	}
 
 	return &domain.DashboardInsight{
@@ -518,13 +518,13 @@ func (provider *PortfolioMilestoneProvider) Generate(_ context.Context, data Das
 	eyebrow := "A Collection Milestone"
 	primary := fmt.Sprintf("%d Items Tracked", matchedMilestone)
 	secondary := "Active items in your collection"
-	caption := "Tracking ownership builds mindful spending habits."
+	caption := "More history gives you more context to compare over time."
 
 	if isIndonesian {
 		eyebrow = "Sebuah Milestone Koleksi"
 		primary = fmt.Sprintf("%d Barang Dilacak", matchedMilestone)
 		secondary = "Barang aktif dalam koleksimu"
-		caption = "Melacak kepemilikan membangun kebiasaan yang bijak."
+		caption = "Semakin banyak riwayat, semakin banyak konteks untuk dibandingkan seiring waktu."
 	}
 
 	return &domain.DashboardInsight{

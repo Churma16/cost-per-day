@@ -61,7 +61,7 @@ vi.mock('react-i18next', () => ({
         clickToCycleUnit: 'Click to switch between days, months, and years',
         ownershipEndDate: 'Ownership end date',
         salePrice: 'Sale price',
-        netOwnershipCost: 'Net ownership cost',
+        netOwnershipCost: 'Cost after sale',
         netCostPerDay: 'Net cost per day',
         targetMilestone: 'Target milestone',
         targetStateNew: 'New',
@@ -181,7 +181,7 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByText('Ownership end date')).toBeInTheDocument();
     expect(screen.getByText('Sale price')).toBeInTheDocument();
     expect(screen.getByText('$40.00')).toBeInTheDocument();
-    expect(screen.getByText('Net ownership cost')).toBeInTheDocument();
+    expect(screen.getByText('Cost after sale')).toBeInTheDocument();
     expect(screen.getByText('$60.00')).toBeInTheDocument();
     expect(screen.getByText('Net cost per day')).toBeInTheDocument();
     expect(screen.getByText('$6.00/day')).toBeInTheDocument();

@@ -13,12 +13,12 @@ describe('branding constants', () => {
   });
 
   it('defines the product tagline', () => {
-    expect(PRODUCT_TAGLINE).toBe('Make big purchases make sense over time.');
+    expect(PRODUCT_TAGLINE).toBe('Make purchases make sense over time.');
   });
 
   it('defines the broader product philosophy description', () => {
     expect(PRODUCT_DESCRIPTION).toBe(
-      'Understand big purchases through time, before buying and after ownership.'
+      'Understand what purchases mean over time, before buying and throughout ownership.'
     );
   });
 

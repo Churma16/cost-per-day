@@ -117,7 +117,7 @@ function ReplacementBenchmarkModal({
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-gray-900">{completedItem.name}</span>
             <span className="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 capitalize">
-              {completedItem.status || 'completed'}
+              {t({ retired: 'statusRetired', sold: 'statusSold', lost: 'statusLost' }[completedItem.status] || 'statusRetired')}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-1">

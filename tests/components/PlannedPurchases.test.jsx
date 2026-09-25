@@ -41,7 +41,7 @@ vi.mock('react-i18next', () => ({
         cadencePerMonthly: 'per month',
         targetDate: 'Target date',
         timeToReachTarget: 'Estimated time to reach target',
-        requiredContribution: 'Required contribution',
+        requiredContribution: 'Estimated contribution',
         statusPlanned: 'Planned Status',
         confirmDelete: 'Confirm Delete',
         confirmDeletePlannedPurchase: 'Are you sure you want to delete this planned purchase?',

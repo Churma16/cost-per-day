@@ -105,7 +105,7 @@ function Settings() {
     const settingsError = languageError || currencyError;
     if (settingsError) {
       setNotification({
-        message: settingsError.message || 'Failed to load shared settings from the server.',
+        message: settingsError.message || t('errorLoadingSettings'),
         type: 'error'
       });
     }
@@ -120,7 +120,7 @@ function Settings() {
     } catch (error) {
       console.error('Error updating language:', error);
       setNotification({
-        message: error.message || 'Failed to update the language setting.',
+        message: error.message || t('errorUpdatingLanguage'),
         type: 'error'
       });
     }
@@ -135,7 +135,7 @@ function Settings() {
     } catch (error) {
       console.error('Error updating currency:', error);
       setNotification({
-        message: error.message || 'Failed to update the currency setting.',
+        message: error.message || t('errorUpdatingCurrency'),
         type: 'error'
       });
     }
@@ -366,7 +366,7 @@ function Settings() {
       setTimeout(() => setNotification(null), 3000);
     } catch (saveError) {
       console.error('Error saving value equivalent:', saveError);
-      setEquivalentFormError(saveError.message || 'Failed to save value equivalent.');
+      setEquivalentFormError(saveError.message || t('errorSavingEquivalent'));
       setIsSavingEquivalent(false);
     }
   };
@@ -406,7 +406,7 @@ function Settings() {
     } catch (deleteError) {
       console.error('Error deleting value equivalent:', deleteError);
       setNotification({
-        message: deleteError.message || 'Failed to delete value equivalent.',
+        message: deleteError.message || t('errorDeletingEquivalent'),
         type: 'error'
       });
       setTimeout(() => setNotification(null), 3000);

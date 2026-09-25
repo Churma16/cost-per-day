@@ -117,7 +117,7 @@ function AddItem() {
       if (itemsLoading || itemLoaded) return;
 
       if (itemsError && itemsData === undefined) {
-        setErrorMessage(itemsError.message || 'Failed to load item. Please check your connection and try again.');
+        setErrorMessage(itemsError.message || t('errorLoadingItem'));
         setLoadFailed(true);
         return;
       }
@@ -153,7 +153,7 @@ function AddItem() {
           setLoadFailed(false);
       } else {
         console.error('Item not found for editing');
-        setErrorMessage('Item not found. It may have been deleted.');
+        setErrorMessage(t('itemNotFound'));
         setLoadFailed(true);
         setItemLoaded(false);
       }
@@ -270,7 +270,7 @@ function AddItem() {
       navigate('/');
     } catch (error) {
       console.error('Error saving item:', error);
-      setErrorMessage(error.message || 'Failed to save the item. Please try again.');
+      setErrorMessage(error.message || t('errorSavingItem'));
     }
   };
 
@@ -291,7 +291,7 @@ function AddItem() {
     } catch (error) {
       console.error('Error deleting item:', error);
       setShowDeleteConfirm(false);
-      setErrorMessage(error.message || 'Failed to delete the item. Please try again.');
+      setErrorMessage(error.message || t('errorDeletingItem'));
     }
   };
 

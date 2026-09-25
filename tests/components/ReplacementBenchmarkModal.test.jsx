@@ -10,22 +10,25 @@ vi.mock('react-i18next', () => ({
     t: (key, options) => {
       const dictionary = {
         replacementBenchmark: 'Past Item Baseline',
-        benchmarkDescription: "Use your previous item's history to see how long this purchase needs to last to be just as worthwhile.",
+        benchmarkDescription: "Use your previous item's history to see how long this purchase needs to last to reach the same final daily ownership cost.",
         candidatePrice: 'New item price',
         enterCandidatePrice: 'Enter new item price',
         previousOwnershipDays: `Duration: ${options?.days} days`,
-        previousFinalCostPerDay: `Final cost: ${options?.amount}/day`,
+        previousFinalCostPerDay: `Final daily ownership cost: ${options?.amount}/day`,
         previousTargetCostPerDay: `Previous target: ${options?.amount}/day`,
-        benchmarkResultRequiredDuration: `To match your previous item's value (${options?.rate}/day):`,
-        benchmarkResultTargetDuration: `To match your previous target (${options?.rate}/day):`,
+        benchmarkResultRequiredDuration: `To reach your previous item's final daily ownership cost (${options?.rate}/day):`,
+        benchmarkResultTargetDuration: `To reach the previous target daily ownership cost (${options?.rate}/day):`,
         benchmarkResultDays: `~${options?.days} days`,
-        benchmarkResultDaysToBeat: `Lasts longer than ${options?.days} days for even better value`,
+        benchmarkResultDaysToBeat: `After ${options?.days} days, its daily ownership cost would be lower than your previous item's`,
         useBenchmarkAsTarget: 'Set as Ownership Target',
-        benchmarkEmptyHint: `Enter a price above to calculate how long this purchase needs to last to match ${options?.amount}/day.`,
+        benchmarkEmptyHint: `Enter a price above to calculate how long this purchase needs to last to reach the same daily ownership cost of ${options?.amount}/day.`,
         benchmarkUnmatchableZeroCost: 'This item had a zero or negative net ownership cost (sold at or above purchase price). A new purchase cannot match a zero-cost baseline.',
         cancel: 'Cancel',
         close: 'Close',
-        loading: 'Loading...'
+        loading: 'Loading...',
+        statusRetired: 'No Longer in Use',
+        statusSold: 'Changed Hands',
+        statusLost: 'Lost'
       };
       return dictionary[key] || key;
     }
@@ -105,6 +108,8 @@ describe('ReplacementBenchmarkModal component', () => {
     expect(screen.getByText('Past Item Baseline')).toBeInTheDocument();
     expect(screen.getByText('Old Headphones')).toBeInTheDocument();
     expect(screen.getByText('Duration: 200 days')).toBeInTheDocument();
+    expect(screen.getByText('Final daily ownership cost: $1.50/day')).toBeInTheDocument();
+    expect(screen.getByText('No Longer in Use')).toBeInTheDocument();
 
     const priceInput = screen.getByPlaceholderText('Enter new item price');
     expect(priceInput.value).toBe('250');
@@ -147,7 +152,7 @@ describe('ReplacementBenchmarkModal component', () => {
     );
 
     expect(screen.getByText('~200 days')).toBeInTheDocument();
-    expect(screen.getByText('Lasts longer than 201 days for even better value')).toBeInTheDocument();
+    expect(screen.getByText("After 201 days, its daily ownership cost would be lower than your previous item's")).toBeInTheDocument();
     expect(screen.getByText('~300 days')).toBeInTheDocument();
 
     const applyButton = screen.getByRole('button', { name: 'Set as Ownership Target' });
@@ -215,6 +220,6 @@ describe('ReplacementBenchmarkModal component', () => {
       'This item had a zero or negative net ownership cost'
     );
     expect(screen.getByRole('button', { name: 'Set as Ownership Target' })).toBeDisabled();
-    expect(screen.queryByText(/To match your previous item's value/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/To reach your previous item's final daily ownership cost/i)).not.toBeInTheDocument();
   });
 });

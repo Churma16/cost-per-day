@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -78,12 +79,13 @@ function AuthenticatedApp() {
 }
 
 function AuthGate() {
+  const { t } = useTranslation();
   const { user, isLoading, error, signIn } = useAuth();
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-purple-600">Loading...</div>
+        <div className="text-purple-600">{t('loading')}</div>
       </div>
     );
   }
@@ -99,11 +101,11 @@ function AuthGate() {
           />
           <h1 className="text-2xl font-bold text-gray-900">{PRODUCT_NAME}</h1>
           <p className="mt-3 text-sm text-gray-600">
-            Sign in to access your items and settings across devices.
+            {t('authDescription')}
           </p>
           {error && (
             <p role="alert" className="mt-4 text-sm text-red-600">
-              Unable to check your session. You can try signing in again.
+              {t('authSessionError')}
             </p>
           )}
           <button
@@ -111,7 +113,7 @@ function AuthGate() {
             onClick={signIn}
             className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
           >
-            Sign in with Google
+            {t('signInWithGoogle')}
           </button>
         </section>
       </main>

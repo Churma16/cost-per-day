@@ -30,7 +30,7 @@ vi.mock('react-i18next', () => ({
         brand: 'Brand',
         ownershipEndDate: 'Ownership end date',
         salePrice: 'Sale price',
-        netOwnershipCost: 'Net ownership cost',
+        netOwnershipCost: 'Cost after sale',
         netCostPerDay: 'Net cost per day',
         perDay: '/day',
         targetMilestone: 'Target milestone',
