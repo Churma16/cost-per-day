@@ -171,29 +171,7 @@ Also verify representative application data through the UI/API, including a real
 
 ## Upgrade and Migration
 
-### Pre-auth Ownership Verification
-
-Before deploying a release that removes the retired pre-authentication adoption path, inspect the live SQLite database and verify that no meaningful data remains under an unclaimed historical owner:
-
-```sql
-SELECT id, google_sub
-FROM users
-WHERE id = 'legacy';
-
-SELECT COUNT(*) AS legacy_items
-FROM items
-WHERE user_id = 'legacy';
-
-SELECT key, value
-FROM settings
-WHERE user_id = 'legacy'
-  AND NOT (
-    (key = 'language' AND value = 'en')
-    OR (key = 'currency' AND value = 'USD')
-  );
-```
-
-Deployment is safe with respect to this cleanup when the historical row is absent, or when its `google_sub` is already populated. If `google_sub` is empty while meaningful items or non-default settings remain, stop the deployment and resolve ownership before removing the compatibility path. Do not rewrite historical migrations or rename an already-adopted local user solely because its ID is `legacy`.
+Unclaimed pre-authentication ownership without a persisted Google subject is not a supported runtime compatibility state after the legacy bootstrap cleanup. During early beta, any such historical state may require manual database recovery or reset instead of restoring the retired authentication bootstrap path. Already-adopted users remain supported and keep their persisted local user IDs, including `legacy`.
 
 Before deploying an application version that contains a new database migration:
 
