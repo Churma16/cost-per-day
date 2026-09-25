@@ -162,7 +162,7 @@ describe('ItemList lifecycle display', () => {
     expect(await screen.findByText('Phone')).toBeInTheDocument();
     const phoneTrigger = screen.getByRole('button', { name: /Phone/i });
     expect(within(phoneTrigger).queryByText('Changed Hands')).not.toBeInTheDocument();
-    expect(screen.getByText('Final gross cost per day')).toBeInTheDocument();
+    expect(screen.queryByText('Final gross cost per day')).not.toBeInTheDocument();
     expect(screen.getByText('$10.00')).toBeInTheDocument();
 
     expect(screen.getByText('Laptop')).toBeInTheDocument();

@@ -230,18 +230,11 @@ function ItemCard({
 
         <div className="min-w-0 flex-1">
           <h3 className="font-medium text-[#20242A] truncate">{item.name}</h3>
-          <div className="mt-0.5 flex items-baseline gap-2 flex-wrap">
-            {!isActive && (
-              <span className="text-xs text-[#6F7782] font-normal">
-                {t('finalGrossCostPerDay')}
-              </span>
-            )}
-            {bestEquivalent && (
-              <p className="text-xs text-[#6F7782] font-normal">
-                ≈ {bestEquivalent.text}
-              </p>
-            )}
-          </div>
+          {bestEquivalent && (
+            <p className="mt-0.5 text-xs text-[#6F7782] font-normal">
+              ≈ {bestEquivalent.text}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5 flex-shrink-0 text-right">

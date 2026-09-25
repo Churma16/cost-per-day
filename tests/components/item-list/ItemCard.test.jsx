@@ -72,6 +72,7 @@ describe('ItemCard', () => {
     const trigger = screen.getByRole('button', { name: /Sold Phone/i });
     const details = document.getElementById('item-details-3');
     expect(within(trigger).queryByText('Changed Hands')).not.toBeInTheDocument();
+    expect(within(trigger).queryByText('Final gross cost per day')).not.toBeInTheDocument();
     expect(within(details).getByText('Changed Hands')).toBeInTheDocument();
     expect(details).toHaveAttribute('aria-hidden', 'true');
 
