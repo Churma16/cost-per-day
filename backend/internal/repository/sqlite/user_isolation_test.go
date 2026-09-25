@@ -28,7 +28,7 @@ func seedSQLiteUser(t *testing.T, databaseConnection *sql.DB, userID string) {
 func TestSQLiteSettingsRepositoryReturnsDefaultsForFreshUser(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()
-	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
+	settingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, databaseConnection))
 
 	const freshUser = "fresh-user"
 	seedSQLiteUser(t, databaseConnection, freshUser)
@@ -61,7 +61,7 @@ func TestSQLiteRepositoriesEnforceUserIsolation(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()
 	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
-	settingsRepository := sqliterepository.NewSettingsRepository(databaseConnection)
+	settingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, databaseConnection))
 
 	const userA = "user-a"
 	const userB = "user-b"
@@ -147,6 +147,24 @@ func TestSQLiteRepositoriesEnforceUserIsolation(t *testing.T) {
 	}
 	if _, privateSettingError := settingsRepository.GetByKey(ctx, userB, "theme"); !errors.Is(privateSettingError, domain.ErrSettingNotFound) {
 		t.Fatalf("expected user B not to see user A setting, got %v", privateSettingError)
+	}
+
+	userASettings, userASettingsError := settingsRepository.GetAll(ctx, userA)
+	if userASettingsError != nil {
+		t.Fatalf("list user A settings: %v", userASettingsError)
+	}
+	if userASettings["language"] != "id" || userASettings["theme"] != "dark" {
+		t.Fatalf("expected only user A overrides, got %+v", userASettings)
+	}
+	userBSettings, userBSettingsError := settingsRepository.GetAll(ctx, userB)
+	if userBSettingsError != nil {
+		t.Fatalf("list user B settings: %v", userBSettingsError)
+	}
+	if userBSettings["language"] != "fr" {
+		t.Fatalf("expected user B language fr, got %+v", userBSettings)
+	}
+	if _, hasUserATheme := userBSettings["theme"]; hasUserATheme {
+		t.Fatalf("expected user B settings not to include user A theme, got %+v", userBSettings)
 	}
 
 	for _, indexName := range []string{"idx_items_user_id_id", "idx_settings_user_id_key"} {
@@ -249,7 +267,7 @@ func TestUserOwnershipMigrationPreservesLegacyData(t *testing.T) {
 		t.Fatalf("legacy item was not preserved under legacy owner: %+v", legacyItem)
 	}
 
-	settingsRepository := sqliterepository.NewSettingsRepository(migratedDatabase)
+	settingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, migratedDatabase))
 	language, languageError := settingsRepository.GetByKey(ctx, domain.LegacyUserID, "language")
 	if languageError != nil || language != "id" {
 		t.Fatalf("expected migrated language id, got %q error %v", language, languageError)
