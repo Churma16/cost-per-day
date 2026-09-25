@@ -1,19 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
-import { formatCurrency } from '../utils/formatters';
-import {
-  calculateContributionProjection,
-  calculateTargetDateProjection,
-} from '../utils/plannedPurchaseProjection';
-import CurrencyInput from './common/CurrencyInput';
-
-const getTomorrowDateString = () => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
-};
+import PlannedPurchaseCoreFields from './planned-purchase/PlannedPurchaseCoreFields';
+import PlanningModeSelector from './planned-purchase/PlanningModeSelector';
+import ContributionPlanningSection from './planned-purchase/ContributionPlanningSection';
+import TargetDatePlanningSection from './planned-purchase/TargetDatePlanningSection';
 
 function PlannedPurchaseForm({
   initialData = null,
@@ -32,15 +24,12 @@ function PlannedPurchaseForm({
   const [currencyCode, setCurrencyCode] = useState(
     initialData?.currencyCode || activeCurrencyCode || 'USD'
   );
-
-  // Direction Mode: 'contributionToTime' or 'targetDateToContribution'
   const [planningMode, setPlanningMode] = useState(() => {
     if (initialData?.targetDate && !initialData?.contributionAmount) {
       return 'targetDateToContribution';
     }
     return 'contributionToTime';
   });
-
   const [contributionCadence, setContributionCadence] = useState(
     initialData?.contributionCadence || 'daily'
   );
@@ -63,39 +52,6 @@ function PlannedPurchaseForm({
 
   const numericTargetPrice = parseFloat(targetPrice);
   const numericContributionAmount = parseFloat(contributionAmount);
-
-  const liveTimeProjection = useMemo(
-    () =>
-      calculateContributionProjection({
-        targetPrice: numericTargetPrice,
-        contributionAmount: numericContributionAmount,
-        cadence: contributionCadence,
-      }),
-    [numericTargetPrice, numericContributionAmount, contributionCadence]
-  );
-
-  const livePeriodUnit =
-    contributionCadence === 'daily'
-      ? t('unitDays')
-      : contributionCadence === 'weekly'
-      ? t('unitWeeks')
-      : t('unitMonths');
-
-  const liveCadencePer =
-    contributionCadence === 'daily'
-      ? t('cadencePerDaily')
-      : contributionCadence === 'weekly'
-      ? t('cadencePerWeekly')
-      : t('cadencePerMonthly');
-
-  const liveContributionProjection = useMemo(
-    () =>
-      calculateTargetDateProjection({
-        targetPrice: numericTargetPrice,
-        targetDate,
-      }),
-    [numericTargetPrice, targetDate]
-  );
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -142,9 +98,6 @@ function PlannedPurchaseForm({
     onSubmit(payload);
   };
 
-  const supportedCurrencies = getSupportedCurrencies();
-  const minDate = getTomorrowDateString();
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {(errorMessage || validationError) && (
@@ -153,191 +106,39 @@ function PlannedPurchaseForm({
         </div>
       )}
 
-      <div>
-        <label htmlFor="planned-purchase-name" className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
-          {t('targetItemName')} *
-        </label>
-        <input
-          id="planned-purchase-name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t('enterTargetItemName')}
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-          required
-        />
-      </div>
+      <PlannedPurchaseCoreFields
+        name={name}
+        onNameChange={setName}
+        targetPrice={targetPrice}
+        onTargetPriceChange={setTargetPrice}
+        currencyCode={currencyCode}
+        onCurrencyCodeChange={setCurrencyCode}
+        supportedCurrencies={getSupportedCurrencies()}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="planned-purchase-price" className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
-            {t('targetPrice')} *
-          </label>
-          <CurrencyInput
-            id="planned-purchase-price"
-            value={targetPrice}
-            onChange={(e) => setTargetPrice(e.target.value)}
-            currencyCode={currencyCode}
-            placeholder={t('enterTargetPrice')}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="planned-purchase-currency" className="block text-xs font-semibold uppercase tracking-wider text-gray-700">
-            {t('currency')}
-          </label>
-          <select
-            id="planned-purchase-currency"
-            value={currencyCode}
-            onChange={(e) => setCurrencyCode(e.target.value)}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white"
-          >
-            {supportedCurrencies.map((config) => (
-              <option key={config.code} value={config.code}>
-                {t(config.nameKey)}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="border-t border-gray-200 pt-3">
-        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-700 mb-2">
-          {t('planningMode')}
-        </label>
-        <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-lg">
-          <button
-            type="button"
-            onClick={() => handleModeChange('contributionToTime')}
-            className={`py-2 px-3 text-xs font-medium rounded-md transition-all ${
-              planningMode === 'contributionToTime'
-                ? 'bg-white text-teal-800 shadow-sm font-semibold'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {t('modeContributionToTime')}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleModeChange('targetDateToContribution')}
-            className={`py-2 px-3 text-xs font-medium rounded-md transition-all ${
-              planningMode === 'targetDateToContribution'
-                ? 'bg-white text-teal-800 shadow-sm font-semibold'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {t('modeTargetDateToContribution')}
-          </button>
-        </div>
-      </div>
+      <PlanningModeSelector
+        planningMode={planningMode}
+        onPlanningModeChange={handleModeChange}
+      />
 
       {planningMode === 'contributionToTime' && (
-        <div className="rounded-xl bg-teal-50/60 border border-teal-100 p-4 space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-teal-900 mb-1">{t('cadence')}</label>
-            <div className="grid grid-cols-3 gap-2">
-              {['daily', 'weekly', 'monthly'].map((cadenceOption) => (
-                <button
-                  key={cadenceOption}
-                  type="button"
-                  onClick={() => setContributionCadence(cadenceOption)}
-                  className={`py-1.5 px-2 text-xs rounded-md border font-medium transition-colors ${
-                    contributionCadence === cadenceOption
-                      ? 'bg-teal-600 text-white border-teal-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {cadenceOption === 'daily'
-                    ? t('cadenceDaily')
-                    : cadenceOption === 'weekly'
-                    ? t('cadenceWeekly')
-                    : t('cadenceMonthly')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="contribution-amount" className="block text-xs font-medium text-teal-900">
-              {t('recurringContribution')}
-            </label>
-            <CurrencyInput
-              id="contribution-amount"
-              value={contributionAmount}
-              onChange={(e) => setContributionAmount(e.target.value)}
-              currencyCode={currencyCode}
-              placeholder={t('enterContributionAmount')}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white"
-            />
-          </div>
-
-          {liveTimeProjection && (
-            <div className="rounded-lg bg-white p-3 border border-teal-200 text-xs text-teal-950 space-y-1">
-              <span className="font-semibold block text-teal-800">{t('timeToReachTarget')}:</span>
-              <p className="text-sm font-bold text-teal-700">
-                {contributionCadence === 'daily'
-                  ? t('reachTargetInDays', { days: liveTimeProjection.estimatedDays })
-                  : t('reachTargetIn', {
-                      periods: liveTimeProjection.periods,
-                      periodUnit: livePeriodUnit,
-                      days: liveTimeProjection.estimatedDays,
-                    })}
-              </p>
-              <p className="text-gray-500 text-[11px]">
-                {formatCurrency(numericContributionAmount, currencyCode)} {liveCadencePer} &rarr; {formatCurrency(numericTargetPrice, currencyCode)}
-              </p>
-            </div>
-          )}
-        </div>
+        <ContributionPlanningSection
+          targetPrice={numericTargetPrice}
+          contributionCadence={contributionCadence}
+          onContributionCadenceChange={setContributionCadence}
+          contributionAmount={contributionAmount}
+          onContributionAmountChange={setContributionAmount}
+          currencyCode={currencyCode}
+        />
       )}
 
       {planningMode === 'targetDateToContribution' && (
-        <div className="rounded-xl bg-teal-50/60 border border-teal-100 p-4 space-y-3">
-          <div>
-            <label htmlFor="target-date-input" className="block text-xs font-medium text-teal-900">
-              {t('targetDate')}
-            </label>
-            <input
-              id="target-date-input"
-              type="date"
-              min={minDate}
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white"
-            />
-          </div>
-
-          {liveContributionProjection && (
-            <div className="rounded-lg bg-white p-3 border border-teal-200 text-xs text-teal-950 space-y-2">
-              <span className="font-semibold block text-teal-800">{t('requiredContribution')}:</span>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-gray-50 p-2 rounded border border-gray-100">
-                  <div className="text-[10px] text-gray-500">{t('cadenceDaily')}</div>
-                  <div className="font-bold text-xs text-gray-900">
-                    {formatCurrency(liveContributionProjection.daily, currencyCode)}
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-2 rounded border border-gray-100">
-                  <div className="text-[10px] text-gray-500">{t('cadenceWeekly')}</div>
-                  <div className="font-bold text-xs text-gray-900">
-                    {formatCurrency(liveContributionProjection.weekly, currencyCode)}
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-2 rounded border border-gray-100">
-                  <div className="text-[10px] text-gray-500">{t('cadenceMonthly')}</div>
-                  <div className="font-bold text-xs text-gray-900">
-                    {formatCurrency(liveContributionProjection.monthly, currencyCode)}
-                  </div>
-                </div>
-              </div>
-              <p className="text-[11px] text-gray-500 text-center">
-                {t('daysRemaining', { days: liveContributionProjection.daysRemaining })}
-              </p>
-            </div>
-          )}
-        </div>
+        <TargetDatePlanningSection
+          targetPrice={numericTargetPrice}
+          targetDate={targetDate}
+          onTargetDateChange={setTargetDate}
+          currencyCode={currencyCode}
+        />
       )}
 
       <p className="text-[11px] text-gray-500 italic bg-gray-50 p-2.5 rounded-lg border border-gray-100">
