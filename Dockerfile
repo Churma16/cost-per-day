@@ -48,7 +48,7 @@ USER app
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=6 \
+HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=18 \
   CMD wget -q -O /dev/null http://127.0.0.1:8080/health || exit 1
 
 ENTRYPOINT ["/app/cost-per-day"]
