@@ -36,10 +36,10 @@ function HomeHeader() {
 
 function Home() {
   return (
-    <>
+    <div className="min-h-full">
       <HomeHeader />
       <ItemList />
-    </>
+    </div>
   );
 }
 
