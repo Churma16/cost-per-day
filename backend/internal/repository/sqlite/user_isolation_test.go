@@ -60,7 +60,7 @@ func TestSQLiteSettingsRepositoryReturnsDefaultsForFreshUser(t *testing.T) {
 func TestSQLiteRepositoriesEnforceUserIsolation(t *testing.T) {
 	databaseConnection, _ := openTestDatabase(t)
 	ctx := context.Background()
-	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepository := sqliterepository.NewItemRepository(newTestGORM(t, databaseConnection))
 	settingsRepository := sqliterepository.NewSettingsRepository(newTestGORM(t, databaseConnection))
 
 	const userA = "user-a"
@@ -258,7 +258,7 @@ func TestUserOwnershipMigrationPreservesLegacyData(t *testing.T) {
 		t.Fatalf("expected deterministic legacy user, got count %d", legacyUserCount)
 	}
 
-	itemRepository := sqliterepository.NewItemRepository(migratedDatabase)
+	itemRepository := sqliterepository.NewItemRepository(newTestGORM(t, migratedDatabase))
 	legacyItem, itemError := itemRepository.GetByID(ctx, domain.LegacyUserID, "7")
 	if itemError != nil {
 		t.Fatalf("read migrated legacy item: %v", itemError)
