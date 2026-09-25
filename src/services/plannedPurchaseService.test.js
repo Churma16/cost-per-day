@@ -1,6 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  plannedPurchaseHttpClient,
   fetchPlannedPurchases,
   fetchPlannedPurchaseById,
   createPlannedPurchase,
@@ -8,9 +7,22 @@ import {
   deletePlannedPurchase,
 } from './plannedPurchaseService';
 
+const response = (status, data, message = 'Success') => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: vi.fn().mockResolvedValue({
+    meta: { code: status, message },
+    data,
+  }),
+});
+
 describe('plannedPurchaseService', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    delete global.fetch;
   });
 
   it('successfully fetches list of planned purchases', async () => {
@@ -27,15 +39,12 @@ describe('plannedPurchaseService', () => {
       },
     ];
 
-    vi.spyOn(plannedPurchaseHttpClient, 'get').mockResolvedValueOnce({
-      data: {
-        meta: { code: 200, message: 'Success' },
-        data: mockList,
-      },
-    });
+    global.fetch.mockResolvedValueOnce(response(200, mockList));
 
     const result = await fetchPlannedPurchases();
+
     expect(result).toEqual(mockList);
+    expect(global.fetch.mock.calls[0][0]).toBe('/api/planned-purchases');
   });
 
   it('successfully fetches a single planned purchase by ID', async () => {
@@ -46,18 +55,15 @@ describe('plannedPurchaseService', () => {
       currencyCode: 'IDR',
     };
 
-    vi.spyOn(plannedPurchaseHttpClient, 'get').mockResolvedValueOnce({
-      data: {
-        meta: { code: 200, message: 'Success' },
-        data: mockPurchase,
-      },
-    });
+    global.fetch.mockResolvedValueOnce(response(200, mockPurchase));
 
     const result = await fetchPlannedPurchaseById('1');
+
     expect(result).toEqual(mockPurchase);
+    expect(global.fetch.mock.calls[0][0]).toBe('/api/planned-purchases/1');
   });
 
-  it('successfully creates a planned purchase', async () => {
+  it('successfully creates a planned purchase with centralized JSON handling', async () => {
     const payload = {
       name: 'iPad Pro',
       targetPrice: 1000,
@@ -65,15 +71,20 @@ describe('plannedPurchaseService', () => {
     };
     const mockCreated = { id: '2', ...payload };
 
-    vi.spyOn(plannedPurchaseHttpClient, 'post').mockResolvedValueOnce({
-      data: {
-        meta: { code: 201, message: 'Created' },
-        data: mockCreated,
-      },
-    });
+    global.fetch.mockResolvedValueOnce(response(201, mockCreated, 'Created'));
 
     const result = await createPlannedPurchase(payload);
+
     expect(result).toEqual(mockCreated);
+    expect(global.fetch).toHaveBeenCalledWith('/api/planned-purchases', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify(payload),
+      credentials: 'include',
+      headers: expect.objectContaining({
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      }),
+    }));
   });
 
   it('successfully updates a planned purchase', async () => {
@@ -84,44 +95,45 @@ describe('plannedPurchaseService', () => {
     };
     const mockUpdated = { id: '2', ...payload };
 
-    vi.spyOn(plannedPurchaseHttpClient, 'put').mockResolvedValueOnce({
-      data: {
-        meta: { code: 200, message: 'Updated' },
-        data: mockUpdated,
-      },
-    });
+    global.fetch.mockResolvedValueOnce(response(200, mockUpdated, 'Updated'));
 
     const result = await updatePlannedPurchase('2', payload);
+
     expect(result).toEqual(mockUpdated);
+    expect(global.fetch.mock.calls[0][0]).toBe('/api/planned-purchases/2');
   });
 
-  it('successfully deletes a planned purchase', async () => {
-    vi.spyOn(plannedPurchaseHttpClient, 'delete').mockResolvedValueOnce({
-      data: {
-        meta: { code: 200, message: 'Deleted' },
-        data: null,
-      },
-    });
+  it('preserves the existing delete response contract', async () => {
+    global.fetch.mockResolvedValueOnce(response(200, null, 'Deleted'));
 
     const result = await deletePlannedPurchase('2');
-    expect(result).toEqual({ meta: { code: 200, message: 'Deleted' }, data: null });
+
+    expect(result).toEqual({
+      meta: { code: 200, message: 'Deleted' },
+      data: null,
+    });
   });
 
   it('surfaces backend error message on failure', async () => {
-    vi.spyOn(plannedPurchaseHttpClient, 'post').mockRejectedValueOnce({
-      response: {
-        status: 400,
-        data: {
-          meta: { code: 400, message: 'target date must be in the future' },
-        },
-      },
-    });
+    global.fetch.mockResolvedValueOnce(
+      response(400, null, 'target date must be in the future')
+    );
 
-    await expect(createPlannedPurchase({})).rejects.toThrow('target date must be in the future');
+    await expect(createPlannedPurchase({})).rejects.toThrow(
+      'target date must be in the future'
+    );
+  });
+
+  it('keeps feature-specific response validation explicit', async () => {
+    global.fetch.mockResolvedValueOnce(response(200, null));
+
+    await expect(fetchPlannedPurchaseById('1')).rejects.toThrow(
+      'The server returned an unexpected planned purchase response structure.'
+    );
   });
 
   it('handles network failure gracefully', async () => {
-    vi.spyOn(plannedPurchaseHttpClient, 'get').mockRejectedValueOnce(new Error('Network error'));
+    global.fetch.mockRejectedValueOnce(new Error('Network error'));
 
     await expect(fetchPlannedPurchases()).rejects.toThrow(
       'Unable to load planned purchases from the server.'

@@ -1,101 +1,81 @@
-import axios from 'axios';
+import {
+  ApiError,
+  apiRequest,
+  apiRequestEnvelope,
+} from './httpClient';
 
-const resolvePlannedPurchaseApiBaseUrl = () => {
-  const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (configuredApiBaseUrl && configuredApiBaseUrl.trim() !== '') {
-    return configuredApiBaseUrl.trim().replace(/\/+$/, '');
-  }
-  return import.meta.env.MODE === 'development' ? 'http://localhost:8080' : '';
-};
+const isObjectData = (value) => (
+  value
+  && typeof value === 'object'
+  && !Array.isArray(value)
+);
 
-export const plannedPurchaseHttpClient = axios.create({
-  baseURL: resolvePlannedPurchaseApiBaseUrl(),
-  withCredentials: true,
-  headers: {
-    Accept: 'application/json',
-  },
-});
-
-const handlePlannedPurchaseHttpError = (error, fallbackMessage) => {
-  if (error.response?.data?.meta?.message) {
-    throw new Error(error.response.data.meta.message);
+const validatePlannedPurchase = (plannedPurchase, message) => {
+  if (!isObjectData(plannedPurchase)) {
+    throw new ApiError(message);
   }
-  if (error.response?.status) {
-    throw new Error(`Request failed with status code ${error.response.status}.`);
-  }
-  throw new Error(fallbackMessage || 'Unable to reach the server. Check your connection and try again.');
+  return plannedPurchase;
 };
 
 export const fetchPlannedPurchases = async () => {
-  try {
-    const httpResponse = await plannedPurchaseHttpClient.get('/api/planned-purchases');
-    const responsePayload = httpResponse.data;
+  const plannedPurchases = await apiRequest('/api/planned-purchases', {
+    networkErrorMessage: 'Unable to load planned purchases from the server.',
+  });
 
-    if (!responsePayload || typeof responsePayload !== 'object' || !Array.isArray(responsePayload.data)) {
-      throw new Error('The server returned an unexpected planned purchases response structure.');
-    }
-
-    return responsePayload.data;
-  } catch (error) {
-    return handlePlannedPurchaseHttpError(error, 'Unable to load planned purchases from the server.');
+  if (!Array.isArray(plannedPurchases)) {
+    throw new ApiError('The server returned an unexpected planned purchases response structure.');
   }
+
+  return plannedPurchases;
 };
 
 export const fetchPlannedPurchaseById = async (plannedPurchaseId) => {
-  try {
-    const httpResponse = await plannedPurchaseHttpClient.get(`/api/planned-purchases/${encodeURIComponent(String(plannedPurchaseId))}`);
-    const responsePayload = httpResponse.data;
-
-    if (!responsePayload || typeof responsePayload !== 'object' || !responsePayload.data) {
-      throw new Error('The server returned an unexpected planned purchase response structure.');
+  const plannedPurchase = await apiRequest(
+    `/api/planned-purchases/${encodeURIComponent(String(plannedPurchaseId))}`,
+    {
+      networkErrorMessage: 'Unable to load the requested planned purchase.',
     }
+  );
 
-    return responsePayload.data;
-  } catch (error) {
-    return handlePlannedPurchaseHttpError(error, 'Unable to load the requested planned purchase.');
-  }
+  return validatePlannedPurchase(
+    plannedPurchase,
+    'The server returned an unexpected planned purchase response structure.'
+  );
 };
 
 export const createPlannedPurchase = async (plannedPurchasePayload) => {
-  try {
-    const httpResponse = await plannedPurchaseHttpClient.post('/api/planned-purchases', plannedPurchasePayload);
-    const responsePayload = httpResponse.data;
+  const plannedPurchase = await apiRequest('/api/planned-purchases', {
+    method: 'POST',
+    json: plannedPurchasePayload,
+    networkErrorMessage: 'Unable to create the planned purchase.',
+  });
 
-    if (!responsePayload || typeof responsePayload !== 'object' || !responsePayload.data) {
-      throw new Error('The server returned an unexpected planned purchase creation response structure.');
-    }
-
-    return responsePayload.data;
-  } catch (error) {
-    return handlePlannedPurchaseHttpError(error, 'Unable to create the planned purchase.');
-  }
+  return validatePlannedPurchase(
+    plannedPurchase,
+    'The server returned an unexpected planned purchase creation response structure.'
+  );
 };
 
 export const updatePlannedPurchase = async (plannedPurchaseId, plannedPurchasePayload) => {
-  try {
-    const httpResponse = await plannedPurchaseHttpClient.put(
-      `/api/planned-purchases/${encodeURIComponent(String(plannedPurchaseId))}`,
-      plannedPurchasePayload
-    );
-    const responsePayload = httpResponse.data;
-
-    if (!responsePayload || typeof responsePayload !== 'object' || !responsePayload.data) {
-      throw new Error('The server returned an unexpected planned purchase update response structure.');
+  const plannedPurchase = await apiRequest(
+    `/api/planned-purchases/${encodeURIComponent(String(plannedPurchaseId))}`,
+    {
+      method: 'PUT',
+      json: plannedPurchasePayload,
+      networkErrorMessage: 'Unable to update the planned purchase.',
     }
+  );
 
-    return responsePayload.data;
-  } catch (error) {
-    return handlePlannedPurchaseHttpError(error, 'Unable to update the planned purchase.');
-  }
+  return validatePlannedPurchase(
+    plannedPurchase,
+    'The server returned an unexpected planned purchase update response structure.'
+  );
 };
 
-export const deletePlannedPurchase = async (plannedPurchaseId) => {
-  try {
-    const httpResponse = await plannedPurchaseHttpClient.delete(
-      `/api/planned-purchases/${encodeURIComponent(String(plannedPurchaseId))}`
-    );
-    return httpResponse.data;
-  } catch (error) {
-    return handlePlannedPurchaseHttpError(error, 'Unable to delete the planned purchase.');
+export const deletePlannedPurchase = (plannedPurchaseId) => apiRequestEnvelope(
+  `/api/planned-purchases/${encodeURIComponent(String(plannedPurchaseId))}`,
+  {
+    method: 'DELETE',
+    networkErrorMessage: 'Unable to delete the planned purchase.',
   }
-};
+);
