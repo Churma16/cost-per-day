@@ -122,12 +122,12 @@ func main() {
 	}
 
 	// Explicit dependency wiring (composition root).
-	itemRepository := sqliterepository.NewItemRepository(databaseConnection)
+	itemRepository := sqliterepository.NewItemRepository(gormDB)
 	settingsRepository := sqliterepository.NewSettingsRepository(gormDB)
-	userRepository := sqliterepository.NewUserRepository(databaseConnection)
-	sessionRepository := sqliterepository.NewSessionRepository(databaseConnection)
+	userRepository := sqliterepository.NewUserRepository(gormDB)
+	sessionRepository := sqliterepository.NewSessionRepository(gormDB)
 	equivalentRepository := sqliterepository.NewValueEquivalentRepository(gormDB)
-	plannedPurchaseRepository := sqliterepository.NewPlannedPurchaseRepository(databaseConnection)
+	plannedPurchaseRepository := sqliterepository.NewPlannedPurchaseRepository(gormDB)
 	categoryRepository := sqliterepository.NewCategoryRepository(gormDB)
 	brandRepository := sqliterepository.NewBrandRepository(gormDB)
 
