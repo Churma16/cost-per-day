@@ -44,7 +44,7 @@ describe('Header route isolation regression tests', () => {
     getCurrentUser.mockResolvedValue({ id: 'user-1', email: 'test@example.com' });
   });
 
-  test('renders normal-flow header on Home route / without page-header class', async () => {
+  test('renders the Home-owned sticky header on / without page-header class', async () => {
     window.history.pushState({}, '', '/');
     render(<App />);
     await waitFor(() => {
@@ -53,7 +53,8 @@ describe('Header route isolation regression tests', () => {
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);
     const homeHeader = document.querySelector('header');
-    expect(homeHeader).toHaveClass('relative');
+    expect(homeHeader).toHaveClass('sticky');
+    expect(homeHeader.closest('.min-h-full')).toBeInTheDocument();
   });
 
   test('renders clean header on /settings without page-header banner', async () => {
