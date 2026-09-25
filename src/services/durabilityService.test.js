@@ -1,14 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  durabilityHttpClient,
   fetchDurabilityAnalytics,
   fetchCategories,
   fetchBrands,
 } from './durabilityService';
 
+const response = (status, data, message = 'Success') => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: vi.fn().mockResolvedValue({
+    meta: { code: status, message },
+    data,
+  }),
+});
+
 describe('durabilityService', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    delete global.fetch;
   });
 
   it('successfully fetches durability analytics with and without query parameters', async () => {
@@ -37,41 +49,31 @@ describe('durabilityService', () => {
       ],
     };
 
-    const getSpy = vi.spyOn(durabilityHttpClient, 'get').mockResolvedValueOnce({
-      data: {
-        meta: { code: 200, message: 'Success' },
-        data: mockAnalytics,
-      },
-    });
+    global.fetch
+      .mockResolvedValueOnce(response(200, mockAnalytics))
+      .mockResolvedValueOnce(response(200, mockAnalytics));
 
     const result = await fetchDurabilityAnalytics();
     expect(result).toEqual(mockAnalytics);
-    expect(getSpy).toHaveBeenCalledWith('/api/insights/durability');
-
-    // With parameters
-    getSpy.mockResolvedValueOnce({
-      data: {
-        meta: { code: 200, message: 'Success' },
-        data: mockAnalytics,
-      },
-    });
+    expect(global.fetch.mock.calls[0][0]).toBe('/api/insights/durability');
 
     const filteredResult = await fetchDurabilityAnalytics({ category: 'Audio', brand: 'Sony' });
     expect(filteredResult).toEqual(mockAnalytics);
-    expect(getSpy).toHaveBeenCalledWith('/api/insights/durability?category=Audio&brand=Sony');
+    expect(global.fetch.mock.calls[1][0]).toBe('/api/insights/durability?category=Audio&brand=Sony');
   });
 
   it('handles backend error message when fetching analytics', async () => {
-    vi.spyOn(durabilityHttpClient, 'get').mockRejectedValueOnce({
-      response: {
-        status: 500,
-        data: {
-          meta: { message: 'Database connection failed' },
-        },
-      },
-    });
+    global.fetch.mockResolvedValueOnce(response(500, null, 'Database connection failed'));
 
     await expect(fetchDurabilityAnalytics()).rejects.toThrow('Database connection failed');
+  });
+
+  it('keeps durability analytics response validation explicit', async () => {
+    global.fetch.mockResolvedValueOnce(response(200, []));
+
+    await expect(fetchDurabilityAnalytics()).rejects.toThrow(
+      'The server returned an unexpected durability analytics response structure.'
+    );
   });
 
   it('successfully fetches categories list', async () => {
@@ -80,15 +82,18 @@ describe('durabilityService', () => {
       { id: 2, name: 'Footwear' },
     ];
 
-    vi.spyOn(durabilityHttpClient, 'get').mockResolvedValueOnce({
-      data: {
-        meta: { code: 200, message: 'Success' },
-        data: mockCategories,
-      },
-    });
+    global.fetch.mockResolvedValueOnce(response(200, mockCategories));
 
     const result = await fetchCategories();
     expect(result).toEqual(mockCategories);
+  });
+
+  it('rejects malformed category data', async () => {
+    global.fetch.mockResolvedValueOnce(response(200, { name: 'Audio' }));
+
+    await expect(fetchCategories()).rejects.toThrow(
+      'The server returned an unexpected categories response structure.'
+    );
   });
 
   it('successfully fetches brands list', async () => {
@@ -97,14 +102,17 @@ describe('durabilityService', () => {
       { id: 2, name: 'Nike' },
     ];
 
-    vi.spyOn(durabilityHttpClient, 'get').mockResolvedValueOnce({
-      data: {
-        meta: { code: 200, message: 'Success' },
-        data: mockBrands,
-      },
-    });
+    global.fetch.mockResolvedValueOnce(response(200, mockBrands));
 
     const result = await fetchBrands();
     expect(result).toEqual(mockBrands);
+  });
+
+  it('uses a feature-specific network fallback without reimplementing transport handling', async () => {
+    global.fetch.mockRejectedValueOnce(new Error('Network error'));
+
+    await expect(fetchBrands()).rejects.toThrow(
+      'Unable to load brands from the server.'
+    );
   });
 });
