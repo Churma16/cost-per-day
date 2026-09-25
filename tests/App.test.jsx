@@ -57,6 +57,22 @@ describe('Header route isolation regression tests', () => {
     expect(homeHeader.closest('.min-h-full')).toBeInTheDocument();
   });
 
+  test('allows route content to grow while page-content remains the scroll container', async () => {
+    window.history.pushState({}, '', '/');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.page-content')).toBeInTheDocument();
+    });
+
+    const pageContent = document.querySelector('.page-content');
+    const routeTransition = pageContent.firstElementChild;
+
+    expect(pageContent.tagName).toBe('MAIN');
+    expect(routeTransition).toHaveClass('min-h-full', 'w-full');
+    expect(routeTransition).not.toHaveClass('h-full');
+  });
+
   test('renders clean header on /settings without page-header banner', async () => {
     window.history.pushState({}, '', '/settings');
     render(<App />);
@@ -65,6 +81,12 @@ describe('Header route isolation regression tests', () => {
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);
+    expect(document.querySelectorAll('.page-content')).toHaveLength(1);
+    expect(document.querySelector('.page-content')).toHaveAttribute('class', 'page-content');
+    const settingsContent = document.querySelector('.settings-page-content');
+    expect(settingsContent).not.toHaveClass('page-content');
+    expect(settingsContent).not.toHaveClass('pb-24');
+    expect(settingsContent).toHaveClass('pb-8');
   });
 
   test('renders clean header on /planning without page-header banner', async () => {
@@ -95,6 +117,12 @@ describe('Header route isolation regression tests', () => {
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);
+    expect(document.querySelectorAll('.page-content')).toHaveLength(1);
+    expect(document.querySelector('.page-content')).toHaveAttribute('class', 'page-content');
+    const formContent = document.querySelector('.form-page-content');
+    expect(formContent).not.toHaveClass('page-content');
+    expect(formContent).not.toHaveClass('pb-24');
+    expect(formContent).toHaveClass('pb-8');
   });
 
   test('renders clean header on /edit without page-header banner', async () => {
@@ -105,5 +133,11 @@ describe('Header route isolation regression tests', () => {
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);
+    expect(document.querySelectorAll('.page-content')).toHaveLength(1);
+    expect(document.querySelector('.page-content')).toHaveAttribute('class', 'page-content');
+    const formContent = document.querySelector('.form-page-content');
+    expect(formContent).not.toHaveClass('page-content');
+    expect(formContent).not.toHaveClass('pb-24');
+    expect(formContent).toHaveClass('pb-8');
   });
 });

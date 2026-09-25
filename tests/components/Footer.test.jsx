@@ -56,6 +56,14 @@ describe('Footer Navigation Component', () => {
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
   });
 
+  it('uses the shared soft-neutral shell surface instead of a white card surface', () => {
+    renderFooterWithInitialRoute('/');
+
+    const navigationElement = screen.getByRole('navigation', { name: /primary navigation/i });
+    expect(navigationElement).toHaveClass('bg-[#F6F7F8]/95', 'app-footer');
+    expect(navigationElement).not.toHaveClass('bg-white/95');
+  });
+
   it('sets aria-current="page" and active indicator on the active route', () => {
     renderFooterWithInitialRoute('/');
 

@@ -30,7 +30,7 @@ function Footer() {
   return (
     <nav
       aria-label={t('primaryNavigation')}
-      className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md bg-white/95 border-t border-[#E6E8EC] app-footer"
+      className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md bg-[#F6F7F8]/95 border-t border-[#E6E8EC] app-footer"
     >
       <div className="max-w-lg mx-auto px-4 h-full flex justify-around items-center">
         {NAVIGATION_DESTINATIONS.map((destination) => {

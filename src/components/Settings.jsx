@@ -416,7 +416,7 @@ function Settings() {
 
   return (
     <>
-      <div className="px-4 space-y-4 page-content settings-page-content pb-24">
+      <div className="px-4 space-y-4 settings-page-content pb-8">
         {/* Header */}
         <div className="pt-6 pb-1 px-1">
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">

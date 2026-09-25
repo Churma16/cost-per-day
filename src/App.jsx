@@ -34,13 +34,13 @@ const MainContent = () => {
   const location = useLocation();
 
   return (
-    <div className="page-content">
+    <main className="page-content">
       <motion.div
         key={location.pathname}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.15, ease: 'easeOut' }}
-        className="h-full w-full"
+        className="min-h-full w-full"
       >
         <Routes location={location}>
           <Route path="/" element={<Home />} />
@@ -52,7 +52,7 @@ const MainContent = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </motion.div>
-    </div>
+    </main>
   );
 };
 
