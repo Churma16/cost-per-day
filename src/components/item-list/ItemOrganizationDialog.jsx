@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoClose, IoOptionsOutline } from 'react-icons/io5';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -29,18 +29,61 @@ const SORT_LABEL_KEYS = {
   priceAscending: 'sortPriceAscending',
 };
 
-function ItemOrganizationDialog({ isOpen, organization, onChange, onClose }) {
+function ItemOrganizationDialog({
+  isOpen,
+  organization,
+  onChange,
+  onClose,
+  returnFocusRef,
+}) {
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
+  const dialogRef = useRef(null);
+  const closeButtonRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return undefined;
+
+    closeButtonRef.current?.focus();
+
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const focusableElements = [...(dialogRef.current?.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+      ) || [])];
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && (activeElement === firstFocusable || !dialogRef.current?.contains(activeElement))) {
+        event.preventDefault();
+        lastFocusable.focus();
+      } else if (!event.shiftKey && (activeElement === lastFocusable || !dialogRef.current?.contains(activeElement))) {
+        event.preventDefault();
+        firstFocusable.focus();
+      }
     };
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      returnFocusRef?.current?.focus();
+    };
+  }, [isOpen, onClose, returnFocusRef]);
 
   const allStatesSelected = organization.stateFilters.length === 0;
   const toggleState = (state) => {
@@ -91,8 +134,10 @@ function ItemOrganizationDialog({ isOpen, organization, onChange, onClose }) {
             onMouseDown={onClose}
           />
           <motion.div
+        ref={dialogRef}
         variants={sheetVariants}
         role="dialog"
+        tabIndex={-1}
         aria-modal="true"
         aria-labelledby="item-organization-title"
         className="relative z-10 w-full sm:max-w-md max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white shadow-xl border border-gray-100"
@@ -102,7 +147,7 @@ function ItemOrganizationDialog({ isOpen, organization, onChange, onClose }) {
             <IoOptionsOutline className="text-lg text-[#2F7473]" aria-hidden="true" />
             <h2 id="item-organization-title" className="font-semibold text-[#20242A]">{t('organizeItems')}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label={t('close')} className="w-9 h-9 rounded-full flex items-center justify-center text-[#6F7782] hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
+          <button ref={closeButtonRef} type="button" onClick={onClose} aria-label={t('close')} className="w-9 h-9 rounded-full flex items-center justify-center text-[#6F7782] hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
             <IoClose aria-hidden="true" />
           </button>
         </div>
