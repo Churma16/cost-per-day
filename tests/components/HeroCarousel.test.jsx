@@ -114,6 +114,30 @@ describe('HeroCarousel component', () => {
     expect(screen.getByText('Owned for 508 days')).toBeInTheDocument();
   });
 
+  it('allows long insight copy to wrap within a narrow slide', () => {
+    const longInsight = {
+      kind: 'ownership_cost_trend',
+      eyebrow: 'A significantly longer insight category than the available mobile width',
+      primary: 'Your daily ownership cost continues to improve across a particularly long ownership period',
+      secondary: 'down Rp 123.456.789.012/day over the last 30 days',
+      caption: 'More ownership time spreads the purchase cost across more days without leaving the card.'
+    };
+
+    render(<HeroCarousel insightsOverride={[longInsight]} />);
+
+    const headline = screen.getByText(longInsight.primary);
+    const secondary = screen.getByText(longInsight.secondary);
+    const caption = screen.getByText(longInsight.caption);
+    const eyebrow = screen.getByText(longInsight.eyebrow);
+
+    expect(headline).toHaveClass('w-full', 'min-w-0', 'break-words');
+    expect(headline).not.toHaveClass('line-clamp-1');
+    expect(eyebrow).toHaveClass('min-w-0', 'break-words');
+    expect(eyebrow.parentElement).toHaveClass('max-w-full', 'min-w-0');
+    expect(secondary).toHaveClass('max-w-full', 'min-w-0', 'break-words');
+    expect(caption).toHaveClass('max-w-full', 'min-w-0', 'break-words');
+  });
+
   it('navigates to next and previous slides via controls', () => {
     render(<HeroCarousel insightsOverride={mockInsights} />);
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import ItemCard from '../../../src/components/item-list/ItemCard';
 
@@ -45,6 +45,52 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('ItemCard', () => {
+  test('keeps lifecycle state out of the collapsed price summary and in expanded details', () => {
+    const item = {
+      id: 3,
+      name: 'Sold Phone',
+      price: 900,
+      purchaseDate: '2026-01-01T00:00:00Z',
+      ownershipDays: 180,
+      grossCostPerDay: 5,
+      status: 'sold',
+    };
+
+    const { rerender } = render(
+      <ItemCard
+        item={item}
+        isExpanded={false}
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onBenchmark={vi.fn()}
+        currencyCode="USD"
+        valueEquivalents={[]}
+      />
+    );
+
+    const trigger = screen.getByRole('button', { name: /Sold Phone/i });
+    const details = document.getElementById('item-details-3');
+    expect(within(trigger).queryByText('Changed Hands')).not.toBeInTheDocument();
+    expect(within(details).getByText('Changed Hands')).toBeInTheDocument();
+    expect(details).toHaveAttribute('aria-hidden', 'true');
+
+    rerender(
+      <ItemCard
+        item={item}
+        isExpanded
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onBenchmark={vi.fn()}
+        currencyCode="USD"
+        valueEquivalents={[]}
+      />
+    );
+
+    expect(document.getElementById('item-details-3')).toHaveAttribute('aria-hidden', 'false');
+  });
+
   test('keeps duration cycling local to the item presentation boundary', () => {
     const item = {
       id: 1,

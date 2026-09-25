@@ -21,9 +21,9 @@ function HomeHeader() {
       <div className="pt-3 pb-3 px-4 max-w-lg mx-auto">
         <div>
           <HeroCarousel />
-          <div className="mt-2.5 pt-2.5 border-t border-white/10 flex items-center justify-between text-white/90 px-1">
-            <span className="text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
-            <span className="font-semibold text-base text-white tracking-tight tabular-nums">
+          <div className="mt-2.5 flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-white/10 px-1 pt-2.5 text-white/90">
+            <span className="min-w-0 text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
+            <span className="min-w-0 max-w-full text-right font-semibold text-base text-white tracking-tight tabular-nums [overflow-wrap:anywhere]">
               {formatCurrency(totalDailyCost, currencyCode)}
               <span className="text-xs font-normal text-white/75">{t('perDay')}</span>
             </span>

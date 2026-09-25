@@ -100,21 +100,21 @@ export const GenericInsightSlide = ({ insight }) => {
   const hasCaption = Boolean(insight.caption);
 
   return (
-    <div className="flex flex-col items-start justify-center text-left px-1 py-1 min-h-[95px]">
+    <div className="flex min-w-0 w-full flex-col items-start justify-center text-left px-1 py-1 min-h-[95px]">
       {displayEyebrow && (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 text-white/90 text-[11px] font-medium tracking-wide mb-1">
-          {IconComponent && <IconComponent className="text-xs" aria-hidden="true" />}
-          <span>{displayEyebrow}</span>
+        <div className="inline-flex max-w-full min-w-0 items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 text-white/90 text-[11px] font-medium tracking-wide mb-1">
+          {IconComponent && <IconComponent className="flex-shrink-0 text-xs" aria-hidden="true" />}
+          <span className="min-w-0 break-words">{displayEyebrow}</span>
         </div>
       )}
-      <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight line-clamp-1 max-w-md text-left">
+      <h2 className="w-full min-w-0 break-words text-lg sm:text-xl font-bold leading-tight text-white tracking-tight text-left">
         {insight.primary}
       </h2>
       {(hasSecondary || hasCaption) && (
-        <div className="mt-0.5 flex items-center justify-start gap-1.5 flex-wrap text-xs text-white/90 font-normal text-left">
-          {hasSecondary && <span className="tabular-nums">{insight.secondary}</span>}
+        <div className="mt-0.5 flex w-full min-w-0 items-center justify-start gap-1.5 flex-wrap text-xs text-white/90 font-normal text-left">
+          {hasSecondary && <span className="min-w-0 max-w-full break-words tabular-nums">{insight.secondary}</span>}
           {hasSecondary && hasCaption && <span className="text-white/40">·</span>}
-          {hasCaption && <span className="text-white/75">{insight.caption}</span>}
+          {hasCaption && <span className="min-w-0 max-w-full break-words text-white/75">{insight.caption}</span>}
         </div>
       )}
     </div>
@@ -284,7 +284,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
                 aria-roledescription="slide"
                 aria-label={t('slideOf', { current: slideIndex + 1, total: insights.length })}
                 aria-hidden={!isCurrent}
-                className="w-full flex-shrink-0"
+                className="w-full min-w-0 flex-shrink-0"
               >
                 <SlideItemComponent insight={insightItem} />
               </div>
