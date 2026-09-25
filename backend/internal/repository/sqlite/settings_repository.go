@@ -2,10 +2,12 @@ package sqlite
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/repository"
@@ -16,15 +18,26 @@ var defaultSettingValues = map[string]string{
 	"currency": "USD",
 }
 
-// SettingsRepository implements repository.SettingsRepository using user-scoped SQLite queries.
-type SettingsRepository struct {
-	databaseConnection *sql.DB
+type settingRecord struct {
+	UserID    string `gorm:"column:user_id;primaryKey"`
+	Key       string `gorm:"column:key;primaryKey"`
+	Value     string `gorm:"column:value;not null"`
+	UpdatedAt string `gorm:"column:updated_at;not null"`
 }
 
-// NewSettingsRepository creates a SQLite-backed settings repository.
-func NewSettingsRepository(databaseConnection *sql.DB) repository.SettingsRepository {
+func (settingRecord) TableName() string {
+	return "settings"
+}
+
+// SettingsRepository implements repository.SettingsRepository using user-scoped GORM queries.
+type SettingsRepository struct {
+	database *gorm.DB
+}
+
+// NewSettingsRepository creates a GORM-backed settings repository.
+func NewSettingsRepository(database *gorm.DB) repository.SettingsRepository {
 	return &SettingsRepository{
-		databaseConnection: databaseConnection,
+		database: database,
 	}
 }
 
@@ -36,33 +49,22 @@ func (repositoryInstance *SettingsRepository) GetAll(ctx context.Context, userID
 		return nil, identityError
 	}
 
-	rows, queryError := repositoryInstance.databaseConnection.QueryContext(ctx, `
-		SELECT key, value
-		FROM settings
-		WHERE user_id = ?
-		ORDER BY key ASC
-	`, normalizedUserID)
-	if queryError != nil {
-		return nil, fmt.Errorf("list settings: %w", queryError)
+	var records []settingRecord
+	result := repositoryInstance.database.WithContext(ctx).
+		Select("key", "value").
+		Where("user_id = ?", normalizedUserID).
+		Order("key ASC").
+		Find(&records)
+	if result.Error != nil {
+		return nil, fmt.Errorf("list settings: %w", result.Error)
 	}
-	defer rows.Close()
 
-	settings := make(map[string]string, len(defaultSettingValues))
+	settings := make(map[string]string, len(defaultSettingValues)+len(records))
 	for settingKey, settingValue := range defaultSettingValues {
 		settings[settingKey] = settingValue
 	}
-
-	for rows.Next() {
-		var settingKey string
-		var settingValue string
-		if scanError := rows.Scan(&settingKey, &settingValue); scanError != nil {
-			return nil, fmt.Errorf("scan setting: %w", scanError)
-		}
-		settings[settingKey] = settingValue
-	}
-
-	if rowsError := rows.Err(); rowsError != nil {
-		return nil, fmt.Errorf("iterate settings: %w", rowsError)
+	for _, record := range records {
+		settings[record.Key] = record.Value
 	}
 
 	return settings, nil
@@ -76,23 +78,22 @@ func (repositoryInstance *SettingsRepository) GetByKey(ctx context.Context, user
 		return "", identityError
 	}
 
-	var settingValue string
-	scanError := repositoryInstance.databaseConnection.QueryRowContext(ctx, `
-		SELECT value
-		FROM settings
-		WHERE user_id = ? AND key = ?
-	`, normalizedUserID, settingKey).Scan(&settingValue)
-	if errors.Is(scanError, sql.ErrNoRows) {
+	var record settingRecord
+	result := repositoryInstance.database.WithContext(ctx).
+		Select("value").
+		Where("user_id = ? AND key = ?", normalizedUserID, settingKey).
+		First(&record)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		if defaultValue, hasDefault := defaultSettingValues[settingKey]; hasDefault {
 			return defaultValue, nil
 		}
 		return "", domain.ErrSettingNotFound
 	}
-	if scanError != nil {
-		return "", fmt.Errorf("get setting: %w", scanError)
+	if result.Error != nil {
+		return "", fmt.Errorf("get setting: %w", result.Error)
 	}
 
-	return settingValue, nil
+	return record.Value, nil
 }
 
 // Set inserts or updates a setting only for the current user.
@@ -102,20 +103,20 @@ func (repositoryInstance *SettingsRepository) Set(ctx context.Context, userID st
 		return identityError
 	}
 
-	_, executionError := repositoryInstance.databaseConnection.ExecContext(ctx, `
-		INSERT INTO settings (user_id, key, value, updated_at)
-		VALUES (?, ?, ?, ?)
-		ON CONFLICT(user_id, key) DO UPDATE SET
-			value = excluded.value,
-			updated_at = excluded.updated_at
-	`,
-		normalizedUserID,
-		settingKey,
-		settingValue,
-		time.Now().UTC().Format(time.RFC3339Nano),
-	)
-	if executionError != nil {
-		return fmt.Errorf("set setting: %w", executionError)
+	record := settingRecord{
+		UserID:    normalizedUserID,
+		Key:       settingKey,
+		Value:     settingValue,
+		UpdatedAt: time.Now().UTC().Format(time.RFC3339Nano),
+	}
+	result := repositoryInstance.database.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}, {Name: "key"}},
+			DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+		}).
+		Create(&record)
+	if result.Error != nil {
+		return fmt.Errorf("set setting: %w", result.Error)
 	}
 
 	return nil
