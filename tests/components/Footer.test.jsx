@@ -14,6 +14,19 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => ({
+      primaryNavigation: 'Primary navigation',
+      navHome: 'Home',
+      navPlanning: 'Planning',
+      navAdd: 'Add',
+      navAnalytics: 'Analytics',
+      navSettings: 'Settings',
+    })[key] || key,
+  }),
+}));
+
 describe('Footer Navigation Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
