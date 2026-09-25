@@ -264,12 +264,12 @@ func (provider *RecentPurchaseImpactProvider) Generate(_ context.Context, data D
 
 	isIndonesian := data.Language == "id"
 	eyebrow := "Shifting Your Daily Cost"
-	secondary := "Currently driving most of your daily cost increase"
+	secondary := "A major contributor to your current daily ownership cost"
 	caption := "A new purchase starts with its cost spread across fewer ownership days."
 
 	if isIndonesian {
 		eyebrow = "Yang Mengubah Biaya Harianmu"
-		secondary = "Mendorong sebagian besar kenaikan biaya harianmu"
+		secondary = "Memberi kontribusi besar pada biaya kepemilikan harianmu saat ini"
 		caption = "Pada awal kepemilikan, harga beli masih terbagi ke lebih sedikit hari."
 	}
 
