@@ -108,7 +108,7 @@ describe('plannedPurchaseProjection', () => {
     it('enforces the existing minimum one-day behavior', () => {
       const projection = calculateTargetDateProjection({
         targetPrice: 120,
-        targetDate: '2028-03-01',
+        targetDate: '2028-03-02',
         asOf: new Date('2028-03-01T18:00:00Z'),
       });
 
