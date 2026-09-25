@@ -4,7 +4,7 @@ import {
   parseCurrencyInputValue,
   getCurrencyInputSeparators,
   calculateAdjustedCursorPosition
-} from './currencyInput';
+} from '../../src/utils/currencyInput';
 
 describe('currencyInput utilities', () => {
   describe('getCurrencyInputSeparators', () => {

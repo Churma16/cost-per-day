@@ -5,7 +5,7 @@ import {
   getCurrencySymbol,
   getCurrencyConfig,
   getSupportedCurrencies
-} from './currencyConfig';
+} from '../../src/utils/currencyConfig';
 
 describe('currencyConfig utility', () => {
   describe('CURRENCY_CONFIGURATIONS', () => {

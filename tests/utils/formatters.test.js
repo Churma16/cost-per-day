@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
-import { formatCurrency, getDateLocale, formatDisplayDate } from './formatters';
-import * as currencyConfigModule from './currencyConfig';
+import { formatCurrency, getDateLocale, formatDisplayDate } from '../../src/utils/formatters';
+import * as currencyConfigModule from '../../src/utils/currencyConfig';
 
 describe('date locale selection', () => {
   test('maps Indonesian to the date-fns Indonesian locale', () => {

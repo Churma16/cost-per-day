@@ -5,7 +5,7 @@ import {
   dateOnlyToOwnershipTimestamp,
   normalizeOwnershipDate,
   ownershipDateToDateOnly,
-} from './ownershipDate';
+} from '../../src/utils/ownershipDate';
 
 describe('ownershipDate', () => {
   test('normalizes ownership dates to noon UTC without changing the current UTC calendar day', () => {

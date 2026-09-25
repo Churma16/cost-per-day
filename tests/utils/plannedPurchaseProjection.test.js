@@ -4,7 +4,7 @@ import {
   calculateContributionProjection,
   calculateTargetDateProjection,
   cadenceToEstimatedDays,
-} from './plannedPurchaseProjection';
+} from '../../src/utils/plannedPurchaseProjection';
 
 describe('plannedPurchaseProjection', () => {
   describe('calculateContributionProjection', () => {

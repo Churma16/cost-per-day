@@ -6,7 +6,7 @@ import {
   selectBestEquivalent,
   PRESENTATION_MODES,
   DAYS_IN_MONTH_CONVENTION
-} from './equivalentCalculator';
+} from '../../src/utils/equivalentCalculator';
 
 describe('equivalentCalculator', () => {
   describe('calculateDerivedEquivalentValues', () => {
