@@ -65,8 +65,8 @@ function PlannedPurchaseCard({
       : t('unitMonths');
 
   const isDaily = plannedPurchase.contributionCadence === 'daily';
-  const roundedPeriods = Math.ceil(Number(plannedPurchase.estimatedPeriods || 0));
-  const estimatedDays = plannedPurchase.estimatedDays || roundedPeriods;
+  const estimatedPeriods = Number(plannedPurchase.estimatedPeriods || 0);
+  const estimatedDays = Number(plannedPurchase.estimatedDays || 0);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-teal-100 overflow-hidden hover:shadow-md transition-shadow">
@@ -128,7 +128,7 @@ function PlannedPurchaseCard({
                   &rarr; {isDaily
                     ? t('reachTargetInDays', { days: estimatedDays })
                     : t('reachTargetIn', {
-                        periods: roundedPeriods,
+                        periods: estimatedPeriods,
                         periodUnit,
                         days: estimatedDays,
                       })}
