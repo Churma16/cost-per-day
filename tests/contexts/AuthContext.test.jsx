@@ -1,12 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider, useAuth } from '../../src/contexts/AuthContext';
 import {
   getCurrentUser,
   logoutCurrentUser
-} from '../services/api';
+} from '../../src/services/api';
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   ApiError: class ApiError extends Error {
     constructor(message, status = null) {
       super(message);

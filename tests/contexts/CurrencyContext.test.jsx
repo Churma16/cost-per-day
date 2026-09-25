@@ -9,10 +9,10 @@ import {
   getCurrencySymbol,
   getCurrencyConfig,
   getSupportedCurrencies
-} from './CurrencyContext';
-import { getAllSettings, updateSetting } from '../services/api';
+} from '../../src/contexts/CurrencyContext';
+import { getAllSettings, updateSetting } from '../../src/services/api';
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   getAllSettings: vi.fn(),
   updateSetting: vi.fn(),
 }));

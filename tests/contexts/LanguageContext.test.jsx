@@ -2,16 +2,16 @@ import React from 'react';
 import { act, render as testingLibraryRender, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
-import { LanguageProvider, useLanguage } from './LanguageContext';
-import { getAllSettings, updateSetting } from '../services/api';
-import i18n from '../i18n';
+import { LanguageProvider, useLanguage } from '../../src/contexts/LanguageContext';
+import { getAllSettings, updateSetting } from '../../src/services/api';
+import i18n from '../../src/i18n';
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   getAllSettings: vi.fn(),
   updateSetting: vi.fn(),
 }));
 
-vi.mock('../i18n', () => ({
+vi.mock('../../src/i18n', () => ({
   default: {
     changeLanguage: vi.fn(),
   },

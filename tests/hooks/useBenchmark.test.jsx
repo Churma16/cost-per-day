@@ -2,10 +2,10 @@ import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BENCHMARK_QUERY_KEY, useReplacementBenchmark } from './useBenchmark';
-import * as benchmarkService from '../services/benchmarkService';
+import { BENCHMARK_QUERY_KEY, useReplacementBenchmark } from '../../src/hooks/useBenchmark';
+import * as benchmarkService from '../../src/services/benchmarkService';
 
-vi.mock('../services/benchmarkService', () => ({
+vi.mock('../../src/services/benchmarkService', () => ({
   fetchReplacementBenchmark: vi.fn(),
 }));
 

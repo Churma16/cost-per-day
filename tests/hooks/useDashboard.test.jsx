@@ -7,10 +7,10 @@ import {
   useDashboard,
   useInvalidateDashboard,
   invalidateDashboardQuery,
-} from './useDashboard';
-import * as dashboardService from '../services/dashboardService';
+} from '../../src/hooks/useDashboard';
+import * as dashboardService from '../../src/services/dashboardService';
 
-vi.mock('../services/dashboardService', () => ({
+vi.mock('../../src/services/dashboardService', () => ({
   fetchDashboardData: vi.fn(),
 }));
 

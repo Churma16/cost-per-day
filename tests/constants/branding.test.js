@@ -5,7 +5,7 @@ import {
   PRODUCT_DESCRIPTION,
   PRODUCT_EXPORT_PREFIX,
   APP_VERSION,
-} from './branding';
+} from '../../src/constants/branding';
 
 describe('branding constants', () => {
   it('defines the canonical product name as Worthwhile', () => {

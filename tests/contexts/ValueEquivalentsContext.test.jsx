@@ -5,16 +5,16 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import {
   ValueEquivalentsProvider,
   useValueEquivalents
-} from './ValueEquivalentsContext';
+} from '../../src/contexts/ValueEquivalentsContext';
 import {
   getAllValueEquivalents,
   createValueEquivalent,
   updateValueEquivalent,
   deleteValueEquivalent
-} from '../services/api';
-import { queryKeys } from '../query/queryConfig';
+} from '../../src/services/api';
+import { queryKeys } from '../../src/query/queryConfig';
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   getAllValueEquivalents: vi.fn(),
   createValueEquivalent: vi.fn(),
   updateValueEquivalent: vi.fn(),
