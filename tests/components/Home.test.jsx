@@ -36,9 +36,17 @@ describe('HomeHeader', () => {
     const label = screen.getByText('Daily Ownership Cost');
     const summaryRow = label.parentElement;
     const value = label.nextElementSibling;
+    const header = screen.getByRole('banner');
+    const headerContent = header.firstElementChild;
 
-    expect(summaryRow).toHaveClass('min-w-0', 'flex-wrap', 'gap-y-1');
-    expect(value).toHaveClass('min-w-0', 'max-w-full', '[overflow-wrap:anywhere]');
+    expect(header).toHaveClass('w-full', 'min-w-0');
+    expect(headerContent).toHaveClass('w-full', 'min-w-0', 'max-w-lg');
+    expect(summaryRow).toHaveClass(
+      'w-full',
+      'min-w-0',
+      'grid-cols-[minmax(0,1fr)_auto]'
+    );
+    expect(value).toHaveClass('max-w-full', 'whitespace-nowrap', 'text-right');
     expect(value).toHaveTextContent(/Rp/);
     expect(value).toHaveTextContent('/day');
   });

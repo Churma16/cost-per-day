@@ -255,7 +255,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       role="region"
       aria-roledescription="carousel"
       aria-label={t('insightsCarousel')}
-      className="relative w-full max-w-lg mx-auto"
+      className="relative mx-auto w-full min-w-0 max-w-lg"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
@@ -265,9 +265,9 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       onTouchEnd={handleTouchEnd}
     >
       {/* Sliding Viewport & Track */}
-      <div className="overflow-hidden w-full">
+      <div className="w-full min-w-0 overflow-hidden">
         <div
-          className={`flex ${
+          className={`flex w-full min-w-0 ${
             prefersReducedMotion ? '' : 'transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]'
           }`}
           style={{
