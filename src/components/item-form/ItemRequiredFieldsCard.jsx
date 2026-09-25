@@ -3,13 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { DayPicker } from 'react-day-picker';
 import { IoCalendarOutline } from 'react-icons/io5';
 import { formatDisplayDate } from '../../utils/formatters';
+import {
+  currentUTCDateOnly,
+  dateOnlyToOwnershipDate,
+  normalizeOwnershipDate,
+  ownershipDateToDateOnly,
+} from '../../utils/ownershipDate';
 import CurrencyInput from '../common/CurrencyInput';
-
-const setToNoonUTC = (date) => {
-  const newDate = new Date(date);
-  newDate.setUTCHours(12, 0, 0, 0);
-  return newDate;
-};
 
 function ItemRequiredFieldsCard({
   name,
@@ -111,13 +111,13 @@ function ItemRequiredFieldsCard({
             id="native-date-picker"
             type="date"
             className="opacity-0 absolute inset-0 w-full h-full cursor-pointer md:hidden"
-            value={purchaseDate.toISOString().split('T')[0]}
+            value={ownershipDateToDateOnly(purchaseDate)}
             onChange={(event) => {
               if (event.target.value) {
-                onPurchaseDateChange(setToNoonUTC(new Date(event.target.value)));
+                onPurchaseDateChange(dateOnlyToOwnershipDate(event.target.value));
               }
             }}
-            max={new Date().toISOString().split('T')[0]}
+            max={currentUTCDateOnly()}
           />
 
           {/* Custom date picker - used on desktop */}
@@ -171,7 +171,7 @@ function ItemRequiredFieldsCard({
                   selected={purchaseDate}
                   onSelect={(date) => {
                     if (date) {
-                      onPurchaseDateChange(setToNoonUTC(date));
+                      onPurchaseDateChange(normalizeOwnershipDate(date));
                       setShowDatePicker(false);
                     }
                   }}

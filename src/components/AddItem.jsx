@@ -11,7 +11,6 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { useCategories, useBrands } from '../hooks/useDurabilityAnalytics';
 import { useItems, useInvalidateItems } from '../hooks/useItems';
 import { queryKeys } from '../query/queryConfig';
-import { parseISO } from 'date-fns';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 import { deriveOwnershipTargetEquivalent } from '../utils/ownershipTargetCalculator';
 import ItemRequiredFieldsCard from './item-form/ItemRequiredFieldsCard';
@@ -19,12 +18,13 @@ import ItemOptionalDetailsCard from './item-form/ItemOptionalDetailsCard';
 import ItemStatusCard from './item-form/ItemStatusCard';
 import ItemOwnershipTargetCard from './item-form/ItemOwnershipTargetCard';
 import ItemDeleteConfirmModal from './item-form/ItemDeleteConfirmModal';
-
-const setToNoonUTC = (date) => {
-  const newDate = new Date(date);
-  newDate.setUTCHours(12, 0, 0, 0);
-  return newDate;
-};
+import {
+  currentUTCDateOnly,
+  dateOnlyToOwnershipDate,
+  dateOnlyToOwnershipTimestamp,
+  normalizeOwnershipDate,
+  ownershipDateToDateOnly,
+} from '../utils/ownershipDate';
 
 function AddItem() {
   const { t } = useTranslation();
@@ -33,7 +33,7 @@ function AddItem() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [brand, setBrand] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(() => setToNoonUTC(new Date()));
+  const [purchaseDate, setPurchaseDate] = useState(() => normalizeOwnershipDate(new Date()));
   const [status, setStatus] = useState('active');
   const [endedAt, setEndedAt] = useState('');
   const [salePrice, setSalePrice] = useState('');
@@ -72,7 +72,7 @@ function AddItem() {
       setPrice('');
       setCategory('');
       setBrand('');
-      setPurchaseDate(setToNoonUTC(new Date()));
+      setPurchaseDate(normalizeOwnershipDate(new Date()));
       setStatus('active');
       setEndedAt('');
       setSalePrice('');
@@ -129,7 +129,9 @@ function AddItem() {
           setPrice(itemToEdit.price.toString());
           setCategory(itemToEdit.category || '');
           setBrand(itemToEdit.brand || '');
-          const parsedPurchaseDate = parseISO(itemToEdit.purchaseDate);
+          const parsedPurchaseDate = dateOnlyToOwnershipDate(
+            ownershipDateToDateOnly(itemToEdit.purchaseDate)
+          );
           setPurchaseDate(parsedPurchaseDate);
           setMonth(parsedPurchaseDate);
           setStatus(itemToEdit.status || 'active');
@@ -169,10 +171,8 @@ function AddItem() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showDatePicker]);
 
-  const purchaseDateValue = purchaseDate instanceof Date && !Number.isNaN(purchaseDate.getTime())
-    ? purchaseDate.toISOString().split('T')[0]
-    : '';
-  const currentDateValue = new Date().toISOString().split('T')[0];
+  const purchaseDateValue = ownershipDateToDateOnly(purchaseDate);
+  const currentDateValue = currentUTCDateOnly();
 
   const lifecycleFormValid = !isEditMode ||
     status === 'active' ||
@@ -235,7 +235,7 @@ function AddItem() {
     const itemData = {
       name: name.trim(),
       price: Number(price),
-      purchaseDate: setToNoonUTC(purchaseDate).toISOString(),
+      purchaseDate: normalizeOwnershipDate(purchaseDate).toISOString(),
       category: category.trim() || null,
       brand: brand.trim() || null,
     };
@@ -244,7 +244,7 @@ function AddItem() {
       itemData.status = status;
       itemData.endedAt = status === 'active'
         ? null
-        : new Date(`${endedAt}T12:00:00.000Z`).toISOString();
+        : dateOnlyToOwnershipTimestamp(endedAt);
       itemData.salePrice = status === 'sold' ? Number(salePrice) : null;
     }
 

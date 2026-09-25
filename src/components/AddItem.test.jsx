@@ -759,6 +759,7 @@ describe('AddItem component date localization', () => {
         expect.objectContaining({
           name: 'Mechanical Keyboard',
           price: 150,
+          purchaseDate: '2026-09-01T12:00:00.000Z',
           targetType: 'duration',
           targetValue: 365
         })
