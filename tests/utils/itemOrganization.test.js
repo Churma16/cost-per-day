@@ -81,6 +81,28 @@ describe('item organization', () => {
     expect(group.items.map((item) => item.name)).toEqual(expectedNames);
   });
 
+  test('falls back safely when browser storage access is blocked', () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('storage blocked');
+      },
+    });
+
+    try {
+      expect(loadHomeOrganization()).toEqual(DEFAULT_HOME_ORGANIZATION);
+      expect(() => saveHomeOrganization(DEFAULT_HOME_ORGANIZATION)).not.toThrow();
+    } finally {
+      if (originalDescriptor) {
+        Object.defineProperty(globalThis, 'localStorage', originalDescriptor);
+      } else {
+        delete globalThis.localStorage;
+      }
+    }
+  });
+
   test('normalizes invalid and effectively-all selections and persists valid preferences', () => {
     expect(normalizeHomeOrganization({
       stateFilters: ['justJoined', 'stillWithYou', 'noLongerInUse', 'changedHands', 'lost'],
