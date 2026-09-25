@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
-import { useCurrency } from '../contexts/CurrencyContext';
-import { useReplacementBenchmark } from '../hooks/useBenchmark';
+import ReplacementBenchmarkModal from '../../src/components/ReplacementBenchmarkModal';
+import { useCurrency } from '../../src/contexts/CurrencyContext';
+import { useReplacementBenchmark } from '../../src/hooks/useBenchmark';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -32,11 +32,11 @@ vi.mock('react-i18next', () => ({
   })
 }));
 
-vi.mock('../contexts/CurrencyContext', () => ({
+vi.mock('../../src/contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
 }));
 
-vi.mock('../hooks/useBenchmark', () => ({
+vi.mock('../../src/hooks/useBenchmark', () => ({
   useReplacementBenchmark: vi.fn()
 }));
 

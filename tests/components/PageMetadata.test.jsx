@@ -1,10 +1,10 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import PageMetadata from './PageMetadata';
-import { useLanguage } from '../contexts/LanguageContext';
+import PageMetadata from '../../src/components/PageMetadata';
+import { useLanguage } from '../../src/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 
-vi.mock('../contexts/LanguageContext', () => ({
+vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: vi.fn(),
 }));
 

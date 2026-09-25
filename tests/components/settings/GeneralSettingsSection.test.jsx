@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import GeneralSettingsSection from './GeneralSettingsSection';
+import GeneralSettingsSection from '../../../src/components/settings/GeneralSettingsSection';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

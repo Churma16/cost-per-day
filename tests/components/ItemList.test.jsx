@@ -10,12 +10,12 @@ import ItemList, {
   getNextDurationUnit,
   formatOwnershipDuration,
   CalmCycleText
-} from './ItemList';
-import { getAllItems, deleteItem } from '../services/api';
-import { useTotalCost } from '../contexts/TotalCostContext';
-import { useCurrency } from '../contexts/CurrencyContext';
-import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
-import { queryKeys } from '../query/queryConfig';
+} from '../../src/components/ItemList';
+import { getAllItems, deleteItem } from '../../src/services/api';
+import { useTotalCost } from '../../src/contexts/TotalCostContext';
+import { useCurrency } from '../../src/contexts/CurrencyContext';
+import { useValueEquivalents } from '../../src/contexts/ValueEquivalentsContext';
+import { queryKeys } from '../../src/query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -80,32 +80,32 @@ vi.mock('react-i18next', () => ({
   })
 }));
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   getAllItems: vi.fn(),
   deleteItem: vi.fn()
 }));
 
-vi.mock('../contexts/TotalCostContext', () => ({
+vi.mock('../../src/contexts/TotalCostContext', () => ({
   useTotalCost: vi.fn()
 }));
 
-vi.mock('../contexts/CurrencyContext', () => ({
+vi.mock('../../src/contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
 }));
 
-vi.mock('../contexts/ValueEquivalentsContext', () => ({
+vi.mock('../../src/contexts/ValueEquivalentsContext', () => ({
   useValueEquivalents: vi.fn()
 }));
 
 const mockInvalidateDashboard = vi.fn().mockResolvedValue(undefined);
 const mockInvalidateDurability = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../hooks/useDashboard', () => ({
+vi.mock('../../src/hooks/useDashboard', () => ({
   useInvalidateDashboard: () => mockInvalidateDashboard,
   invalidateDashboardQuery: (...args) => mockInvalidateDashboard(...args)
 }));
 
-vi.mock('../hooks/useDurabilityAnalytics', () => ({
+vi.mock('../../src/hooks/useDurabilityAnalytics', () => ({
   useInvalidateDurability: () => mockInvalidateDurability,
   invalidateDurabilityQuery: (...args) => mockInvalidateDurability(...args)
 }));

@@ -2,14 +2,14 @@ import React from 'react';
 import { render as testingLibraryRender, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
-import Settings from './Settings';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useCurrency } from '../contexts/CurrencyContext';
-import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
-import { useAuth } from '../contexts/AuthContext';
-import { getSupportedCurrencies } from '../utils/currencyConfig';
-import { replaceAllItems } from '../services/api';
-import { APP_VERSION } from '../constants/branding';
+import Settings from '../../src/components/Settings';
+import { useLanguage } from '../../src/contexts/LanguageContext';
+import { useCurrency } from '../../src/contexts/CurrencyContext';
+import { useValueEquivalents } from '../../src/contexts/ValueEquivalentsContext';
+import { useAuth } from '../../src/contexts/AuthContext';
+import { getSupportedCurrencies } from '../../src/utils/currencyConfig';
+import { replaceAllItems } from '../../src/services/api';
+import { APP_VERSION } from '../../src/constants/branding';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -60,23 +60,23 @@ vi.mock('react-i18next', () => ({
   })
 }));
 
-vi.mock('../contexts/LanguageContext', () => ({
+vi.mock('../../src/contexts/LanguageContext', () => ({
   useLanguage: vi.fn()
 }));
 
-vi.mock('../contexts/CurrencyContext', () => ({
+vi.mock('../../src/contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
 }));
 
-vi.mock('../contexts/ValueEquivalentsContext', () => ({
+vi.mock('../../src/contexts/ValueEquivalentsContext', () => ({
   useValueEquivalents: vi.fn()
 }));
 
-vi.mock('../contexts/AuthContext', () => ({
+vi.mock('../../src/contexts/AuthContext', () => ({
   useAuth: vi.fn()
 }));
 
-vi.mock('../services/api', () => ({
+vi.mock('../../src/services/api', () => ({
   getAllItems: vi.fn(),
   replaceAllItems: vi.fn()
 }));

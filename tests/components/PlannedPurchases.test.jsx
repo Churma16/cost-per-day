@@ -2,9 +2,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import PlannedPurchases from './PlannedPurchases';
-import * as plannedPurchaseService from '../services/plannedPurchaseService';
-import { queryKeys } from '../query/queryConfig';
+import PlannedPurchases from '../../src/components/PlannedPurchases';
+import * as plannedPurchaseService from '../../src/services/plannedPurchaseService';
+import { queryKeys } from '../../src/query/queryConfig';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -64,14 +64,14 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../contexts/CurrencyContext', () => ({
+vi.mock('../../src/contexts/CurrencyContext', () => ({
   useCurrency: () => ({
     currencyCode: 'IDR',
     currencySymbol: 'Rp',
   }),
 }));
 
-vi.mock('../services/plannedPurchaseService', () => ({
+vi.mock('../../src/services/plannedPurchaseService', () => ({
   fetchPlannedPurchases: vi.fn(),
   createPlannedPurchase: vi.fn(),
   updatePlannedPurchase: vi.fn(),
