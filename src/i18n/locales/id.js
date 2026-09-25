@@ -94,6 +94,7 @@ const translation = {
   "enterPrice": "Masukkan harga",
   "date": "Tanggal Pembelian",
   "save": "Simpan",
+  "discardDraft": "Buang draf",
   "deleteItem": "Hapus Barang",
 
   // Delete confirmation

@@ -37,6 +37,7 @@ const translation = {
   "enterPrice": "Entrez le prix",
   "date": "Date d'Achat",
   "save": "Enregistrer",
+  "discardDraft": "Supprimer le brouillon",
   "deleteItem": "Supprimer l'Article",
   
   // Delete confirmation

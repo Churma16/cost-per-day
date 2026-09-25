@@ -94,6 +94,7 @@ const translation = {
   "enterPrice": "Enter price",
   "date": "Purchase Date",
   "save": "Save",
+  "discardDraft": "Discard draft",
   "deleteItem": "Delete Item",
   
   // Delete confirmation
