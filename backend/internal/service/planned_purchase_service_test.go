@@ -112,6 +112,20 @@ func TestPlannedPurchaseServiceValidationAndCalculations(t *testing.T) {
 			t.Fatalf("expected ErrMissingContributionAmount, got %v", missingAmountError)
 		}
 
+		// Zero contribution amount
+		zeroAmount := 0.0
+		dailyCadence := domain.ContributionCadenceDaily
+		_, zeroAmountError := purchaseService.CreatePlannedPurchase(ctx, "user-1", domain.PlannedPurchase{
+			Name:                "Laptop",
+			TargetPrice:         18000000,
+			CurrencyCode:        "IDR",
+			ContributionAmount:  &zeroAmount,
+			ContributionCadence: &dailyCadence,
+		})
+		if !errors.Is(zeroAmountError, domain.ErrInvalidContributionAmount) {
+			t.Fatalf("expected ErrInvalidContributionAmount, got %v", zeroAmountError)
+		}
+
 		// Invalid cadence string
 		invalidCadence := domain.ContributionCadence("hourly")
 		_, invalidCadenceError := purchaseService.CreatePlannedPurchase(ctx, "user-1", domain.PlannedPurchase{
@@ -300,6 +314,35 @@ func TestPlannedPurchaseServiceValidationAndCalculations(t *testing.T) {
 		// 280 target price / 28 days in Feb 2027 = 10.0 per day
 		if math.Abs(*nonLeapPurchase.RequiredDailyContribution-10.0) > 0.001 {
 			t.Fatalf("expected non-leap year daily contribution 10.0, got %v", *nonLeapPurchase.RequiredDailyContribution)
+		}
+	})
+
+	t.Run("uses one day minimum and derives weekly and monthly target-date contributions", func(t *testing.T) {
+		frozenTime := time.Date(2028, 3, 1, 18, 0, 0, 0, time.UTC)
+		purchaseService := service.NewPlannedPurchaseServiceWithClock(
+			memory.NewMemoryPlannedPurchaseRepository(),
+			func() time.Time { return frozenTime },
+		)
+
+		targetDate := "2028-03-02"
+		purchase, createError := purchaseService.CreatePlannedPurchase(ctx, "user-1", domain.PlannedPurchase{
+			Name:         "Camera",
+			TargetPrice:  120,
+			CurrencyCode: "USD",
+			TargetDate:   &targetDate,
+		})
+		if createError != nil {
+			t.Fatalf("unexpected target-date error: %v", createError)
+		}
+
+		if purchase.RequiredDailyContribution == nil || math.Abs(*purchase.RequiredDailyContribution-120.0) > 0.001 {
+			t.Fatalf("expected daily contribution 120.0, got %v", purchase.RequiredDailyContribution)
+		}
+		if purchase.RequiredWeeklyContribution == nil || math.Abs(*purchase.RequiredWeeklyContribution-840.0) > 0.001 {
+			t.Fatalf("expected weekly contribution 840.0, got %v", purchase.RequiredWeeklyContribution)
+		}
+		if purchase.RequiredMonthlyContribution == nil || math.Abs(*purchase.RequiredMonthlyContribution-3650.0) > 0.001 {
+			t.Fatalf("expected monthly contribution 3650.0, got %v", purchase.RequiredMonthlyContribution)
 		}
 	})
 
