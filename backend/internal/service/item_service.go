@@ -343,8 +343,6 @@ func (serviceInstance *itemServiceImpl) CalculateReplacementBenchmark(
 	return benchmark, nil
 }
 
-
-
 // resolveItemTaxonomy normalizes optional taxonomy names and resolves canonical user-scoped entries.
 func (serviceInstance *itemServiceImpl) resolveItemTaxonomy(
 	ctx context.Context,
