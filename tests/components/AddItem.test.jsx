@@ -293,7 +293,7 @@ describe('AddItem component date localization', () => {
     );
 
     expect(screen.getByDisplayValue('Restored Laptop')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('1500')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter price')).toHaveValue('1.500');
     expect(screen.getByDisplayValue('Computers')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Framework')).toBeInTheDocument();
     expect(screen.getByDisplayValue('730')).toBeInTheDocument();
