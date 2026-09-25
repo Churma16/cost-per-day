@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../utils/formatters';
+import { calculateContributionProjection } from '../utils/plannedPurchaseProjection';
 import CurrencyInput from './common/CurrencyInput';
 import {
   IoTimeOutline,
@@ -30,27 +31,22 @@ function PlannedPurchaseCard({
   const currencyCode = plannedPurchase.currencyCode || 'USD';
   const targetPrice = Number(plannedPurchase.targetPrice) || 0;
 
-  // Real-time what-if calculation inside card
-  const exploredPeriods = useMemo(() => {
-    const numericAmount = parseFloat(exploreContributionAmount);
-    if (isNaN(numericAmount) || numericAmount <= 0 || targetPrice <= 0) return null;
+  const exploredProjection = useMemo(
+    () =>
+      calculateContributionProjection({
+        targetPrice,
+        contributionAmount: parseFloat(exploreContributionAmount),
+        cadence: exploreCadence,
+      }),
+    [exploreContributionAmount, exploreCadence, targetPrice]
+  );
 
-    const periods = Math.ceil(targetPrice / numericAmount);
-    let days = periods;
-    if (exploreCadence === 'weekly') {
-      days = Math.ceil(periods * 7);
-    } else if (exploreCadence === 'monthly') {
-      days = Math.round(periods * (365 / 12));
-    }
-    const periodUnit =
-      exploreCadence === 'daily'
-        ? t('unitDays')
-        : exploreCadence === 'weekly'
-        ? t('unitWeeks')
-        : t('unitMonths');
-
-    return { periods, days, periodUnit, isDaily: exploreCadence === 'daily' };
-  }, [exploreContributionAmount, exploreCadence, targetPrice, t]);
+  const exploredPeriodUnit =
+    exploreCadence === 'daily'
+      ? t('unitDays')
+      : exploreCadence === 'weekly'
+      ? t('unitWeeks')
+      : t('unitMonths');
 
   const cadencePer =
     plannedPurchase.contributionCadence === 'daily'
@@ -212,14 +208,14 @@ function PlannedPurchaseCard({
                 </div>
               </div>
 
-              {exploredPeriods && (
+              {exploredProjection && (
                 <div className="p-2 rounded bg-white border border-teal-100 text-teal-950 font-medium">
-                  {exploredPeriods.isDaily
-                    ? t('reachTargetInDays', { days: exploredPeriods.days })
+                  {exploreCadence === 'daily'
+                    ? t('reachTargetInDays', { days: exploredProjection.estimatedDays })
                     : t('reachTargetIn', {
-                        periods: exploredPeriods.periods,
-                        periodUnit: exploredPeriods.periodUnit,
-                        days: exploredPeriods.days,
+                        periods: exploredProjection.periods,
+                        periodUnit: exploredPeriodUnit,
+                        days: exploredProjection.days,
                       })}
                 </div>
               )}
