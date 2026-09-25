@@ -68,6 +68,21 @@ jobs:
       - name: Build production container
         run: docker build -t cost-per-day:pr .
 
+      - name: Verify production healthcheck budget
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          interval="$(docker image inspect cost-per-day:pr --format '{{.Config.Healthcheck.Interval}}')"
+          timeout="$(docker image inspect cost-per-day:pr --format '{{.Config.Healthcheck.Timeout}}')"
+          start_period="$(docker image inspect cost-per-day:pr --format '{{.Config.Healthcheck.StartPeriod}}')"
+          retries="$(docker image inspect cost-per-day:pr --format '{{.Config.Healthcheck.Retries}}')"
+
+          test "$interval" = "5s"
+          test "$timeout" = "3s"
+          test "$start_period" = "10s"
+          test "$retries" = "18"
+
       - name: Smoke test production container
         shell: bash
         run: |
