@@ -220,6 +220,6 @@ describe('ReplacementBenchmarkModal component', () => {
       'This item had a zero or negative net ownership cost'
     );
     expect(screen.getByRole('button', { name: 'Set as Ownership Target' })).toBeDisabled();
-    expect(screen.queryByText(/final daily ownership cost/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/To reach your previous item's final daily ownership cost/i)).not.toBeInTheDocument();
   });
 });
