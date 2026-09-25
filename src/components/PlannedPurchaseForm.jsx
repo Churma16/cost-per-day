@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { formatCurrency } from '../utils/formatters';
+import {
+  calculateContributionProjection,
+  calculateTargetDateProjection,
+} from '../utils/plannedPurchaseProjection';
 import CurrencyInput from './common/CurrencyInput';
 
 const getTomorrowDateString = () => {
@@ -60,65 +64,38 @@ function PlannedPurchaseForm({
   const numericTargetPrice = parseFloat(targetPrice);
   const numericContributionAmount = parseFloat(contributionAmount);
 
-  // Live calculation: Contribution -> Time
-  const liveTimeProjection = useMemo(() => {
-    if (isNaN(numericTargetPrice) || numericTargetPrice <= 0) return null;
-    if (isNaN(numericContributionAmount) || numericContributionAmount <= 0) return null;
+  const liveTimeProjection = useMemo(
+    () =>
+      calculateContributionProjection({
+        targetPrice: numericTargetPrice,
+        contributionAmount: numericContributionAmount,
+        cadence: contributionCadence,
+      }),
+    [numericTargetPrice, numericContributionAmount, contributionCadence]
+  );
 
-    const periods = Math.ceil(numericTargetPrice / numericContributionAmount);
-    let estimatedDays = periods;
-    if (contributionCadence === 'weekly') {
-      estimatedDays = Math.ceil(periods * 7);
-    } else if (contributionCadence === 'monthly') {
-      estimatedDays = Math.round(periods * (365 / 12));
-    }
+  const livePeriodUnit =
+    contributionCadence === 'daily'
+      ? t('unitDays')
+      : contributionCadence === 'weekly'
+      ? t('unitWeeks')
+      : t('unitMonths');
 
-    const periodUnit =
-      contributionCadence === 'daily'
-        ? t('unitDays')
-        : contributionCadence === 'weekly'
-        ? t('unitWeeks')
-        : t('unitMonths');
+  const liveCadencePer =
+    contributionCadence === 'daily'
+      ? t('cadencePerDaily')
+      : contributionCadence === 'weekly'
+      ? t('cadencePerWeekly')
+      : t('cadencePerMonthly');
 
-    const cadencePer =
-      contributionCadence === 'daily'
-        ? t('cadencePerDaily')
-        : contributionCadence === 'weekly'
-        ? t('cadencePerWeekly')
-        : t('cadencePerMonthly');
-
-    return {
-      periods,
-      estimatedDays,
-      periodUnit,
-      cadencePer,
-      isDaily: contributionCadence === 'daily',
-    };
-  }, [numericTargetPrice, numericContributionAmount, contributionCadence, t]);
-
-  // Live calculation: Target Date -> Required Contribution
-  const liveContributionProjection = useMemo(() => {
-    if (isNaN(numericTargetPrice) || numericTargetPrice <= 0) return null;
-    if (!targetDate) return null;
-
-    const targetDateObj = new Date(targetDate + 'T00:00:00Z');
-    const todayObj = new Date();
-    const todayUTC = new Date(Date.UTC(todayObj.getUTCFullYear(), todayObj.getUTCMonth(), todayObj.getUTCDate()));
-
-    const millisecondsDiff = targetDateObj.getTime() - todayUTC.getTime();
-    const daysRemaining = Math.max(1, Math.ceil(millisecondsDiff / (1000 * 60 * 60 * 24)));
-
-    const daily = numericTargetPrice / daysRemaining;
-    const weekly = daily * 7;
-    const monthly = daily * (365 / 12);
-
-    return {
-      daysRemaining,
-      daily,
-      weekly,
-      monthly,
-    };
-  }, [numericTargetPrice, targetDate]);
+  const liveContributionProjection = useMemo(
+    () =>
+      calculateTargetDateProjection({
+        targetPrice: numericTargetPrice,
+        targetDate,
+      }),
+    [numericTargetPrice, targetDate]
+  );
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -300,16 +277,16 @@ function PlannedPurchaseForm({
             <div className="rounded-lg bg-white p-3 border border-teal-200 text-xs text-teal-950 space-y-1">
               <span className="font-semibold block text-teal-800">{t('timeToReachTarget')}:</span>
               <p className="text-sm font-bold text-teal-700">
-                {liveTimeProjection.isDaily
+                {contributionCadence === 'daily'
                   ? t('reachTargetInDays', { days: liveTimeProjection.estimatedDays })
                   : t('reachTargetIn', {
                       periods: liveTimeProjection.periods,
-                      periodUnit: liveTimeProjection.periodUnit,
+                      periodUnit: livePeriodUnit,
                       days: liveTimeProjection.estimatedDays,
                     })}
               </p>
               <p className="text-gray-500 text-[11px]">
-                {formatCurrency(numericContributionAmount, currencyCode)} {liveTimeProjection.cadencePer} &rarr; {formatCurrency(numericTargetPrice, currencyCode)}
+                {formatCurrency(numericContributionAmount, currencyCode)} {liveCadencePer} &rarr; {formatCurrency(numericTargetPrice, currencyCode)}
               </p>
             </div>
           )}
