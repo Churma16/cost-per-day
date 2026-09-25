@@ -48,7 +48,6 @@ Current application configuration:
 | `SESSION_SECRET` | HMAC secret for OIDC state/nonce cookie | at least 32 random characters |
 | `APP_BASE_URL` | Public application URL | `https://worthwhile.example.com` |
 | `GOOGLE_REDIRECT_URI` | Google callback URI | defaults to `APP_BASE_URL/auth/google/callback` |
-| `LEGACY_OWNER_GOOGLE_SUB` | One-time verified-sub mapping for pre-auth legacy data | set only during an upgrade that has legacy-owned data |
 
 The compiled frontend directory and SQLite directory are separate by construction. The HTTP static-file fallback only reads from `STATIC_DIR`, so database files, environment files, repository metadata, and runtime secrets are not part of the public static root.
 
@@ -99,7 +98,7 @@ Production session cookies are `HttpOnly`, `Secure`, and `SameSite=Lax` when `AP
 
 The callback validates signed state/nonce data and the Google ID token before creating a local application session. Google provider tokens are not passed into item, settings, domain, or persistence ownership APIs. Credentialed CORS never reflects arbitrary origins; wildcard origins are rejected and only exact configured origins receive CORS authorization.
 
-For a database upgraded from the pre-authentication version, set `LEGACY_OWNER_GOOGLE_SUB` to the intended existing owner's verified Google OIDC subject before that owner signs in. That verified subject is allowed to bind the existing `legacy` local user so its items/settings remain reachable. When meaningful unclaimed legacy data exists, the server refuses to start without this mapping, and authentication refuses non-matching subjects until adoption completes. Untouched built-in language/currency defaults alone do not trigger the guard. After the successful bootstrap login, the subject is persisted in SQLite and the environment variable can be removed.
+Historical migration v3 may leave an already-adopted user's local ID as `legacy`. That identifier is ordinary persisted data once the row has a Google subject; production authentication does not rename it or treat it as a special login mode.
 
 ## Health Check
 
@@ -171,6 +170,30 @@ curl --fail http://127.0.0.1:8080/health
 Also verify representative application data through the UI/API, including a real Google login and authenticated item access.
 
 ## Upgrade and Migration
+
+### Pre-auth Ownership Verification
+
+Before deploying a release that removes the retired pre-authentication adoption path, inspect the live SQLite database and verify that no meaningful data remains under an unclaimed historical owner:
+
+```sql
+SELECT id, google_sub
+FROM users
+WHERE id = 'legacy';
+
+SELECT COUNT(*) AS legacy_items
+FROM items
+WHERE user_id = 'legacy';
+
+SELECT key, value
+FROM settings
+WHERE user_id = 'legacy'
+  AND NOT (
+    (key = 'language' AND value = 'en')
+    OR (key = 'currency' AND value = 'USD')
+  );
+```
+
+Deployment is safe with respect to this cleanup when the historical row is absent, or when its `google_sub` is already populated. If `google_sub` is empty while meaningful items or non-default settings remain, stop the deployment and resolve ownership before removing the compatibility path. Do not rewrite historical migrations or rename an already-adopted local user solely because its ID is `legacy`.
 
 Before deploying an application version that contains a new database migration:
 
