@@ -215,7 +215,7 @@ function PlannedPurchaseCard({
                     : t('reachTargetIn', {
                         periods: exploredProjection.periods,
                         periodUnit: exploredPeriodUnit,
-                        days: exploredProjection.days,
+                        days: exploredProjection.estimatedDays,
                       })}
                 </div>
               )}
