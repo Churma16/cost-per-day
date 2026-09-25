@@ -8,18 +8,20 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
+
 	"cost-per-day/backend/internal/domain"
 	"cost-per-day/backend/internal/repository"
 )
 
-// SessionRepository implements application session persistence in SQLite.
+// SessionRepository implements application session persistence in SQLite through GORM.
 type SessionRepository struct {
-	databaseConnection *sql.DB
+	database *gorm.DB
 }
 
-// NewSessionRepository creates a SQLite-backed session repository.
-func NewSessionRepository(databaseConnection *sql.DB) repository.SessionRepository {
-	return &SessionRepository{databaseConnection: databaseConnection}
+// NewSessionRepository creates a GORM-backed session repository.
+func NewSessionRepository(database *gorm.DB) repository.SessionRepository {
+	return &SessionRepository{database: database}
 }
 
 // Create stores a new opaque session token hash and removes already-expired sessions.
@@ -33,20 +35,21 @@ func (repositoryInstance *SessionRepository) Create(ctx context.Context, session
 		session.CreatedAt = time.Now().UTC()
 	}
 
-	transaction, beginError := repositoryInstance.databaseConnection.BeginTx(ctx, nil)
-	if beginError != nil {
-		return fmt.Errorf("begin session creation: %w", beginError)
+	transaction := repositoryInstance.database.WithContext(ctx).Begin()
+	if transaction.Error != nil {
+		return fmt.Errorf("begin session creation: %w", transaction.Error)
 	}
 	defer transaction.Rollback()
 
-	if _, cleanupError := transaction.ExecContext(ctx,
+	cleanupResult := transaction.Exec(
 		"DELETE FROM auth_sessions WHERE expires_at <= ?",
 		session.CreatedAt.UTC().Format(time.RFC3339Nano),
-	); cleanupError != nil {
-		return fmt.Errorf("delete expired sessions: %w", cleanupError)
+	)
+	if cleanupResult.Error != nil {
+		return fmt.Errorf("delete expired sessions: %w", cleanupResult.Error)
 	}
 
-	if _, insertError := transaction.ExecContext(ctx, `
+	insertResult := transaction.Exec(`
 		INSERT INTO auth_sessions (token_hash, user_id, created_at, expires_at)
 		VALUES (?, ?, ?, ?)
 	`,
@@ -54,12 +57,13 @@ func (repositoryInstance *SessionRepository) Create(ctx context.Context, session
 		session.UserID,
 		session.CreatedAt.UTC().Format(time.RFC3339Nano),
 		session.ExpiresAt.UTC().Format(time.RFC3339Nano),
-	); insertError != nil {
-		return fmt.Errorf("create session: %w", insertError)
+	)
+	if insertResult.Error != nil {
+		return fmt.Errorf("create session: %w", insertResult.Error)
 	}
 
-	if commitError := transaction.Commit(); commitError != nil {
-		return fmt.Errorf("commit session creation: %w", commitError)
+	if commitResult := transaction.Commit(); commitResult.Error != nil {
+		return fmt.Errorf("commit session creation: %w", commitResult.Error)
 	}
 	return nil
 }
@@ -72,11 +76,11 @@ func (repositoryInstance *SessionRepository) GetUserIDByTokenHash(ctx context.Co
 	}
 
 	var userID string
-	scanError := repositoryInstance.databaseConnection.QueryRowContext(ctx, `
+	scanError := repositoryInstance.database.WithContext(ctx).Raw(`
 		SELECT user_id
 		FROM auth_sessions
 		WHERE token_hash = ? AND expires_at > ?
-	`, normalizedHash, now.UTC().Format(time.RFC3339Nano)).Scan(&userID)
+	`, normalizedHash, now.UTC().Format(time.RFC3339Nano)).Row().Scan(&userID)
 	if errors.Is(scanError, sql.ErrNoRows) {
 		return "", domain.ErrSessionNotFound
 	}
@@ -92,12 +96,12 @@ func (repositoryInstance *SessionRepository) DeleteByTokenHash(ctx context.Conte
 	if normalizedHash == "" {
 		return nil
 	}
-	if _, deleteError := repositoryInstance.databaseConnection.ExecContext(
-		ctx,
+	deleteResult := repositoryInstance.database.WithContext(ctx).Exec(
 		"DELETE FROM auth_sessions WHERE token_hash = ?",
 		normalizedHash,
-	); deleteError != nil {
-		return fmt.Errorf("delete session: %w", deleteError)
+	)
+	if deleteResult.Error != nil {
+		return fmt.Errorf("delete session: %w", deleteResult.Error)
 	}
 	return nil
 }
