@@ -182,7 +182,6 @@ function ItemCard({
 
   const itemStatus = item.status || 'active';
   const isActive = itemStatus === 'active';
-  const statusTranslationKey = STATUS_TRANSLATION_KEYS[itemStatus] || STATUS_TRANSLATION_KEYS.active;
   const lifecycleTranslationKey = getLifecycleTranslationKey(itemStatus, item.ownershipDays);
   const itemCostPerDay = Number(item.grossCostPerDay || 0);
   const bestEquivalent = selectBestEquivalent(
@@ -231,18 +230,11 @@ function ItemCard({
 
         <div className="min-w-0 flex-1">
           <h3 className="font-medium text-[#20242A] truncate">{item.name}</h3>
-          <div className="mt-0.5 flex items-baseline gap-2 flex-wrap">
-            {!isActive && (
-              <span className="text-xs text-[#6F7782] font-normal">
-                {t('finalGrossCostPerDay')}
-              </span>
-            )}
-            {bestEquivalent && (
-              <p className="text-xs text-[#6F7782] font-normal">
-                ≈ {bestEquivalent.text}
-              </p>
-            )}
-          </div>
+          {bestEquivalent && (
+            <p className="mt-0.5 text-xs text-[#6F7782] font-normal">
+              ≈ {bestEquivalent.text}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5 flex-shrink-0 text-right">
@@ -250,11 +242,6 @@ function ItemCard({
             <p className="text-sm font-semibold text-[#20242A] tabular-nums">
               {formatCurrency(itemCostPerDay, currencyCode)}
             </p>
-            {!isActive && (
-              <span className={`text-xs mt-0.5 ${getStatusBadgeStyle(itemStatus)}`}>
-                {t(statusTranslationKey)}
-              </span>
-            )}
           </div>
           <IoChevronDown
             aria-hidden="true"
@@ -316,7 +303,9 @@ function ItemCard({
                 aria-label={`${t(lifecycleTranslationKey)}: ${displayDuration}`}
               >
                 <div className="flex items-center gap-1.5 text-[#6F7782] font-medium">
-                  <span>{t(lifecycleTranslationKey)}</span>
+                  <span className={isActive ? undefined : getStatusBadgeStyle(itemStatus)}>
+                    {t(lifecycleTranslationKey)}
+                  </span>
                   {isDurationInteractive && (
                     <IoSyncOutline
                       className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"

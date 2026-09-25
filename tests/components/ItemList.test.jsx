@@ -161,8 +161,8 @@ describe('ItemList lifecycle display', () => {
 
     expect(await screen.findByText('Phone')).toBeInTheDocument();
     const phoneTrigger = screen.getByRole('button', { name: /Phone/i });
-    expect(within(phoneTrigger).getByText('Changed Hands')).toBeInTheDocument();
-    expect(screen.getByText('Final gross cost per day')).toBeInTheDocument();
+    expect(within(phoneTrigger).queryByText('Changed Hands')).not.toBeInTheDocument();
+    expect(screen.queryByText('Final gross cost per day')).not.toBeInTheDocument();
     expect(screen.getByText('$10.00')).toBeInTheDocument();
 
     expect(screen.getByText('Laptop')).toBeInTheDocument();
@@ -240,10 +240,10 @@ describe('ItemList lifecycle display', () => {
     expect(within(activeTrigger).queryByText('Still With You')).not.toBeInTheDocument();
 
     const retiredTrigger = screen.getByRole('button', { name: /Retired Camera/i });
-    expect(within(retiredTrigger).getByText('No Longer in Use')).toBeInTheDocument();
+    expect(within(retiredTrigger).queryByText('No Longer in Use')).not.toBeInTheDocument();
 
     const lostTrigger = screen.getByRole('button', { name: /Lost Camera/i });
-    expect(within(lostTrigger).getByText('Lost')).toBeInTheDocument();
+    expect(within(lostTrigger).queryByText('Lost')).not.toBeInTheDocument();
 
     fireEvent.click(earlyActiveTrigger);
     const earlyActiveDetails = document.getElementById('item-details-early-active-copy');

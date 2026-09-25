@@ -78,14 +78,6 @@ code {
   padding: 20px;
 }
 
-/* Header styles */
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
 /* Calculator display area */
 .calculator-display {
   background: #92f6b0;
