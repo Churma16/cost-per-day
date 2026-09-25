@@ -495,6 +495,62 @@ func TestDashboardService_GetDashboard(t *testing.T) {
 		}
 	})
 
+	t.Run("RecentPurchaseImpactProvider does not overstate one recent item's share of the increase", func(subTest *testing.T) {
+		itemRepository := memory.NewMemoryItemRepository()
+		settingsRepository := memory.NewMemorySettingsRepository()
+		equivalentRepository := memory.NewMemoryValueEquivalentRepository()
+
+		now := time.Now().UTC()
+
+		// Existing baseline: $100 / 50 days = $2/day today, about $2.78/day 14 days ago.
+		_, _ = itemRepository.Create(testContext, testUserID, domain.Item{
+			Name:         "Mouse Pad",
+			Price:        100.0,
+			PurchaseDate: now.AddDate(0, 0, -50).Format(time.RFC3339),
+			Status:       domain.ItemStatusActive,
+		})
+
+		// Three recent purchases increase today's total to $32/day.
+		// The selected item contributes $12/day (37.5% of current total), but less than
+		// half of the roughly $29.22/day increase versus 14 days ago.
+		recentItems := []domain.Item{
+			{Name: "Keyboard", Price: 24.0, PurchaseDate: now.AddDate(0, 0, -2).Format(time.RFC3339), Status: domain.ItemStatusActive},
+			{Name: "Headphones", Price: 20.0, PurchaseDate: now.AddDate(0, 0, -2).Format(time.RFC3339), Status: domain.ItemStatusActive},
+			{Name: "Webcam", Price: 16.0, PurchaseDate: now.AddDate(0, 0, -2).Format(time.RFC3339), Status: domain.ItemStatusActive},
+		}
+		for _, item := range recentItems {
+			_, _ = itemRepository.Create(testContext, testUserID, item)
+		}
+
+		dashboardService := service.NewDashboardService(itemRepository, settingsRepository, equivalentRepository)
+		dashboardData, serviceError := dashboardService.GetDashboard(testContext, testUserID)
+		if serviceError != nil {
+			subTest.Fatalf("expected no error, got: %v", serviceError)
+		}
+
+		var recentImpactInsight *domain.DashboardInsight
+		for _, insight := range dashboardData.Insights {
+			if insight.Kind == "recent_purchase_impact" {
+				copyInsight := insight
+				recentImpactInsight = &copyInsight
+				break
+			}
+		}
+
+		if recentImpactInsight == nil {
+			subTest.Fatalf("expected recent_purchase_impact insight")
+		}
+		if recentImpactInsight.Primary != "Keyboard" {
+			subTest.Errorf("expected selected recent item 'Keyboard', got: %s", recentImpactInsight.Primary)
+		}
+		if recentImpactInsight.Secondary != "A major contributor to your current daily ownership cost" {
+			subTest.Errorf("expected evidence-bounded recent impact copy, got: %s", recentImpactInsight.Secondary)
+		}
+		if strings.Contains(strings.ToLower(recentImpactInsight.Secondary), "most") {
+			subTest.Errorf("recent impact copy must not claim the item caused most of the increase, got: %s", recentImpactInsight.Secondary)
+		}
+	})
+
 	t.Run("OwnershipCostTrendProvider does not misattribute lifecycle removals as continued-use aging improvement", func(subTest *testing.T) {
 		itemRepository := memory.NewMemoryItemRepository()
 		settingsRepository := memory.NewMemorySettingsRepository()
