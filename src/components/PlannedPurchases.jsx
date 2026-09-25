@@ -55,7 +55,7 @@ function PlannedPurchases() {
       }
       handleCloseForm();
     } catch (err) {
-      setActionError(err.message || 'Operation failed. Please try again.');
+      setActionError(err.message || t('operationFailed'));
     }
   };
 
@@ -65,7 +65,7 @@ function PlannedPurchases() {
       await deleteMutation.mutateAsync(deletingId);
       setDeletingId(null);
     } catch (err) {
-      setActionError(err.message || 'Failed to delete planned purchase.');
+      setActionError(err.message || t('errorDeletingPlannedPurchase'));
     }
   };
 
@@ -88,7 +88,7 @@ function PlannedPurchases() {
       {/* Action Bar */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-          {plannedPurchases.length} {plannedPurchases.length === 1 ? 'item' : 'items'}
+          {t('itemCount', { count: plannedPurchases.length })}
         </span>
         {!isFormOpen && (
           <button
@@ -125,13 +125,13 @@ function PlannedPurchases() {
         </div>
       ) : isError && plannedPurchasesData === undefined ? (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 space-y-2">
-          <p>{error?.message || t('errorLoading')}</p>
+          <p>{error?.message || t('errorLoadingPlannedPurchases')}</p>
           <button
             type="button"
             onClick={() => refetch()}
             className="text-xs font-semibold underline hover:text-red-900"
           >
-            {t('retry') || 'Retry'}
+            {t('retry')}
           </button>
         </div>
       ) : plannedPurchases.length === 0 && !isFormOpen ? (

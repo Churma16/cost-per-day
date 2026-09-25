@@ -17,11 +17,11 @@ vi.mock('react-i18next', () => ({
         insightsCarousel: 'Insights Carousel',
         previousInsight: 'Previous insight',
         nextInsight: 'Next insight',
-        insightsWelcomeTitle: 'Mindful Ownership',
+        insightsWelcomeTitle: 'Ownership Over Time',
         insightsWelcomeCaption: 'Track your purchases and see how their daily cost evolves over time.',
         loading: 'Loading...',
         insightTitleBiggestContributor: 'Most Influential Right Now',
-        insightTitleBestValue: 'Giving the Most Value',
+        insightTitleBestValue: 'Lowest Daily Cost So Far',
         insightTitleOwnershipCostTrend: 'Growing More Valuable Over Time',
         insightTitleRecentPurchaseImpact: 'Shifting Your Daily Cost',
         insightTitleMilestone: 'A Milestone Reached',
@@ -42,7 +42,7 @@ vi.mock('../../src/hooks/useDashboard', () => ({
 const mockInsights = [
   {
     kind: 'best_value',
-    eyebrow: 'Giving the Most Value',
+    eyebrow: 'Lowest Daily Cost So Far',
     primary: 'Bantal Orthopedic',
     secondary: 'Rp 1.280/day',
     caption: 'Owned for 508 days'
@@ -57,9 +57,9 @@ const mockInsights = [
   {
     kind: 'ownership_cost_trend',
     eyebrow: 'Growing More Valuable Over Time',
-    primary: 'Your collection is getting cheaper to own',
+    primary: 'Your daily ownership cost is lower than 30 days ago',
     secondary: 'down Rp 6.800/day over the last 30 days',
-    caption: 'Your purchases are earning their keep over time.'
+    caption: 'More ownership time spreads the purchase cost across more days.'
   }
 ];
 
@@ -87,7 +87,7 @@ describe('HeroCarousel component', () => {
   it('renders welcome empty state when there are no insights', () => {
     render(<HeroCarousel insightsOverride={[]} />);
 
-    expect(screen.getByText('Mindful Ownership')).toBeInTheDocument();
+    expect(screen.getByText('Ownership Over Time')).toBeInTheDocument();
     expect(screen.getByText(/Track your purchases/i)).toBeInTheDocument();
   });
 
@@ -108,7 +108,7 @@ describe('HeroCarousel component', () => {
   it('renders the initial insight card with presentation fields', () => {
     render(<HeroCarousel insightsOverride={mockInsights} />);
 
-    expect(screen.getByText('Giving the Most Value')).toBeInTheDocument();
+    expect(screen.getByText('Lowest Daily Cost So Far')).toBeInTheDocument();
     expect(screen.getByText('Bantal Orthopedic')).toBeInTheDocument();
     expect(screen.getByText('Rp 1.280/day')).toBeInTheDocument();
     expect(screen.getByText('Owned for 508 days')).toBeInTheDocument();
@@ -140,7 +140,7 @@ describe('HeroCarousel component', () => {
     const thirdDot = screen.getByRole('button', { name: 'Go to slide 3' });
     fireEvent.click(thirdDot);
 
-    expect(screen.getByText('Your collection is getting cheaper to own')).toBeInTheDocument();
+    expect(screen.getByText('Your daily ownership cost is lower than 30 days ago')).toBeInTheDocument();
     expect(screen.getByText('down Rp 6.800/day over the last 30 days')).toBeInTheDocument();
   });
 

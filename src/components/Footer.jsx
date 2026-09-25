@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
@@ -10,14 +11,15 @@ import {
 } from 'react-icons/io5';
 
 const NAVIGATION_DESTINATIONS = [
-  { key: 'home', path: '/', Icon: IoHomeOutline, label: 'Home' },
-  { key: 'planning', path: '/planning', Icon: IoTimeOutline, label: 'Planning' },
-  { key: 'add', path: '/add', Icon: IoAddOutline, label: 'Add' },
-  { key: 'analytics', path: '/analytics', Icon: IoStatsChartOutline, label: 'Analytics' },
-  { key: 'settings', path: '/settings', Icon: IoSettingsOutline, label: 'Settings' },
+  { key: 'home', path: '/', Icon: IoHomeOutline, labelKey: 'navHome' },
+  { key: 'planning', path: '/planning', Icon: IoTimeOutline, labelKey: 'navPlanning' },
+  { key: 'add', path: '/add', Icon: IoAddOutline, labelKey: 'navAdd' },
+  { key: 'analytics', path: '/analytics', Icon: IoStatsChartOutline, labelKey: 'navAnalytics' },
+  { key: 'settings', path: '/settings', Icon: IoSettingsOutline, labelKey: 'navSettings' },
 ];
 
 function Footer() {
+  const { t } = useTranslation();
   const currentLocation = useLocation();
   const navigateToRoute = useNavigate();
 
@@ -27,7 +29,7 @@ function Footer() {
 
   return (
     <nav
-      aria-label="Primary navigation"
+      aria-label={t('primaryNavigation')}
       className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md bg-white/95 border-t border-[#E6E8EC] app-footer"
     >
       <div className="max-w-lg mx-auto px-4 h-full flex justify-around items-center">
@@ -44,7 +46,7 @@ function Footer() {
               key={destination.key}
               type="button"
               onClick={() => handleNavigationClick(destination.path)}
-              aria-label={destination.label}
+              aria-label={t(destination.labelKey)}
               aria-current={isCurrentRouteActive ? 'page' : undefined}
               className="relative flex flex-col items-center justify-center min-w-[48px] min-h-[48px] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] rounded-lg group"
             >

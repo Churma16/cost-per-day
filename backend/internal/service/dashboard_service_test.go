@@ -127,7 +127,7 @@ func TestDashboardService_GetDashboard(t *testing.T) {
 		if strings.Contains(combinedText, "saved") || strings.Contains(combinedText, "hemat") {
 			subTest.Errorf("ownership trend copy must not claim money was saved, got: %s", combinedText)
 		}
-		if !strings.Contains(combinedText, "earning their keep") && !strings.Contains(combinedText, "cheaper to own") {
+		if !strings.Contains(combinedText, "ownership time spreads") && !strings.Contains(combinedText, "lower than 30 days ago") {
 			subTest.Errorf("expected positive ownership progress framing, got: %s", combinedText)
 		}
 	})
@@ -335,8 +335,8 @@ func TestDashboardService_GetDashboard(t *testing.T) {
 		if bestValueInsight == nil {
 			subTest.Fatalf("expected best_value insight")
 		}
-		if bestValueInsight.Eyebrow != "Paling Banyak Memberi Nilai" {
-			subTest.Errorf("expected eyebrow 'Paling Banyak Memberi Nilai', got: %s", bestValueInsight.Eyebrow)
+		if bestValueInsight.Eyebrow != "Biaya Harian Terendah Saat Ini" {
+			subTest.Errorf("expected eyebrow 'Biaya Harian Terendah Saat Ini', got: %s", bestValueInsight.Eyebrow)
 		}
 		if !strings.Contains(bestValueInsight.Caption, "Menemanimu selama") {
 			subTest.Errorf("expected Indonesian caption, got: %s", bestValueInsight.Caption)

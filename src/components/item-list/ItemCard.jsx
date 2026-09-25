@@ -376,8 +376,8 @@ function ItemCard({
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-medium text-[#20242A]">{t('targetMilestone')}</span>
                     <span className="text-[#6F7782]">
-                      {item.targetCostPerDay && `${formatCurrency(item.targetCostPerDay, currencyCode)}/day`}
-                      {item.targetDurationDays && ` (~${item.targetDurationDays} days)`}
+                      {item.targetCostPerDay && `${formatCurrency(item.targetCostPerDay, currencyCode)}${t('perDay')}`}
+                      {item.targetDurationDays && ` (~${item.targetDurationDays} ${t('unitDays')})`}
                     </span>
                   </div>
 

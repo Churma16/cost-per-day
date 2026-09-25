@@ -9,7 +9,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, options) => {
       const dictionary = {
-        durabilityAndOwnership: 'Durability & Ownership',
+        durabilityAndOwnership: 'Ownership Over Time',
         durabilitySubtitle: 'Personal history of how long categories and brands last.',
         filterByCategory: 'Filter by Category',
         allCategories: 'All Categories',
@@ -18,11 +18,11 @@ vi.mock('react-i18next', () => ({
         medianLifespan: 'Median lifespan',
         currentCostPerDay: 'Current cost per day',
         typicalReplacementInterval: 'Typical replacement interval',
-        mostFrequentlyReplacedCategory: 'Most frequently replaced category',
+        mostFrequentlyReplacedCategory: 'Category you replaced most often',
         longestLastingBrand: 'Longest lasting brand',
-        lowestCostBrand: 'Lowest cost per day',
+        lowestCostBrand: 'Lowest observed cost per day',
         brandComparison: 'Brand Comparison',
-        patternDetected: `Pattern (${options?.count} items)`,
+        patternDetected: `Based on ${options?.count} items`,
         singleObservation: 'Single observation (1 item)',
         viewEvidence: 'View item history',
         hideEvidence: 'Hide item history',
@@ -162,10 +162,10 @@ describe('DurabilityAnalytics Component', () => {
 
     render(<DurabilityAnalytics />);
 
-    expect(screen.getByText('Durability & Ownership')).toBeInTheDocument();
+    expect(screen.getByText('Ownership Over Time')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Audio' })).toBeInTheDocument();
     expect(screen.getByText('In your history for Audio, Sony lasted longest.')).toBeInTheDocument();
-    expect(screen.getByText('Pattern (2 items)')).toBeInTheDocument();
+    expect(screen.getByText('Based on 2 items')).toBeInTheDocument();
     expect(screen.getByText('"Based on 2 completed items, Sony averaged 730 days."')).toBeInTheDocument();
 
     // Toggle evidence

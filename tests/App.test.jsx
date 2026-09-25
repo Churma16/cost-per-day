@@ -81,7 +81,7 @@ describe('Header route isolation regression tests', () => {
     window.history.pushState({}, '', '/analytics');
     render(<App />);
     await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Durability & Ownership');
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Ownership Over Time');
     });
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);

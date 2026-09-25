@@ -105,14 +105,14 @@ function DurabilityAnalytics() {
       {isError && analyticsData == null && (
         <div className="rounded-xl bg-red-50 p-4 border border-red-200 flex items-center justify-between">
           <div className="text-sm text-red-700">
-            {error?.message || 'Failed to load durability analytics.'}
+            {error?.message || t('errorLoadingDurability')}
           </div>
           <button
             type="button"
             onClick={() => refetch()}
             className="flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-800"
           >
-            <IoRefreshOutline /> Retry
+            <IoRefreshOutline /> {t('retry')}
           </button>
         </div>
       )}
