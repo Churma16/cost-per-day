@@ -58,11 +58,22 @@ export const normalizeHomeOrganization = (value) => {
   };
 };
 
-export const loadHomeOrganization = (storage = globalThis?.localStorage) => {
-  if (!storage) return { ...DEFAULT_HOME_ORGANIZATION };
+const resolveHomeOrganizationStorage = (storage) => {
+  if (storage !== undefined) return storage;
 
   try {
-    const storedValue = storage.getItem(HOME_ORGANIZATION_STORAGE_KEY);
+    return globalThis.localStorage;
+  } catch {
+    return null;
+  }
+};
+
+export const loadHomeOrganization = (storage) => {
+  const resolvedStorage = resolveHomeOrganizationStorage(storage);
+  if (!resolvedStorage) return { ...DEFAULT_HOME_ORGANIZATION };
+
+  try {
+    const storedValue = resolvedStorage.getItem(HOME_ORGANIZATION_STORAGE_KEY);
     return storedValue
       ? normalizeHomeOrganization(JSON.parse(storedValue))
       : { ...DEFAULT_HOME_ORGANIZATION };
@@ -71,11 +82,12 @@ export const loadHomeOrganization = (storage = globalThis?.localStorage) => {
   }
 };
 
-export const saveHomeOrganization = (organization, storage = globalThis?.localStorage) => {
-  if (!storage) return;
+export const saveHomeOrganization = (organization, storage) => {
+  const resolvedStorage = resolveHomeOrganizationStorage(storage);
+  if (!resolvedStorage) return;
 
   try {
-    storage.setItem(
+    resolvedStorage.setItem(
       HOME_ORGANIZATION_STORAGE_KEY,
       JSON.stringify(normalizeHomeOrganization(organization))
     );
