@@ -8,10 +8,11 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key) => ({
       back: 'Back',
-      addEntryTitle: 'Add',
+      addEntryTitle: 'Add an item',
+      addEntrySubtitle: 'Track what you already own or plan your next purchase.',
       addEntryTypeLabel: 'What would you like to add?',
-      ownedItemTab: 'Owned item',
-      plannedItemTab: 'Planned item',
+      ownedItemTab: 'Already owned',
+      plannedItemTab: 'Planned',
     })[key] || key,
   }),
 }));
@@ -20,11 +21,22 @@ vi.mock('../../src/components/AddItem', () => ({
   default: () => {
     const [value, setValue] = useState('');
     return (
-      <input
-        data-testid="owned-draft"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-      />
+      <div>
+        <div data-swipe-protected>
+          <input
+            data-testid="owned-draft"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          data-testid="owned-optional-control"
+          onClick={() => {}}
+        >
+          Optional Control
+        </button>
+      </div>
     );
   },
 }));
@@ -60,24 +72,28 @@ describe('AddEntryPage', () => {
   it('defaults ordinary /add navigation to the owned-item tab and canonical URL', async () => {
     renderPage('/add');
 
-    expect(screen.getByRole('tab', { name: 'Owned item' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Add an item' })).toHaveClass('text-2xl');
+    expect(screen.getByText('Track what you already own or plan your next purchase.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/add?type=item'));
   });
 
   it('restores a directly linked planned-item tab', () => {
     renderPage('/add?type=planned');
 
-    expect(screen.getByRole('tab', { name: 'Planned item' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location')).toHaveTextContent('/add?type=planned');
   });
 
   it('keeps independent drafts mounted while switching tabs', () => {
     renderPage('/add?type=item');
 
+    expect(screen.getAllByTestId('add-type-indicator')).toHaveLength(1);
     fireEvent.change(screen.getByTestId('owned-draft'), { target: { value: 'Camera' } });
-    fireEvent.click(screen.getByRole('tab', { name: 'Planned item' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Planned' }));
     fireEvent.change(screen.getByTestId('planned-draft'), { target: { value: 'Tripod' } });
-    fireEvent.click(screen.getByRole('tab', { name: 'Owned item' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Already owned' }));
 
     expect(screen.getByTestId('owned-draft')).toHaveValue('Camera');
     expect(screen.getByTestId('planned-draft')).toHaveValue('Tripod');
@@ -86,10 +102,159 @@ describe('AddEntryPage', () => {
   it('supports arrow-key tab navigation', async () => {
     renderPage('/add?type=item');
 
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Owned item' }), { key: 'ArrowRight' });
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Already owned' }), { key: 'ArrowRight' });
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Planned item' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+    });
+  });
+
+  it('switches tabs with a deliberate horizontal touch swipe', async () => {
+    renderPage('/add?type=item');
+    const viewport = screen.getByTestId('add-form-viewport');
+
+    fireEvent.pointerDown(viewport, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 260,
+      clientY: 120,
+    });
+    fireEvent.pointerMove(viewport, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 190,
+      clientY: 126,
+    });
+    fireEvent.pointerUp(viewport, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 160,
+      clientY: 128,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('location')).toHaveTextContent('/add?type=planned');
+    });
+
+    fireEvent.pointerDown(viewport, {
+      pointerId: 2,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 120,
+      clientY: 120,
+    });
+    fireEvent.pointerMove(viewport, {
+      pointerId: 2,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 190,
+      clientY: 124,
+    });
+    fireEvent.pointerUp(viewport, {
+      pointerId: 2,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 220,
+      clientY: 126,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
+    });
+  });
+
+  it('moves the form track while the finger is still down', async () => {
+    const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 360,
+      height: 600,
+      top: 0,
+      right: 360,
+      bottom: 600,
+      left: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    });
+    renderPage('/add?type=item');
+    const viewport = screen.getByTestId('add-form-viewport');
+    const track = screen.getByTestId('add-form-track');
+
+    fireEvent.pointerDown(viewport, {
+      pointerId: 3,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 260,
+      clientY: 120,
+    });
+    fireEvent.pointerMove(viewport, {
+      pointerId: 3,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 180,
+      clientY: 124,
+    });
+
+    await waitFor(() => expect(track.style.transform).toContain('-80px'));
+    rectSpy.mockRestore();
+  });
+
+  it('does not interpret gestures starting on form controls as tab swipes', () => {
+    renderPage('/add?type=item');
+    const ownedDraft = screen.getByTestId('owned-draft');
+
+    fireEvent.pointerDown(ownedDraft, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 260,
+      clientY: 120,
+    });
+    fireEvent.pointerUp(ownedDraft, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 120,
+      clientY: 124,
+    });
+
+    expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('location')).toHaveTextContent('/add?type=item');
+  });
+
+  it('allows gestures starting on non-protected controls to swipe tabs', async () => {
+    renderPage('/add?type=item');
+    const optionalControl = screen.getByTestId('owned-optional-control');
+
+    fireEvent.pointerDown(optionalControl, {
+      pointerId: 4,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 260,
+      clientY: 120,
+    });
+    fireEvent.pointerMove(optionalControl, {
+      pointerId: 4,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 160,
+      clientY: 124,
+    });
+    fireEvent.pointerUp(optionalControl, {
+      pointerId: 4,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 140,
+      clientY: 126,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('location')).toHaveTextContent('/add?type=planned');
     });
   });
 });
+

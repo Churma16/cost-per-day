@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'motion/react';
 import { IoScaleOutline } from 'react-icons/io5';
@@ -19,9 +19,94 @@ function ItemOwnershipTargetCard({
   selectedBenchmarkItemId,
   onSelectBenchmarkItemId,
   onOpenBenchmarkModal,
+  isVisible = true,
 }) {
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
+  const manualPanelRef = useRef(null);
+  const benchmarkPanelRef = useRef(null);
+  const [activePanelHeight, setActivePanelHeight] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const previousModeRef = useRef(targetMode);
+
+  const measureActivePanel = useCallback(() => {
+    const activePanel = targetMode === 'manual'
+      ? manualPanelRef.current
+      : benchmarkPanelRef.current;
+    if (!activePanel) return;
+
+    const targetElement = activePanel.firstElementChild || activePanel;
+    const nextHeight = Math.ceil(
+      targetElement.getBoundingClientRect().height ||
+      targetElement.scrollHeight ||
+      activePanel.getBoundingClientRect().height ||
+      activePanel.scrollHeight
+    );
+    if (nextHeight > 0) {
+      setActivePanelHeight((currentHeight) => (
+        currentHeight === nextHeight ? currentHeight : nextHeight
+      ));
+    }
+  }, [targetMode]);
+
+  useEffect(() => {
+    if (previousModeRef.current !== targetMode) {
+      previousModeRef.current = targetMode;
+      setIsTransitioning(true);
+      const timer = window.setTimeout(() => {
+        setIsTransitioning(false);
+      }, 350);
+      return () => window.clearTimeout(timer);
+    }
+  }, [targetMode]);
+
+  useLayoutEffect(() => {
+    measureActivePanel();
+    const frameId = window.requestAnimationFrame(measureActivePanel);
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    const observer = new ResizeObserver(() => {
+      measureActivePanel();
+    });
+    [
+      manualPanelRef.current,
+      benchmarkPanelRef.current,
+      manualPanelRef.current?.firstElementChild,
+      benchmarkPanelRef.current?.firstElementChild,
+    ].forEach((panel) => panel && observer.observe(panel));
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
+  }, [measureActivePanel]);
+
+  useEffect(() => {
+    if (isVisible) {
+      measureActivePanel();
+      const frameId = window.requestAnimationFrame(measureActivePanel);
+      return () => window.cancelAnimationFrame(frameId);
+    }
+  }, [isVisible, measureActivePanel]);
+
+  useEffect(() => {
+    measureActivePanel();
+    const frameId = window.requestAnimationFrame(measureActivePanel);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [completedItems.length, selectedBenchmarkItemId, targetType, targetValue, measureActivePanel]);
+
+  const handleAnimationComplete = () => {
+    setIsTransitioning(false);
+    measureActivePanel();
+  };
+
+  const calmTransition = {
+    duration: shouldReduceMotion ? 0 : 0.32,
+    ease: [0.16, 1, 0.3, 1],
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-[#E6E8EC] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-2">
@@ -61,19 +146,31 @@ function ItemOwnershipTargetCard({
       </div>
 
       {/* Horizontal Slide Carousel Track (Kanan-Kiri) */}
-      <div className="overflow-hidden w-full relative">
+      <motion.div
+        data-testid="ownership-target-panels"
+        className="overflow-hidden w-full relative"
+        initial={false}
+        animate={activePanelHeight ? { height: activePanelHeight } : undefined}
+        transition={calmTransition}
+        onAnimationComplete={handleAnimationComplete}
+      >
         <motion.div
           className="flex w-full items-start"
           initial={false}
           animate={{ x: targetMode === 'manual' ? '0%' : '-100%' }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.32, ease: [0.16, 1, 0.3, 1] }}
+          transition={calmTransition}
         >
           {/* Panel 1: Set manually (Left) */}
           <div
+            ref={manualPanelRef}
+            data-testid="manual-ownership-target-panel"
             className={`w-full shrink-0 transition-opacity duration-200 ${
-              targetMode === 'manual' ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              targetMode === 'manual'
+                ? 'opacity-100'
+                : `pointer-events-none opacity-0 ${!isTransitioning ? 'h-0 overflow-hidden' : ''}`
             }`}
             aria-hidden={targetMode !== 'manual'}
+            inert={targetMode !== 'manual'}
           >
             <div className="space-y-2 pt-0.5">
               <p className="text-[11px] text-gray-500">
@@ -160,10 +257,15 @@ function ItemOwnershipTargetCard({
 
           {/* Panel 2: Based on past item (Right) */}
           <div
+            ref={benchmarkPanelRef}
+            data-testid="benchmark-ownership-target-panel"
             className={`w-full shrink-0 transition-opacity duration-200 ${
-              targetMode === 'benchmark' ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              targetMode === 'benchmark'
+                ? 'opacity-100'
+                : `pointer-events-none opacity-0 ${!isTransitioning ? 'h-0 overflow-hidden' : ''}`
             }`}
             aria-hidden={targetMode !== 'benchmark'}
+            inert={targetMode !== 'benchmark'}
           >
             <div className="space-y-2 pt-0.5">
               <p className="text-[11px] text-gray-500">
@@ -203,7 +305,7 @@ function ItemOwnershipTargetCard({
             </div>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 }

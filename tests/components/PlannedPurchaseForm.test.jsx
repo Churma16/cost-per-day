@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import PlannedPurchaseForm from '../../src/components/PlannedPurchaseForm';
 
@@ -7,6 +7,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key) => ({
       targetItemName: 'Target item name',
+      requiredSection: 'REQUIRED',
       enterTargetItemName: 'Enter name',
       targetPrice: 'Target price',
       enterTargetPrice: 'Enter target price',
@@ -22,6 +23,7 @@ vi.mock('react-i18next', () => ({
       targetDate: 'Target date',
       planningDisclaimer: 'Planning disclaimer',
       cancel: 'Cancel',
+      discardDraft: 'Discard draft',
       save: 'Save',
       loading: 'Loading...',
       usd: 'US Dollar (USD)',
@@ -49,6 +51,9 @@ const renderForm = (props = {}) => {
 describe('PlannedPurchaseForm', () => {
   it('preserves existing contribution-mode validation and payload behavior', () => {
     const onSubmit = renderForm();
+    expect(screen.getByRole('heading', { name: 'REQUIRED' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Target item name/)).toHaveClass('rounded-xl');
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('w-full');
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Camera' } });
     fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '5000000' } });
     fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '50000' } });
@@ -96,7 +101,80 @@ describe('PlannedPurchaseForm', () => {
       },
     });
 
-    expect(screen.getByLabelText('Target date')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Recurring contribution')).not.toBeInTheDocument();
+    const contributionPanel = screen.getByTestId('contribution-planning-panel');
+    const targetDatePanel = screen.getByTestId('target-date-planning-panel');
+
+    expect(within(targetDatePanel).getByLabelText('Target date')).toBeInTheDocument();
+    expect(targetDatePanel).toHaveAttribute('aria-hidden', 'false');
+    expect(targetDatePanel).not.toHaveClass('h-0');
+    expect(contributionPanel).toHaveAttribute('aria-hidden', 'true');
+    expect(contributionPanel).toHaveAttribute('inert');
+    expect(contributionPanel).toHaveClass('h-0');
+    expect(contributionPanel).toHaveClass('overflow-hidden');
+  });
+
+  it('keeps both planning panels mounted while changing the active panel', () => {
+    renderForm();
+
+    const contributionPanel = screen.getByTestId('contribution-planning-panel');
+    const targetDatePanel = screen.getByTestId('target-date-planning-panel');
+    expect(contributionPanel).toHaveAttribute('aria-hidden', 'false');
+    expect(targetDatePanel).toHaveAttribute('aria-hidden', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a target date' }));
+
+    expect(contributionPanel).toHaveAttribute('aria-hidden', 'true');
+    expect(targetDatePanel).toHaveAttribute('aria-hidden', 'false');
+    expect(screen.getByTestId('planning-mode-panels')).toHaveClass('overflow-hidden');
+  });
+
+  it('resets the form and reports the clean draft when discarding', () => {
+    const onDiscard = vi.fn();
+    renderForm({
+      initialData: {
+        name: 'Laptop',
+        targetPrice: '18000000',
+        currencyCode: 'IDR',
+        planningMode: 'targetDateToContribution',
+        contributionCadence: 'weekly',
+        contributionAmount: '',
+        targetDate: '2028-12-31',
+      },
+      onDiscard,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Discard draft' }));
+
+    expect(screen.getByLabelText(/Target item name/)).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Choose an amount' })).toHaveAttribute('aria-pressed', 'true');
+    expect(onDiscard).toHaveBeenCalledWith({
+      name: '',
+      targetPrice: '',
+      currencyCode: 'IDR',
+      planningMode: 'contributionToTime',
+      contributionCadence: 'daily',
+      contributionAmount: '',
+      targetDate: '',
+    });
+  });
+
+  it('provides accessible validation feedback when target price or contribution amount is invalid', () => {
+    const onSubmit = renderForm();
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+
+    // Enter a valid name with target price 0
+    fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Headphones' } });
+    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '0' } });
+    fireEvent.click(saveButton);
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter target price');
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    // Valid target price, contribution amount 0
+    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '1500000' } });
+    fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '0' } });
+    fireEvent.click(saveButton);
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter amount');
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });
+

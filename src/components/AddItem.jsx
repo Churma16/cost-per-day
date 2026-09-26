@@ -33,7 +33,7 @@ import {
   writeAddItemDraft,
 } from '../utils/addItemDraft';
 
-function AddItem({ showHeader = true }) {
+function AddItem({ showHeader = true, isVisible = true }) {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -511,6 +511,7 @@ function AddItem({ showHeader = true }) {
 
             {/* Ownership Target Section Card */}
             <ItemOwnershipTargetCard
+              isVisible={isVisible}
               targetMode={targetMode}
               onTargetModeChange={setTargetMode}
               targetType={targetType}
@@ -554,8 +555,8 @@ function AddItem({ showHeader = true }) {
               {!isEditMode && (
                 <button
                   type="button"
-                  className="w-full py-2 text-gray-600 rounded-xl font-medium border border-gray-200
-                  hover:bg-gray-50 transition-all duration-200 text-sm"
+                  className="w-full py-2 bg-white text-gray-700 rounded-xl font-medium border border-gray-300
+                  hover:bg-gray-50 hover:text-gray-900 shadow-sm transition-all duration-200 text-sm"
                   onClick={handleDiscardDraft}
                 >
                   {t('discardDraft')}

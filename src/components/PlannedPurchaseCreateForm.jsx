@@ -11,7 +11,7 @@ import {
 } from '../utils/plannedPurchaseDraft';
 import PlannedPurchaseForm from './PlannedPurchaseForm';
 
-function PlannedPurchaseCreateForm() {
+function PlannedPurchaseCreateForm({ isVisible = true } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth() ?? {};
@@ -87,18 +87,31 @@ function PlannedPurchaseCreateForm() {
     }
   };
 
+  const handleDiscardDraft = useCallback((resetDraft) => {
+    if (draftTimeoutRef.current !== null) {
+      window.clearTimeout(draftTimeoutRef.current);
+      draftTimeoutRef.current = null;
+    }
+
+    const serializedResetDraft = JSON.stringify(resetDraft);
+    latestDraftRef.current = resetDraft;
+    latestSerializedDraftRef.current = serializedResetDraft;
+    lastPersistedDraftRef.current = serializedResetDraft;
+    clearPlannedPurchaseDraft(userId);
+    setErrorMessage(null);
+  }, [userId]);
+
   return (
     <div className="px-3.5 py-1.5 pb-8 form-page-content">
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <PlannedPurchaseForm
-          initialData={initialDraft}
-          onSubmit={handleSubmit}
-          onCancel={() => navigate('/planning')}
-          isSubmitting={createMutation.isPending}
-          errorMessage={errorMessage}
-          onDraftChange={handleDraftChange}
-        />
-      </div>
+      <PlannedPurchaseForm
+        initialData={initialDraft}
+        onSubmit={handleSubmit}
+        onDiscard={handleDiscardDraft}
+        isSubmitting={createMutation.isPending}
+        errorMessage={errorMessage}
+        onDraftChange={handleDraftChange}
+        isVisible={isVisible}
+      />
     </div>
   );
 }

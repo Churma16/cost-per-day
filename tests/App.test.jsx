@@ -113,10 +113,10 @@ describe('Header route isolation regression tests', () => {
     window.history.pushState({}, '', '/add');
     render(<App />);
     await waitFor(() => {
-      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Add');
+      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Add an item');
     });
-    expect(screen.getByRole('tab', { name: 'Owned item' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Planned item' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Planned' })).toBeInTheDocument();
     const pageHeaders = document.querySelectorAll('.page-header');
     expect(pageHeaders).toHaveLength(0);
     expect(document.querySelectorAll('.page-content')).toHaveLength(1);
