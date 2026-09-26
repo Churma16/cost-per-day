@@ -117,7 +117,7 @@ export function PlannedPurchaseEditDialog({
             tabIndex={-1}
             aria-modal="true"
             aria-labelledby="planned-purchase-edit-title"
-            className="relative z-10 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl bg-white shadow-2xl border border-gray-100 flex flex-col"
+            className="relative z-10 w-full sm:max-w-lg max-h-[85vh] max-h-[85dvh] rounded-t-3xl sm:rounded-2xl bg-white shadow-2xl border border-gray-100 flex flex-col overscroll-contain"
           >
             {/* Header */}
             <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-[#E6E8EC] bg-white">
@@ -139,7 +139,7 @@ export function PlannedPurchaseEditDialog({
             </div>
 
             {/* Form Content */}
-            <div className="p-4 overflow-y-auto">
+            <div className="p-4 overflow-y-auto overscroll-contain pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
               <PlannedPurchaseForm
                 initialData={item}
                 onSubmit={onSubmit}
