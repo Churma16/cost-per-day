@@ -82,6 +82,45 @@ describe('useVersionCheck', () => {
     );
   });
 
+  it('reloads when legacy metadata stores the deployed revision in version', async () => {
+    fetchVersion.mockResolvedValue({ version: 'build-b' });
+
+    const { result } = renderHook(
+      () => useVersionCheck({ runningRevision: 'build-a' }),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(reloadMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(result.current.latestRevision).toBe('build-b');
+    expect(window.sessionStorage.getItem(VERSION_RELOAD_STORAGE_KEY)).toBe(
+      'build-a->build-b'
+    );
+  });
+
+  it('uses revision instead of SemVer when both metadata fields exist', async () => {
+    fetchVersion.mockResolvedValue({
+      version: 'build-legacy-value',
+      revision: 'build-b',
+    });
+
+    const { result } = renderHook(
+      () => useVersionCheck({ runningRevision: 'build-a' }),
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => {
+      expect(reloadMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(result.current.latestRevision).toBe('build-b');
+    expect(window.sessionStorage.getItem(VERSION_RELOAD_STORAGE_KEY)).toBe(
+      'build-a->build-b'
+    );
+  });
+
   it('reloads after an initial version request fails and a later focus check sees a new deployment', async () => {
     fetchVersion
       .mockRejectedValueOnce(new Error('Network error'))
