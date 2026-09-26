@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   IoCalendarOutline,
@@ -15,7 +15,7 @@ import { CollapsibleCard } from './ui/CollapsibleCard';
 import { InfoTile } from './ui/InfoTile';
 import { ActionButton } from './ui/ActionButton';
 
-function PlannedPurchaseCard({
+export const PlannedPurchaseCard = memo(function PlannedPurchaseCard({
   plannedPurchase,
   isExpanded = false,
   onToggle,
@@ -95,6 +95,28 @@ function PlannedPurchaseCard({
     worthwhileInterpretationText = t('configurePacePrompt');
   }
 
+  const handleToggle = useCallback(() => {
+    onToggle?.(plannedPurchase.id);
+  }, [onToggle, plannedPurchase.id]);
+
+  const handleEdit = useCallback(() => {
+    onEdit?.(plannedPurchase);
+  }, [onEdit, plannedPurchase]);
+
+  const handleDelete = useCallback(() => {
+    onDelete?.(plannedPurchase.id);
+  }, [onDelete, plannedPurchase.id]);
+
+  const handleApplyScenarioInternal = useCallback(
+    (scenario) => {
+      onApplyScenario?.({
+        plannedPurchaseId: plannedPurchase.id,
+        ...scenario,
+      });
+    },
+    [onApplyScenario, plannedPurchase.id]
+  );
+
   const headerContent = (
     <div>
       {/* Row 1: What + Price (Identity) */}
@@ -133,7 +155,7 @@ function PlannedPurchaseCard({
       triggerId={`planned-purchase-trigger-${plannedPurchase.id}`}
       contentId={`planned-purchase-details-${plannedPurchase.id}`}
       isExpanded={isExpanded}
-      onToggle={onToggle}
+      onToggle={handleToggle}
       header={headerContent}
       contentClassName="space-y-3"
     >
@@ -222,12 +244,7 @@ function PlannedPurchaseCard({
         initialContributionAmount={plannedPurchase.contributionAmount}
         initialCadence={plannedPurchase.contributionCadence}
         initialTargetDate={plannedPurchase.targetDate}
-        onApplyScenario={(scenario) =>
-          onApplyScenario?.({
-            plannedPurchaseId: plannedPurchase.id,
-            ...scenario,
-          })
-        }
+        onApplyScenario={handleApplyScenarioInternal}
         isApplying={isUpdating}
         applyError={updateError}
       />
@@ -237,7 +254,7 @@ function PlannedPurchaseCard({
         <ActionButton
           variant="secondary"
           icon={IoCreateOutline}
-          onClick={() => onEdit(plannedPurchase)}
+          onClick={handleEdit}
           tabIndex={isExpanded ? 0 : -1}
           aria-label={t('edit')}
         >
@@ -246,7 +263,7 @@ function PlannedPurchaseCard({
         <ActionButton
           variant="danger"
           icon={IoTrashOutline}
-          onClick={() => onDelete(plannedPurchase.id)}
+          onClick={handleDelete}
           tabIndex={isExpanded ? 0 : -1}
           aria-label={t('deleteItem')}
         >
@@ -255,6 +272,6 @@ function PlannedPurchaseCard({
       </div>
     </CollapsibleCard>
   );
-}
+});
 
 export default PlannedPurchaseCard;

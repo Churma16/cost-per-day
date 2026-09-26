@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 /**
  * CollapsibleCard - Core layout primitive for expandable cards.
  * Provides consistent rounded-2xl corners, border & shadow states,
  * focus rings, smooth CSS-grid expansion, and accessibility attributes.
  */
-export function CollapsibleCard({
+export const CollapsibleCard = memo(function CollapsibleCard({
   id,
   triggerId,
   contentId,
@@ -61,6 +61,6 @@ export function CollapsibleCard({
       </div>
     </div>
   );
-}
+});
 
 export default CollapsibleCard;

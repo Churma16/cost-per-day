@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   usePlannedPurchases,
@@ -25,35 +25,43 @@ function PlannedPurchases() {
   const [deletingId, setDeletingId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
-  const handleToggleExpand = (id) => {
+  const handleToggleExpand = useCallback((id) => {
     setActionError(null);
     setExpandedPurchaseId((currentId) => (currentId === id ? null : id));
-  };
+  }, []);
 
-  const handleOpenEdit = (item) => {
+  const handleOpenEdit = useCallback((item) => {
     setEditingItem(item);
     setActionError(null);
-  };
+  }, []);
 
-  const handleCloseForm = () => {
+  const handleCloseForm = useCallback(() => {
     setEditingItem(null);
     setActionError(null);
-  };
+  }, []);
 
-  const handleFormSubmit = async (payload) => {
+  const handleDeleteRequest = useCallback((id) => {
+    setDeletingId(id);
+  }, []);
+
+  const handleCloseDeleteModal = useCallback(() => {
+    setDeletingId(null);
+  }, []);
+
+  const handleFormSubmit = useCallback(async (payload) => {
     setActionError(null);
     try {
       await updateMutation.mutateAsync({
-        plannedPurchaseId: editingItem.id,
+        plannedPurchaseId: editingItem?.id,
         plannedPurchasePayload: payload,
       });
       handleCloseForm();
     } catch (err) {
       setActionError(err.message || t('operationFailed'));
     }
-  };
+  }, [editingItem?.id, updateMutation, handleCloseForm, t]);
 
-  const handleApplyScenario = async ({ plannedPurchaseId, contributionAmount, contributionCadence }) => {
+  const handleApplyScenario = useCallback(async ({ plannedPurchaseId, contributionAmount, contributionCadence }) => {
     setActionError(null);
     setUpdatingScenarioId(plannedPurchaseId);
     try {
@@ -80,20 +88,20 @@ function PlannedPurchases() {
     } finally {
       setUpdatingScenarioId(null);
     }
-  };
+  }, [plannedPurchases, updateMutation, t]);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!deletingId) return;
     try {
       await deleteMutation.mutateAsync(deletingId);
-      if (expandedPurchaseId === deletingId) {
-        setExpandedPurchaseId(null);
-      }
+      setExpandedPurchaseId((currentExpandedId) =>
+        currentExpandedId === deletingId ? null : currentExpandedId
+      );
       setDeletingId(null);
     } catch (err) {
       setActionError(err.message || t('errorDeletingPlannedPurchase'));
     }
-  };
+  }, [deletingId, deleteMutation, t]);
 
   const isMutating = updateMutation.isPending || deleteMutation.isPending;
 
@@ -159,9 +167,9 @@ function PlannedPurchases() {
                 key={plannedPurchase.id}
                 plannedPurchase={plannedPurchase}
                 isExpanded={expandedPurchaseId === plannedPurchase.id}
-                onToggle={() => handleToggleExpand(plannedPurchase.id)}
+                onToggle={handleToggleExpand}
                 onEdit={handleOpenEdit}
-                onDelete={(id) => setDeletingId(id)}
+                onDelete={handleDeleteRequest}
                 onApplyScenario={handleApplyScenario}
                 isUpdating={updatingScenarioId === plannedPurchase.id && updateMutation.isPending}
                 updateError={updatingScenarioId === plannedPurchase.id ? actionError : null}
@@ -182,7 +190,7 @@ function PlannedPurchases() {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setDeletingId(null)}
+                onClick={handleCloseDeleteModal}
                 className="px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50"
               >
                 {t('cancel')}
