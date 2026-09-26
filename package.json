@@ -29,7 +29,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed:planned": "node scripts/seed-planned-purchases.js"
   },
   "browserslist": {
     "production": [
