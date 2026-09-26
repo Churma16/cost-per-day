@@ -6,7 +6,7 @@ import {
   useDeletePlannedPurchase,
 } from '../hooks/usePlannedPurchases';
 import PlannedPurchaseCard from './PlannedPurchaseCard';
-import PlannedPurchaseForm from './PlannedPurchaseForm';
+import PlannedPurchaseEditDialog from './planned-purchase/PlannedPurchaseEditDialog';
 import { PageHeader } from './ui/PageHeader';
 import { PageContainer } from './ui/PageContainer';
 import { IoTimeOutline } from 'react-icons/io5';
@@ -105,21 +105,15 @@ function PlannedPurchases() {
         subtitle={t('planningSubtitle')}
       />
 
-      {/* Planned-purchase editing stays with its Planning card. */}
-      {editingItem && (
-        <div className="space-y-2.5">
-          <h3 className="text-base font-bold text-gray-900 px-1">
-            {t('editPlannedPurchase')}
-          </h3>
-          <PlannedPurchaseForm
-            initialData={editingItem}
-            onSubmit={handleFormSubmit}
-            onCancel={handleCloseForm}
-            isSubmitting={isMutating}
-            errorMessage={actionError}
-          />
-        </div>
-      )}
+      {/* Planned-purchase editing modal drawer */}
+      <PlannedPurchaseEditDialog
+        isOpen={Boolean(editingItem)}
+        item={editingItem}
+        onClose={handleCloseForm}
+        onSubmit={handleFormSubmit}
+        isSubmitting={isMutating}
+        errorMessage={actionError}
+      />
 
       {/* Loading & Error States */}
       {isLoading && plannedPurchasesData === undefined ? (

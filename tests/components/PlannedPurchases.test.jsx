@@ -353,4 +353,62 @@ describe('PlannedPurchases Component', () => {
       );
     });
   });
+
+  it('opens edit drawer dialog and updates planned purchase', async () => {
+    const mockPurchases = [
+      {
+        id: 'purchase-1',
+        name: 'MacBook Air',
+        targetPrice: 18000000,
+        currencyCode: 'IDR',
+        contributionAmount: 25000,
+        contributionCadence: 'daily',
+        estimatedPeriods: 720,
+        estimatedDays: 720,
+      },
+    ];
+
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue(mockPurchases);
+    plannedPurchaseService.updatePlannedPurchase.mockResolvedValue({
+      id: 'purchase-1',
+      name: 'MacBook Pro',
+      targetPrice: 24000000,
+      currencyCode: 'IDR',
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('MacBook Air')).toBeInTheDocument();
+    });
+
+    // Expand the card
+    const toggleButton = screen.getByRole('button', { name: /macbook air/i });
+    fireEvent.click(toggleButton);
+
+    // Click edit button
+    const editButton = screen.getByRole('button', { name: 'Edit' });
+    fireEvent.click(editButton);
+
+    // Check dialog drawer is rendered
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Edit Planned Purchase')).toBeInTheDocument();
+
+    // Change name in dialog
+    const nameInput = screen.getByLabelText(/Target item name/);
+    fireEvent.change(nameInput, { target: { value: 'MacBook Pro' } });
+
+    // Submit dialog
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(plannedPurchaseService.updatePlannedPurchase).toHaveBeenCalledWith(
+        'purchase-1',
+        expect.objectContaining({
+          name: 'MacBook Pro',
+        })
+      );
+    });
+  });
 });
