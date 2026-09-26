@@ -110,7 +110,7 @@ function PlannedPurchases() {
       {/* Action Bar */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-          {t('itemCount', { count: plannedPurchases.length })}
+          {t('planCount', { count: plannedPurchases.length })}
         </span>
       </div>
 

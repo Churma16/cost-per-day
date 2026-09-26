@@ -16,8 +16,11 @@ vi.mock('react-i18next', () => ({
       if (key === 'targetDatePrefix') {
         return `Target ${options?.date}`;
       }
-      if (key === 'reachedAroundDate') {
-        return `reached ${options?.date}`;
+      if (key === 'estimatedTargetPrefix') {
+        return `Estimated target · ${options?.date}`;
+      }
+      if (key === 'needsPace') {
+        return `Needs ≈ ${options?.daily} · ${options?.monthly}`;
       }
       if (key === 'timeRemainingWeeks') {
         return `~${options?.weeks} weeks remaining`;
@@ -27,6 +30,7 @@ vi.mock('react-i18next', () => ({
       }
       const translations = {
         targetPrice: 'Target price',
+        contributionPace: 'Contribution pace',
         statusPlanned: 'Planned',
         edit: 'Edit',
         deleteItem: 'Delete Item',
@@ -93,7 +97,7 @@ describe('PlannedPurchaseCard Component', () => {
     expect(screen.getByText('Flagship Smartphone')).toBeInTheDocument();
     expect(screen.getAllByText('Rp 16.000.000')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Rp 500.000 per week')[0]).toBeInTheDocument();
-    expect(screen.getByText(/≈ reached/i)).toBeInTheDocument();
+    expect(screen.getByText(/Estimated target ·/i)).toBeInTheDocument();
 
     fireEvent.click(toggleButton);
     expect(handleToggle).toHaveBeenCalledTimes(1);
@@ -113,7 +117,7 @@ describe('PlannedPurchaseCard Component', () => {
     expect(screen.getByText('Stranger Than Heaven')).toBeInTheDocument();
     expect(screen.getAllByText('Rp 849.000')[0]).toBeInTheDocument();
     expect(screen.getByText('Target 15 Jan 2027')).toBeInTheDocument();
-    expect(screen.getByText(/≈ Rp 7.447 per day · Rp 226.524 per month/i)).toBeInTheDocument();
+    expect(screen.getByText(/Needs ≈ Rp 7.447 per day · Rp 226.524 per month/i)).toBeInTheDocument();
   });
 
   it('renders expanded state with action buttons and primary planning hero panel', () => {
@@ -133,20 +137,21 @@ describe('PlannedPurchaseCard Component', () => {
     const region = document.getElementById('planned-purchase-details-plan-1');
     expect(region).toHaveAttribute('aria-hidden', 'false');
 
-    // Circular edit and delete buttons
-    const editButton = screen.getByLabelText('Edit');
-    const deleteButton = screen.getByLabelText('Delete Item');
+    // Standard action buttons at bottom matching Home (Option A)
+    const editButton = screen.getByRole('button', { name: 'Edit' });
+    const deleteButton = screen.getByRole('button', { name: 'Delete Item' });
 
-    expect(editButton).toHaveClass('w-10');
-    expect(editButton).toHaveClass('h-10');
-    expect(deleteButton).toHaveClass('w-10');
-    expect(deleteButton).toHaveClass('h-10');
+    expect(editButton).toBeInTheDocument();
+    expect(deleteButton).toBeInTheDocument();
 
     fireEvent.click(editButton);
     expect(handleEdit).toHaveBeenCalledWith(mockContributionPurchase);
 
     fireEvent.click(deleteButton);
     expect(handleDelete).toHaveBeenCalledWith('plan-1');
+
+    // InfoTiles
+    expect(screen.getByText('Contribution pace')).toBeInTheDocument();
 
     // Hero section
     expect(screen.getByText('Estimated completion')).toBeInTheDocument();

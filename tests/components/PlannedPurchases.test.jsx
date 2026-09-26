@@ -15,6 +15,15 @@ vi.mock('react-i18next', () => ({
       if (key === 'reachTargetIn') {
         return `About ${options?.periods} ${options?.periodUnit || options?.cadence} (~${options?.days} days)`;
       }
+      if (key === 'planCount') {
+        return `${options?.count} plans`;
+      }
+      if (key === 'estimatedTargetPrefix') {
+        return `Estimated target · ${options?.date}`;
+      }
+      if (key === 'needsPace') {
+        return `Needs ≈ ${options?.daily} · ${options?.monthly}`;
+      }
       const translations = {
         plannedPurchases: 'Planned Purchases',
         planningSubtitle: 'Understand price through time',
