@@ -52,9 +52,13 @@ const renderForm = (props = {}) => {
 describe('PlannedPurchaseForm', () => {
   it('preserves existing contribution-mode validation and payload behavior', () => {
     const onSubmit = renderForm();
+    const contributionPanel = screen.getByTestId('contribution-planning-panel');
+
     expect(screen.getByRole('heading', { name: 'REQUIRED' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Target item name/)).toHaveClass('rounded-xl');
     expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('w-full');
+    expect(within(contributionPanel).getByText('Rp')).toBeInTheDocument();
+
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Camera' } });
     fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '5000000' } });
     fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '50000' } });
@@ -171,4 +175,3 @@ describe('PlannedPurchaseForm', () => {
     expect(saveButton).toBeEnabled();
   });
 });
-
