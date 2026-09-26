@@ -14,12 +14,12 @@ describe('versionService', () => {
   it('fetches version.json with browser caching disabled', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
-      json: vi.fn().mockResolvedValue({ version: 'build-a' }),
+      json: vi.fn().mockResolvedValue({ version: '0.2.0-beta.1', revision: 'build-a' }),
     });
 
     const result = await fetchVersion();
 
-    expect(result).toEqual({ version: 'build-a' });
+    expect(result).toEqual({ version: '0.2.0-beta.1', revision: 'build-a' });
     expect(fetch).toHaveBeenCalledWith('/version.json', {
       cache: 'no-store',
       headers: {

@@ -29,7 +29,10 @@ func setupTestRouter() *gin.Engine {
 
 	itemHandler := handler.NewItemHandler(itemService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
-	healthHandler := handler.NewHealthHandler()
+	healthHandler := handler.NewHealthHandlerWithConfig(handler.HealthHandlerConfig{
+		Version:  "0.2.0-beta.1",
+		Revision: "test-revision",
+	})
 
 	return appHttp.SetupRouter(appHttp.RouterConfig{
 		AllowedOrigins:  "http://app.test",
@@ -68,8 +71,18 @@ func TestHealthEndpoint(t *testing.T) {
 	if responseEnvelope.Meta.Message != "service is healthy" {
 		t.Errorf("expected message 'service is healthy', got: %s", responseEnvelope.Meta.Message)
 	}
-	if responseEnvelope.Data == nil {
-		t.Errorf("expected non-nil data payload for health check")
+	healthData, isMap := responseEnvelope.Data.(map[string]any)
+	if !isMap {
+		t.Fatalf("expected health data to be a map, got: %v", responseEnvelope.Data)
+	}
+	if healthData["status"] != "healthy" {
+		t.Errorf("expected status 'healthy', got: %v", healthData["status"])
+	}
+	if healthData["version"] != "0.2.0-beta.1" {
+		t.Errorf("expected version '0.2.0-beta.1', got: %v", healthData["version"])
+	}
+	if healthData["revision"] != "test-revision" {
+		t.Errorf("expected revision 'test-revision', got: %v", healthData["revision"])
 	}
 }
 
