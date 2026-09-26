@@ -2,9 +2,17 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useDashboard } from '../hooks/useDashboard';
+import { useItems } from '../hooks/useItems';
 import { formatCurrency } from '../utils/formatters';
 import HeroCarousel from './HeroCarousel';
-import ItemList from './ItemList';
+import { ItemListContent } from './ItemList';
+
+export const calculateActiveItemsDailyCost = (items = []) => items.reduce((total, item) => {
+  const status = item?.status || 'active';
+  return status === 'active'
+    ? total + Number(item?.grossCostPerDay || 0)
+    : total;
+}, 0);
 
 function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode }) {
   const { t } = useTranslation();
@@ -36,7 +44,14 @@ function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode })
 
 function Home() {
   const { data: dashboardData } = useDashboard();
-  const totalDailyCost = Number(dashboardData?.totalDailyCost || 0);
+  const itemsQuery = useItems();
+  const dashboardTotal = dashboardData?.totalDailyCost;
+  const hasDashboardTotal = dashboardTotal !== null
+    && dashboardTotal !== undefined
+    && Number.isFinite(Number(dashboardTotal));
+  const totalDailyCost = hasDashboardTotal
+    ? Number(dashboardTotal)
+    : calculateActiveItemsDailyCost(itemsQuery.data ?? []);
 
   return (
     <div className="min-h-full">
@@ -44,7 +59,7 @@ function Home() {
         totalDailyCost={totalDailyCost}
         currencyCode={dashboardData?.currencyCode}
       />
-      <ItemList />
+      <ItemListContent itemsQuery={itemsQuery} />
     </div>
   );
 }
