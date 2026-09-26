@@ -1,12 +1,18 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 const CONTRIBUTION_MODE = 'contributionToTime';
 const TARGET_DATE_MODE = 'targetDateToContribution';
 const calmTransition = { duration: 0.32, ease: [0.16, 1, 0.3, 1] };
 
-function AnimatedPlanningModePanels({ planningMode, contributionPanel, targetDatePanel }) {
+function AnimatedPlanningModePanels({
+  planningMode,
+  contributionPanel,
+  targetDatePanel,
+  isVisible = true,
+}) {
   const shouldReduceMotion = useReducedMotion();
+  const containerRef = useRef(null);
   const contributionPanelRef = useRef(null);
   const targetDatePanelRef = useRef(null);
   const [activeHeight, setActiveHeight] = useState(null);
@@ -17,11 +23,15 @@ function AnimatedPlanningModePanels({ planningMode, contributionPanel, targetDat
       : targetDatePanelRef.current;
     if (!activePanel) return;
 
+    const targetElement = activePanel.firstElementChild || activePanel;
     const nextHeight = Math.ceil(
-      activePanel.scrollHeight || activePanel.getBoundingClientRect().height
+      targetElement.getBoundingClientRect().height ||
+      targetElement.scrollHeight ||
+      activePanel.getBoundingClientRect().height ||
+      activePanel.scrollHeight
     );
     if (nextHeight > 0) {
-      setActiveHeight((currentHeight) => currentHeight === nextHeight ? currentHeight : nextHeight);
+      setActiveHeight((currentHeight) => (currentHeight === nextHeight ? currentHeight : nextHeight));
     }
   }, [planningMode]);
 
@@ -33,9 +43,16 @@ function AnimatedPlanningModePanels({ planningMode, contributionPanel, targetDat
       return () => window.cancelAnimationFrame(frameId);
     }
 
-    const observer = new ResizeObserver(measureActivePanel);
-    [contributionPanelRef.current, targetDatePanelRef.current]
-      .forEach((panel) => panel && observer.observe(panel));
+    const observer = new ResizeObserver(() => {
+      measureActivePanel();
+    });
+    [
+      containerRef.current,
+      contributionPanelRef.current,
+      targetDatePanelRef.current,
+      contributionPanelRef.current?.firstElementChild,
+      targetDatePanelRef.current?.firstElementChild,
+    ].forEach((panel) => panel && observer.observe(panel));
 
     return () => {
       window.cancelAnimationFrame(frameId);
@@ -43,10 +60,19 @@ function AnimatedPlanningModePanels({ planningMode, contributionPanel, targetDat
     };
   }, [measureActivePanel]);
 
+  useEffect(() => {
+    if (isVisible) {
+      measureActivePanel();
+      const frameId = window.requestAnimationFrame(measureActivePanel);
+      return () => window.cancelAnimationFrame(frameId);
+    }
+  }, [isVisible, measureActivePanel]);
+
   const transition = shouldReduceMotion ? { duration: 0 } : calmTransition;
 
   return (
     <motion.div
+      ref={containerRef}
       data-testid="planning-mode-panels"
       className="relative w-full overflow-hidden"
       initial={false}

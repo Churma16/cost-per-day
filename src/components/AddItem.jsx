@@ -33,7 +33,7 @@ import {
   writeAddItemDraft,
 } from '../utils/addItemDraft';
 
-function AddItem({ showHeader = true }) {
+function AddItem({ showHeader = true, isVisible = true }) {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -511,6 +511,7 @@ function AddItem({ showHeader = true }) {
 
             {/* Ownership Target Section Card */}
             <ItemOwnershipTargetCard
+              isVisible={isVisible}
               targetMode={targetMode}
               onTargetModeChange={setTargetMode}
               targetType={targetType}

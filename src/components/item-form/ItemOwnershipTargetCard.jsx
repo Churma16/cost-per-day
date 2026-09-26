@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'motion/react';
 import { IoScaleOutline } from 'react-icons/io5';
@@ -19,6 +19,7 @@ function ItemOwnershipTargetCard({
   selectedBenchmarkItemId,
   onSelectBenchmarkItemId,
   onOpenBenchmarkModal,
+  isVisible = true,
 }) {
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
@@ -32,8 +33,12 @@ function ItemOwnershipTargetCard({
       : benchmarkPanelRef.current;
     if (!activePanel) return;
 
+    const targetElement = activePanel.firstElementChild || activePanel;
     const nextHeight = Math.ceil(
-      activePanel.scrollHeight || activePanel.getBoundingClientRect().height
+      targetElement.getBoundingClientRect().height ||
+      targetElement.scrollHeight ||
+      activePanel.getBoundingClientRect().height ||
+      activePanel.scrollHeight
     );
     if (nextHeight > 0) {
       setActivePanelHeight((currentHeight) => (
@@ -50,15 +55,29 @@ function ItemOwnershipTargetCard({
       return () => window.cancelAnimationFrame(frameId);
     }
 
-    const observer = new ResizeObserver(measureActivePanel);
-    [manualPanelRef.current, benchmarkPanelRef.current]
-      .forEach((panel) => panel && observer.observe(panel));
+    const observer = new ResizeObserver(() => {
+      measureActivePanel();
+    });
+    [
+      manualPanelRef.current,
+      benchmarkPanelRef.current,
+      manualPanelRef.current?.firstElementChild,
+      benchmarkPanelRef.current?.firstElementChild,
+    ].forEach((panel) => panel && observer.observe(panel));
 
     return () => {
       window.cancelAnimationFrame(frameId);
       observer.disconnect();
     };
   }, [measureActivePanel]);
+
+  useEffect(() => {
+    if (isVisible) {
+      measureActivePanel();
+      const frameId = window.requestAnimationFrame(measureActivePanel);
+      return () => window.cancelAnimationFrame(frameId);
+    }
+  }, [isVisible, measureActivePanel]);
 
   const calmTransition = {
     duration: shouldReduceMotion ? 0 : 0.32,

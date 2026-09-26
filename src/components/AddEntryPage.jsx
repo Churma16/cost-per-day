@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -62,52 +62,60 @@ function AddEntryPage() {
     }
   }, [activeType, requestedType, searchParams, setSearchParams]);
 
-  useLayoutEffect(() => {
+  const measurePanels = useCallback(() => {
     const panels = {
       item: itemPanelRef.current,
       planned: plannedPanelRef.current,
     };
 
-    const measurePanels = () => {
-      const nextViewportWidth = formViewportRef.current?.getBoundingClientRect().width || 0;
-      if (nextViewportWidth > 0) {
-        setViewportWidth((currentWidth) => {
-          if (currentWidth === nextViewportWidth) return currentWidth;
-          if (!swipeStartRef.current) {
-            trackX.set(activeTypeRef.current === 'planned' ? -nextViewportWidth : 0);
-          }
-          return nextViewportWidth;
-        });
-      }
-
-      setPanelHeights((currentHeights) => {
-        const nextHeights = { ...currentHeights };
-        let hasChanged = false;
-
-        Object.entries(panels).forEach(([type, panel]) => {
-          if (!panel) return;
-
-          const nextHeight = panel.getBoundingClientRect().height || panel.scrollHeight;
-          if (nextHeight > 0 && nextHeights[type] !== nextHeight) {
-            nextHeights[type] = nextHeight;
-            hasChanged = true;
-          }
-        });
-
-        return hasChanged ? nextHeights : currentHeights;
+    const nextViewportWidth = formViewportRef.current?.getBoundingClientRect().width || 0;
+    if (nextViewportWidth > 0) {
+      setViewportWidth((currentWidth) => {
+        if (currentWidth === nextViewportWidth) return currentWidth;
+        if (!swipeStartRef.current) {
+          trackX.set(activeTypeRef.current === 'planned' ? -nextViewportWidth : 0);
+        }
+        return nextViewportWidth;
       });
-    };
+    }
+
+    setPanelHeights((currentHeights) => {
+      const nextHeights = { ...currentHeights };
+      let hasChanged = false;
+
+      Object.entries(panels).forEach(([type, panel]) => {
+        if (!panel) return;
+
+        const nextHeight = panel.getBoundingClientRect().height || panel.scrollHeight;
+        if (nextHeight > 0 && nextHeights[type] !== nextHeight) {
+          nextHeights[type] = nextHeight;
+          hasChanged = true;
+        }
+      });
+
+      return hasChanged ? nextHeights : currentHeights;
+    });
+  }, [trackX]);
+
+  useLayoutEffect(() => {
+    const panels = [itemPanelRef.current, plannedPanelRef.current];
 
     measurePanels();
 
     if (typeof ResizeObserver === 'undefined') return undefined;
 
     const observer = new ResizeObserver(measurePanels);
-    [...Object.values(panels), formViewportRef.current]
+    [...panels, formViewportRef.current]
       .forEach((element) => element && observer.observe(element));
 
     return () => observer.disconnect();
-  }, [trackX]);
+  }, [measurePanels]);
+
+  useEffect(() => {
+    measurePanels();
+    const frameId = window.requestAnimationFrame(measurePanels);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activeType, measurePanels]);
 
   useEffect(() => {
     if (!viewportWidth || swipeStartRef.current) return undefined;
@@ -370,7 +378,7 @@ function AddEntryPage() {
             inert={activeType !== 'item'}
             className={`w-full shrink-0 ${activeType === 'item' ? '' : 'pointer-events-none'}`}
           >
-            <AddItem showHeader={false} />
+            <AddItem showHeader={false} isVisible={activeType === 'item'} />
           </div>
           <div
             ref={plannedPanelRef}
@@ -381,7 +389,7 @@ function AddEntryPage() {
             inert={activeType !== 'planned'}
             className={`w-full shrink-0 ${activeType === 'planned' ? '' : 'pointer-events-none'}`}
           >
-            <PlannedPurchaseCreateForm />
+            <PlannedPurchaseCreateForm isVisible={activeType === 'planned'} />
           </div>
         </motion.div>
       </motion.div>

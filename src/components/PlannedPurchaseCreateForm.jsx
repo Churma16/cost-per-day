@@ -11,7 +11,7 @@ import {
 } from '../utils/plannedPurchaseDraft';
 import PlannedPurchaseForm from './PlannedPurchaseForm';
 
-function PlannedPurchaseCreateForm() {
+function PlannedPurchaseCreateForm({ isVisible = true } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth() ?? {};
@@ -110,6 +110,7 @@ function PlannedPurchaseCreateForm() {
         isSubmitting={createMutation.isPending}
         errorMessage={errorMessage}
         onDraftChange={handleDraftChange}
+        isVisible={isVisible}
       />
     </div>
   );

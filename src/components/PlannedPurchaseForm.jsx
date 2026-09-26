@@ -17,6 +17,7 @@ function PlannedPurchaseForm({
   isSubmitting = false,
   errorMessage = null,
   onDraftChange = null,
+  isVisible = true,
 }) {
   const { t } = useTranslation();
   const { currencyCode: activeCurrencyCode } = useCurrency();
@@ -187,6 +188,7 @@ function PlannedPurchaseForm({
 
         <AnimatedPlanningModePanels
           planningMode={planningMode}
+          isVisible={isVisible}
           contributionPanel={(
             <ContributionPlanningSection
               targetPrice={numericTargetPrice}
