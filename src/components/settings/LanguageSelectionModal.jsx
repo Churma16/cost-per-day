@@ -1,44 +1,28 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import SettingsModalTransition from './SettingsModalTransition';
 
 function LanguageSelectionModal({
   isOpen,
-  isClosing,
   languages,
   selectedLanguage,
   onSelect,
   onRequestClose,
+  onExitComplete,
 }) {
   const { t } = useTranslation();
 
-  if (!isOpen && !isClosing) {
-    return null;
-  }
-
   return (
-    <div
-      className={
-        'fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 ' +
-        (isClosing ? 'animate-calm-backdrop-exit' : 'animate-calm-backdrop')
-      }
-      onClick={() => {
-        if (!isClosing) {
-          onRequestClose();
-        }
-      }}
+    <SettingsModalTransition
+      isOpen={isOpen}
+      backdropClassName="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      dialogClassName="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+      ariaLabelledby="language-selection-title"
+      onBackdropClick={onRequestClose}
+      onExitComplete={onExitComplete}
     >
-      <div
-        className={
-          'w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden ' +
-          (isClosing
-            ? 'animate-calm-modal-exit pointer-events-none'
-            : 'animate-calm-modal-glide')
-        }
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="language-selection-title"
-      >
+      {({ isExiting }) => (
+        <>
         <div className="p-3.5 border-b border-gray-100 bg-slate-50">
           <h3 id="language-selection-title" className="text-center font-semibold text-sm text-slate-800">
             {t('selectLanguage')}
@@ -55,6 +39,7 @@ function LanguageSelectionModal({
                 : 'text-gray-700')
             }
             onClick={() => onSelect(languageOption.code)}
+            disabled={isExiting}
           >
             <span>{languageOption.name}</span>
             {languageOption.code === selectedLanguage && (
@@ -62,8 +47,9 @@ function LanguageSelectionModal({
             )}
           </button>
         ))}
-      </div>
-    </div>
+        </>
+      )}
+    </SettingsModalTransition>
   );
 }
 

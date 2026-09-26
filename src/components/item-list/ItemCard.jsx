@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import {
   IoChevronDown,
   IoScaleOutline,
@@ -73,48 +74,40 @@ export const getStatusBadgeStyle = (status) => {
   }
 };
 
-export function CalmCycleText({ text, hasCycled }) {
-  const [currentText, setCurrentText] = useState(text);
-  const [previousText, setPreviousText] = useState(null);
-  const [transitionKey, setTransitionKey] = useState(0);
-
-  useEffect(() => {
-    if (text !== currentText) {
-      setPreviousText(currentText);
-      setCurrentText(text);
-      setTransitionKey((previousIndex) => previousIndex + 1);
-
-      const timeoutIdentifier = setTimeout(() => {
-        setPreviousText(null);
-      }, 500);
-
-      return () => clearTimeout(timeoutIdentifier);
-    }
-  }, [text, currentText]);
-
-  if (!previousText || !hasCycled) {
-    return (
-      <span className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap">
-        {currentText}
-      </span>
-    );
-  }
+function CalmCycleValueContent({ text }) {
+  const isPresent = useIsPresent();
 
   return (
-    <span className="relative inline-flex items-center justify-end overflow-hidden">
-      <span
-        key={`outgoing-${transitionKey}`}
-        aria-hidden="true"
-        className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap animate-calm-cycle-exit pointer-events-none absolute right-0"
-      >
-        {previousText}
-      </span>
-      <span
-        key={`incoming-${transitionKey}`}
-        className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap animate-calm-cycle animate-calm-cycle-enter"
-      >
-        {currentText}
-      </span>
+    <span aria-hidden={isPresent ? undefined : 'true'}>
+      {text}
+    </span>
+  );
+}
+
+export function CalmCycleText({ text, hasCycled }) {
+  const shouldReduceMotion = useReducedMotion();
+  const transition = {
+    duration: shouldReduceMotion ? 0 : 0.5,
+    ease: [0.16, 1, 0.3, 1],
+  };
+
+  return (
+    <span
+      className="relative inline-flex items-center justify-end overflow-hidden"
+      aria-live="polite"
+    >
+      <AnimatePresence initial={false} mode="popLayout">
+        <motion.span
+          key={hasCycled ? text : 'static'}
+          initial={hasCycled ? { opacity: 0, y: shouldReduceMotion ? 0 : 5 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -5 }}
+          transition={transition}
+          className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap"
+        >
+          <CalmCycleValueContent text={text} />
+        </motion.span>
+      </AnimatePresence>
     </span>
   );
 }
