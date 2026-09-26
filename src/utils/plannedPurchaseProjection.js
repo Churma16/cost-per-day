@@ -133,3 +133,20 @@ export const calculateTargetDateProjection = ({
     monthly: daily * ESTIMATED_DAYS_PER_MONTH,
   };
 };
+
+export const computeTargetDateFromEstimatedDays = (
+  estimatedDays,
+  asOf = new Date()
+) => {
+  const numericDays = toPositiveFiniteNumber(estimatedDays);
+  if (numericDays === null) {
+    return null;
+  }
+  const baseDate =
+    asOf instanceof Date && !Number.isNaN(asOf.getTime())
+      ? asOf
+      : new Date();
+  const calculatedTimestamp =
+    baseDate.getTime() + Math.ceil(numericDays) * MILLISECONDS_PER_DAY;
+  return new Date(calculatedTimestamp);
+};

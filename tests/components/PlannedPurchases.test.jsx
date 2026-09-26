@@ -58,6 +58,11 @@ vi.mock('react-i18next', () => ({
         unitMonths: 'months',
         usd: 'US Dollar (USD)',
         idr: 'Indonesian Rupiah (IDR)',
+        apply: 'Apply',
+        applyChanges: 'Apply changes',
+        previewUnsaved: 'Preview, unsaved',
+        reachedAround: 'Estimated completion',
+        saved: 'Saved',
       };
       return translations[key] || key;
     },
@@ -207,7 +212,7 @@ describe('PlannedPurchases Component', () => {
       expect(screen.getByText('MacBook Air')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Planned Status')).toBeInTheDocument();
+    expect(screen.getAllByText('Rp 18.000.000')[0]).toBeInTheDocument();
 
     // Trigger delete confirmation modal
     const deleteButton = screen.getByLabelText('Delete Item');
@@ -221,6 +226,120 @@ describe('PlannedPurchases Component', () => {
 
     await waitFor(() => {
       expect(plannedPurchaseService.deletePlannedPurchase).toHaveBeenCalledWith('purchase-1');
+    });
+  });
+
+  it('maintains single-card accordion behavior when expanding different cards', async () => {
+    const mockPurchases = [
+      {
+        id: 'purchase-1',
+        name: 'Keyboard',
+        targetPrice: 2000000,
+        currencyCode: 'IDR',
+        contributionAmount: 50000,
+        contributionCadence: 'daily',
+        estimatedPeriods: 40,
+        estimatedDays: 40,
+      },
+      {
+        id: 'purchase-2',
+        name: 'Headphones',
+        targetPrice: 3000000,
+        currencyCode: 'IDR',
+        contributionAmount: 100000,
+        contributionCadence: 'daily',
+        estimatedPeriods: 30,
+        estimatedDays: 30,
+      },
+    ];
+
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue(mockPurchases);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Keyboard')).toBeInTheDocument();
+      expect(screen.getByText('Headphones')).toBeInTheDocument();
+    });
+
+    const keyboardTrigger = screen.getByRole('button', { name: /keyboard/i });
+    const headphonesTrigger = screen.getByRole('button', { name: /headphones/i });
+
+    // Initially both are collapsed
+    expect(keyboardTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(headphonesTrigger).toHaveAttribute('aria-expanded', 'false');
+
+    // Click keyboard card -> expands keyboard card
+    fireEvent.click(keyboardTrigger);
+    expect(keyboardTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(headphonesTrigger).toHaveAttribute('aria-expanded', 'false');
+
+    // Click headphones card -> collapses keyboard card and expands headphones card
+    fireEvent.click(headphonesTrigger);
+    expect(keyboardTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(headphonesTrigger).toHaveAttribute('aria-expanded', 'true');
+
+    // Click headphones card again -> collapses headphones card
+    fireEvent.click(headphonesTrigger);
+    expect(keyboardTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(headphonesTrigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('allows exploring and applying a new scenario which updates via PUT mutation', async () => {
+    const mockPurchases = [
+      {
+        id: 'purchase-1',
+        name: 'Laptop',
+        targetPrice: 15000000,
+        currencyCode: 'IDR',
+        targetDate: '2027-06-30',
+        requiredDailyContribution: 50000,
+      },
+    ];
+
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue(mockPurchases);
+    plannedPurchaseService.updatePlannedPurchase.mockResolvedValue({
+      id: 'purchase-1',
+      name: 'Laptop',
+      targetPrice: 15000000,
+      currencyCode: 'IDR',
+      targetDate: null,
+      contributionAmount: 200000,
+      contributionCadence: 'weekly',
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Laptop')).toBeInTheDocument();
+    });
+
+    // Expand the card
+    fireEvent.click(screen.getByRole('button', { name: /laptop/i }));
+
+    // Open exploration accordion
+    fireEvent.click(screen.getByRole('button', { name: /try a different pace/i }));
+
+    // Change cadence to weekly and enter contribution
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'weekly' } });
+
+    const input = screen.getByPlaceholderText('Enter amount');
+    fireEvent.change(input, { target: { value: '200000' } });
+
+    // Click Apply changes
+    const applyButton = screen.getByRole('button', { name: /apply changes/i });
+    fireEvent.click(applyButton);
+
+    await waitFor(() => {
+      expect(plannedPurchaseService.updatePlannedPurchase).toHaveBeenCalledWith(
+        'purchase-1',
+        expect.objectContaining({
+          targetDate: null,
+          contributionAmount: 200000,
+          contributionCadence: 'weekly',
+        })
+      );
     });
   });
 });

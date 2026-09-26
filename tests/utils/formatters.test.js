@@ -26,6 +26,11 @@ describe('formatDisplayDate utility function', () => {
     expect(formattedDate).toBe('15 Agt 2026');
   });
 
+  test('formats date-only YYYY-MM-DD strings safely without timezone shifts', () => {
+    expect(formatDisplayDate('2027-04-30', 'en')).toBe('30 Apr 2027');
+    expect(formatDisplayDate('2027-01-15', 'id')).toBe('15 Jan 2027');
+  });
+
   test('returns empty string when date is null or undefined', () => {
     expect(formatDisplayDate(null)).toBe('');
     expect(formatDisplayDate(undefined)).toBe('');

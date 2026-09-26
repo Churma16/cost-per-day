@@ -17,9 +17,16 @@ function PlannedPurchases() {
   const updateMutation = useUpdatePlannedPurchase();
   const deleteMutation = useDeletePlannedPurchase();
 
+  const [expandedPurchaseId, setExpandedPurchaseId] = useState(null);
+  const [updatingScenarioId, setUpdatingScenarioId] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [actionError, setActionError] = useState(null);
+
+  const handleToggleExpand = (id) => {
+    setActionError(null);
+    setExpandedPurchaseId((currentId) => (currentId === id ? null : id));
+  };
 
   const handleOpenEdit = (item) => {
     setEditingItem(item);
@@ -44,28 +51,58 @@ function PlannedPurchases() {
     }
   };
 
+  const handleApplyScenario = async ({ plannedPurchaseId, contributionAmount, contributionCadence }) => {
+    setActionError(null);
+    setUpdatingScenarioId(plannedPurchaseId);
+    try {
+      const existingPurchase = plannedPurchases.find((item) => item.id === plannedPurchaseId);
+      if (!existingPurchase) return;
+
+      const payload = {
+        name: existingPurchase.name,
+        targetPrice: Number(existingPurchase.targetPrice),
+        currencyCode: existingPurchase.currencyCode,
+        targetDate: null,
+        contributionAmount: Number(contributionAmount),
+        contributionCadence: contributionCadence,
+      };
+
+      await updateMutation.mutateAsync({
+        plannedPurchaseId,
+        plannedPurchasePayload: payload,
+      });
+    } catch (err) {
+      const message = err.message || t('operationFailed');
+      setActionError(message);
+      throw err;
+    } finally {
+      setUpdatingScenarioId(null);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deletingId) return;
     try {
       await deleteMutation.mutateAsync(deletingId);
+      if (expandedPurchaseId === deletingId) {
+        setExpandedPurchaseId(null);
+      }
       setDeletingId(null);
     } catch (err) {
       setActionError(err.message || t('errorDeletingPlannedPurchase'));
     }
   };
 
-  const isMutating =
-    updateMutation.isPending || deleteMutation.isPending;
+  const isMutating = updateMutation.isPending || deleteMutation.isPending;
 
   return (
     <div className="px-4 pt-4 pb-8 space-y-5 max-w-3xl mx-auto planning-page-content">
       {/* Intro Header & Philosophy */}
-      <div className="rounded-2xl p-5 bg-gradient-to-br from-teal-800 via-teal-700 to-cyan-800 text-white shadow-sm space-y-2">
-        <div className="flex items-center gap-2">
-          <IoTimeOutline className="text-xl text-teal-200" />
-          <h1 className="text-lg font-bold tracking-tight">{t('plannedPurchases')}</h1>
-        </div>
-        <p className="text-xs sm:text-sm text-teal-100 max-w-xl leading-relaxed">
+      <div className="pb-1 px-1">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+          {t('plannedPurchases')}
+        </h1>
+        <p className="mt-1 text-sm leading-relaxed text-[#6F7782]">
           {t('planningSubtitle')}
         </p>
       </div>
@@ -124,13 +161,18 @@ function PlannedPurchases() {
         </div>
       ) : (
         /* List of Cards */
-        <div className="space-y-4">
+        <div className="space-y-3">
           {plannedPurchases.map((plannedPurchase) => (
             <PlannedPurchaseCard
               key={plannedPurchase.id}
               plannedPurchase={plannedPurchase}
+              isExpanded={expandedPurchaseId === plannedPurchase.id}
+              onToggle={() => handleToggleExpand(plannedPurchase.id)}
               onEdit={handleOpenEdit}
               onDelete={(id) => setDeletingId(id)}
+              onApplyScenario={handleApplyScenario}
+              isUpdating={updatingScenarioId === plannedPurchase.id && updateMutation.isPending}
+              updateError={updatingScenarioId === plannedPurchase.id ? actionError : null}
             />
           ))}
         </div>
