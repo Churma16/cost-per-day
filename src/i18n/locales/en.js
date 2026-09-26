@@ -35,6 +35,12 @@ const translation = {
   "authDescription": "Sign in to keep your ownership history with you across devices.",
   "authSessionError": "Unable to check your session. You can try signing in again.",
   "signInWithGoogle": "Sign in with Google",
+  "continueAsGuest": "Continue without an account",
+  "guestLocalOnlyNotice": "Without an account, your data stays on this device and is not backed up or synced.",
+  "guestModeTitle": "Using Worthwhile on this device",
+  "guestModeSettingsNotice": "Your guest data stays only in this browser. Sign in to keep your history, migrate these items, and continue across devices.",
+  "guestMigrationFailed": "Your account is signed in, but local guest data could not be migrated yet. The local copy is still safe on this device.",
+  "retryGuestMigration": "Retry guest data migration",
 
   // Header
   "totalDailyCost": "Daily Ownership Cost",
