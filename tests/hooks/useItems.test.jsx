@@ -2,13 +2,21 @@ import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { deleteItem, getAllItems } from '../../src/services/api';
+import { addItem, deleteItem, getAllItems, updateItem } from '../../src/services/api';
 import { queryKeys } from '../../src/query/queryConfig';
-import { invalidateItemQueries, useDeleteItem, useItems } from '../../src/hooks/useItems';
+import {
+  invalidateItemQueries,
+  useCreateItem,
+  useDeleteItem,
+  useItems,
+  useUpdateItem,
+} from '../../src/hooks/useItems';
 
 vi.mock('../../src/services/api', () => ({
+  addItem: vi.fn(),
   deleteItem: vi.fn(),
   getAllItems: vi.fn(),
+  updateItem: vi.fn(),
 }));
 
 describe('item server-state cache', () => {
@@ -30,6 +38,65 @@ describe('item server-state cache', () => {
     expect(secondMount.result.current.data).toEqual(cachedItems);
     expect(secondMount.result.current.isLoading).toBe(false);
     expect(getAllItems).toHaveBeenCalledTimes(1);
+  });
+
+  it('owns item creation transport, cache insertion, and invalidation', async () => {
+    const itemData = {
+      name: 'Phone',
+      price: 500,
+      purchaseDate: '2026-09-01T12:00:00.000Z',
+    };
+    const savedItem = { id: 'new-1', ...itemData };
+    addItem.mockResolvedValue(savedItem);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, [{ id: '1', name: 'Laptop' }]);
+    const wrapper = ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const { result } = renderHook(() => useCreateItem(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(itemData);
+    });
+
+    expect(addItem).toHaveBeenCalledWith(itemData);
+    expect(queryClient.getQueryData(queryKeys.items)).toEqual([
+      { id: '1', name: 'Laptop' },
+      savedItem,
+    ]);
+  });
+
+  it('owns item update transport, cache replacement, and invalidation', async () => {
+    const itemData = {
+      name: 'Updated Phone',
+      price: 450,
+      purchaseDate: '2026-09-01T12:00:00.000Z',
+    };
+    const savedItem = { id: '1', ...itemData };
+    updateItem.mockResolvedValue(savedItem);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, [
+      { id: '1', name: 'Phone' },
+      { id: '2', name: 'Laptop' },
+    ]);
+    const wrapper = ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const { result } = renderHook(() => useUpdateItem(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ itemId: '1', itemData });
+    });
+
+    expect(updateItem).toHaveBeenCalledWith('1', itemData);
+    expect(queryClient.getQueryData(queryKeys.items)).toEqual([
+      savedItem,
+      { id: '2', name: 'Laptop' },
+    ]);
   });
 
   it('owns item deletion transport, cache removal, and invalidation', async () => {
