@@ -13,6 +13,7 @@ function PlannedPurchaseForm({
   initialData = null,
   onSubmit,
   onCancel,
+  onDiscard = null,
   isSubmitting = false,
   errorMessage = null,
   onDraftChange = null,
@@ -81,6 +82,16 @@ function PlannedPurchaseForm({
   const numericTargetPrice = parseFloat(targetPrice);
   const numericContributionAmount = parseFloat(contributionAmount);
 
+  const isFormValid =
+    name.trim() !== '' &&
+    !isNaN(numericTargetPrice) &&
+    numericTargetPrice > 0 &&
+    (
+      planningMode !== 'contributionToTime' ||
+      contributionAmount === '' ||
+      (!isNaN(numericContributionAmount) && numericContributionAmount > 0)
+    );
+
   const handleSubmit = (event) => {
     event.preventDefault();
     setValidationError(null);
@@ -124,6 +135,28 @@ function PlannedPurchaseForm({
     }
 
     onSubmit(payload);
+  };
+
+  const handleDiscard = () => {
+    const resetDraft = {
+      name: '',
+      targetPrice: '',
+      currencyCode: activeCurrencyCode || 'USD',
+      planningMode: 'contributionToTime',
+      contributionCadence: 'daily',
+      contributionAmount: '',
+      targetDate: '',
+    };
+
+    setName(resetDraft.name);
+    setTargetPrice(resetDraft.targetPrice);
+    setCurrencyCode(resetDraft.currencyCode);
+    setPlanningMode(resetDraft.planningMode);
+    setContributionCadence(resetDraft.contributionCadence);
+    setContributionAmount(resetDraft.contributionAmount);
+    setTargetDate(resetDraft.targetDate);
+    setValidationError(null);
+    onDiscard(resetDraft);
   };
 
   return (
@@ -182,7 +215,7 @@ function PlannedPurchaseForm({
       <div className="space-y-2 pt-1">
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={!isFormValid || isSubmitting}
           className="w-full py-2.5 bg-teal-600 text-white rounded-xl font-medium
             hover:bg-teal-700 transition-all duration-200 shadow-sm hover:shadow
             disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
@@ -191,12 +224,12 @@ function PlannedPurchaseForm({
         </button>
         <button
           type="button"
-          onClick={onCancel}
+          onClick={onDiscard ? handleDiscard : onCancel}
           disabled={isSubmitting}
-          className="w-full py-2 text-gray-600 rounded-xl font-medium border border-gray-200
-            hover:bg-gray-50 transition-all duration-200 text-sm disabled:opacity-50"
+          className="w-full py-2 bg-white text-gray-700 rounded-xl font-medium border border-gray-300
+            hover:bg-gray-50 hover:text-gray-900 shadow-sm transition-all duration-200 text-sm disabled:opacity-50"
         >
-          {t('cancel')}
+          {t(onDiscard ? 'discardDraft' : 'cancel')}
         </button>
       </div>
     </form>

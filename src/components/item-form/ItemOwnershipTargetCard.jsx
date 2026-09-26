@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'motion/react';
 import { IoScaleOutline } from 'react-icons/io5';
@@ -24,44 +24,42 @@ function ItemOwnershipTargetCard({
   const shouldReduceMotion = useReducedMotion();
   const manualPanelRef = useRef(null);
   const benchmarkPanelRef = useRef(null);
-  const [panelHeights, setPanelHeights] = useState({});
+  const [activePanelHeight, setActivePanelHeight] = useState(null);
+
+  const measureActivePanel = useCallback(() => {
+    const activePanel = targetMode === 'manual'
+      ? manualPanelRef.current
+      : benchmarkPanelRef.current;
+    if (!activePanel) return;
+
+    const nextHeight = Math.ceil(
+      activePanel.scrollHeight || activePanel.getBoundingClientRect().height
+    );
+    if (nextHeight > 0) {
+      setActivePanelHeight((currentHeight) => (
+        currentHeight === nextHeight ? currentHeight : nextHeight
+      ));
+    }
+  }, [targetMode]);
 
   useLayoutEffect(() => {
-    const panels = {
-      manual: manualPanelRef.current,
-      benchmark: benchmarkPanelRef.current,
+    measureActivePanel();
+    const frameId = window.requestAnimationFrame(measureActivePanel);
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    const observer = new ResizeObserver(measureActivePanel);
+    [manualPanelRef.current, benchmarkPanelRef.current]
+      .forEach((panel) => panel && observer.observe(panel));
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      observer.disconnect();
     };
+  }, [measureActivePanel]);
 
-    const measurePanels = () => {
-      setPanelHeights((currentHeights) => {
-        const nextHeights = { ...currentHeights };
-        let hasChanged = false;
-
-        Object.entries(panels).forEach(([mode, panel]) => {
-          if (!panel) return;
-
-          const nextHeight = panel.getBoundingClientRect().height || panel.scrollHeight;
-          if (nextHeight > 0 && nextHeights[mode] !== nextHeight) {
-            nextHeights[mode] = nextHeight;
-            hasChanged = true;
-          }
-        });
-
-        return hasChanged ? nextHeights : currentHeights;
-      });
-    };
-
-    measurePanels();
-
-    if (typeof ResizeObserver === 'undefined') return undefined;
-
-    const observer = new ResizeObserver(measurePanels);
-    Object.values(panels).forEach((panel) => panel && observer.observe(panel));
-
-    return () => observer.disconnect();
-  }, []);
-
-  const activePanelHeight = panelHeights[targetMode];
   const calmTransition = {
     duration: shouldReduceMotion ? 0 : 0.32,
     ease: [0.16, 1, 0.3, 1],
@@ -111,6 +109,7 @@ function ItemOwnershipTargetCard({
         initial={false}
         animate={activePanelHeight ? { height: activePanelHeight } : undefined}
         transition={calmTransition}
+        onAnimationComplete={measureActivePanel}
       >
         <motion.div
           className="flex w-full items-start"

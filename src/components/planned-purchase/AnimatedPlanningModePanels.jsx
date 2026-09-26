@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 
 const CONTRIBUTION_MODE = 'contributionToTime';
@@ -9,44 +9,40 @@ function AnimatedPlanningModePanels({ planningMode, contributionPanel, targetDat
   const shouldReduceMotion = useReducedMotion();
   const contributionPanelRef = useRef(null);
   const targetDatePanelRef = useRef(null);
-  const [panelHeights, setPanelHeights] = useState({});
+  const [activeHeight, setActiveHeight] = useState(null);
+
+  const measureActivePanel = useCallback(() => {
+    const activePanel = planningMode === CONTRIBUTION_MODE
+      ? contributionPanelRef.current
+      : targetDatePanelRef.current;
+    if (!activePanel) return;
+
+    const nextHeight = Math.ceil(
+      activePanel.scrollHeight || activePanel.getBoundingClientRect().height
+    );
+    if (nextHeight > 0) {
+      setActiveHeight((currentHeight) => currentHeight === nextHeight ? currentHeight : nextHeight);
+    }
+  }, [planningMode]);
 
   useLayoutEffect(() => {
-    const panels = {
-      [CONTRIBUTION_MODE]: contributionPanelRef.current,
-      [TARGET_DATE_MODE]: targetDatePanelRef.current,
+    measureActivePanel();
+    const frameId = window.requestAnimationFrame(measureActivePanel);
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    const observer = new ResizeObserver(measureActivePanel);
+    [contributionPanelRef.current, targetDatePanelRef.current]
+      .forEach((panel) => panel && observer.observe(panel));
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      observer.disconnect();
     };
+  }, [measureActivePanel]);
 
-    const measurePanels = () => {
-      setPanelHeights((currentHeights) => {
-        const nextHeights = { ...currentHeights };
-        let hasChanged = false;
-
-        Object.entries(panels).forEach(([mode, panel]) => {
-          if (!panel) return;
-
-          const nextHeight = panel.getBoundingClientRect().height || panel.scrollHeight;
-          if (nextHeight > 0 && nextHeights[mode] !== nextHeight) {
-            nextHeights[mode] = nextHeight;
-            hasChanged = true;
-          }
-        });
-
-        return hasChanged ? nextHeights : currentHeights;
-      });
-    };
-
-    measurePanels();
-
-    if (typeof ResizeObserver === 'undefined') return undefined;
-
-    const observer = new ResizeObserver(measurePanels);
-    Object.values(panels).forEach((panel) => panel && observer.observe(panel));
-
-    return () => observer.disconnect();
-  }, []);
-
-  const activeHeight = panelHeights[planningMode];
   const transition = shouldReduceMotion ? { duration: 0 } : calmTransition;
 
   return (
@@ -56,6 +52,7 @@ function AnimatedPlanningModePanels({ planningMode, contributionPanel, targetDat
       initial={false}
       animate={activeHeight ? { height: activeHeight } : undefined}
       transition={transition}
+      onAnimationComplete={measureActivePanel}
     >
       <motion.div
         className="flex w-full items-start"

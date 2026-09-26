@@ -23,6 +23,7 @@ vi.mock('react-i18next', () => ({
       targetDate: 'Target date',
       planningDisclaimer: 'Planning disclaimer',
       cancel: 'Cancel',
+      discardDraft: 'Discard draft',
       save: 'Save',
       loading: 'Loading...',
       usd: 'US Dollar (USD)',
@@ -123,4 +124,47 @@ describe('PlannedPurchaseForm', () => {
     expect(targetDatePanel).toHaveAttribute('aria-hidden', 'false');
     expect(screen.getByTestId('planning-mode-panels')).toHaveClass('overflow-hidden');
   });
+
+  it('resets the form and reports the clean draft when discarding', () => {
+    const onDiscard = vi.fn();
+    renderForm({
+      initialData: {
+        name: 'Laptop',
+        targetPrice: '18000000',
+        currencyCode: 'IDR',
+        planningMode: 'targetDateToContribution',
+        contributionCadence: 'weekly',
+        contributionAmount: '',
+        targetDate: '2028-12-31',
+      },
+      onDiscard,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Discard draft' }));
+
+    expect(screen.getByLabelText(/Target item name/)).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Choose an amount' })).toHaveAttribute('aria-pressed', 'true');
+    expect(onDiscard).toHaveBeenCalledWith({
+      name: '',
+      targetPrice: '',
+      currencyCode: 'IDR',
+      planningMode: 'contributionToTime',
+      contributionCadence: 'daily',
+      contributionAmount: '',
+      targetDate: '',
+    });
+  });
+
+  it('disables save button when required fields are missing and enables when valid', () => {
+    renderForm();
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    expect(saveButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Headphones' } });
+    expect(saveButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '1500000' } });
+    expect(saveButton).toBeEnabled();
+  });
 });
+

@@ -87,12 +87,26 @@ function PlannedPurchaseCreateForm() {
     }
   };
 
+  const handleDiscardDraft = useCallback((resetDraft) => {
+    if (draftTimeoutRef.current !== null) {
+      window.clearTimeout(draftTimeoutRef.current);
+      draftTimeoutRef.current = null;
+    }
+
+    const serializedResetDraft = JSON.stringify(resetDraft);
+    latestDraftRef.current = resetDraft;
+    latestSerializedDraftRef.current = serializedResetDraft;
+    lastPersistedDraftRef.current = serializedResetDraft;
+    clearPlannedPurchaseDraft(userId);
+    setErrorMessage(null);
+  }, [userId]);
+
   return (
     <div className="px-3.5 py-1.5 pb-8 form-page-content">
       <PlannedPurchaseForm
         initialData={initialDraft}
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/planning')}
+        onDiscard={handleDiscardDraft}
         isSubmitting={createMutation.isPending}
         errorMessage={errorMessage}
         onDraftChange={handleDraftChange}

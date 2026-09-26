@@ -29,6 +29,7 @@ vi.mock('react-i18next', () => ({
       targetDate: 'Target date',
       planningDisclaimer: 'Planning disclaimer',
       cancel: 'Cancel',
+      discardDraft: 'Discard draft',
       save: 'Save',
       loading: 'Loading...',
       currency: 'Currency',
@@ -108,6 +109,26 @@ describe('PlannedPurchaseCreateForm', () => {
       });
       expect(screen.getByTestId('location')).toHaveTextContent('/planning');
     });
+    expect(window.localStorage.getItem(getPlannedPurchaseDraftStorageKey('user-1'))).toBeNull();
+  });
+
+  it('discards a restored draft without leaving the Planned tab', () => {
+    writePlannedPurchaseDraft('user-1', {
+      name: 'Camera',
+      targetPrice: '5000000',
+      currencyCode: 'IDR',
+      planningMode: 'contributionToTime',
+      contributionCadence: 'daily',
+      contributionAmount: '50000',
+      targetDate: '',
+    });
+
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard draft' }));
+
+    expect(screen.getByLabelText(/Target item name/)).toHaveValue('');
+    expect(screen.getByLabelText(/Target price/)).toHaveValue('');
+    expect(screen.getByTestId('location')).toHaveTextContent('/add');
     expect(window.localStorage.getItem(getPlannedPurchaseDraftStorageKey('user-1'))).toBeNull();
   });
 });
