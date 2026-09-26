@@ -51,6 +51,7 @@ describe('PWA install assets', () => {
     expect(html).toContain('href="/worthwhile-icon-192-v2.png"');
     expect(html).toContain('href="/manifest-v2.json"');
     expect(html).not.toContain('href="/manifest.json"');
+    expect(html).toContain('<meta name="theme-color" content="#334A5B" />');
   });
 
   test('manifest has an explicit root identity and standalone scope', () => {
@@ -58,6 +59,8 @@ describe('PWA install assets', () => {
     expect(manifest.start_url).toBe('/');
     expect(manifest.scope).toBe('/');
     expect(manifest.display).toBe('standalone');
+    expect(manifest.theme_color).toBe('#334A5B');
+    expect(manifest.background_color).toBe('#000000');
   });
 
   const pngIcons = manifest.icons.filter((icon) => icon.type === 'image/png');
