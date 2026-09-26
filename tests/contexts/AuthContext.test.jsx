@@ -36,6 +36,7 @@ const AuthProbe = () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.clear();
   getCurrentUser.mockResolvedValue({
     id: 'user-1',
     email: 'user@example.com'

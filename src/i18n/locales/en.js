@@ -32,7 +32,7 @@ const translation = {
   "errorUpdatingCurrency": "Failed to update the currency setting.",
   "errorSavingEquivalent": "Failed to save this comparison.",
   "errorDeletingEquivalent": "Failed to delete this comparison.",
-  "authDescription": "Sign in to keep your ownership history with you across devices.",
+  "authDescription": "Understand the value of what you own over time.",
   "authSessionError": "Unable to check your session. You can try signing in again.",
   "signInWithGoogle": "Sign in with Google",
   "continueAsGuest": "Continue without an account",

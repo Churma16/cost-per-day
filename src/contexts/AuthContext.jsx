@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }) => {
       return result;
     } catch (migrationError) {
       setGuestMigrationError(migrationError);
-      throw migrationError;
+      return null;
     } finally {
       setIsMigratingGuestData(false);
     }

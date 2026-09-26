@@ -17,6 +17,7 @@ vi.mock('../src/services/api', async (importOriginal) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
 test('renders authentication loading state while session bootstrap is pending', () => {
@@ -33,7 +34,9 @@ test('shows Google sign-in when there is no application session', async () => {
   render(<App />);
 
   await waitFor(() => {
+    expect(screen.getByRole('button', { name: /continue without an account/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+    expect(screen.getByText(/data stays on this device/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Worthwhile', level: 1 })).toBeInTheDocument();
     expect(screen.getByAltText('Worthwhile')).toBeInTheDocument();
   });

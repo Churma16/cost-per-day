@@ -92,9 +92,10 @@ const openGuestDatabase = () => {
 const runStoreOperation = async (storeName, mode, operation) => {
   const database = await openGuestDatabase();
   const transaction = database.transaction(storeName, mode);
+  const completion = transactionAsPromise(transaction);
   const store = transaction.objectStore(storeName);
   const result = await operation(store);
-  await transactionAsPromise(transaction);
+  await completion;
   return result;
 };
 
@@ -120,12 +121,6 @@ const deleteStoreRecord = (storeName, id) => runStoreOperation(
   storeName,
   'readwrite',
   (store) => requestAsPromise(store.delete(String(id))),
-);
-
-const clearStore = (storeName) => runStoreOperation(
-  storeName,
-  'readwrite',
-  (store) => requestAsPromise(store.clear()),
 );
 
 const createLocalID = (prefix) => {
@@ -325,11 +320,12 @@ const guestItemRepository = {
     }
     const database = await openGuestDatabase();
     const transaction = database.transaction(ITEM_STORE, 'readwrite');
+    const completion = transactionAsPromise(transaction);
     const store = transaction.objectStore(ITEM_STORE);
     store.clear();
     const normalized = items.map((item) => normalizeGuestItemInput(item));
     normalized.forEach((item) => store.put(item));
-    await transactionAsPromise(transaction);
+    await completion;
     return normalized;
   },
 };
@@ -376,11 +372,16 @@ const guestMetaRepository = {
 };
 
 export const clearGuestData = async () => {
-  await Promise.all([
-    clearStore(ITEM_STORE),
-    clearStore(PLANNED_PURCHASE_STORE),
-    clearStore(META_STORE),
-  ]);
+  const database = await openGuestDatabase();
+  const transaction = database.transaction(
+    [ITEM_STORE, PLANNED_PURCHASE_STORE, META_STORE],
+    'readwrite',
+  );
+  const completion = transactionAsPromise(transaction);
+  transaction.objectStore(ITEM_STORE).clear();
+  transaction.objectStore(PLANNED_PURCHASE_STORE).clear();
+  transaction.objectStore(META_STORE).clear();
+  await completion;
 };
 
 export const hasGuestData = async () => {
