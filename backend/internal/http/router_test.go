@@ -29,7 +29,7 @@ func setupTestRouter() *gin.Engine {
 
 	itemHandler := handler.NewItemHandler(itemService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
-	healthHandler := handler.NewHealthHandler(handler.HealthHandlerConfig{
+	healthHandler := handler.NewHealthHandlerWithConfig(handler.HealthHandlerConfig{
 		Version:  "0.2.0-beta.1",
 		Revision: "test-revision",
 	})
