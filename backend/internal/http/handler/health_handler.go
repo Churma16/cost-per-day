@@ -21,8 +21,13 @@ type HealthHandlerConfig struct {
 	Revision string
 }
 
-// NewHealthHandler creates a new HealthHandler instance.
-func NewHealthHandler(config HealthHandlerConfig) *HealthHandler {
+// NewHealthHandler creates a health handler with development build metadata.
+func NewHealthHandler() *HealthHandler {
+	return NewHealthHandlerWithConfig(HealthHandlerConfig{})
+}
+
+// NewHealthHandlerWithConfig creates a health handler with explicit build metadata.
+func NewHealthHandlerWithConfig(config HealthHandlerConfig) *HealthHandler {
 	return &HealthHandler{
 		version:  normalizeBuildMetadata(config.Version),
 		revision: normalizeBuildMetadata(config.Revision),
