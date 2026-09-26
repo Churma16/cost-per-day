@@ -27,6 +27,7 @@ vi.mock('react-i18next', () => ({
       const translations = {
         plannedPurchases: 'Planned Purchases',
         planningSubtitle: 'Understand price through time',
+        yourPlans: 'Your Plans',
         addPlannedPurchase: 'Add Planned Purchase',
         editPlannedPurchase: 'Edit Planned Purchase',
         newPlan: 'New Plan',

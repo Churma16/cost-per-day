@@ -10,6 +10,7 @@ import {
 } from 'motion/react';
 import AddItem from './AddItem';
 import PlannedPurchaseCreateForm from './PlannedPurchaseCreateForm';
+import { PageHeader } from './ui/PageHeader';
 
 const ADD_TYPES = ['item', 'planned'];
 const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
@@ -304,14 +305,10 @@ function AddEntryPage() {
   return (
     <div ref={pageRef} className="max-w-3xl mx-auto">
       <div className="px-4 space-y-4 pb-2">
-        <div className="pt-6 pb-1 px-1">
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            {t('addEntryTitle')}
-          </h1>
-          <p className="mt-1 text-sm leading-relaxed text-[#6F7782]">
-            {t('addEntrySubtitle')}
-          </p>
-        </div>
+        <PageHeader
+          title={t('addEntryTitle')}
+          subtitle={t('addEntrySubtitle')}
+        />
 
         <div
           role="tablist"

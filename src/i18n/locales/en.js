@@ -217,6 +217,7 @@ const translation = {
   "cadencePerMonthly": "per month",
   "planCount": "{{count}} plans",
   "planCount_one": "1 plan",
+  "yourPlans": "Your Plans",
   "targetDate": "Target date",
   "targetDatePrefix": "Target {{date}}",
   "estimatedTargetPrefix": "Estimated target · {{date}}",

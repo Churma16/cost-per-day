@@ -93,4 +93,19 @@ describe('UI Primitives', () => {
       expect(button).toHaveClass('text-red-600');
     });
   });
+
+  describe('PageHeader', () => {
+    it('renders title and optional subtitle', async () => {
+      const { PageHeader } = await import('../../../src/components/ui/PageHeader');
+      render(
+        <PageHeader
+          title="Planned Purchases"
+          subtitle="Understand price through time"
+        />
+      );
+
+      expect(screen.getByRole('heading', { level: 1, name: 'Planned Purchases' })).toBeInTheDocument();
+      expect(screen.getByText('Understand price through time')).toBeInTheDocument();
+    });
+  });
 });

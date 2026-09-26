@@ -7,6 +7,7 @@ import {
 } from '../hooks/usePlannedPurchases';
 import PlannedPurchaseCard from './PlannedPurchaseCard';
 import PlannedPurchaseForm from './PlannedPurchaseForm';
+import { PageHeader } from './ui/PageHeader';
 import { IoTimeOutline } from 'react-icons/io5';
 
 function PlannedPurchases() {
@@ -98,19 +99,15 @@ function PlannedPurchases() {
   return (
     <div className="px-4 pt-4 pb-8 space-y-5 max-w-3xl mx-auto planning-page-content">
       {/* Intro Header & Philosophy */}
-      <div className="pb-1 px-1">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-          {t('plannedPurchases')}
-        </h1>
-        <p className="mt-1 text-sm leading-relaxed text-[#6F7782]">
-          {t('planningSubtitle')}
-        </p>
-      </div>
+      <PageHeader
+        title={t('plannedPurchases')}
+        subtitle={t('planningSubtitle')}
+      />
 
-      {/* Action Bar */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-          {t('planCount', { count: plannedPurchases.length })}
+      {/* Action Bar / Section Label matching Home */}
+      <div className="flex items-center justify-between px-1">
+        <span className="font-bold text-[#20242A] text-sm">
+          {t('yourPlans')}
         </span>
       </div>
 

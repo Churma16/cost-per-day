@@ -19,6 +19,7 @@ import CurrencySelectionModal from './settings/CurrencySelectionModal';
 import ImportConfirmDialog from './settings/ImportConfirmDialog';
 import EquivalentFormModal from './settings/EquivalentFormModal';
 import DeleteEquivalentConfirmDialog from './settings/DeleteEquivalentConfirmDialog';
+import { PageHeader } from './ui/PageHeader';
 
 function Settings() {
   const { t } = useTranslation();
@@ -418,11 +419,7 @@ function Settings() {
     <>
       <div className="px-4 space-y-4 settings-page-content pb-8">
         {/* Header */}
-        <div className="pt-6 pb-1 px-1">
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            {t('settings')}
-          </h1>
-        </div>
+        <PageHeader title={t('settings')} />
 
         {/* Notification */}
         {notification && (

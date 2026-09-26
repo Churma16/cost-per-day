@@ -108,7 +108,7 @@ function PlannedPurchaseCard({
       </div>
 
       {/* Row 2 (Constraint) & Row 3 (Interpretation) with Vertically Centered Chevron */}
-      <div className="mt-2 flex items-center justify-between gap-3">
+      <div className="mt-1.5 flex items-center justify-between gap-3">
         <div className="min-w-0 space-y-0.5">
           <div className="text-xs font-medium text-gray-600 truncate">
             {userConstraintText}
@@ -135,7 +135,7 @@ function PlannedPurchaseCard({
       isExpanded={isExpanded}
       onToggle={onToggle}
       header={headerContent}
-      contentClassName="space-y-4"
+      contentClassName="space-y-3"
     >
       {/* 2x InfoTiles: Target Price + Constraint Pace/Date */}
       <div className="grid grid-cols-2 gap-2.5">
@@ -167,7 +167,7 @@ function PlannedPurchaseCard({
 
       {/* Primary Result Projection Highlight Panel */}
       {hasContribution && calculatedTargetDate ? (
-        <div className="bg-[#F6F8F8] rounded-xl p-3.5 border border-teal-100/90 space-y-1.5">
+        <div className="bg-[#F6F8F8] rounded-xl p-3 border border-teal-100/90 space-y-1">
           <div className="flex items-center justify-between text-xs text-teal-900 font-medium">
             <span className="flex items-center gap-1.5">
               <IoCashOutline className="text-teal-600 text-sm" />
@@ -190,7 +190,7 @@ function PlannedPurchaseCard({
           </div>
         </div>
       ) : hasTargetDate ? (
-        <div className="bg-[#F6F9FA] rounded-xl p-3.5 border border-cyan-100/90 space-y-1.5">
+        <div className="bg-[#F6F9FA] rounded-xl p-3 border border-cyan-100/90 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-cyan-900 font-medium">
             <IoCalendarOutline className="text-cyan-600 text-sm" />
             <span>{t('targetDate')}</span>
@@ -205,7 +205,7 @@ function PlannedPurchaseCard({
           )}
         </div>
       ) : (
-        <div className="bg-gray-50 rounded-xl p-3.5 border border-gray-200 space-y-1">
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-1">
           <div className="text-xs font-semibold text-gray-800">
             {t('noScenarioConfigured')}
           </div>
@@ -233,7 +233,7 @@ function PlannedPurchaseCard({
       />
 
       {/* Bottom Action Buttons (Option A - Matching Home) */}
-      <div className="flex items-center gap-2 pt-2 border-t border-[#E6E8EC]/80">
+      <div className="flex items-center gap-2 pt-1 border-t border-[#E6E8EC]/80">
         <ActionButton
           variant="secondary"
           icon={IoCreateOutline}
