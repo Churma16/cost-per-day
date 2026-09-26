@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoChevronDown, IoEyeOutline, IoOptionsOutline } from 'react-icons/io5';
+import { getCurrencySymbol } from '../../utils/currencyConfig';
 import { calculateContributionProjection } from '../../utils/plannedPurchaseProjection';
 import CurrencyInput from '../common/CurrencyInput';
 
@@ -18,6 +19,7 @@ function PlannedPurchaseExploration({
   const generatedId = useId();
   const triggerId = `exploration-trigger-${generatedId}`;
   const contentId = `exploration-content-${generatedId}`;
+  const currencySymbol = getCurrencySymbol(currencyCode);
   const [isOpen, setIsOpen] = useState(false);
   const [isRendered, setIsRendered] = useState(false);
 
@@ -181,14 +183,22 @@ function PlannedPurchaseExploration({
                     ? t('recurringContributionAdjustForCadence')
                     : t('recurringContribution')}
                 </label>
-                <CurrencyInput
-                  value={contributionAmount}
-                  disabled={isApplying}
-                  onChange={(event) => setContributionAmount(event.target.value)}
-                  currencyCode={currencyCode}
-                  placeholder={t('enterContributionAmount')}
-                  className="w-full rounded-lg border border-gray-300 p-2 text-xs bg-white focus:outline-none focus-border-teal-500 focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
-                />
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 text-xs font-medium text-gray-500"
+                  >
+                    {currencySymbol}
+                  </span>
+                  <CurrencyInput
+                    value={contributionAmount}
+                    disabled={isApplying}
+                    onChange={(event) => setContributionAmount(event.target.value)}
+                    currencyCode={currencyCode}
+                    placeholder={t('enterContributionAmount')}
+                    className="min-w-0 flex-1 rounded-lg border border-gray-300 p-2 text-xs bg-white focus:outline-none focus-border-teal-500 focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
+                  />
+                </div>
               </div>
             </div>
 
