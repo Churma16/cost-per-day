@@ -55,8 +55,16 @@ function AddEntryPage() {
         <div
           role="tablist"
           aria-label={t('addEntryTypeLabel')}
-          className="grid grid-cols-2 rounded-xl bg-gray-200/70 p-1"
+          className="relative grid grid-cols-2 rounded-xl bg-gray-200/70 p-1"
         >
+          <motion.span
+            data-testid="add-type-indicator"
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-1 left-1 z-0 w-[calc(50%_-_0.25rem)] rounded-lg bg-white shadow-sm"
+            initial={false}
+            animate={{ x: activeType === 'item' ? '0%' : '100%' }}
+            transition={{ type: 'spring', stiffness: 240, damping: 30, mass: 0.9 }}
+          />
           {ADD_TYPES.map((type) => {
             const isActive = activeType === type;
             return (
@@ -71,23 +79,13 @@ function AddEntryPage() {
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => selectType(type)}
                 onKeyDown={(event) => handleTabKeyDown(event, type)}
-                className={`relative isolate rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1 ${
+                className={`relative z-10 rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1 ${
                   isActive
                     ? 'text-teal-800'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {isActive && (
-                  <motion.span
-                    layoutId="addTypeActiveIndicator"
-                    aria-hidden="true"
-                    className="absolute inset-0 z-0 rounded-lg bg-white shadow-sm"
-                    transition={{ type: 'spring', stiffness: 240, damping: 30, mass: 0.9 }}
-                  />
-                )}
-                <span className="relative z-10">
-                  {t(type === 'item' ? 'ownedItemTab' : 'plannedItemTab')}
-                </span>
+                {t(type === 'item' ? 'ownedItemTab' : 'plannedItemTab')}
               </button>
             );
           })}

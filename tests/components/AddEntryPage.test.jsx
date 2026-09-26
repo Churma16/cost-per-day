@@ -76,6 +76,7 @@ describe('AddEntryPage', () => {
   it('keeps independent drafts mounted while switching tabs', () => {
     renderPage('/add?type=item');
 
+    expect(screen.getAllByTestId('add-type-indicator')).toHaveLength(1);
     fireEvent.change(screen.getByTestId('owned-draft'), { target: { value: 'Camera' } });
     fireEvent.click(screen.getByRole('tab', { name: 'Planned item' }));
     fireEvent.change(screen.getByTestId('planned-draft'), { target: { value: 'Tripod' } });
