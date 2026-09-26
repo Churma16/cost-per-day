@@ -47,14 +47,15 @@ export const useVersionCheck = ({ runningRevision = getEmbeddedBuildRevision() }
     retry: false,
   });
 
+  const latestRevision =
+    latestVersionData?.revision?.trim() ||
+    latestVersionData?.version?.trim();
+
   useEffect(() => {
     if (!versionChecksEnabled) {
       return;
     }
 
-    const latestRevision =
-      latestVersionData?.revision?.trim() ||
-      latestVersionData?.version?.trim();
     if (!latestRevision) {
       return;
     }
@@ -76,11 +77,11 @@ export const useVersionCheck = ({ runningRevision = getEmbeddedBuildRevision() }
     reloadTriggered.current = true;
     storeReloadTransition(transition);
     window.location.reload();
-  }, [latestVersionData, normalizedRunningRevision, versionChecksEnabled]);
+  }, [latestRevision, normalizedRunningRevision, versionChecksEnabled]);
 
   return {
     runningRevision: normalizedRunningRevision,
-    latestRevision: latestVersionData?.revision,
+    latestRevision,
     isSuccess,
   };
 };
