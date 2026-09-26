@@ -10,7 +10,7 @@ const translation = {
   "navHome": "Home",
   "navPlanning": "Planning",
   "navAdd": "Add",
-  "navAnalytics": "Analytics",
+  "navAnalytics": "Durability",
   "navSettings": "Settings",
   "primaryNavigation": "Primary navigation",
   "retry": "Retry",
