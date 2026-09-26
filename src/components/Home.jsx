@@ -43,13 +43,16 @@ function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode })
 }
 
 function Home() {
-  const { data: dashboardData } = useDashboard();
+  const { data: dashboardData, isError: isDashboardError, isRefetchError } = useDashboard();
   const itemsQuery = useItems();
   const dashboardTotal = dashboardData?.totalDailyCost;
   const hasDashboardTotal = dashboardTotal !== null
     && dashboardTotal !== undefined
     && Number.isFinite(Number(dashboardTotal));
-  const totalDailyCost = hasDashboardTotal
+  const canUseDashboardTotal = hasDashboardTotal
+    && !isDashboardError
+    && !isRefetchError;
+  const totalDailyCost = canUseDashboardTotal
     ? Number(dashboardTotal)
     : calculateActiveItemsDailyCost(itemsQuery.data ?? []);
 
