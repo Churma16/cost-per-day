@@ -1,15 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getAllItems, replaceAllItems } from '../services/api';
+import { getAllItems } from '../services/api';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
-import { useInvalidateItems } from '../hooks/useItems';
+import { useReplaceItems } from '../hooks/useItems';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
-import { PRODUCT_EXPORT_PREFIX, APP_VERSION } from '../constants/branding';
+import { APP_VERSION } from '../constants/branding';
+import {
+  buildExportFilename,
+  serializeItemsExport,
+  validateImportedItems,
+} from '../utils/settingsDataTransfer';
 import GeneralSettingsSection from './settings/GeneralSettingsSection';
 import ValueEquivalentsSection from './settings/ValueEquivalentsSection';
 import DataManagementSection from './settings/DataManagementSection';
@@ -21,6 +31,8 @@ import EquivalentFormModal from './settings/EquivalentFormModal';
 import DeleteEquivalentConfirmDialog from './settings/DeleteEquivalentConfirmDialog';
 import { PageHeader } from './ui/PageHeader';
 import { PageContainer } from './ui/PageContainer';
+
+const NOTIFICATION_DURATION_MS = 3000;
 
 function Settings() {
   const { t } = useTranslation();
@@ -36,7 +48,7 @@ function Settings() {
     removeEquivalent,
     error: equivalentsError
   } = useValueEquivalents();
-  const invalidateItems = useInvalidateItems();
+  const replaceItemsMutation = useReplaceItems();
 
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
@@ -46,20 +58,13 @@ function Settings() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
-
-  // Value Equivalents modal and form state
   const [showEquivalentModal, setShowEquivalentModal] = useState(false);
   const [editingEquivalent, setEditingEquivalent] = useState(null);
-  const [equivalentFormName, setEquivalentFormName] = useState('');
-  const [equivalentFormAmount, setEquivalentFormAmount] = useState('');
-  const [equivalentFormCurrency, setEquivalentFormCurrency] = useState(currencyCode);
-  const [equivalentFormError, setEquivalentFormError] = useState(null);
   const [showDeleteEquivalentConfirm, setShowDeleteEquivalentConfirm] = useState(null);
-  const [isSavingEquivalent, setIsSavingEquivalent] = useState(false);
   const [isDeletingEquivalent, setIsDeletingEquivalent] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
 
   const fileInputRef = useRef(null);
+  const notificationTimeoutRef = useRef(null);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -81,43 +86,71 @@ function Settings() {
     return matchedLanguage ? matchedLanguage.name : 'English';
   };
 
+  const clearNotificationTimer = useCallback(() => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+      notificationTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearNotification = useCallback(() => {
+    clearNotificationTimer();
+    setNotification(null);
+  }, [clearNotificationTimer]);
+
+  const showNotification = useCallback((nextNotification, { autoDismiss = true } = {}) => {
+    clearNotificationTimer();
+    setNotification(nextNotification);
+
+    if (autoDismiss) {
+      notificationTimeoutRef.current = setTimeout(() => {
+        notificationTimeoutRef.current = null;
+        setNotification(null);
+      }, NOTIFICATION_DURATION_MS);
+    }
+  }, [clearNotificationTimer]);
+
+  useEffect(() => () => {
+    clearNotificationTimer();
+  }, [clearNotificationTimer]);
+
   useEffect(() => {
     const settingsError = languageError || currencyError;
     if (settingsError) {
-      setNotification({
+      showNotification({
         message: settingsError.message || t('errorLoadingSettings'),
         type: 'error'
-      });
+      }, { autoDismiss: false });
     }
-  }, [languageError, currencyError]);
+  }, [languageError, currencyError, showNotification, t]);
 
   const handleLanguageChange = async (code) => {
     setShowLanguageDropdown(false);
-    setNotification(null);
+    clearNotification();
     try {
       await changeLanguage(code);
-      setNotification(null);
+      clearNotification();
     } catch (error) {
       console.error('Error updating language:', error);
-      setNotification({
+      showNotification({
         message: error.message || t('errorUpdatingLanguage'),
         type: 'error'
-      });
+      }, { autoDismiss: false });
     }
   };
 
   const handleCurrencyChange = async (selectedCurrencyCode) => {
     setShowCurrencyDropdown(false);
-    setNotification(null);
+    clearNotification();
     try {
       await changeCurrency(selectedCurrencyCode);
-      setNotification(null);
+      clearNotification();
     } catch (error) {
       console.error('Error updating currency:', error);
-      setNotification({
+      showNotification({
         message: error.message || t('errorUpdatingCurrency'),
         type: 'error'
-      });
+      }, { autoDismiss: false });
     }
   };
 
@@ -145,42 +178,32 @@ function Settings() {
       });
 
       if (!items || items.length === 0) {
-        setNotification({
+        showNotification({
           message: t('noDataForExport'),
           type: 'warning'
         });
-        setTimeout(() => {
-          setNotification(null);
-        }, 3000);
         return;
       }
 
-      const dataStr = JSON.stringify(items, null, 2);
+      const dataStr = serializeItemsExport(items);
       const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
-      const exportFileDefaultName = `${PRODUCT_EXPORT_PREFIX}-${new Date().toISOString().split('T')[0]}.json`;
+      const exportFileDefaultName = buildExportFilename(new Date());
 
       const linkElement = document.createElement('a');
       linkElement.setAttribute('href', dataUri);
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
 
-      setNotification({
+      showNotification({
         message: t('exportSuccess'),
         type: 'success'
       });
-      setTimeout(() => {
-        setNotification(null);
-      }, 3000);
     } catch (error) {
       console.error('Error exporting data:', error);
-      setNotification({
+      showNotification({
         message: t('exportError'),
         type: 'error'
       });
-      setTimeout(() => {
-        setNotification(null);
-      }, 3000);
     }
   };
 
@@ -190,162 +213,105 @@ function Settings() {
     }
   };
 
-  const handleFileChange = async (event) => {
+  const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     if (!file.name.endsWith('.json')) {
-      setNotification({
+      showNotification({
         message: t('invalidFileFormat'),
         type: 'error'
       });
-      setTimeout(() => setNotification(null), 3000);
       event.target.value = '';
       return;
     }
 
     try {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = (loadEvent) => {
         try {
-          const content = JSON.parse(e.target.result);
-          validateAndProcessImport(content);
+          const content = JSON.parse(loadEvent.target.result);
+
+          if (!validateImportedItems(content)) {
+            showNotification({
+              message: t('invalidDataFormat'),
+              type: 'error'
+            });
+            return;
+          }
+
+          setImportData(content);
+          setActiveModal('import');
+          setShowImportConfirm(true);
         } catch (error) {
           console.error('Error parsing JSON:', error);
-          setNotification({
+          showNotification({
             message: t('invalidJsonFormat'),
             type: 'error'
           });
-          setTimeout(() => setNotification(null), 3000);
         }
+      };
+      reader.onerror = () => {
+        showNotification({
+          message: t('errorReadingFile'),
+          type: 'error'
+        });
       };
       reader.readAsText(file);
     } catch (error) {
       console.error('Error reading file:', error);
-      setNotification({
+      showNotification({
         message: t('errorReadingFile'),
         type: 'error'
       });
-      setTimeout(() => setNotification(null), 3000);
     }
 
     event.target.value = '';
   };
 
-  const validateAndProcessImport = (data) => {
-    if (!Array.isArray(data)) {
-      setNotification({
-        message: t('invalidDataFormat'),
-        type: 'error'
-      });
-      setTimeout(() => setNotification(null), 3000);
-      return;
-    }
-
-    for (const item of data) {
-      if (!item.name || !Number.isFinite(Number(item.price)) || Number(item.price) <= 0 || !item.purchaseDate) {
-        setNotification({
-          message: t('invalidDataFormat'),
-          type: 'error'
-        });
-        setTimeout(() => setNotification(null), 3000);
-        return;
-      }
-    }
-
-    setImportData(data);
-    setActiveModal('import');
-    setShowImportConfirm(true);
-  };
-
   const confirmImport = async () => {
-    if (isImporting) return;
-    setIsImporting(true);
-    try {
-      const replacedItems = await replaceAllItems(importData);
-      queryClient.setQueryData(queryKeys.items, replacedItems);
-      await invalidateItems();
+    if (replaceItemsMutation.isPending || !importData) return;
 
-      setNotification({
+    try {
+      await replaceItemsMutation.mutateAsync(importData);
+      showNotification({
         message: t('importSuccess'),
         type: 'success'
       });
-      setTimeout(() => setNotification(null), 3000);
       setShowImportConfirm(false);
     } catch (error) {
       console.error('Error importing data:', error);
-      setNotification({
+      showNotification({
         message: error.message || t('importError'),
         type: 'error'
       });
-      setTimeout(() => setNotification(null), 3000);
-      setIsImporting(false);
     }
   };
 
   const handleOpenAddEquivalent = () => {
     setEditingEquivalent(null);
-    setEquivalentFormName('');
-    setEquivalentFormAmount('');
-    setEquivalentFormCurrency(currencyCode);
-    setEquivalentFormError(null);
     setActiveModal('equivalent');
     setShowEquivalentModal(true);
   };
 
   const handleOpenEditEquivalent = (equivalentItem) => {
     setEditingEquivalent(equivalentItem);
-    setEquivalentFormName(equivalentItem.name);
-    setEquivalentFormAmount(String(equivalentItem.amount));
-    setEquivalentFormCurrency(equivalentItem.currencyCode || currencyCode);
-    setEquivalentFormError(null);
     setActiveModal('equivalent');
     setShowEquivalentModal(true);
   };
 
-  const handleSaveEquivalent = async (event) => {
-    event.preventDefault();
-    if (isSavingEquivalent) return;
-    setEquivalentFormError(null);
-
-    const trimmedName = equivalentFormName.trim();
-    if (!trimmedName) {
-      setEquivalentFormError(t('enterItemName'));
-      return;
+  const handleSaveEquivalent = async (equivalentData) => {
+    if (editingEquivalent) {
+      await editEquivalent(editingEquivalent.id, equivalentData);
+    } else {
+      await addEquivalent(equivalentData);
     }
 
-    const numericAmount = Number(equivalentFormAmount);
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setEquivalentFormError(t('enterPrice'));
-      return;
-    }
-
-    setIsSavingEquivalent(true);
-    try {
-      if (editingEquivalent) {
-        await editEquivalent(editingEquivalent.id, {
-          name: trimmedName,
-          amount: numericAmount,
-          currencyCode: equivalentFormCurrency
-        });
-      } else {
-        await addEquivalent({
-          name: trimmedName,
-          amount: numericAmount,
-          currencyCode: equivalentFormCurrency
-        });
-      }
-      setShowEquivalentModal(false);
-      setNotification({
-        message: t('save'),
-        type: 'success'
-      });
-      setTimeout(() => setNotification(null), 3000);
-    } catch (saveError) {
-      console.error('Error saving value equivalent:', saveError);
-      setEquivalentFormError(saveError.message || t('errorSavingEquivalent'));
-      setIsSavingEquivalent(false);
-    }
+    setShowEquivalentModal(false);
+    showNotification({
+      message: t('save'),
+      type: 'success'
+    });
   };
 
   const handleOpenDeleteConfirm = (equivalentItem) => {
@@ -367,18 +333,16 @@ function Settings() {
     try {
       await removeEquivalent(targetToDelete.id);
       setShowDeleteEquivalentConfirm(null);
-      setNotification({
+      showNotification({
         message: t('confirmDelete'),
         type: 'success'
       });
-      setTimeout(() => setNotification(null), 3000);
     } catch (deleteError) {
       console.error('Error deleting value equivalent:', deleteError);
-      setNotification({
+      showNotification({
         message: deleteError.message || t('errorDeletingEquivalent'),
         type: 'error'
       });
-      setTimeout(() => setNotification(null), 3000);
       setIsDeletingEquivalent(false);
     }
   };
@@ -386,10 +350,8 @@ function Settings() {
   return (
     <>
       <PageContainer className="settings-page-content">
-        {/* Header */}
         <PageHeader title={t('settings')} />
 
-        {/* Notification */}
         {notification && (
           <div
             className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg
@@ -442,7 +404,6 @@ function Settings() {
           onSignOut={handleSignOut}
         />
 
-        {/* Version Info */}
         <div className="text-center text-gray-400 text-xs py-2">
           <p>{t('versionText', { version: APP_VERSION })}</p>
         </div>
@@ -468,33 +429,23 @@ function Settings() {
 
       <ImportConfirmDialog
         isOpen={showImportConfirm}
-        isImporting={isImporting}
+        isImporting={replaceItemsMutation.isPending}
         onCancel={() => setShowImportConfirm(false)}
         onConfirm={confirmImport}
         onExitComplete={() => {
-          setIsImporting(false);
+          setImportData(null);
           setActiveModal(null);
         }}
       />
 
       <EquivalentFormModal
         isOpen={showEquivalentModal}
-        editingEquivalent={editingEquivalent}
-        formName={equivalentFormName}
-        formAmount={equivalentFormAmount}
-        formCurrency={equivalentFormCurrency}
-        formError={equivalentFormError}
+        equivalent={editingEquivalent}
+        defaultCurrency={currencyCode}
         currencyOptions={currencyOptions}
-        isSaving={isSavingEquivalent}
-        onNameChange={setEquivalentFormName}
-        onAmountChange={setEquivalentFormAmount}
-        onCurrencyChange={setEquivalentFormCurrency}
         onCancel={() => setShowEquivalentModal(false)}
-        onSubmit={handleSaveEquivalent}
-        onExitComplete={() => {
-          setIsSavingEquivalent(false);
-          setActiveModal(null);
-        }}
+        onSave={handleSaveEquivalent}
+        onExitComplete={() => setActiveModal(null)}
       />
 
       <DeleteEquivalentConfirmDialog

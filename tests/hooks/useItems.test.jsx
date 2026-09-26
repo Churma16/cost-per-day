@@ -2,13 +2,20 @@ import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addItem, deleteItem, getAllItems, updateItem } from '../../src/services/api';
+import {
+  addItem,
+  deleteItem,
+  getAllItems,
+  replaceAllItems,
+  updateItem,
+} from '../../src/services/api';
 import { queryKeys } from '../../src/query/queryConfig';
 import {
   invalidateItemQueries,
   useCreateItem,
   useDeleteItem,
   useItems,
+  useReplaceItems,
   useUpdateItem,
 } from '../../src/hooks/useItems';
 
@@ -16,6 +23,7 @@ vi.mock('../../src/services/api', () => ({
   addItem: vi.fn(),
   deleteItem: vi.fn(),
   getAllItems: vi.fn(),
+  replaceAllItems: vi.fn(),
   updateItem: vi.fn(),
 }));
 
@@ -121,6 +129,42 @@ describe('item server-state cache', () => {
     expect(queryClient.getQueryData(queryKeys.items)).toEqual([
       { id: '2', name: 'Laptop' },
     ]);
+
+    const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => filters.queryKey);
+    expect(invalidatedKeys).toEqual(expect.arrayContaining([
+      queryKeys.items,
+      queryKeys.replacementBenchmarks,
+      queryKeys.dashboard,
+      queryKeys.durabilityRoot,
+      queryKeys.categories,
+      queryKeys.brands,
+    ]));
+  });
+
+  it('owns replace-all transport, cache replacement, and item-derived invalidation', async () => {
+    const importedItems = [{
+      name: 'Imported Phone',
+      price: 600,
+      purchaseDate: '2026-09-20T12:00:00.000Z',
+    }];
+    const replacedItems = [{ id: 'imported-1', ...importedItems[0] }];
+    replaceAllItems.mockResolvedValue(replacedItems);
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, [{ id: 'old-1', name: 'Old item' }]);
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined);
+    const wrapper = ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const { result } = renderHook(() => useReplaceItems(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(importedItems);
+    });
+
+    expect(replaceAllItems).toHaveBeenCalledWith(importedItems);
+    expect(queryClient.getQueryData(queryKeys.items)).toEqual(replacedItems);
 
     const invalidatedKeys = invalidateSpy.mock.calls.map(([filters]) => filters.queryKey);
     expect(invalidatedKeys).toEqual(expect.arrayContaining([

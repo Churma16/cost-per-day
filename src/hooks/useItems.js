@@ -4,6 +4,7 @@ import {
   addItem,
   deleteItem,
   getAllItems,
+  replaceAllItems,
   updateItem,
 } from '../services/api';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
@@ -73,6 +74,18 @@ export const useDeleteItem = () => {
           ? cachedItems.filter((item) => String(item.id) !== String(deletedItemId))
           : cachedItems
       ));
+      await invalidateItemQueries(queryClient);
+    },
+  });
+};
+
+export const useReplaceItems = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (items) => replaceAllItems(items),
+    onSuccess: async (replacedItems) => {
+      queryClient.setQueryData(queryKeys.items, replacedItems);
       await invalidateItemQueries(queryClient);
     },
   });
