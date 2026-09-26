@@ -751,13 +751,13 @@ describe('ItemList lifecycle display', () => {
     fireEvent.click(screen.getByText('200 days'));
     const monthsElement = screen.getByText('~6.6 months');
     expect(monthsElement).toBeInTheDocument();
-    expect(monthsElement).toHaveClass('animate-calm-cycle');
+    expect(monthsElement.closest('[aria-live="polite"]')).toBeInTheDocument();
 
     // Click again to cycle back to days (since 200 < 365)
     fireEvent.click(screen.getByText('~6.6 months'));
     const cycledDaysElement = screen.getByText('200 days');
     expect(cycledDaysElement).toBeInTheDocument();
-    expect(cycledDaysElement).toHaveClass('animate-calm-cycle');
+    expect(cycledDaysElement.closest('[aria-live="polite"]')).toBeInTheDocument();
 
     // Click Delete to open confirmation
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
@@ -830,14 +830,17 @@ describe('ItemList lifecycle display', () => {
     expect(formatOwnershipDuration(998, 'years', mockTId, 'id')).toBe('~2,7 tahun');
   });
 
-  test('CalmCycleText renders dual layers on transition', () => {
+  test('CalmCycleText keeps outgoing content mounted until its Motion exit completes', async () => {
     const { rerender } = render(<CalmCycleText text="200 days" hasCycled={false} />);
     expect(screen.getByText('200 days')).toBeInTheDocument();
-    expect(screen.getByText('200 days')).not.toHaveClass('animate-calm-cycle-enter');
 
     rerender(<CalmCycleText text="~6.6 months" hasCycled={true} />);
-    expect(screen.getByText('~6.6 months')).toHaveClass('animate-calm-cycle-enter');
-    expect(screen.getByText('200 days')).toHaveClass('animate-calm-cycle-exit');
+    expect(screen.getByText('~6.6 months')).toBeInTheDocument();
+    expect(screen.getByText('200 days')).toHaveAttribute('aria-hidden', 'true');
+
+    await waitFor(() => {
+      expect(screen.queryByText('200 days')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
   });
 
   test('strengthens card border and highlights chevron with teal interaction accent when expanded', async () => {

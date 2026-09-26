@@ -227,6 +227,10 @@ describe('Settings component', () => {
 
     expect(await screen.findByText('Failed to save currency.')).toBeInTheDocument();
 
+    await waitFor(() => {
+      expect(screen.queryByText('Select Currency')).not.toBeInTheDocument();
+    });
+
     openCurrencyDropdown();
     fireEvent.click(screen.getByRole('button', {
       name: /Rp Indonesian Rupiah \(IDR\)/i
@@ -451,7 +455,7 @@ describe('Settings component', () => {
     expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
   });
 
-  test('guards against duplicate equivalent saves during exit animation before unmount completes', async () => {
+  test('guards against duplicate equivalent saves while the Motion exit completes', async () => {
     let resolveAdd;
     mockAddEquivalent.mockImplementation(() => new Promise((resolve) => {
       resolveAdd = resolve;
@@ -478,8 +482,7 @@ describe('Settings component', () => {
       resolveAdd({ id: 'eq-new', name: 'Boba Tea', amount: 25000, currencyCode: 'USD' });
     });
 
-    // The modal is now in its 200ms exit animation
-    // Attempt another click during the exit window
+    // Motion keeps the modal mounted during exit; attempt another click in that window.
     fireEvent.click(submitSaveButton);
 
     // Mutation function must still be called exactly once
@@ -487,7 +490,7 @@ describe('Settings component', () => {
     expect(submitSaveButton).toBeDisabled();
   });
 
-  test('guards against duplicate equivalent deletion during in-flight mutation and exit animation', async () => {
+  test('guards against duplicate equivalent deletion during the mutation and Motion exit', async () => {
     let resolveRemove;
     mockRemoveEquivalent.mockImplementation(() => new Promise((resolve) => {
       resolveRemove = resolve;
@@ -523,7 +526,7 @@ describe('Settings component', () => {
       resolveRemove();
     });
 
-    // Attempt click during exit animation
+    // Attempt another click while Motion owns the exit lifecycle.
     fireEvent.click(confirmDeleteButton);
     expect(mockRemoveEquivalent).toHaveBeenCalledTimes(1);
     expect(confirmDeleteButton).toBeDisabled();
@@ -547,7 +550,7 @@ describe('Settings component', () => {
     expect(equivalentBadge.querySelector('svg')).toBeInTheDocument();
   });
 
-  test('intercepts clicks during exit window so underlying Settings controls are not triggered and modal close completes', async () => {
+  test('intercepts clicks while a Motion exit keeps the modal layer mounted', async () => {
     render(<Settings />);
 
     // Open language modal
@@ -563,13 +566,13 @@ describe('Settings component', () => {
     });
     fireEvent.click(indonesianOption);
 
-    // During the 200ms exit window, language modal is closing (still visible with exit animation)
+    // During Motion's exit, the language modal remains mounted.
     // The backdrop overlay covers the full viewport without pointer-events-none
     const modalBackdrop = screen.getByText('Select Language').closest('.fixed.inset-0');
     expect(modalBackdrop).toBeInTheDocument();
     expect(modalBackdrop).not.toHaveClass('pointer-events-none');
 
-    // Attempt to click an underlying Settings control during the 200ms exit window
+    // Attempt to click an underlying Settings control during the exit window.
     const currencyTriggerButton = screen.getByRole('button', {
       name: /currency.*us dollar/i
     });
@@ -581,7 +584,7 @@ describe('Settings component', () => {
     // Also clicking on the backdrop itself during exit should be swallowed and not re-trigger or cancel close
     fireEvent.click(modalBackdrop);
 
-    // Wait for the 200ms close lifecycle to complete
+    // Wait for Motion's exit lifecycle to complete.
     await waitFor(() => {
       expect(screen.queryByText('Select Language')).not.toBeInTheDocument();
     });

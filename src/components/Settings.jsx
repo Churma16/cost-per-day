@@ -45,8 +45,7 @@ function Settings() {
   const [importData, setImportData] = useState(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState(null);
-  const [closingModal, setClosingModal] = useState(null);
-  const [activeDeleteTarget, setActiveDeleteTarget] = useState(null);
+  const [activeModal, setActiveModal] = useState(null);
 
   // Value Equivalents modal and form state
   const [showEquivalentModal, setShowEquivalentModal] = useState(false);
@@ -61,27 +60,6 @@ function Settings() {
   const [isImporting, setIsImporting] = useState(false);
 
   const fileInputRef = useRef(null);
-  const closingTimeoutRef = useRef(null);
-
-  const closeModalWithAnimation = (modalType, onClosed) => {
-    if (closingModal) return;
-    setClosingModal(modalType);
-    if (closingTimeoutRef.current) {
-      clearTimeout(closingTimeoutRef.current);
-    }
-    closingTimeoutRef.current = setTimeout(() => {
-      onClosed();
-      setClosingModal(null);
-    }, 200);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (closingTimeoutRef.current) {
-        clearTimeout(closingTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -114,7 +92,7 @@ function Settings() {
   }, [languageError, currencyError]);
 
   const handleLanguageChange = async (code) => {
-    closeModalWithAnimation('language', () => setShowLanguageDropdown(false));
+    setShowLanguageDropdown(false);
     setNotification(null);
     try {
       await changeLanguage(code);
@@ -129,7 +107,7 @@ function Settings() {
   };
 
   const handleCurrencyChange = async (selectedCurrencyCode) => {
-    closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false));
+    setShowCurrencyDropdown(false);
     setNotification(null);
     try {
       await changeCurrency(selectedCurrencyCode);
@@ -276,11 +254,12 @@ function Settings() {
     }
 
     setImportData(data);
+    setActiveModal('import');
     setShowImportConfirm(true);
   };
 
   const confirmImport = async () => {
-    if (isImporting || closingModal === 'import') return;
+    if (isImporting) return;
     setIsImporting(true);
     try {
       const replacedItems = await replaceAllItems(importData);
@@ -292,10 +271,7 @@ function Settings() {
         type: 'success'
       });
       setTimeout(() => setNotification(null), 3000);
-      closeModalWithAnimation('import', () => {
-        setShowImportConfirm(false);
-        setIsImporting(false);
-      });
+      setShowImportConfirm(false);
     } catch (error) {
       console.error('Error importing data:', error);
       setNotification({
@@ -313,6 +289,7 @@ function Settings() {
     setEquivalentFormAmount('');
     setEquivalentFormCurrency(currencyCode);
     setEquivalentFormError(null);
+    setActiveModal('equivalent');
     setShowEquivalentModal(true);
   };
 
@@ -322,12 +299,13 @@ function Settings() {
     setEquivalentFormAmount(String(equivalentItem.amount));
     setEquivalentFormCurrency(equivalentItem.currencyCode || currencyCode);
     setEquivalentFormError(null);
+    setActiveModal('equivalent');
     setShowEquivalentModal(true);
   };
 
   const handleSaveEquivalent = async (event) => {
     event.preventDefault();
-    if (isSavingEquivalent || closingModal === 'equivalent') return;
+    if (isSavingEquivalent) return;
     setEquivalentFormError(null);
 
     const trimmedName = equivalentFormName.trim();
@@ -357,10 +335,7 @@ function Settings() {
           currencyCode: equivalentFormCurrency
         });
       }
-      closeModalWithAnimation('equivalent', () => {
-        setShowEquivalentModal(false);
-        setIsSavingEquivalent(false);
-      });
+      setShowEquivalentModal(false);
       setNotification({
         message: t('save'),
         type: 'success'
@@ -374,32 +349,24 @@ function Settings() {
   };
 
   const handleOpenDeleteConfirm = (equivalentItem) => {
-    setActiveDeleteTarget(equivalentItem);
+    setActiveModal('delete');
     setShowDeleteEquivalentConfirm(equivalentItem);
   };
 
   const handleCloseDeleteConfirm = () => {
-    if (isDeletingEquivalent || closingModal === 'delete') return;
-    closeModalWithAnimation('delete', () => {
-      setShowDeleteEquivalentConfirm(null);
-      setActiveDeleteTarget(null);
-      setIsDeletingEquivalent(false);
-    });
+    if (isDeletingEquivalent) return;
+    setShowDeleteEquivalentConfirm(null);
   };
 
   const handleConfirmDeleteEquivalent = async () => {
-    if (isDeletingEquivalent || closingModal === 'delete') return;
-    const targetToDelete = showDeleteEquivalentConfirm || activeDeleteTarget;
+    if (isDeletingEquivalent) return;
+    const targetToDelete = showDeleteEquivalentConfirm;
     if (!targetToDelete) return;
 
     setIsDeletingEquivalent(true);
     try {
       await removeEquivalent(targetToDelete.id);
-      closeModalWithAnimation('delete', () => {
-        setShowDeleteEquivalentConfirm(null);
-        setActiveDeleteTarget(null);
-        setIsDeletingEquivalent(false);
-      });
+      setShowDeleteEquivalentConfirm(null);
       setNotification({
         message: t('confirmDelete'),
         type: 'success'
@@ -437,16 +404,22 @@ function Settings() {
           language={language}
           languageName={getLanguageName(language)}
           selectedCurrencyOption={selectedCurrencyOption}
-          isInteractionBlocked={Boolean(closingModal)}
-          onOpenLanguage={() => setShowLanguageDropdown(true)}
-          onOpenCurrency={() => setShowCurrencyDropdown(true)}
+          isInteractionBlocked={Boolean(activeModal)}
+          onOpenLanguage={() => {
+            setActiveModal('language');
+            setShowLanguageDropdown(true);
+          }}
+          onOpenCurrency={() => {
+            setActiveModal('currency');
+            setShowCurrencyDropdown(true);
+          }}
         />
 
         <ValueEquivalentsSection
           valueEquivalents={valueEquivalents}
           isLoading={isLoadingEquivalents}
           error={equivalentsError}
-          isInteractionBlocked={Boolean(closingModal)}
+          isInteractionBlocked={Boolean(activeModal)}
           onAdd={handleOpenAddEquivalent}
           onEdit={handleOpenEditEquivalent}
           onDelete={handleOpenDeleteConfirm}
@@ -454,7 +427,7 @@ function Settings() {
 
         <DataManagementSection
           fileInputRef={fileInputRef}
-          isInteractionBlocked={Boolean(closingModal)}
+          isInteractionBlocked={Boolean(activeModal)}
           onExport={handleExportData}
           onImport={handleImportData}
           onFileChange={handleFileChange}
@@ -463,7 +436,7 @@ function Settings() {
         <AccountSettingsSection
           user={user}
           isSigningOut={isSigningOut}
-          isInteractionBlocked={Boolean(closingModal)}
+          isInteractionBlocked={Boolean(activeModal)}
           signOutError={signOutError}
           authError={authError}
           onSignOut={handleSignOut}
@@ -477,39 +450,35 @@ function Settings() {
 
       <LanguageSelectionModal
         isOpen={showLanguageDropdown}
-        isClosing={closingModal === 'language'}
         languages={languages}
         selectedLanguage={language}
         onSelect={handleLanguageChange}
-        onRequestClose={() =>
-          closeModalWithAnimation('language', () => setShowLanguageDropdown(false))
-        }
+        onRequestClose={() => setShowLanguageDropdown(false)}
+        onExitComplete={() => setActiveModal(null)}
       />
 
       <CurrencySelectionModal
         isOpen={showCurrencyDropdown}
-        isClosing={closingModal === 'currency'}
         currencyOptions={currencyOptions}
         selectedCurrencyCode={currencyCode}
         onSelect={handleCurrencyChange}
-        onRequestClose={() =>
-          closeModalWithAnimation('currency', () => setShowCurrencyDropdown(false))
-        }
+        onRequestClose={() => setShowCurrencyDropdown(false)}
+        onExitComplete={() => setActiveModal(null)}
       />
 
       <ImportConfirmDialog
         isOpen={showImportConfirm}
-        isClosing={closingModal === 'import'}
         isImporting={isImporting}
-        onCancel={() =>
-          closeModalWithAnimation('import', () => setShowImportConfirm(false))
-        }
+        onCancel={() => setShowImportConfirm(false)}
         onConfirm={confirmImport}
+        onExitComplete={() => {
+          setIsImporting(false);
+          setActiveModal(null);
+        }}
       />
 
       <EquivalentFormModal
         isOpen={showEquivalentModal}
-        isClosing={closingModal === 'equivalent'}
         editingEquivalent={editingEquivalent}
         formName={equivalentFormName}
         formAmount={equivalentFormAmount}
@@ -520,19 +489,24 @@ function Settings() {
         onNameChange={setEquivalentFormName}
         onAmountChange={setEquivalentFormAmount}
         onCurrencyChange={setEquivalentFormCurrency}
-        onCancel={() =>
-          closeModalWithAnimation('equivalent', () => setShowEquivalentModal(false))
-        }
+        onCancel={() => setShowEquivalentModal(false)}
         onSubmit={handleSaveEquivalent}
+        onExitComplete={() => {
+          setIsSavingEquivalent(false);
+          setActiveModal(null);
+        }}
       />
 
       <DeleteEquivalentConfirmDialog
-        target={showDeleteEquivalentConfirm || activeDeleteTarget}
+        target={showDeleteEquivalentConfirm}
         isOpen={Boolean(showDeleteEquivalentConfirm)}
-        isClosing={closingModal === 'delete'}
         isDeleting={isDeletingEquivalent}
         onCancel={handleCloseDeleteConfirm}
         onConfirm={handleConfirmDeleteEquivalent}
+        onExitComplete={() => {
+          setIsDeletingEquivalent(false);
+          setActiveModal(null);
+        }}
       />
     </>
   );
