@@ -50,7 +50,7 @@ describe('useVersionCheck', () => {
     vi.restoreAllMocks();
   });
 
-  it('does not reload when deployed version matches the running build', async () => {
+  it('does not reload when deployed revision matches the running build', async () => {
     fetchVersion.mockResolvedValue({ version: '0.2.0-beta.1', revision: 'build-a' });
 
     const { result } = renderHook(
@@ -66,7 +66,7 @@ describe('useVersionCheck', () => {
     expect(reloadMock).not.toHaveBeenCalled();
   });
 
-  it('reloads once when deployed version differs from the running build', async () => {
+  it('reloads once when deployed revision differs from the running build', async () => {
     fetchVersion.mockResolvedValue({ version: '0.2.0-beta.1', revision: 'build-b' });
 
     renderHook(() => useVersionCheck({ runningRevision: 'build-a' }), {
