@@ -183,7 +183,7 @@ func main() {
 
 	itemHandler := handler.NewItemHandler(itemService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
-	healthHandler := handler.NewHealthHandler(handler.HealthHandlerConfig{
+	healthHandler := handler.NewHealthHandlerWithConfig(handler.HealthHandlerConfig{
 		Version:  appVersion,
 		Revision: appRevision,
 	})
