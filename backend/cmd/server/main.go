@@ -63,6 +63,8 @@ func main() {
 	}
 
 	staticDirectory := os.Getenv("STATIC_DIR")
+	appVersion := strings.TrimSpace(os.Getenv("APP_VERSION"))
+	appRevision := strings.TrimSpace(os.Getenv("APP_REVISION"))
 
 	appBaseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("APP_BASE_URL")), "/")
 	if appBaseURL == "" {
@@ -181,7 +183,10 @@ func main() {
 
 	itemHandler := handler.NewItemHandler(itemService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
-	healthHandler := handler.NewHealthHandler()
+	healthHandler := handler.NewHealthHandler(handler.HealthHandlerConfig{
+		Version:  appVersion,
+		Revision: appRevision,
+	})
 	equivalentHandler := handler.NewValueEquivalentHandler(equivalentService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	plannedPurchaseHandler := handler.NewPlannedPurchaseHandler(plannedPurchaseService)
