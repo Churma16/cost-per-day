@@ -97,4 +97,71 @@ describe('AddEntryPage', () => {
       expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
     });
   });
+
+  it('switches tabs with a deliberate horizontal touch swipe', async () => {
+    renderPage('/add?type=item');
+    const viewport = screen.getByTestId('add-form-viewport');
+
+    fireEvent.pointerDown(viewport, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 260,
+      clientY: 120,
+    });
+    fireEvent.pointerUp(viewport, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 160,
+      clientY: 128,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('location')).toHaveTextContent('/add?type=planned');
+    });
+
+    fireEvent.pointerDown(viewport, {
+      pointerId: 2,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 120,
+      clientY: 120,
+    });
+    fireEvent.pointerUp(viewport, {
+      pointerId: 2,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 220,
+      clientY: 126,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
+    });
+  });
+
+  it('does not interpret gestures starting on form controls as tab swipes', () => {
+    renderPage('/add?type=item');
+    const ownedDraft = screen.getByTestId('owned-draft');
+
+    fireEvent.pointerDown(ownedDraft, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 260,
+      clientY: 120,
+    });
+    fireEvent.pointerUp(ownedDraft, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 120,
+      clientY: 124,
+    });
+
+    expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('location')).toHaveTextContent('/add?type=item');
+  });
 });
