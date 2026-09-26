@@ -74,20 +74,13 @@ export const getStatusBadgeStyle = (status) => {
   }
 };
 
-function CalmCycleValue({ text, animateChange, shouldReduceMotion, transition }) {
+function CalmCycleValueContent({ text }) {
   const isPresent = useIsPresent();
 
   return (
-    <motion.span
-      initial={animateChange ? { opacity: 0, y: shouldReduceMotion ? 0 : 5 } : false}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -5 }}
-      transition={transition}
-      aria-hidden={isPresent ? undefined : 'true'}
-      className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap"
-    >
+    <span aria-hidden={isPresent ? undefined : 'true'}>
       {text}
-    </motion.span>
+    </span>
   );
 }
 
@@ -104,13 +97,16 @@ export function CalmCycleText({ text, hasCycled }) {
       aria-live="polite"
     >
       <AnimatePresence initial={false} mode="popLayout">
-        <CalmCycleValue
+        <motion.span
           key={text}
-          text={text}
-          animateChange={hasCycled}
-          shouldReduceMotion={shouldReduceMotion}
+          initial={hasCycled ? { opacity: 0, y: shouldReduceMotion ? 0 : 5 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -5 }}
           transition={transition}
-        />
+          className="font-semibold text-[#20242A] text-sm tabular-nums whitespace-nowrap"
+        >
+          <CalmCycleValueContent text={text} />
+        </motion.span>
       </AnimatePresence>
     </span>
   );
