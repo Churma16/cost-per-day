@@ -89,16 +89,14 @@ function PlannedPurchaseCreateForm() {
 
   return (
     <div className="px-3.5 py-1.5 pb-8 form-page-content">
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <PlannedPurchaseForm
-          initialData={initialDraft}
-          onSubmit={handleSubmit}
-          onCancel={() => navigate('/planning')}
-          isSubmitting={createMutation.isPending}
-          errorMessage={errorMessage}
-          onDraftChange={handleDraftChange}
-        />
-      </div>
+      <PlannedPurchaseForm
+        initialData={initialDraft}
+        onSubmit={handleSubmit}
+        onCancel={() => navigate('/planning')}
+        isSubmitting={createMutation.isPending}
+        errorMessage={errorMessage}
+        onDraftChange={handleDraftChange}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import FormSectionCard, { FormField, formControlClassName } from '../common/FormSectionCard';
 
 function ItemOptionalDetailsCard({
   category,
@@ -12,16 +13,10 @@ function ItemOptionalDetailsCard({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white rounded-2xl border border-dashed border-[#E6E8EC] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-2.5">
-      <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
-        {t('optionalDetailsSection')}
-      </div>
+    <FormSectionCard title={t('optionalDetailsSection')} dashed>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-        <div className="space-y-1">
-          <label htmlFor="item-category" className="text-xs text-gray-600 font-medium">
-            {t('category')}
-          </label>
+        <FormField label={t('category')} htmlFor="item-category">
           <input
             id="item-category"
             type="text"
@@ -29,20 +24,16 @@ function ItemOptionalDetailsCard({
             value={category}
             onChange={(event) => onCategoryChange(event.target.value)}
             placeholder={t('enterCategory')}
-            className="w-full px-3 py-2 rounded-xl border border-[#E6E8EC] focus:border-teal-600 
-            focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm"
+            className={formControlClassName}
           />
           <datalist id="category-suggestions">
             {availableCategories.map((categoryOption) => (
               <option key={categoryOption.id || categoryOption.name} value={categoryOption.name} />
             ))}
           </datalist>
-        </div>
+        </FormField>
 
-        <div className="space-y-1">
-          <label htmlFor="item-brand" className="text-xs text-gray-600 font-medium">
-            {t('brand')}
-          </label>
+        <FormField label={t('brand')} htmlFor="item-brand">
           <input
             id="item-brand"
             type="text"
@@ -50,17 +41,16 @@ function ItemOptionalDetailsCard({
             value={brand}
             onChange={(event) => onBrandChange(event.target.value)}
             placeholder={t('enterBrand')}
-            className="w-full px-3 py-2 rounded-xl border border-[#E6E8EC] focus:border-teal-600 
-            focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm"
+            className={formControlClassName}
           />
           <datalist id="brand-suggestions">
             {availableBrands.map((brandOption) => (
               <option key={brandOption.id || brandOption.name} value={brandOption.name} />
             ))}
           </datalist>
-        </div>
+        </FormField>
       </div>
-    </div>
+    </FormSectionCard>
   );
 }
 

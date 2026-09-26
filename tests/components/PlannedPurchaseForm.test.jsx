@@ -7,6 +7,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key) => ({
       targetItemName: 'Target item name',
+      requiredSection: 'REQUIRED',
       enterTargetItemName: 'Enter name',
       targetPrice: 'Target price',
       enterTargetPrice: 'Enter target price',
@@ -49,6 +50,9 @@ const renderForm = (props = {}) => {
 describe('PlannedPurchaseForm', () => {
   it('preserves existing contribution-mode validation and payload behavior', () => {
     const onSubmit = renderForm();
+    expect(screen.getByRole('heading', { name: 'REQUIRED' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Target item name/)).toHaveClass('rounded-xl');
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('w-full');
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Camera' } });
     fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '5000000' } });
     fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '50000' } });

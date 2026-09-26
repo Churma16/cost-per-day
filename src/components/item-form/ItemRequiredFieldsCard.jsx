@@ -10,6 +10,7 @@ import {
   ownershipDateToDateOnly,
 } from '../../utils/ownershipDate';
 import CurrencyInput from '../common/CurrencyInput';
+import FormSectionCard, { FormField, formControlClassName } from '../common/FormSectionCard';
 
 function ItemRequiredFieldsCard({
   name,
@@ -30,60 +31,48 @@ function ItemRequiredFieldsCard({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E6E8EC] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-2.5">
-      <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
-        {t('requiredSection')}
-      </div>
+    <FormSectionCard title={t('requiredSection')}>
 
       {/* Item Name */}
-      <div className="space-y-1">
-        <label className="text-xs text-gray-600 font-medium">
-          {t('itemName')} <span className="text-red-500">*</span>
-        </label>
+      <FormField label={t('itemName')} htmlFor="owned-item-name" required>
         <input
+          id="owned-item-name"
           type="text"
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
           required
           placeholder={t('enterItemName')}
-          className="w-full px-3 py-2 rounded-xl border border-[#E6E8EC] focus:border-teal-600 
-          focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm"
+          className={formControlClassName}
         />
-      </div>
+      </FormField>
 
       {/* Price */}
-      <div className="space-y-1">
-        <label className="text-xs text-gray-600 font-medium">
-          {t('price')} <span className="text-red-500">*</span>
-        </label>
+      <FormField label={t('price')} htmlFor="owned-item-price" required>
         <div className="relative">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{currencySymbol}</div>
           <CurrencyInput
+            id="owned-item-price"
             value={price}
             onChange={(event) => onPriceChange(event.target.value)}
             required
             currencyCode={currencyCode}
             placeholder={t('enterPrice')}
-            className={`w-full px-3 py-2 ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'} rounded-xl border border-[#E6E8EC] focus:border-teal-600 
-            focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm`}
+            className={`${formControlClassName} ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'}`}
           />
         </div>
-      </div>
+      </FormField>
 
       {/* Purchase Date */}
-      <div className="space-y-1">
-        <label className="text-xs text-gray-600 font-medium">
-          {t('date')} <span className="text-red-500">*</span>
-        </label>
+      <FormField label={t('date')} htmlFor="owned-item-purchase-date" required>
 
         {/* Combination of native date picker for mobile and custom date picker for desktop */}
         <div className="relative">
           {/* Display current selected date - clicking performs different actions based on device type */}
           <button
+            id="owned-item-purchase-date"
             type="button"
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-[#E6E8EC] 
-            focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200
-            text-left text-sm"
+            aria-label={`${t('date')}: ${formatDisplayDate(purchaseDate, language)}`}
+            className={`${formControlClassName} flex items-center justify-between text-left`}
             onClick={() => {
               const isMobile = window.innerWidth <= 768;
               if (isMobile) {
@@ -189,8 +178,8 @@ function ItemRequiredFieldsCard({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </FormField>
+    </FormSectionCard>
   );
 }
 

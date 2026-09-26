@@ -79,8 +79,8 @@ function PlannedPurchases() {
 
       {/* Planned-purchase editing stays with its Planning card. */}
       {editingItem && (
-        <div className="rounded-2xl bg-white p-5 border border-teal-200 shadow-md">
-          <h3 className="text-base font-bold text-gray-900 mb-3">
+        <div className="space-y-2.5">
+          <h3 className="text-base font-bold text-gray-900 px-1">
             {t('editPlannedPurchase')}
           </h3>
           <PlannedPurchaseForm
