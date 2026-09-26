@@ -8,9 +8,10 @@ import { useItems } from '../../src/hooks/useItems';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key) => ({
+    t: (key, options) => ({
       totalDailyCost: 'Daily Ownership Cost',
       perDay: '/day',
+      dailyOwnershipReflection: `Today, what you own is worth about ${options?.amount} per day.`,
     }[key] || key),
   }),
 }));
@@ -48,27 +49,37 @@ describe('HomeHeader', () => {
     });
   });
 
-  test('keeps a large IDR daily cost inside a wrapping summary row', () => {
+  test('presents a large IDR daily cost as supporting prose inside a standalone hero card', () => {
     useCurrency.mockReturnValue({ currencyCode: 'IDR' });
 
     render(<HomeHeader totalDailyCost={987654321012} currencyCode="IDR" />);
 
-    const label = screen.getByText('Daily Ownership Cost');
-    const summaryRow = label.parentElement;
-    const value = label.nextElementSibling;
+    const summary = screen.getByText(/Today, what you own is worth about/);
     const header = screen.getByRole('banner');
-    const headerContent = header.firstElementChild;
+    const brandRow = screen.getByLabelText('Worthwhile');
+    const brandPlacement = brandRow.parentElement;
+    const heroCard = brandPlacement.nextElementSibling;
+    const reflectionSurface = heroCard.firstElementChild;
+    const headerContent = reflectionSurface.firstElementChild;
 
     expect(header).toHaveClass('w-full', 'min-w-0');
-    expect(headerContent).toHaveClass('w-full', 'min-w-0', 'max-w-lg');
-    expect(summaryRow).toHaveClass(
-      'w-full',
-      'min-w-0',
-      'grid-cols-[minmax(0,1fr)_auto]'
+    expect(header).toHaveClass('sticky', 'top-0', 'z-10');
+    expect(brandRow).toHaveTextContent('Worthwhile');
+    expect(brandPlacement).toHaveClass('max-w-lg', 'mb-3', 'px-1');
+    expect(brandRow.querySelector('img')).toHaveAttribute('src', '/worthwhile-icon-192-v2.png');
+    expect(screen.getByText('Worthwhile')).toHaveClass(
+      'text-xl',
+      'font-semibold',
+      'leading-6',
+      'tracking-[-0.015em]'
     );
-    expect(value).toHaveClass('max-w-full', 'whitespace-nowrap', 'text-right');
-    expect(value).toHaveTextContent(/Rp/);
-    expect(value).toHaveTextContent('/day');
+    expect(heroCard).toHaveClass('home-insight-card', 'rounded-[1.25rem]', 'bg-white');
+    expect(reflectionSurface).toHaveClass('home-reflection-surface');
+    expect(headerContent).toHaveClass('w-full', 'min-w-0');
+    expect(summary.parentElement).toBe(heroCard);
+    expect(summary).toHaveClass('text-sm', 'leading-5');
+    expect(summary).toHaveTextContent(/Rp/);
+    expect(summary).toHaveTextContent(/per day\.$/);
   });
 
   test('uses dashboard data as the canonical Home daily cost when available', () => {
@@ -88,7 +99,7 @@ describe('HomeHeader', () => {
 
     render(<Home />);
 
-    expect(screen.getByText('Daily Ownership Cost').nextElementSibling).toHaveTextContent('$42.50');
+    expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$42.50');
     expect(screen.getByText('Item list: 1')).toBeInTheDocument();
     expect(useItems).toHaveBeenCalledTimes(1);
   });
@@ -114,7 +125,7 @@ describe('HomeHeader', () => {
 
     render(<Home />);
 
-    expect(screen.getByText('Daily Ownership Cost').nextElementSibling).toHaveTextContent('$5.50');
+    expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$5.50');
     expect(screen.getByText('Item list: 3')).toBeInTheDocument();
     expect(useItems).toHaveBeenCalledTimes(1);
   });
@@ -136,7 +147,7 @@ describe('HomeHeader', () => {
 
     render(<Home />);
 
-    expect(screen.getByText('Daily Ownership Cost').nextElementSibling).toHaveTextContent('$5.50');
+    expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$5.50');
     expect(screen.getByText('Item list: 3')).toBeInTheDocument();
     expect(useItems).toHaveBeenCalledTimes(1);
   });

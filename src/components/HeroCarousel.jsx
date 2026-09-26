@@ -93,28 +93,27 @@ export const getHumanInsightEyebrow = (insight, t) => {
 
 export const GenericInsightSlide = ({ insight }) => {
   const { t } = useTranslation();
-  const IconComponent = getInsightIcon(insight.kind);
   const displayEyebrow = getHumanInsightEyebrow(insight, t);
 
   const hasSecondary = Boolean(insight.secondary);
   const hasCaption = Boolean(insight.caption);
 
   return (
-    <div className="flex min-w-0 w-full flex-col items-start justify-center text-left px-1 py-1 min-h-[95px]">
-      {displayEyebrow && (
-        <div className="inline-flex max-w-full min-w-0 items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/25 text-white/90 text-[11px] font-medium tracking-wide mb-1">
-          {IconComponent && <IconComponent className="flex-shrink-0 text-xs" aria-hidden="true" />}
-          <span className="min-w-0 break-words">{displayEyebrow}</span>
-        </div>
-      )}
-      <h2 className="w-full min-w-0 break-words text-lg sm:text-xl font-bold leading-tight text-white tracking-tight text-left">
-        {insight.primary}
-      </h2>
+    <div className="flex min-h-[172px] w-full min-w-0 flex-col items-start px-0.5 py-2 text-left sm:min-h-[176px]">
+      <div className="w-full min-w-0">
+        {displayEyebrow && (
+          <p className="mb-3 max-w-full min-w-0 break-words text-[11px] font-semibold uppercase leading-4 tracking-[0.16em] text-white/70">
+            {displayEyebrow}
+          </p>
+        )}
+        <h2 className="w-full min-w-0 break-words text-[1.55rem] font-semibold leading-[1.12] tracking-[-0.025em] text-white sm:text-[1.75rem]">
+          {insight.primary}
+        </h2>
+      </div>
       {(hasSecondary || hasCaption) && (
-        <div className="mt-0.5 flex w-full min-w-0 items-center justify-start gap-1.5 flex-wrap text-xs text-white/90 font-normal text-left">
-          {hasSecondary && <span className="min-w-0 max-w-full break-words tabular-nums">{insight.secondary}</span>}
-          {hasSecondary && hasCaption && <span className="text-white/40">·</span>}
-          {hasCaption && <span className="min-w-0 max-w-full break-words text-white/75">{insight.caption}</span>}
+        <div className="mt-auto flex w-full min-w-0 flex-col items-start gap-1 pt-3 text-sm font-normal leading-5 text-white/80">
+          {hasSecondary && <span className="min-w-0 max-w-full break-words font-medium text-white/90 tabular-nums">{insight.secondary}</span>}
+          {hasCaption && <span className="min-w-0 max-w-full break-words">{insight.caption}</span>}
         </div>
       )}
     </div>
@@ -220,7 +219,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
 
   if (isLoading && dashboardData == null && !insightsOverride) {
     return (
-      <div className="flex items-center justify-center p-6 text-white/70 h-[155px]">
+      <div className="flex h-[178px] items-center justify-center p-6 text-white/70">
         <p className="text-sm animate-pulse">{t('loading')}</p>
       </div>
     );
@@ -232,15 +231,14 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
 
   if (insights.length === 0) {
     return (
-      <div className="flex flex-col items-start justify-center text-left px-4 py-2 min-h-[120px]">
-        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-black/25 text-white text-xs font-medium uppercase tracking-wider mb-2">
-          <IoSparkles className="text-xs" aria-hidden="true" />
-          <span>{t('insights')}</span>
-        </div>
-        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight text-left">
+      <div className="flex min-h-[178px] flex-col items-start justify-center px-0.5 py-2 text-left">
+        <p className="mb-3 text-[11px] font-semibold uppercase leading-4 tracking-[0.16em] text-white/70">
+          {t('insights')}
+        </p>
+        <h2 className="text-[1.55rem] font-semibold leading-[1.12] tracking-[-0.025em] text-white sm:text-[1.75rem]">
           {t('insightsWelcomeTitle')}
         </h2>
-        <p className="text-xs sm:text-sm text-white/85 mt-1 max-w-sm text-left">
+        <p className="mt-3 max-w-sm text-sm leading-5 text-white/80">
           {t('insightsWelcomeCaption')}
         </p>
       </div>
@@ -255,7 +253,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       role="region"
       aria-roledescription="carousel"
       aria-label={t('insightsCarousel')}
-      className="relative mx-auto w-full min-w-0 max-w-lg"
+      className="relative mx-auto w-full min-w-0"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
@@ -294,7 +292,11 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       </div>
 
       {insights.length > 1 && (
-        <div className="flex items-center justify-start gap-1.5 px-1 mt-1.5 pb-0.5">
+        <div
+          role="group"
+          aria-label={t('carouselPosition')}
+          className="mt-1 flex items-center justify-start gap-0 pb-0.5"
+        >
           {/* Previous Slide Button (Screen-reader accessible only) */}
           <button
             type="button"
@@ -305,7 +307,7 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
             <IoChevronBack aria-hidden="true" />
           </button>
 
-          {/* Dot / Dash Indicators (Left-aligned, dash for active) */}
+          {/* Spacious hit targets keep the quiet indicators easy to use on mobile. */}
           {insights.map((insight, slideIndex) => {
             const isSelected = slideIndex === activeSlideIndex;
             return (
@@ -315,10 +317,17 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
                 onClick={() => handleSelectSlide(slideIndex)}
                 aria-label={t('goToSlide', { number: slideIndex + 1 })}
                 aria-current={isSelected ? 'true' : undefined}
-                className={`h-1 rounded-full transition-all duration-500 ease-out focus:outline-none focus:ring-2 focus:ring-white/50 ${
-                  isSelected ? 'w-6 bg-white' : 'w-1.5 bg-white/30 hover:bg-white/60'
-                }`}
-              />
+                className="group inline-flex h-8 w-6 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-interaction-accent-lighter)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#32636A]"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`h-1 w-4 rounded-full transition-colors duration-500 ease-out ${
+                    isSelected
+                      ? 'bg-[var(--color-interaction-accent-lighter)]'
+                      : 'bg-white/30 group-hover:bg-white/60'
+                  }`}
+                />
+              </button>
             );
           })}
 

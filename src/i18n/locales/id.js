@@ -39,6 +39,7 @@ const translation = {
   // Header
   "totalDailyCost": "Biaya Kepemilikan Harian",
   "perDay": "/hari",
+  "dailyOwnershipReflection": "Hari ini, kepemilikanmu bernilai sekitar {{amount}} per hari.",
 
   // Item List
   "noItems": "Belum ada barang",
@@ -173,6 +174,7 @@ const translation = {
   // Insights Carousel
   "insights": "Wawasan",
   "insightsCarousel": "Korsel Wawasan",
+  "carouselPosition": "Posisi wawasan",
   "previousInsight": "Wawasan sebelumnya",
   "nextInsight": "Wawasan berikutnya",
   "goToSlide": "Buka slide {{number}}",

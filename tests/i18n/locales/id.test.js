@@ -10,6 +10,9 @@ describe('Indonesian translation resource', () => {
     expect(translationID.settings).toBe('Pengaturan');
     expect(translationID.addNewItem).toBe('Tambah Barang Baru');
     expect(translationID.totalDailyCost).toBe('Biaya Kepemilikan Harian');
+    expect(translationID.dailyOwnershipReflection).toBe(
+      'Hari ini, kepemilikanmu bernilai sekitar {{amount}} per hari.'
+    );
     expect(translationID.selectLanguage).toBe('Pilih Bahasa');
     expect(translationID.appName).toBe('Worthwhile');
     expect(translationID.appTitle).toBe('Worthwhile');

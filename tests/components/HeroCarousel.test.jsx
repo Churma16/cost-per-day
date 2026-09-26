@@ -15,6 +15,7 @@ vi.mock('react-i18next', () => ({
       }
       return {
         insightsCarousel: 'Insights Carousel',
+        carouselPosition: 'Insight position',
         previousInsight: 'Previous insight',
         nextInsight: 'Next insight',
         insightsWelcomeTitle: 'Ownership Over Time',
@@ -114,13 +115,13 @@ describe('HeroCarousel component', () => {
     expect(screen.getByText('Owned for 508 days')).toBeInTheDocument();
   });
 
-  it('allows long insight copy to wrap within a narrow slide', () => {
+  it('allows long localized insight copy to wrap and grow beyond the minimum slide height', () => {
     const longInsight = {
       kind: 'ownership_cost_trend',
-      eyebrow: 'A significantly longer insight category than the available mobile width',
-      primary: 'Your daily ownership cost continues to improve across a particularly long ownership period',
-      secondary: 'down Rp 123.456.789.012/day over the last 30 days',
-      caption: 'More ownership time spreads the purchase cost across more days without leaving the card.'
+      eyebrow: 'Semakin Bernilai Seiring Waktu Kepemilikan',
+      primary: 'Biaya kepemilikan harianmu terus menurun setelah digunakan dalam periode yang sangat panjang',
+      secondary: 'turun Rp 123.456.789.012 per hari dibandingkan dengan 30 hari yang lalu',
+      caption: 'Semakin lama barang dimiliki, biaya pembeliannya tersebar ke lebih banyak hari tanpa ada informasi yang terpotong.'
     };
 
     render(<HeroCarousel insightsOverride={[longInsight]} />);
@@ -132,10 +133,13 @@ describe('HeroCarousel component', () => {
 
     expect(headline).toHaveClass('w-full', 'min-w-0', 'break-words');
     expect(headline).not.toHaveClass('line-clamp-1');
-    expect(eyebrow).toHaveClass('min-w-0', 'break-words');
-    expect(eyebrow.parentElement).toHaveClass('max-w-full', 'min-w-0');
+    expect(eyebrow).toHaveClass('max-w-full', 'min-w-0', 'break-words');
     expect(secondary).toHaveClass('max-w-full', 'min-w-0', 'break-words');
     expect(caption).toHaveClass('max-w-full', 'min-w-0', 'break-words');
+    const slideContent = headline.closest('[role="group"]')?.firstElementChild;
+    expect(slideContent).toHaveClass('min-h-[172px]', 'sm:min-h-[176px]');
+    expect(slideContent).not.toHaveClass('h-[172px]', 'sm:h-[176px]');
+    expect(secondary.parentElement).toHaveClass('mt-auto', 'pt-3');
   });
 
   it('navigates to next and previous slides via controls', () => {
@@ -166,6 +170,26 @@ describe('HeroCarousel component', () => {
 
     expect(screen.getByText('Your daily ownership cost is lower than 30 days ago')).toBeInTheDocument();
     expect(screen.getByText('down Rp 6.800/day over the last 30 days')).toBeInTheDocument();
+  });
+
+  it('uses accessible hit targets and strip-shaped position indicators with the shared accent', () => {
+    render(<HeroCarousel insightsOverride={mockInsights} />);
+
+    const firstIndicator = screen.getByRole('button', { name: 'Go to slide 1' });
+    const secondIndicator = screen.getByRole('button', { name: 'Go to slide 2' });
+    const indicatorGroup = screen.getByRole('group', { name: 'Insight position' });
+
+    expect(indicatorGroup).toContainElement(firstIndicator);
+    expect(indicatorGroup).toContainElement(secondIndicator);
+    expect(firstIndicator).toHaveClass('h-8', 'w-6');
+    expect(firstIndicator).toHaveAttribute('aria-current', 'true');
+    expect(firstIndicator.firstElementChild).toHaveClass(
+      'h-1',
+      'w-4',
+      'bg-[var(--color-interaction-accent-lighter)]'
+    );
+    expect(secondIndicator).not.toHaveAttribute('aria-current');
+    expect(secondIndicator.firstElementChild).toHaveClass('h-1', 'w-4', 'bg-white/30');
   });
 
   it('auto-advances slides slowly when not paused', () => {
