@@ -16,12 +16,13 @@ export function FormField({ label, htmlFor, required = false, children, classNam
   );
 }
 
-function FormSectionCard({ title = null, dashed = false, children, className = '' }) {
+function FormSectionCard({ title = null, dashed = false, children, className = '', ...props }) {
   return (
     <section
       className={`bg-white rounded-2xl border ${
         dashed ? 'border-dashed' : 'border-solid'
       } border-[#E6E8EC] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-2.5 ${className}`}
+      {...props}
     >
       {title && (
         <h2 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">

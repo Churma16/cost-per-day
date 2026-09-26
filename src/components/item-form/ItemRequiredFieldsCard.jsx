@@ -31,7 +31,7 @@ function ItemRequiredFieldsCard({
   const { t } = useTranslation();
 
   return (
-    <FormSectionCard title={t('requiredSection')}>
+    <FormSectionCard title={t('requiredSection')} data-swipe-protected>
 
       {/* Item Name */}
       <FormField label={t('itemName')} htmlFor="owned-item-name" required>

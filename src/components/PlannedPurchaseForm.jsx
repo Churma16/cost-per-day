@@ -167,7 +167,7 @@ function PlannedPurchaseForm({
         </div>
       )}
 
-      <FormSectionCard title={t('requiredSection')}>
+      <FormSectionCard title={t('requiredSection')} data-swipe-protected>
         <PlannedPurchaseCoreFields
           name={name}
           onNameChange={setName}

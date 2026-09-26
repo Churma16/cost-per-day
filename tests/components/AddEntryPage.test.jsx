@@ -21,11 +21,22 @@ vi.mock('../../src/components/AddItem', () => ({
   default: () => {
     const [value, setValue] = useState('');
     return (
-      <input
-        data-testid="owned-draft"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-      />
+      <div>
+        <div data-swipe-protected>
+          <input
+            data-testid="owned-draft"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          data-testid="owned-optional-control"
+          onClick={() => {}}
+        >
+          Optional Control
+        </button>
+      </div>
     );
   },
 }));
@@ -213,4 +224,37 @@ describe('AddEntryPage', () => {
     expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location')).toHaveTextContent('/add?type=item');
   });
+
+  it('allows gestures starting on non-protected controls to swipe tabs', async () => {
+    renderPage('/add?type=item');
+    const optionalControl = screen.getByTestId('owned-optional-control');
+
+    fireEvent.pointerDown(optionalControl, {
+      pointerId: 4,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 260,
+      clientY: 120,
+    });
+    fireEvent.pointerMove(optionalControl, {
+      pointerId: 4,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 160,
+      clientY: 124,
+    });
+    fireEvent.pointerUp(optionalControl, {
+      pointerId: 4,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 140,
+      clientY: 126,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('location')).toHaveTextContent('/add?type=planned');
+    });
+  });
 });
+

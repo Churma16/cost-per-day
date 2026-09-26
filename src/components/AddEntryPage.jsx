@@ -16,18 +16,19 @@ const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
 const SWIPE_FLICK_DISTANCE = 28;
 const SWIPE_VELOCITY = 0.5;
 const EDGE_RESISTANCE = 0.16;
-const INTERACTIVE_SELECTOR = [
-  'a',
-  'button',
-  'input',
-  'label',
-  'select',
-  'textarea',
-  '[contenteditable="true"]',
-  '[data-swipe-ignore]',
-  '[role="button"]',
-  '[role="slider"]',
-].join(',');
+const isProtectedSwipeTarget = (target) => {
+  if (!target) return false;
+  if (target.closest?.('[data-swipe-ignore]')) return true;
+  const protectedSection = target.closest?.('[data-swipe-protected]');
+  if (protectedSection) {
+    return Boolean(
+      target.closest?.(
+        'input, textarea, select, button, label, [contenteditable="true"], [role="button"], [role="slider"]'
+      )
+    );
+  }
+  return false;
+};
 
 function AddEntryPage() {
   const { t } = useTranslation();
@@ -142,7 +143,7 @@ function AddEntryPage() {
 
   const handlePointerDown = (event) => {
     if (event.pointerType === 'mouse' || !event.isPrimary) return;
-    if (event.target.closest?.(INTERACTIVE_SELECTOR)) return;
+    if (isProtectedSwipeTarget(event.target)) return;
 
     swipeAnimationRef.current?.stop();
     swipeStartRef.current = {
@@ -155,8 +156,8 @@ function AddEntryPage() {
       velocityX: 0,
       direction: null,
       startTrackX: trackX.get(),
+      hasCapturedPointer: false,
     };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
   };
 
   const handlePointerMove = (event) => {
@@ -171,6 +172,10 @@ function AddEntryPage() {
     if (!swipeStart.direction) {
       if (Math.max(horizontalDistance, verticalDistance) < SWIPE_DIRECTION_LOCK_DISTANCE) return;
       swipeStart.direction = horizontalDistance > verticalDistance ? 'horizontal' : 'vertical';
+      if (swipeStart.direction === 'horizontal') {
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        swipeStart.hasCapturedPointer = true;
+      }
     }
 
     if (swipeStart.direction !== 'horizontal') return;
@@ -196,6 +201,10 @@ function AddEntryPage() {
     swipeStartRef.current = null;
 
     if (!swipeStart || swipeStart.pointerId !== event.pointerId) return;
+
+    if (swipeStart.hasCapturedPointer) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    }
 
     const deltaX = event.clientX - swipeStart.x;
     const horizontalDistance = Math.abs(deltaX);
@@ -234,7 +243,11 @@ function AddEntryPage() {
     });
   };
 
-  const handlePointerCancel = () => {
+  const handlePointerCancel = (event) => {
+    const swipeStart = swipeStartRef.current;
+    if (swipeStart?.hasCapturedPointer && event?.pointerId) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    }
     swipeStartRef.current = null;
     const targetX = activeType === 'planned' ? -viewportWidth : 0;
     if (shouldReduceMotion) {
