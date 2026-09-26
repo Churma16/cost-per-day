@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PersistenceProvider } from './contexts/PersistenceContext';
 import { ValueEquivalentsProvider } from './contexts/ValueEquivalentsContext';
 import Home from './components/Home';
 import AddItem from './components/AddItem';
@@ -79,7 +80,7 @@ function AuthenticatedApp() {
 
 function AuthGate() {
   const { t } = useTranslation();
-  const { user, isLoading, error, signIn } = useAuth();
+  const { user, isGuest, isLoading, error, signIn, continueAsGuest } = useAuth();
 
   if (isLoading) {
     return (
@@ -89,7 +90,7 @@ function AuthGate() {
     );
   }
 
-  if (!user) {
+  if (!user && !isGuest) {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <section className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center">
@@ -107,13 +108,25 @@ function AuthGate() {
               {t('authSessionError')}
             </p>
           )}
-          <button
-            type="button"
-            onClick={signIn}
-            className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
-          >
-            {t('signInWithGoogle')}
-          </button>
+          <div className="mt-6 space-y-3">
+            <button
+              type="button"
+              onClick={continueAsGuest}
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 font-semibold text-gray-800 hover:bg-gray-50"
+            >
+              {t('continueAsGuest')}
+            </button>
+            <button
+              type="button"
+              onClick={signIn}
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+            >
+              {t('signInWithGoogle')}
+            </button>
+          </div>
+          <p className="mt-4 text-xs leading-5 text-gray-500">
+            {t('guestLocalOnlyNotice')}
+          </p>
         </section>
       </main>
     );
@@ -127,7 +140,9 @@ function AppContent() {
 
   return (
     <AuthProvider>
-      <AuthGate />
+      <PersistenceProvider>
+        <AuthGate />
+      </PersistenceProvider>
     </AuthProvider>
   );
 }
