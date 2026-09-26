@@ -8,9 +8,10 @@ vi.mock('react-i18next', () => ({
     t: (key) => ({
       targetItemName: 'Target item name',
       requiredSection: 'REQUIRED',
-      enterTargetItemName: 'Enter name',
-      targetPrice: 'Target price',
-      enterTargetPrice: 'Enter target price',
+      itemPrice: 'Item price',
+      enterItemPrice: 'Enter item price',
+      targetPrice: 'Item price',
+      enterTargetPrice: 'Enter item price',
       planningMode: 'How do you want to plan?',
       modeContributionToTime: 'Choose an amount',
       modeTargetDateToContribution: 'Choose a target date',
@@ -55,7 +56,7 @@ describe('PlannedPurchaseForm', () => {
     expect(screen.getByLabelText(/Target item name/)).toHaveClass('rounded-xl');
     expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('w-full');
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Camera' } });
-    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '5000000' } });
+    fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '5000000' } });
     fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '50000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -72,7 +73,7 @@ describe('PlannedPurchaseForm', () => {
   it('clears contribution fields when switching to target-date mode', () => {
     const onSubmit = renderForm();
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Winter Coat' } });
-    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '1200000' } });
+    fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '1200000' } });
     fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '14000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Choose a target date' }));
     fireEvent.change(screen.getByLabelText('Target date'), { target: { value: '2028-12-31' } });
@@ -166,7 +167,7 @@ describe('PlannedPurchaseForm', () => {
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Headphones' } });
     expect(saveButton).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '1500000' } });
+    fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '1500000' } });
     expect(saveButton).toBeEnabled();
   });
 });

@@ -11,6 +11,7 @@ import {
 import AddItem from './AddItem';
 import PlannedPurchaseCreateForm from './PlannedPurchaseCreateForm';
 import { PageHeader } from './ui/PageHeader';
+import { PageContainer } from './ui/PageContainer';
 
 const ADD_TYPES = ['item', 'planned'];
 const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
@@ -303,7 +304,7 @@ function AddEntryPage() {
   };
 
   return (
-    <div ref={pageRef} className="max-w-3xl mx-auto">
+    <PageContainer ref={pageRef} padded={false}>
       <div className="px-4 space-y-4 pb-2">
         <PageHeader
           title={t('addEntryTitle')}
@@ -390,7 +391,7 @@ function AddEntryPage() {
           </div>
         </motion.div>
       </motion.div>
-    </div>
+    </PageContainer>
   );
 }
 

@@ -108,4 +108,48 @@ describe('UI Primitives', () => {
       expect(screen.getByText('Understand price through time')).toBeInTheDocument();
     });
   });
+
+  describe('PageContainer', () => {
+    it('renders children with default padding and max-w-3xl', async () => {
+      const { PageContainer } = await import('../../../src/components/ui/PageContainer');
+      const { container } = render(
+        <PageContainer className="custom-test-class">
+          <span>Container Content</span>
+        </PageContainer>
+      );
+
+      const rootElement = container.firstChild;
+      expect(rootElement).toHaveClass('px-4', 'pb-8', 'space-y-4', 'max-w-3xl', 'mx-auto', 'w-full', 'custom-test-class');
+      expect(screen.getByText('Container Content')).toBeInTheDocument();
+    });
+
+    it('supports padded={false} to omit padding and vertical rhythm', async () => {
+      const { PageContainer } = await import('../../../src/components/ui/PageContainer');
+      const { container } = render(
+        <PageContainer padded={false}>
+          <span>Unpadded Content</span>
+        </PageContainer>
+      );
+
+      const rootElement = container.firstChild;
+      expect(rootElement).not.toHaveClass('px-4');
+      expect(rootElement).not.toHaveClass('pb-8');
+      expect(rootElement).not.toHaveClass('space-y-4');
+      expect(rootElement).toHaveClass('max-w-3xl', 'mx-auto', 'w-full');
+    });
+
+    it('supports custom maxWidth and custom semantic tag via as prop', async () => {
+      const { PageContainer } = await import('../../../src/components/ui/PageContainer');
+      const { container } = render(
+        <PageContainer as="main" maxWidth="max-w-4xl">
+          <p>Main content</p>
+        </PageContainer>
+      );
+
+      const mainElement = container.querySelector('main');
+      expect(mainElement).toBeInTheDocument();
+      expect(mainElement).toHaveClass('max-w-4xl');
+    });
+  });
 });
+

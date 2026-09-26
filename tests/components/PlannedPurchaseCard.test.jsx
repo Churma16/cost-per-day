@@ -29,7 +29,8 @@ vi.mock('react-i18next', () => ({
         return `~${options?.weeks} weeks`;
       }
       const translations = {
-        targetPrice: 'Target price',
+        itemPrice: 'Item price',
+        targetPrice: 'Item price',
         contributionPace: 'Contribution pace',
         statusPlanned: 'Planned',
         edit: 'Edit',
@@ -151,6 +152,7 @@ describe('PlannedPurchaseCard Component', () => {
     expect(handleDelete).toHaveBeenCalledWith('plan-1');
 
     // InfoTiles
+    expect(screen.getByText('Item price')).toBeInTheDocument();
     expect(screen.getByText('Contribution pace')).toBeInTheDocument();
 
     // Hero section

@@ -141,7 +141,7 @@ function PlannedPurchaseCard({
       <div className="grid grid-cols-2 gap-2.5">
         <InfoTile
           icon={IoPricetagOutline}
-          label={t('targetPrice')}
+          label={t('itemPrice')}
           value={formatCurrency(targetPrice, currencyCode)}
         />
         {hasTargetDate ? (

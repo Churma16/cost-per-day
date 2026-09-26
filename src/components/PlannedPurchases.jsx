@@ -8,6 +8,7 @@ import {
 import PlannedPurchaseCard from './PlannedPurchaseCard';
 import PlannedPurchaseForm from './PlannedPurchaseForm';
 import { PageHeader } from './ui/PageHeader';
+import { PageContainer } from './ui/PageContainer';
 import { IoTimeOutline } from 'react-icons/io5';
 
 function PlannedPurchases() {
@@ -97,7 +98,7 @@ function PlannedPurchases() {
   const isMutating = updateMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="px-4 pb-8 space-y-4 max-w-3xl mx-auto planning-page-content">
+    <PageContainer className="planning-page-content">
       {/* Intro Header & Philosophy */}
       <PageHeader
         title={t('plannedPurchases')}
@@ -204,7 +205,7 @@ function PlannedPurchases() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

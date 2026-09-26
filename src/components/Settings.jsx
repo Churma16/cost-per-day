@@ -20,6 +20,7 @@ import ImportConfirmDialog from './settings/ImportConfirmDialog';
 import EquivalentFormModal from './settings/EquivalentFormModal';
 import DeleteEquivalentConfirmDialog from './settings/DeleteEquivalentConfirmDialog';
 import { PageHeader } from './ui/PageHeader';
+import { PageContainer } from './ui/PageContainer';
 
 function Settings() {
   const { t } = useTranslation();
@@ -417,7 +418,7 @@ function Settings() {
 
   return (
     <>
-      <div className="px-4 space-y-4 settings-page-content pb-8">
+      <PageContainer className="settings-page-content">
         {/* Header */}
         <PageHeader title={t('settings')} />
 
@@ -472,7 +473,7 @@ function Settings() {
         <div className="text-center text-gray-400 text-xs py-2">
           <p>{t('versionText', { version: APP_VERSION })}</p>
         </div>
-      </div>
+      </PageContainer>
 
       <LanguageSelectionModal
         isOpen={showLanguageDropdown}

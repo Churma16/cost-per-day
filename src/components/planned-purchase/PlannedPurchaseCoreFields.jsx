@@ -29,13 +29,13 @@ function PlannedPurchaseCoreFields({
       </FormField>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-        <FormField label={t('targetPrice')} htmlFor="planned-purchase-price" required>
+        <FormField label={t('itemPrice')} htmlFor="planned-purchase-price" required>
           <CurrencyInput
             id="planned-purchase-price"
             value={targetPrice}
             onChange={(event) => onTargetPriceChange(event.target.value)}
             currencyCode={currencyCode}
-            placeholder={t('enterTargetPrice')}
+            placeholder={t('enterItemPrice')}
             className={formControlClassName}
             required
           />
