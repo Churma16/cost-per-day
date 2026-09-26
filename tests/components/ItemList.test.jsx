@@ -843,6 +843,16 @@ describe('ItemList lifecycle display', () => {
     }, { timeout: 1000 });
   });
 
+  test('CalmCycleText replaces non-cycle text without retaining an outgoing Motion layer', () => {
+    const { rerender } = render(<CalmCycleText text="200 days" hasCycled={false} />);
+    expect(screen.getByText('200 days')).toBeInTheDocument();
+
+    rerender(<CalmCycleText text="200 hari" hasCycled={false} />);
+
+    expect(screen.getByText('200 hari')).toBeInTheDocument();
+    expect(screen.queryByText('200 days')).not.toBeInTheDocument();
+  });
+
   test('strengthens card border and highlights chevron with teal interaction accent when expanded', async () => {
     getAllItems.mockResolvedValue([
       {
