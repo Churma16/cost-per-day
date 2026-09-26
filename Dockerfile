@@ -9,8 +9,8 @@ COPY index.html vite.config.mjs postcss.config.mjs tailwind.config.js ./
 COPY public ./public
 COPY src ./src
 
-ARG VITE_APP_VERSION=development
-ENV VITE_APP_VERSION=${VITE_APP_VERSION}
+ARG VITE_APP_REVISION=development
+ENV VITE_APP_REVISION=${VITE_APP_REVISION}
 
 RUN npm run build
 
