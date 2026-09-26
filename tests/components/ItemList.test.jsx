@@ -753,6 +753,11 @@ describe('ItemList lifecycle display', () => {
     expect(monthsElement).toBeInTheDocument();
     expect(monthsElement.closest('[aria-live="polite"]')).toBeInTheDocument();
 
+    // Let the first Motion exit finish before exercising the next cycle.
+    await waitFor(() => {
+      expect(screen.queryByText('200 days')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+
     // Click again to cycle back to days (since 200 < 365)
     fireEvent.click(screen.getByText('~6.6 months'));
     const cycledDaysElement = screen.getByText('200 days');
