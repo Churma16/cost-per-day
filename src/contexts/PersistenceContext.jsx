@@ -3,6 +3,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,7 +19,7 @@ const PersistenceContext = createContext({
 });
 
 export const PersistenceProvider = ({ children }) => {
-  const { user, isGuest } = useAuth();
+  const { user, isGuest, migrationRevision = 0 } = useAuth();
   const queryClient = useQueryClient();
   const repositories = useMemo(
     () => selectPersistenceRepositories({ user, isGuest }),
@@ -30,12 +31,19 @@ export const PersistenceProvider = ({ children }) => {
       ? 'guest'
       : 'anonymous';
   const [activeScope, setActiveScope] = useState(scope);
+  const previousMigrationRevisionRef = useRef(migrationRevision);
 
   useEffect(() => {
     if (activeScope === scope) return;
     queryClient.clear();
     setActiveScope(scope);
   }, [activeScope, queryClient, scope]);
+
+  useEffect(() => {
+    if (previousMigrationRevisionRef.current === migrationRevision) return;
+    previousMigrationRevisionRef.current = migrationRevision;
+    queryClient.invalidateQueries();
+  }, [migrationRevision, queryClient]);
 
   const value = useMemo(() => ({ repositories, scope }), [repositories, scope]);
 

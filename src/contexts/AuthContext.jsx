@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [guestMigrationError, setGuestMigrationError] = useState(null);
   const [isMigratingGuestData, setIsMigratingGuestData] = useState(false);
+  const [migrationRevision, setMigrationRevision] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -58,6 +59,7 @@ export const AuthProvider = ({ children }) => {
             if (active) {
               writeGuestMode(false);
               setGuestMigrationError(null);
+              setMigrationRevision((revision) => revision + 1);
             }
           } catch (migrationError) {
             if (active) {
@@ -120,6 +122,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const result = await guestMigrationService.migrate();
       writeGuestMode(false);
+      setMigrationRevision((revision) => revision + 1);
       return result;
     } catch (migrationError) {
       setGuestMigrationError(migrationError);
@@ -152,6 +155,7 @@ export const AuthProvider = ({ children }) => {
       guestMigrationError,
       isMigratingGuestData,
       retryGuestMigration,
+      migrationRevision,
     }}>
       {children}
     </AuthContext.Provider>
