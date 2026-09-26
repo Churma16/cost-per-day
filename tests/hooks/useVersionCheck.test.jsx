@@ -51,15 +51,15 @@ describe('useVersionCheck', () => {
   });
 
   it('does not reload when deployed version matches the running build', async () => {
-    fetchVersion.mockResolvedValue({ version: 'build-a' });
+    fetchVersion.mockResolvedValue({ version: '0.2.0-beta.1', revision: 'build-a' });
 
     const { result } = renderHook(
-      () => useVersionCheck({ runningVersion: 'build-a' }),
+      () => useVersionCheck({ runningRevision: 'build-a' }),
       { wrapper: createWrapper() }
     );
 
     await waitFor(() => {
-      expect(result.current.latestVersionIdentifier).toBe('build-a');
+      expect(result.current.latestRevision).toBe('build-a');
     });
 
     expect(fetchVersion).toHaveBeenCalledTimes(1);
@@ -67,9 +67,9 @@ describe('useVersionCheck', () => {
   });
 
   it('reloads once when deployed version differs from the running build', async () => {
-    fetchVersion.mockResolvedValue({ version: 'build-b' });
+    fetchVersion.mockResolvedValue({ version: '0.2.0-beta.1', revision: 'build-b' });
 
-    renderHook(() => useVersionCheck({ runningVersion: 'build-a' }), {
+    renderHook(() => useVersionCheck({ runningRevision: 'build-a' }), {
       wrapper: createWrapper(),
     });
 
@@ -85,9 +85,9 @@ describe('useVersionCheck', () => {
   it('reloads after an initial version request fails and a later focus check sees a new deployment', async () => {
     fetchVersion
       .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({ version: 'build-b' });
+      .mockResolvedValueOnce({ version: '0.2.0-beta.1', revision: 'build-b' });
 
-    renderHook(() => useVersionCheck({ runningVersion: 'build-a' }), {
+    renderHook(() => useVersionCheck({ runningRevision: 'build-a' }), {
       wrapper: createWrapper(),
     });
 
@@ -112,9 +112,9 @@ describe('useVersionCheck', () => {
       VERSION_RELOAD_STORAGE_KEY,
       'build-a->build-b'
     );
-    fetchVersion.mockResolvedValue({ version: 'build-b' });
+    fetchVersion.mockResolvedValue({ version: '0.2.0-beta.1', revision: 'build-b' });
 
-    renderHook(() => useVersionCheck({ runningVersion: 'build-a' }), {
+    renderHook(() => useVersionCheck({ runningRevision: 'build-a' }), {
       wrapper: createWrapper(),
     });
 
@@ -130,9 +130,9 @@ describe('useVersionCheck', () => {
       VERSION_RELOAD_STORAGE_KEY,
       'build-a->build-b'
     );
-    fetchVersion.mockResolvedValue({ version: 'build-b' });
+    fetchVersion.mockResolvedValue({ version: '0.2.0-beta.1', revision: 'build-b' });
 
-    renderHook(() => useVersionCheck({ runningVersion: 'build-b' }), {
+    renderHook(() => useVersionCheck({ runningRevision: 'build-b' }), {
       wrapper: createWrapper(),
     });
 
@@ -147,7 +147,7 @@ describe('useVersionCheck', () => {
   it('fails silently without reloading when the version endpoint is unavailable', async () => {
     fetchVersion.mockRejectedValue(new Error('Network error'));
 
-    renderHook(() => useVersionCheck({ runningVersion: 'build-a' }), {
+    renderHook(() => useVersionCheck({ runningRevision: 'build-a' }), {
       wrapper: createWrapper(),
     });
 
@@ -159,7 +159,7 @@ describe('useVersionCheck', () => {
   });
 
   it('does not query version metadata for local development builds', async () => {
-    renderHook(() => useVersionCheck({ runningVersion: 'development' }), {
+    renderHook(() => useVersionCheck({ runningRevision: 'development' }), {
       wrapper: createWrapper(),
     });
 
