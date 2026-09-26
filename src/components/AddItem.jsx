@@ -1,37 +1,37 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { IoTrashOutline, IoArrowBack } from 'react-icons/io5';
 import 'react-day-picker/dist/style.css';
-import { addItem, updateItem, deleteItem } from '../services/api';
-import { getDateLocale, formatCurrency } from '../utils/formatters';
+import { formatCurrency } from '../utils/formatters';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCategories, useBrands } from '../hooks/useDurabilityAnalytics';
-import { useItems, useInvalidateItems } from '../hooks/useItems';
-import { queryKeys } from '../query/queryConfig';
+import {
+  useCreateItem,
+  useDeleteItem,
+  useItems,
+  useUpdateItem,
+} from '../hooks/useItems';
+import {
+  getInitialAddItemDraft,
+  useAddItemDraft,
+} from '../hooks/useAddItemDraft';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 import { deriveOwnershipTargetEquivalent } from '../utils/ownershipTargetCalculator';
+import {
+  buildItemPayload,
+  createInitialItemFormValues,
+  itemFormValuesToDraftData,
+  itemToFormValues,
+  validateItemForm,
+} from '../utils/itemForm';
 import ItemRequiredFieldsCard from './item-form/ItemRequiredFieldsCard';
 import ItemOptionalDetailsCard from './item-form/ItemOptionalDetailsCard';
 import ItemStatusCard from './item-form/ItemStatusCard';
 import ItemOwnershipTargetCard from './item-form/ItemOwnershipTargetCard';
 import ItemDeleteConfirmModal from './item-form/ItemDeleteConfirmModal';
-import {
-  currentUTCDateOnly,
-  dateOnlyToOwnershipDate,
-  dateOnlyToOwnershipTimestamp,
-  normalizeOwnershipDate,
-  ownershipDateToDateOnly,
-} from '../utils/ownershipDate';
-import {
-  ADD_ITEM_DRAFT_WRITE_DELAY_MS,
-  clearAddItemDraft,
-  readAddItemDraft,
-  writeAddItemDraft,
-} from '../utils/addItemDraft';
 
 function AddItem({ showHeader = true, isVisible = true }) {
   const { t } = useTranslation();
@@ -40,252 +40,149 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const location = useLocation();
   const { user } = useAuth() ?? {};
   const draftUserId = user?.id ?? null;
-  const initialDraft = useMemo(() => {
-    if (location.pathname !== '/add') {
+  const isAddMode = location.pathname === '/add';
+  const isEditMode = location.pathname === '/edit';
+  const editId = useMemo(() => {
+    if (!isEditMode) {
       return null;
     }
 
-    return readAddItemDraft(draftUserId)?.data ?? null;
-  }, [location.pathname, draftUserId]);
-  const initialPurchaseDate = useMemo(() => {
-    if (!initialDraft?.purchaseDate) {
-      return normalizeOwnershipDate(new Date());
-    }
+    return new URLSearchParams(location.search).get('id');
+  }, [isEditMode, location.search]);
+  const initialDraft = useMemo(
+    () => getInitialAddItemDraft({ enabled: isAddMode, userId: draftUserId }),
+    [isAddMode, draftUserId]
+  );
+  const initialFormValues = useMemo(
+    () => createInitialItemFormValues(initialDraft),
+    [initialDraft]
+  );
 
-    const restoredPurchaseDate = dateOnlyToOwnershipDate(initialDraft.purchaseDate);
-    return Number.isNaN(restoredPurchaseDate.getTime())
-      ? normalizeOwnershipDate(new Date())
-      : restoredPurchaseDate;
-  }, [initialDraft]);
-
-  const [name, setName] = useState(initialDraft?.name ?? '');
-  const [price, setPrice] = useState(initialDraft?.price ?? '');
-  const [category, setCategory] = useState(initialDraft?.category ?? '');
-  const [brand, setBrand] = useState(initialDraft?.brand ?? '');
-  const [purchaseDate, setPurchaseDate] = useState(initialPurchaseDate);
-  const [status, setStatus] = useState('active');
-  const [endedAt, setEndedAt] = useState('');
-  const [salePrice, setSalePrice] = useState('');
-  const [targetType, setTargetType] = useState(initialDraft?.targetType ?? 'none');
-  const [targetValue, setTargetValue] = useState(initialDraft?.targetValue ?? '');
-  const [targetMode, setTargetMode] = useState(initialDraft?.targetMode ?? 'manual');
+  const [name, setName] = useState(initialFormValues.name);
+  const [price, setPrice] = useState(initialFormValues.price);
+  const [category, setCategory] = useState(initialFormValues.category);
+  const [brand, setBrand] = useState(initialFormValues.brand);
+  const [purchaseDate, setPurchaseDate] = useState(initialFormValues.purchaseDate);
+  const [status, setStatus] = useState(initialFormValues.status);
+  const [endedAt, setEndedAt] = useState(initialFormValues.endedAt);
+  const [salePrice, setSalePrice] = useState(initialFormValues.salePrice);
+  const [targetType, setTargetType] = useState(initialFormValues.targetType);
+  const [targetValue, setTargetValue] = useState(initialFormValues.targetValue);
+  const [targetMode, setTargetMode] = useState(initialFormValues.targetMode);
   const [selectedBenchmarkItemId, setSelectedBenchmarkItemId] = useState(
-    initialDraft?.selectedBenchmarkItemId ?? ''
+    initialFormValues.selectedBenchmarkItemId
   );
   const [benchmarkModalOpen, setBenchmarkModalOpen] = useState(false);
   const [benchmarkSourceItem, setBenchmarkSourceItem] = useState(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [month, setMonth] = useState(initialPurchaseDate);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [editIndex, setEditIndex] = useState(-1);
+  const [hydratedEditId, setHydratedEditId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [itemLoaded, setItemLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
-  const queryClient = useQueryClient();
   const { currencyCode, currencySymbol } = useCurrency();
   const { data: itemsData, isLoading: itemsLoading, error: itemsError } = useItems();
   const items = itemsData ?? [];
-  const completedItems = items.filter((candidate) => candidate.status && candidate.status !== 'active');
-  const invalidateItems = useInvalidateItems();
+  const completedItems = items.filter(
+    (candidate) => candidate.status && candidate.status !== 'active'
+  );
+  const itemLoaded =
+    isEditMode &&
+    editId !== null &&
+    String(hydratedEditId) === String(editId);
+  const createItemMutation = useCreateItem();
+  const updateItemMutation = useUpdateItem();
+  const deleteItemMutation = useDeleteItem();
   const { data: availableCategories = [] } = useCategories();
   const { data: availableBrands = [] } = useBrands();
-  const addDraftData = useMemo(() => ({
-    name,
-    price,
-    category,
-    brand,
-    purchaseDate: ownershipDateToDateOnly(purchaseDate),
-    targetType,
-    targetValue,
-    targetMode,
-    selectedBenchmarkItemId,
-  }), [
+
+  const formValues = {
     name,
     price,
     category,
     brand,
     purchaseDate,
+    status,
+    endedAt,
+    salePrice,
     targetType,
     targetValue,
     targetMode,
     selectedBenchmarkItemId,
-  ]);
-  const serializedAddDraftData = useMemo(
-    () => JSON.stringify(addDraftData),
-    [addDraftData]
-  );
-  const lastPersistedDraftDataRef = useRef(
-    initialDraft ? JSON.stringify(initialDraft) : serializedAddDraftData
-  );
-  const draftWriteTimeoutRef = useRef(null);
-  const latestAddDraftDataRef = useRef(addDraftData);
-  const latestSerializedAddDraftDataRef = useRef(serializedAddDraftData);
-  latestAddDraftDataRef.current = addDraftData;
-  latestSerializedAddDraftDataRef.current = serializedAddDraftData;
+  };
+  const addDraftData = itemFormValuesToDraftData(formValues);
+  const { clearDraft } = useAddItemDraft({
+    enabled: isAddMode,
+    userId: draftUserId,
+    draftData: addDraftData,
+    initialDraft,
+  });
 
   useEffect(() => {
-    if (
-      location.pathname !== '/add' ||
-      !draftUserId ||
-      serializedAddDraftData === lastPersistedDraftDataRef.current
-    ) {
-      return undefined;
+    if (!isEditMode) {
+      return;
     }
 
-    draftWriteTimeoutRef.current = window.setTimeout(() => {
-      if (writeAddItemDraft(draftUserId, addDraftData)) {
-        lastPersistedDraftDataRef.current = serializedAddDraftData;
-      }
-      draftWriteTimeoutRef.current = null;
-    }, ADD_ITEM_DRAFT_WRITE_DELAY_MS);
+    if (!editId) {
+      console.error('Edit mode requires an ID parameter');
+      navigate('/');
+    }
+  }, [isEditMode, editId, navigate]);
 
-    return () => {
-      if (draftWriteTimeoutRef.current !== null) {
-        window.clearTimeout(draftWriteTimeoutRef.current);
-        draftWriteTimeoutRef.current = null;
-      }
-    };
-  }, [location.pathname, draftUserId, addDraftData, serializedAddDraftData]);
-
+  // Load server-backed item data for edit mode.
   useEffect(() => {
-    if (location.pathname !== '/add' || !draftUserId) {
-      return undefined;
+    if (!isEditMode || !editId || itemsLoading || itemLoaded) {
+      return;
     }
 
-    const flushPendingDraft = () => {
-      if (draftWriteTimeoutRef.current !== null) {
-        window.clearTimeout(draftWriteTimeoutRef.current);
-        draftWriteTimeoutRef.current = null;
-      }
+    if (itemsError && itemsData === undefined) {
+      setErrorMessage(itemsError.message || t('errorLoadingItem'));
+      setLoadFailed(true);
+      return;
+    }
 
-      if (
-        latestSerializedAddDraftDataRef.current === lastPersistedDraftDataRef.current
-      ) {
-        return;
-      }
-
-      if (writeAddItemDraft(draftUserId, latestAddDraftDataRef.current)) {
-        lastPersistedDraftDataRef.current = latestSerializedAddDraftDataRef.current;
-      }
-    };
-
-    window.addEventListener('pagehide', flushPendingDraft);
-    return () => {
-      window.removeEventListener('pagehide', flushPendingDraft);
-      flushPendingDraft();
-    };
-  }, [location.pathname, draftUserId]);
-
-  const getLocale = () => getDateLocale(language);
-
-  // Load server-backed item data for edit mode
-  useEffect(() => {
-      const searchParams = new URLSearchParams(location.search);
-      const editId = searchParams.get('id');
-      const isEdit = location.pathname === '/edit';
-
-      if (!isEdit) {
-        return;
-      }
-
-      if (!editId) {
-        console.error('Edit mode requires an ID parameter');
-        navigate('/');
-        return;
-      }
-
-      setIsEditMode(true);
-      setEditIndex(editId);
-
-      if (itemsLoading || itemLoaded) return;
-
-      if (itemsError && itemsData === undefined) {
-        setErrorMessage(itemsError.message || t('errorLoadingItem'));
-        setLoadFailed(true);
-        return;
-      }
-
-      const itemToEdit = items.find((item) => String(item.id) === String(editId));
-
-      if (itemToEdit) {
-          setName(itemToEdit.name);
-          setPrice(itemToEdit.price.toString());
-          setCategory(itemToEdit.category || '');
-          setBrand(itemToEdit.brand || '');
-          const parsedPurchaseDate = dateOnlyToOwnershipDate(
-            ownershipDateToDateOnly(itemToEdit.purchaseDate)
-          );
-          setPurchaseDate(parsedPurchaseDate);
-          setMonth(parsedPurchaseDate);
-          setStatus(itemToEdit.status || 'active');
-          setEndedAt(itemToEdit.endedAt ? itemToEdit.endedAt.split('T')[0] : '');
-          setSalePrice(
-            itemToEdit.salePrice !== undefined && itemToEdit.salePrice !== null
-              ? itemToEdit.salePrice.toString()
-              : ''
-          );
-          setTargetType(itemToEdit.targetType || 'none');
-          setTargetValue(
-            itemToEdit.targetValue !== null && itemToEdit.targetValue !== undefined
-              ? String(itemToEdit.targetValue)
-              : itemToEdit.targetType === 'cost_per_day'
-                ? String(itemToEdit.targetCostPerDay ?? '')
-                : String(itemToEdit.targetDurationDays ?? '')
-          );
-          setItemLoaded(true);
-          setLoadFailed(false);
-      } else {
-        console.error('Item not found for editing');
-        setErrorMessage(t('itemNotFound'));
-        setLoadFailed(true);
-        setItemLoaded(false);
-      }
-  }, [location.pathname, location.search, navigate, items, itemsData, itemsLoading, itemsError, itemLoaded]);
-
-  // Close desktop date picker when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showDatePicker && !event.target.closest('.date-picker-container')) {
-        setShowDatePicker(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showDatePicker]);
-
-  const purchaseDateValue = ownershipDateToDateOnly(purchaseDate);
-  const currentDateValue = currentUTCDateOnly();
-
-  const lifecycleFormValid = !isEditMode ||
-    status === 'active' ||
-    (
-      endedAt !== '' &&
-      endedAt >= purchaseDateValue &&
-      endedAt <= currentDateValue &&
-      (
-        status !== 'sold' ||
-        (salePrice !== '' && Number.isFinite(Number(salePrice)) && Number(salePrice) >= 0)
-      )
+    const itemToEdit = items.find(
+      (item) => String(item.id) === String(editId)
     );
 
-  const numericPrice = Number(price);
-  const numericTargetValue = Number(targetValue);
-  const hasValidTarget = targetType !== 'none' &&
-    targetValue !== '' &&
-    Number.isFinite(numericTargetValue) &&
-    numericTargetValue > 0;
+    if (!itemToEdit) {
+      console.error('Item not found for editing');
+      setErrorMessage(t('itemNotFound'));
+      setLoadFailed(true);
+      setHydratedEditId(null);
+      return;
+    }
 
-  const targetFormValid = targetMode === 'benchmark' ||
-    targetType === 'none' ||
-    hasValidTarget;
+    const hydratedValues = itemToFormValues(itemToEdit);
+    setName(hydratedValues.name);
+    setPrice(hydratedValues.price);
+    setCategory(hydratedValues.category);
+    setBrand(hydratedValues.brand);
+    setPurchaseDate(hydratedValues.purchaseDate);
+    setStatus(hydratedValues.status);
+    setEndedAt(hydratedValues.endedAt);
+    setSalePrice(hydratedValues.salePrice);
+    setTargetType(hydratedValues.targetType);
+    setTargetValue(hydratedValues.targetValue);
+    setHydratedEditId(String(editId));
+    setLoadFailed(false);
+    setErrorMessage(null);
+  }, [
+    editId,
+    isEditMode,
+    itemLoaded,
+    items,
+    itemsData,
+    itemsError,
+    itemsLoading,
+    t,
+  ]);
 
-  const isFormValid = name.trim() !== '' &&
-                     numericPrice > 0 &&
-                     purchaseDateValue !== '' &&
-                     lifecycleFormValid &&
-                     targetFormValid;
+  const {
+    isValid: isFormValid,
+    numericPrice,
+    numericTargetValue,
+    purchaseDateValue,
+    currentDateValue,
+  } = validateItemForm(formValues, { isEditMode });
 
   const equivalentTarget = deriveOwnershipTargetEquivalent({
     price: numericPrice,
@@ -314,88 +211,42 @@ function AddItem({ showHeader = true, isVisible = true }) {
   };
 
   const handleDiscardDraft = () => {
-    if (draftWriteTimeoutRef.current !== null) {
-      window.clearTimeout(draftWriteTimeoutRef.current);
-      draftWriteTimeoutRef.current = null;
-    }
+    const resetValues = createInitialItemFormValues();
+    const resetDraftData = itemFormValuesToDraftData(resetValues);
 
-    const nextPurchaseDate = normalizeOwnershipDate(new Date());
-    const resetDraftData = {
-      name: '',
-      price: '',
-      category: '',
-      brand: '',
-      purchaseDate: ownershipDateToDateOnly(nextPurchaseDate),
-      targetType: 'none',
-      targetValue: '',
-      targetMode: 'manual',
-      selectedBenchmarkItemId: '',
-    };
-
-    clearAddItemDraft(draftUserId);
-    lastPersistedDraftDataRef.current = JSON.stringify(resetDraftData);
-    setName('');
-    setPrice('');
-    setCategory('');
-    setBrand('');
-    setPurchaseDate(nextPurchaseDate);
-    setTargetType('none');
-    setTargetValue('');
-    setTargetMode('manual');
-    setSelectedBenchmarkItemId('');
+    clearDraft(resetDraftData);
+    setName(resetValues.name);
+    setPrice(resetValues.price);
+    setCategory(resetValues.category);
+    setBrand(resetValues.brand);
+    setPurchaseDate(resetValues.purchaseDate);
+    setStatus(resetValues.status);
+    setEndedAt(resetValues.endedAt);
+    setSalePrice(resetValues.salePrice);
+    setTargetType(resetValues.targetType);
+    setTargetValue(resetValues.targetValue);
+    setTargetMode(resetValues.targetMode);
+    setSelectedBenchmarkItemId(resetValues.selectedBenchmarkItemId);
     setBenchmarkModalOpen(false);
     setBenchmarkSourceItem(null);
-    setShowDatePicker(false);
-    setMonth(nextPurchaseDate);
     setErrorMessage(null);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const itemData = {
-      name: name.trim(),
-      price: Number(price),
-      purchaseDate: normalizeOwnershipDate(purchaseDate).toISOString(),
-      category: category.trim() || null,
-      brand: brand.trim() || null,
-    };
-
-    if (isEditMode) {
-      itemData.status = status;
-      itemData.endedAt = status === 'active'
-        ? null
-        : dateOnlyToOwnershipTimestamp(endedAt);
-      itemData.salePrice = status === 'sold' ? Number(salePrice) : null;
-    }
-
-    if (hasValidTarget) {
-      itemData.targetType = targetType;
-      itemData.targetValue = numericTargetValue;
-    } else {
-      itemData.targetType = null;
-      itemData.targetValue = null;
-    }
-
+    const itemData = buildItemPayload(formValues, { isEditMode });
     setErrorMessage(null);
 
     try {
-      const savedItem = isEditMode
-        ? await updateItem(editIndex, itemData)
-        : await addItem(itemData);
-      queryClient.setQueryData(queryKeys.items, (cachedItems = []) => isEditMode
-        ? cachedItems.map((item) => (String(item.id) === String(editIndex) ? savedItem : item))
-        : [...cachedItems, savedItem]
-      );
-      await invalidateItems();
-
-      if (!isEditMode) {
-        if (draftWriteTimeoutRef.current !== null) {
-          window.clearTimeout(draftWriteTimeoutRef.current);
-          draftWriteTimeoutRef.current = null;
-        }
-        clearAddItemDraft(draftUserId);
-        lastPersistedDraftDataRef.current = serializedAddDraftData;
+      if (isEditMode) {
+        await updateItemMutation.mutateAsync({
+          itemId: editId,
+          itemData,
+        });
+      } else {
+        await createItemMutation.mutateAsync(itemData);
+        clearDraft();
       }
 
       navigate('/');
@@ -413,11 +264,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setErrorMessage(null);
 
     try {
-      await deleteItem(editIndex);
-      queryClient.setQueryData(queryKeys.items, (cachedItems = []) =>
-        cachedItems.filter((item) => String(item.id) !== String(editIndex))
-      );
-      await invalidateItems();
+      await deleteItemMutation.mutateAsync(editId);
       navigate('/');
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -468,11 +315,6 @@ function AddItem({ showHeader = true, isVisible = true }) {
               currencySymbol={currencySymbol}
               currencyCode={currencyCode}
               language={language}
-              showDatePicker={showDatePicker}
-              setShowDatePicker={setShowDatePicker}
-              month={month}
-              setMonth={setMonth}
-              getLocale={getLocale}
             />
 
             {/* Optional Details Card */}
@@ -547,7 +389,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
                 className="w-full py-2.5 bg-teal-600 text-white rounded-xl font-medium
                 hover:bg-teal-700 transition-all duration-200 shadow-sm hover:shadow
                 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
-                disabled={!isFormValid || loadFailed || (isEditMode && !itemLoaded)}
+                disabled={!isFormValid || (isEditMode && (loadFailed || !itemLoaded))}
               >
                 {t('save')}
               </button>
