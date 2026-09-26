@@ -2,7 +2,7 @@ import React from 'react';
 
 export const formControlClassName = `w-full px-3 py-2 rounded-xl border border-[#E6E8EC]
   bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20
-  outline-none transition-all duration-200 text-sm`;
+  outline-none transition-all duration-200 text-sm scroll-mt-6`;
 
 export function FormField({ label, htmlFor, required = false, children, className = '' }) {
   return (

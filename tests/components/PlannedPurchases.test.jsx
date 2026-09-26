@@ -15,9 +15,22 @@ vi.mock('react-i18next', () => ({
       if (key === 'reachTargetIn') {
         return `About ${options?.periods} ${options?.periodUnit || options?.cadence} (~${options?.days} days)`;
       }
+      if (key === 'planCount') {
+        return `${options?.count} plans`;
+      }
+      if (key === 'estimatedTargetPrefix') {
+        return `Estimated target · ${options?.date}`;
+      }
+      if (key === 'needsPace') {
+        return `Estimated contribution ≈ ${options?.daily}/day`;
+      }
+      if (key === 'targetDatePaceDetail') {
+        return `${options?.daily}/day · ${options?.weekly}/week · ${options?.monthly}/month`;
+      }
       const translations = {
         plannedPurchases: 'Planned Purchases',
         planningSubtitle: 'Understand price through time',
+        yourPlans: 'Your Plans',
         addPlannedPurchase: 'Add Planned Purchase',
         editPlannedPurchase: 'Edit Planned Purchase',
         newPlan: 'New Plan',
@@ -25,8 +38,10 @@ vi.mock('react-i18next', () => ({
         noPlannedPurchasesDescription: 'Frame large prospective purchases',
         targetItemName: 'Target item name',
         enterTargetItemName: 'Enter name',
-        targetPrice: 'Target price',
-        enterTargetPrice: 'Enter target price',
+        itemPrice: 'Item price',
+        enterItemPrice: 'Enter item price',
+        targetPrice: 'Item price',
+        enterTargetPrice: 'Enter item price',
         planningMode: 'How do you want to plan?',
         modeContributionToTime: 'Choose an amount',
         modeTargetDateToContribution: 'Choose a target date',
@@ -58,6 +73,11 @@ vi.mock('react-i18next', () => ({
         unitMonths: 'months',
         usd: 'US Dollar (USD)',
         idr: 'Indonesian Rupiah (IDR)',
+        apply: 'Apply',
+        applyChanges: 'Apply changes',
+        previewUnsaved: 'Preview, unsaved',
+        reachedAround: 'Estimated completion',
+        saved: 'Saved',
       };
       return translations[key] || key;
     },
@@ -136,13 +156,12 @@ describe('PlannedPurchases Component', () => {
     expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
-  it('includes planning-page-content class and pt-4 top spacing to match shared shell', async () => {
+  it('includes planning-page-content class to match shared shell', async () => {
     plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
     const { container } = renderComponent();
 
     const planningContainer = container.querySelector('.planning-page-content');
     expect(planningContainer).toBeInTheDocument();
-    expect(planningContainer).toHaveClass('pt-4');
   });
 
   it('keeps Planning focused on reviewing existing plans', async () => {
@@ -207,7 +226,7 @@ describe('PlannedPurchases Component', () => {
       expect(screen.getByText('MacBook Air')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Planned Status')).toBeInTheDocument();
+    expect(screen.getAllByText('Rp 18.000.000')[0]).toBeInTheDocument();
 
     // Trigger delete confirmation modal
     const deleteButton = screen.getByLabelText('Delete Item');
@@ -221,6 +240,178 @@ describe('PlannedPurchases Component', () => {
 
     await waitFor(() => {
       expect(plannedPurchaseService.deletePlannedPurchase).toHaveBeenCalledWith('purchase-1');
+    });
+  });
+
+  it('maintains single-card accordion behavior when expanding different cards', async () => {
+    const mockPurchases = [
+      {
+        id: 'purchase-1',
+        name: 'Keyboard',
+        targetPrice: 2000000,
+        currencyCode: 'IDR',
+        contributionAmount: 50000,
+        contributionCadence: 'daily',
+        estimatedPeriods: 40,
+        estimatedDays: 40,
+      },
+      {
+        id: 'purchase-2',
+        name: 'Headphones',
+        targetPrice: 3000000,
+        currencyCode: 'IDR',
+        contributionAmount: 100000,
+        contributionCadence: 'daily',
+        estimatedPeriods: 30,
+        estimatedDays: 30,
+      },
+    ];
+
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue(mockPurchases);
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Keyboard')).toBeInTheDocument();
+      expect(screen.getByText('Headphones')).toBeInTheDocument();
+    });
+
+    const keyboardTrigger = screen.getByRole('button', { name: /keyboard/i });
+    const headphonesTrigger = screen.getByRole('button', { name: /headphones/i });
+
+    // Initially both are collapsed
+    expect(keyboardTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(headphonesTrigger).toHaveAttribute('aria-expanded', 'false');
+
+    // Click keyboard card -> expands keyboard card
+    fireEvent.click(keyboardTrigger);
+    expect(keyboardTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(headphonesTrigger).toHaveAttribute('aria-expanded', 'false');
+
+    // Click headphones card -> collapses keyboard card and expands headphones card
+    fireEvent.click(headphonesTrigger);
+    expect(keyboardTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(headphonesTrigger).toHaveAttribute('aria-expanded', 'true');
+
+    // Click headphones card again -> collapses headphones card
+    fireEvent.click(headphonesTrigger);
+    expect(keyboardTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(headphonesTrigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('allows exploring and applying a new scenario which updates via PUT mutation', async () => {
+    const mockPurchases = [
+      {
+        id: 'purchase-1',
+        name: 'Laptop',
+        targetPrice: 15000000,
+        currencyCode: 'IDR',
+        targetDate: '2027-06-30',
+        requiredDailyContribution: 50000,
+      },
+    ];
+
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue(mockPurchases);
+    plannedPurchaseService.updatePlannedPurchase.mockResolvedValue({
+      id: 'purchase-1',
+      name: 'Laptop',
+      targetPrice: 15000000,
+      currencyCode: 'IDR',
+      targetDate: null,
+      contributionAmount: 200000,
+      contributionCadence: 'weekly',
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('Laptop')).toBeInTheDocument();
+    });
+
+    // Expand the card
+    fireEvent.click(screen.getByRole('button', { name: /laptop/i }));
+
+    // Open exploration accordion
+    fireEvent.click(screen.getByRole('button', { name: /try a different pace/i }));
+
+    // Change cadence to weekly and enter contribution
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'weekly' } });
+
+    const input = screen.getByPlaceholderText('Enter amount');
+    fireEvent.change(input, { target: { value: '200000' } });
+
+    // Click Apply changes
+    const applyButton = screen.getByRole('button', { name: /apply changes/i });
+    fireEvent.click(applyButton);
+
+    await waitFor(() => {
+      expect(plannedPurchaseService.updatePlannedPurchase).toHaveBeenCalledWith(
+        'purchase-1',
+        expect.objectContaining({
+          targetDate: null,
+          contributionAmount: 200000,
+          contributionCadence: 'weekly',
+        })
+      );
+    });
+  });
+
+  it('opens edit drawer dialog and updates planned purchase', async () => {
+    const mockPurchases = [
+      {
+        id: 'purchase-1',
+        name: 'MacBook Air',
+        targetPrice: 18000000,
+        currencyCode: 'IDR',
+        contributionAmount: 25000,
+        contributionCadence: 'daily',
+        estimatedPeriods: 720,
+        estimatedDays: 720,
+      },
+    ];
+
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue(mockPurchases);
+    plannedPurchaseService.updatePlannedPurchase.mockResolvedValue({
+      id: 'purchase-1',
+      name: 'MacBook Pro',
+      targetPrice: 24000000,
+      currencyCode: 'IDR',
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('MacBook Air')).toBeInTheDocument();
+    });
+
+    // Expand the card
+    const toggleButton = screen.getByRole('button', { name: /macbook air/i });
+    fireEvent.click(toggleButton);
+
+    // Click edit button
+    const editButton = screen.getByRole('button', { name: 'Edit' });
+    fireEvent.click(editButton);
+
+    // Check dialog drawer is rendered
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Edit Planned Purchase')).toBeInTheDocument();
+
+    // Change name in dialog
+    const nameInput = screen.getByLabelText(/Target item name/);
+    fireEvent.change(nameInput, { target: { value: 'MacBook Pro' } });
+
+    // Submit dialog
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(plannedPurchaseService.updatePlannedPurchase).toHaveBeenCalledWith(
+        'purchase-1',
+        expect.objectContaining({
+          name: 'MacBook Pro',
+        })
+      );
     });
   });
 });

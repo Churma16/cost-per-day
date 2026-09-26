@@ -8,7 +8,7 @@ import {
 } from '../services/api';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 
-const ValueEquivalentsContext = createContext();
+export const ValueEquivalentsContext = createContext(null);
 
 export const ValueEquivalentsProvider = ({ children }) => {
   const queryClient = useQueryClient();

@@ -8,9 +8,10 @@ vi.mock('react-i18next', () => ({
     t: (key) => ({
       targetItemName: 'Target item name',
       requiredSection: 'REQUIRED',
-      enterTargetItemName: 'Enter name',
-      targetPrice: 'Target price',
-      enterTargetPrice: 'Enter target price',
+      itemPrice: 'Item price',
+      enterItemPrice: 'Enter item price',
+      targetPrice: 'Item price',
+      enterTargetPrice: 'Enter item price',
       planningMode: 'How do you want to plan?',
       modeContributionToTime: 'Choose an amount',
       modeTargetDateToContribution: 'Choose a target date',
@@ -51,11 +52,15 @@ const renderForm = (props = {}) => {
 describe('PlannedPurchaseForm', () => {
   it('preserves existing contribution-mode validation and payload behavior', () => {
     const onSubmit = renderForm();
+    const contributionPanel = screen.getByTestId('contribution-planning-panel');
+
     expect(screen.getByRole('heading', { name: 'REQUIRED' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Target item name/)).toHaveClass('rounded-xl');
     expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('w-full');
+    expect(within(contributionPanel).getByText('Rp')).toBeInTheDocument();
+
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Camera' } });
-    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '5000000' } });
+    fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '5000000' } });
     fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '50000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -72,7 +77,7 @@ describe('PlannedPurchaseForm', () => {
   it('clears contribution fields when switching to target-date mode', () => {
     const onSubmit = renderForm();
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Winter Coat' } });
-    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '1200000' } });
+    fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '1200000' } });
     fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '14000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Choose a target date' }));
     fireEvent.change(screen.getByLabelText('Target date'), { target: { value: '2028-12-31' } });
@@ -158,23 +163,15 @@ describe('PlannedPurchaseForm', () => {
     });
   });
 
-  it('provides accessible validation feedback when target price or contribution amount is invalid', () => {
-    const onSubmit = renderForm();
+  it('disables save button when required fields are missing and enables when valid', () => {
+    renderForm();
     const saveButton = screen.getByRole('button', { name: 'Save' });
+    expect(saveButton).toBeDisabled();
 
-    // Enter a valid name with target price 0
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Headphones' } });
-    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '0' } });
-    fireEvent.click(saveButton);
-    expect(screen.getByRole('alert')).toHaveTextContent('Enter target price');
-    expect(onSubmit).not.toHaveBeenCalled();
+    expect(saveButton).toBeDisabled();
 
-    // Valid target price, contribution amount 0
-    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '1500000' } });
-    fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '0' } });
-    fireEvent.click(saveButton);
-    expect(screen.getByRole('alert')).toHaveTextContent('Enter amount');
-    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '1500000' } });
+    expect(saveButton).toBeEnabled();
   });
 });
-

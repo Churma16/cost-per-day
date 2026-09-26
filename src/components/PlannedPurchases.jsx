@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   usePlannedPurchases,
@@ -6,7 +6,9 @@ import {
   useDeletePlannedPurchase,
 } from '../hooks/usePlannedPurchases';
 import PlannedPurchaseCard from './PlannedPurchaseCard';
-import PlannedPurchaseForm from './PlannedPurchaseForm';
+import PlannedPurchaseEditDialog from './planned-purchase/PlannedPurchaseEditDialog';
+import { PageHeader } from './ui/PageHeader';
+import { PageContainer } from './ui/PageContainer';
 import { IoTimeOutline } from 'react-icons/io5';
 
 function PlannedPurchases() {
@@ -17,81 +19,109 @@ function PlannedPurchases() {
   const updateMutation = useUpdatePlannedPurchase();
   const deleteMutation = useDeletePlannedPurchase();
 
+  const [expandedPurchaseId, setExpandedPurchaseId] = useState(null);
+  const [updatingScenarioId, setUpdatingScenarioId] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
-  const handleOpenEdit = (item) => {
+  const handleToggleExpand = useCallback((id) => {
+    setActionError(null);
+    setExpandedPurchaseId((currentId) => (currentId === id ? null : id));
+  }, []);
+
+  const handleOpenEdit = useCallback((item) => {
     setEditingItem(item);
     setActionError(null);
-  };
+  }, []);
 
-  const handleCloseForm = () => {
+  const handleCloseForm = useCallback(() => {
     setEditingItem(null);
     setActionError(null);
-  };
+  }, []);
 
-  const handleFormSubmit = async (payload) => {
+  const handleDeleteRequest = useCallback((id) => {
+    setDeletingId(id);
+  }, []);
+
+  const handleCloseDeleteModal = useCallback(() => {
+    setDeletingId(null);
+  }, []);
+
+  const handleFormSubmit = useCallback(async (payload) => {
     setActionError(null);
     try {
       await updateMutation.mutateAsync({
-        plannedPurchaseId: editingItem.id,
+        plannedPurchaseId: editingItem?.id,
         plannedPurchasePayload: payload,
       });
       handleCloseForm();
     } catch (err) {
       setActionError(err.message || t('operationFailed'));
     }
-  };
+  }, [editingItem?.id, updateMutation, handleCloseForm, t]);
 
-  const handleDeleteConfirm = async () => {
+  const handleApplyScenario = useCallback(async ({ plannedPurchaseId, contributionAmount, contributionCadence }) => {
+    setActionError(null);
+    setUpdatingScenarioId(plannedPurchaseId);
+    try {
+      const existingPurchase = plannedPurchases.find((item) => item.id === plannedPurchaseId);
+      if (!existingPurchase) return;
+
+      const payload = {
+        name: existingPurchase.name,
+        targetPrice: Number(existingPurchase.targetPrice),
+        currencyCode: existingPurchase.currencyCode,
+        targetDate: null,
+        contributionAmount: Number(contributionAmount),
+        contributionCadence: contributionCadence,
+      };
+
+      await updateMutation.mutateAsync({
+        plannedPurchaseId,
+        plannedPurchasePayload: payload,
+      });
+    } catch (err) {
+      const message = err.message || t('operationFailed');
+      setActionError(message);
+      throw err;
+    } finally {
+      setUpdatingScenarioId(null);
+    }
+  }, [plannedPurchases, updateMutation, t]);
+
+  const handleDeleteConfirm = useCallback(async () => {
     if (!deletingId) return;
     try {
       await deleteMutation.mutateAsync(deletingId);
+      setExpandedPurchaseId((currentExpandedId) =>
+        currentExpandedId === deletingId ? null : currentExpandedId
+      );
       setDeletingId(null);
     } catch (err) {
       setActionError(err.message || t('errorDeletingPlannedPurchase'));
     }
-  };
+  }, [deletingId, deleteMutation, t]);
 
-  const isMutating =
-    updateMutation.isPending || deleteMutation.isPending;
+  const isMutating = updateMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="px-4 pt-4 pb-8 space-y-5 max-w-3xl mx-auto planning-page-content">
+    <PageContainer className="planning-page-content">
       {/* Intro Header & Philosophy */}
-      <div className="rounded-2xl p-5 bg-gradient-to-br from-teal-800 via-teal-700 to-cyan-800 text-white shadow-sm space-y-2">
-        <div className="flex items-center gap-2">
-          <IoTimeOutline className="text-xl text-teal-200" />
-          <h1 className="text-lg font-bold tracking-tight">{t('plannedPurchases')}</h1>
-        </div>
-        <p className="text-xs sm:text-sm text-teal-100 max-w-xl leading-relaxed">
-          {t('planningSubtitle')}
-        </p>
-      </div>
+      <PageHeader
+        title={t('plannedPurchases')}
+        subtitle={t('planningSubtitle')}
+      />
 
-      {/* Action Bar */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-          {t('itemCount', { count: plannedPurchases.length })}
-        </span>
-      </div>
-
-      {/* Planned-purchase editing stays with its Planning card. */}
-      {editingItem && (
-        <div className="space-y-2.5">
-          <h3 className="text-base font-bold text-gray-900 px-1">
-            {t('editPlannedPurchase')}
-          </h3>
-          <PlannedPurchaseForm
-            initialData={editingItem}
-            onSubmit={handleFormSubmit}
-            onCancel={handleCloseForm}
-            isSubmitting={isMutating}
-            errorMessage={actionError}
-          />
-        </div>
-      )}
+      {/* Planned-purchase editing modal drawer */}
+      <PlannedPurchaseEditDialog
+        isOpen={Boolean(editingItem)}
+        item={editingItem}
+        onClose={handleCloseForm}
+        onSubmit={handleFormSubmit}
+        isSubmitting={isMutating}
+        errorMessage={actionError}
+      />
 
       {/* Loading & Error States */}
       {isLoading && plannedPurchasesData === undefined ? (
@@ -124,15 +154,28 @@ function PlannedPurchases() {
         </div>
       ) : (
         /* List of Cards */
-        <div className="space-y-4">
-          {plannedPurchases.map((plannedPurchase) => (
-            <PlannedPurchaseCard
-              key={plannedPurchase.id}
-              plannedPurchase={plannedPurchase}
-              onEdit={handleOpenEdit}
-              onDelete={(id) => setDeletingId(id)}
-            />
-          ))}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="font-bold text-[#20242A] text-sm">
+              {t('yourPlans')}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {plannedPurchases.map((plannedPurchase) => (
+              <PlannedPurchaseCard
+                key={plannedPurchase.id}
+                plannedPurchase={plannedPurchase}
+                isExpanded={expandedPurchaseId === plannedPurchase.id}
+                onToggle={handleToggleExpand}
+                onEdit={handleOpenEdit}
+                onDelete={handleDeleteRequest}
+                onApplyScenario={handleApplyScenario}
+                isUpdating={updatingScenarioId === plannedPurchase.id && updateMutation.isPending}
+                updateError={updatingScenarioId === plannedPurchase.id ? actionError : null}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -147,7 +190,7 @@ function PlannedPurchases() {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setDeletingId(null)}
+                onClick={handleCloseDeleteModal}
                 className="px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50"
               >
                 {t('cancel')}
@@ -164,7 +207,7 @@ function PlannedPurchases() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

@@ -15,8 +15,10 @@ vi.mock('react-i18next', () => ({
     t: (key) => ({
       targetItemName: 'Target item name',
       enterTargetItemName: 'Enter name',
-      targetPrice: 'Target price',
-      enterTargetPrice: 'Enter target price',
+      itemPrice: 'Item price',
+      enterItemPrice: 'Enter item price',
+      targetPrice: 'Item price',
+      enterTargetPrice: 'Enter item price',
       planningMode: 'How do you want to plan?',
       modeContributionToTime: 'Choose an amount',
       modeTargetDateToContribution: 'Choose a target date',
@@ -127,7 +129,7 @@ describe('PlannedPurchaseCreateForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Discard draft' }));
 
     expect(screen.getByLabelText(/Target item name/)).toHaveValue('');
-    expect(screen.getByLabelText(/Target price/)).toHaveValue('');
+    expect(screen.getByLabelText(/Item price/)).toHaveValue('');
     expect(screen.getByTestId('location')).toHaveTextContent('/add');
     expect(window.localStorage.getItem(getPlannedPurchaseDraftStorageKey('user-1'))).toBeNull();
   });

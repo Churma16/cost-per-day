@@ -1,23 +1,41 @@
-import React from 'react';
+import React, { memo, useCallback, useContext, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency } from '../utils/formatters';
-import PlannedPurchaseExploration from './planned-purchase/PlannedPurchaseExploration';
 import {
   IoCalendarOutline,
   IoCashOutline,
+  IoChevronDown,
   IoCreateOutline,
+  IoPricetagOutline,
   IoTrashOutline,
 } from 'react-icons/io5';
+import { ValueEquivalentsContext } from '../contexts/ValueEquivalentsContext';
+import { selectBestEquivalent } from '../utils/equivalentCalculator';
+import { formatCurrency, formatDisplayDate } from '../utils/formatters';
+import { computeTargetDateFromEstimatedDays } from '../utils/plannedPurchaseProjection';
+import PlannedPurchaseExploration from './planned-purchase/PlannedPurchaseExploration';
+import { CollapsibleCard } from './ui/CollapsibleCard';
+import { InfoTile } from './ui/InfoTile';
+import { ActionButton } from './ui/ActionButton';
 
-function PlannedPurchaseCard({
+function PlannedPurchaseCardComponent({
   plannedPurchase,
+  isExpanded = false,
+  onToggle,
   onEdit,
   onDelete,
+  onApplyScenario,
+  isUpdating = false,
+  updateError = null,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const currencyCode = plannedPurchase.currencyCode || 'USD';
   const targetPrice = Number(plannedPurchase.targetPrice) || 0;
+
+  const hasContribution = Boolean(
+    plannedPurchase.contributionAmount && plannedPurchase.contributionCadence
+  );
+  const hasTargetDate = Boolean(plannedPurchase.targetDate);
 
   const cadencePer =
     plannedPurchase.contributionCadence === 'daily'
@@ -33,104 +51,299 @@ function PlannedPurchaseCard({
       ? t('unitDays')
       : plannedPurchase.contributionCadence === 'weekly'
         ? t('unitWeeks')
-        : t('unitMonths');
+        : plannedPurchase.contributionCadence === 'monthly'
+          ? t('unitMonths')
+          : '';
 
   const isDaily = plannedPurchase.contributionCadence === 'daily';
   const estimatedPeriods = Number(plannedPurchase.estimatedPeriods || 0);
   const estimatedDays = Number(plannedPurchase.estimatedDays || 0);
 
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-teal-100 overflow-hidden hover:shadow-md transition-shadow">
-      <div className="h-1.5 bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-600" />
+  const calculatedTargetDate = useMemo(() => {
+    if (!hasContribution || !estimatedDays) return null;
+    return computeTargetDateFromEstimatedDays(estimatedDays);
+  }, [hasContribution, estimatedDays]);
 
-      <div className="p-4 sm:p-5 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900 text-base">{plannedPurchase.name}</h3>
-              <span className="rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-[11px] font-medium text-teal-700">
-                {t('statusPlanned')}
-              </span>
-            </div>
-            <div className="mt-1 text-xs text-gray-500">{t('targetPrice')}</div>
-            <div className="text-lg font-bold text-teal-800">
-              {formatCurrency(targetPrice, currencyCode)}
-            </div>
+  const heroDurationText = isDaily
+    ? t('reachTargetInDays', { days: estimatedDays })
+    : t('reachTargetIn', {
+        periods: estimatedPeriods,
+        periodUnit,
+        days: estimatedDays,
+      });
+
+  const valueEquivalentsContext = useContext(ValueEquivalentsContext);
+  const valueEquivalents = valueEquivalentsContext?.valueEquivalents || [];
+
+  const weeklyContribution = useMemo(() => {
+    return (Number(plannedPurchase.requiredDailyContribution) || 0) * 7;
+  }, [plannedPurchase.requiredDailyContribution]);
+
+  const monthlyContribution = useMemo(() => {
+    return (
+      Number(plannedPurchase.requiredMonthlyContribution) ||
+      (Number(plannedPurchase.requiredDailyContribution) || 0) * (365 / 12)
+    );
+  }, [plannedPurchase.requiredMonthlyContribution, plannedPurchase.requiredDailyContribution]);
+
+  const dailyCostRate = useMemo(() => {
+    if (hasTargetDate && plannedPurchase.requiredDailyContribution) {
+      return Number(plannedPurchase.requiredDailyContribution);
+    }
+    if (hasContribution) {
+      if (plannedPurchase.contributionCadence === 'daily') {
+        return Number(plannedPurchase.contributionAmount);
+      }
+      if (estimatedDays > 0 && targetPrice > 0) {
+        return targetPrice / estimatedDays;
+      }
+    }
+    return 0;
+  }, [
+    hasTargetDate,
+    plannedPurchase.requiredDailyContribution,
+    hasContribution,
+    plannedPurchase.contributionCadence,
+    plannedPurchase.contributionAmount,
+    estimatedDays,
+    targetPrice,
+  ]);
+
+  const bestEquivalent = useMemo(() => {
+    if (!dailyCostRate || dailyCostRate <= 0) return null;
+    return selectBestEquivalent(dailyCostRate, valueEquivalents, currencyCode, t);
+  }, [dailyCostRate, valueEquivalents, currencyCode, t]);
+
+  // Row 2: User's chosen constraint (input)
+  let userConstraintText = '';
+  // Row 3: Worthwhile's interpretation (value)
+  let worthwhileInterpretationText = '';
+
+  if (hasContribution && calculatedTargetDate) {
+    userConstraintText = `${formatCurrency(plannedPurchase.contributionAmount, currencyCode)} ${cadencePer}`;
+    worthwhileInterpretationText = t('estimatedTargetPrefix', {
+      date: formatDisplayDate(calculatedTargetDate, i18n?.language),
+    });
+  } else if (hasTargetDate) {
+    userConstraintText = t('targetDatePrefix', {
+      date: formatDisplayDate(plannedPurchase.targetDate, i18n?.language),
+    });
+    const dailyStr = formatCurrency(plannedPurchase.requiredDailyContribution, currencyCode);
+    worthwhileInterpretationText = t('needsPace', {
+      daily: dailyStr,
+    });
+  } else {
+    userConstraintText = t('noScenarioConfigured');
+    worthwhileInterpretationText = t('configurePacePrompt');
+  }
+
+  const handleToggle = useCallback(() => {
+    onToggle?.(plannedPurchase.id);
+  }, [onToggle, plannedPurchase.id]);
+
+  const handleEdit = useCallback(() => {
+    onEdit?.(plannedPurchase);
+  }, [onEdit, plannedPurchase]);
+
+  const handleDelete = useCallback(() => {
+    onDelete?.(plannedPurchase.id);
+  }, [onDelete, plannedPurchase.id]);
+
+  const handleApplyScenarioInternal = useCallback(
+    (scenario) => {
+      onApplyScenario?.({
+        plannedPurchaseId: plannedPurchase.id,
+        ...scenario,
+      });
+    },
+    [onApplyScenario, plannedPurchase.id]
+  );
+
+  const headerContent = (
+    <div>
+      {/* Row 1: What + Price (Identity) */}
+      <div className="flex items-baseline justify-between gap-3 leading-snug">
+        <span className="font-semibold text-[#20242A] text-sm sm:text-base truncate block">
+          {plannedPurchase.name}
+        </span>
+        <span className="text-sm sm:text-base font-bold text-[#20242A] tabular-nums shrink-0">
+          {formatCurrency(targetPrice, currencyCode)}
+        </span>
+      </div>
+
+      {/* Row 2 (Constraint) & Row 3 (Interpretation) with Vertically Centered Chevron */}
+      <div className="mt-0.5 flex items-center justify-between gap-3">
+        <div className="min-w-0 space-y-0.5">
+          <div className="text-xs font-medium text-gray-600 truncate">
+            {userConstraintText}
           </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onEdit(plannedPurchase)}
-              className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
-              title={t('edit')}
-              aria-label={t('edit')}
-            >
-              <IoCreateOutline className="text-base" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(plannedPurchase.id)}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title={t('deleteItem')}
-              aria-label={t('deleteItem')}
-            >
-              <IoTrashOutline className="text-base" />
-            </button>
+          <div className="text-xs font-medium text-teal-700 truncate">
+            {worthwhileInterpretationText}
           </div>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-gray-100">
-          {plannedPurchase.contributionAmount && plannedPurchase.contributionCadence && (
-            <div className="bg-teal-50/50 rounded-lg p-3 border border-teal-100">
-              <div className="flex items-center gap-1.5 text-xs text-teal-900 font-medium mb-1">
-                <IoCashOutline className="text-teal-600" />
-                <span>{t('recurringContribution')}</span>
-              </div>
-              <div className="text-sm font-bold text-gray-900">
-                {formatCurrency(plannedPurchase.contributionAmount, currencyCode)} {cadencePer}
-              </div>
-              {plannedPurchase.estimatedPeriods && (
-                <div className="mt-1 text-xs text-teal-700 font-medium">
-                  &rarr; {isDaily
-                    ? t('reachTargetInDays', { days: estimatedDays })
-                    : t('reachTargetIn', {
-                        periods: estimatedPeriods,
-                        periodUnit,
-                        days: estimatedDays,
-                      })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {plannedPurchase.targetDate && (
-            <div className="bg-cyan-50/50 rounded-lg p-3 border border-cyan-100">
-              <div className="flex items-center gap-1.5 text-xs text-cyan-900 font-medium mb-1">
-                <IoCalendarOutline className="text-cyan-600" />
-                <span>{t('targetDate')}</span>
-              </div>
-              <div className="text-sm font-bold text-gray-900">
-                {plannedPurchase.targetDate}
-              </div>
-              {plannedPurchase.requiredDailyContribution && (
-                <div className="mt-1 text-xs text-cyan-800 font-medium">
-                  {formatCurrency(plannedPurchase.requiredDailyContribution, currencyCode)} {t('cadencePerDaily')} &middot; {formatCurrency(plannedPurchase.requiredMonthlyContribution || 0, currencyCode)} {t('cadencePerMonthly')}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <PlannedPurchaseExploration
-          targetPrice={targetPrice}
-          currencyCode={currencyCode}
-          initialContributionAmount={plannedPurchase.contributionAmount}
-          initialCadence={plannedPurchase.contributionCadence}
+        <IoChevronDown
+          aria-hidden="true"
+          className={`transition-transform duration-300 ease-out motion-reduce:transition-none text-base shrink-0 ${
+            isExpanded ? 'rotate-180 text-teal-600' : 'text-[#6F7782]'
+          }`}
         />
       </div>
     </div>
   );
+
+  return (
+    <CollapsibleCard
+      id={`purchase-${plannedPurchase.id}`}
+      triggerId={`planned-purchase-trigger-${plannedPurchase.id}`}
+      contentId={`planned-purchase-details-${plannedPurchase.id}`}
+      isExpanded={isExpanded}
+      onToggle={handleToggle}
+      header={headerContent}
+      contentClassName="space-y-3"
+    >
+      {/* 2x InfoTiles: Target Price + Constraint Pace/Date */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <InfoTile
+          icon={IoPricetagOutline}
+          label={t('itemPrice')}
+          value={formatCurrency(targetPrice, currencyCode)}
+        />
+        {hasTargetDate ? (
+          <InfoTile
+            icon={IoCalendarOutline}
+            label={t('targetDate')}
+            value={formatDisplayDate(plannedPurchase.targetDate, i18n?.language)}
+          />
+        ) : hasContribution ? (
+          <InfoTile
+            icon={IoCashOutline}
+            label={t('contributionPace')}
+            value={`${formatCurrency(plannedPurchase.contributionAmount, currencyCode)} ${cadencePer}`}
+          />
+        ) : (
+          <InfoTile
+            icon={IoCalendarOutline}
+            label={t('planningMode')}
+            value={t('noScenarioConfigured')}
+          />
+        )}
+      </div>
+
+      {/* Primary Result Projection Highlight Panel */}
+      {hasContribution && calculatedTargetDate ? (
+        <div className="bg-[#F6F8F8] rounded-xl p-3 border border-teal-100/90 space-y-1">
+          <div className="flex items-center justify-between text-xs text-teal-900 font-medium">
+            <span className="flex items-center gap-1.5">
+              <IoCashOutline className="text-teal-600 text-sm" />
+              <span>
+                {formatCurrency(plannedPurchase.contributionAmount, currencyCode)} {cadencePer}
+              </span>
+            </span>
+            <span className="text-[11px] font-medium text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+              {t('saved')}
+            </span>
+          </div>
+          <div className="text-[11px] text-[#6F7782]">{t('reachedAround')}</div>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-lg sm:text-xl font-bold text-[#20242A]">
+              {formatDisplayDate(calculatedTargetDate, i18n?.language)}
+            </span>
+            <span className="text-xs text-[#6F7782] font-medium">
+              ({heroDurationText})
+            </span>
+          </div>
+          {bestEquivalent && (
+            <div className="text-[11px] text-teal-800 font-medium pt-0.5">
+              &asymp; {bestEquivalent.text}
+            </div>
+          )}
+        </div>
+      ) : hasTargetDate ? (
+        <div className="bg-[#F6F9FA] rounded-xl p-3 border border-cyan-100/90 space-y-1">
+          <div className="flex items-center gap-1.5 text-xs text-cyan-900 font-medium">
+            <IoCalendarOutline className="text-cyan-600 text-sm" />
+            <span>{t('targetDate')}</span>
+          </div>
+          <div className="text-lg sm:text-xl font-bold text-[#20242A]">
+            {formatDisplayDate(plannedPurchase.targetDate, i18n?.language)}
+          </div>
+          {plannedPurchase.requiredDailyContribution && (
+            <div className="text-xs text-cyan-900 font-medium">
+              {t('targetDatePaceDetail', {
+                daily: formatCurrency(plannedPurchase.requiredDailyContribution, currencyCode),
+                weekly: formatCurrency(weeklyContribution, currencyCode),
+                monthly: formatCurrency(monthlyContribution, currencyCode),
+              })}
+            </div>
+          )}
+          {bestEquivalent && (
+            <div className="text-[11px] text-cyan-800 font-medium pt-0.5">
+              &asymp; {bestEquivalent.text}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-1">
+          <div className="text-xs font-semibold text-gray-800">
+            {t('noScenarioConfigured')}
+          </div>
+          <div className="text-[11px] text-[#6F7782]">
+            {t('configurePacePrompt')}
+          </div>
+        </div>
+      )}
+
+      {/* Scenario Exploration Accordion */}
+      <PlannedPurchaseExploration
+        targetPrice={targetPrice}
+        currencyCode={currencyCode}
+        initialContributionAmount={plannedPurchase.contributionAmount}
+        initialCadence={plannedPurchase.contributionCadence}
+        initialTargetDate={plannedPurchase.targetDate}
+        onApplyScenario={handleApplyScenarioInternal}
+        isApplying={isUpdating}
+        applyError={updateError}
+      />
+
+      {/* Bottom Action Buttons (Option A - Matching Home) */}
+      <div className="flex items-center gap-2 pt-1 border-t border-[#E6E8EC]/80">
+        <ActionButton
+          variant="secondary"
+          icon={IoCreateOutline}
+          onClick={handleEdit}
+          tabIndex={isExpanded ? 0 : -1}
+          aria-label={t('edit')}
+        >
+          {t('edit')}
+        </ActionButton>
+        <ActionButton
+          variant="danger"
+          icon={IoTrashOutline}
+          onClick={handleDelete}
+          tabIndex={isExpanded ? 0 : -1}
+          aria-label={t('deleteItem')}
+        >
+          {t('deleteItem')}
+        </ActionButton>
+      </div>
+    </CollapsibleCard>
+  );
 }
+
+function arePlannedPurchaseCardPropsEqual(previousProps, nextProps) {
+  return (
+    previousProps.isExpanded === nextProps.isExpanded &&
+    previousProps.isUpdating === nextProps.isUpdating &&
+    previousProps.updateError === nextProps.updateError &&
+    previousProps.plannedPurchase === nextProps.plannedPurchase
+  );
+}
+
+export const PlannedPurchaseCard = memo(
+  PlannedPurchaseCardComponent,
+  arePlannedPurchaseCardPropsEqual
+);
+
+PlannedPurchaseCard.displayName = 'PlannedPurchaseCard';
 
 export default PlannedPurchaseCard;

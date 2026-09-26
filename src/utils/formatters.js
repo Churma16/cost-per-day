@@ -37,11 +37,36 @@ const DATE_LOCALES = {
 
 export const getDateLocale = (language = 'en') => DATE_LOCALES[language] || enUS;
 
+export const parseSafeDate = (date) => {
+  if (!date) return null;
+  if (date instanceof Date) {
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  if (typeof date === 'string') {
+    const trimmedDate = date.trim();
+    const dateOnlyMatch = trimmedDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnlyMatch) {
+      const year = Number(dateOnlyMatch[1]);
+      const monthIndex = Number(dateOnlyMatch[2]) - 1;
+      const day = Number(dateOnlyMatch[3]);
+      const localDate = new Date(year, monthIndex, day);
+      return Number.isNaN(localDate.getTime()) ? null : localDate;
+    }
+  }
+  const parsedDate = new Date(date);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
 export const formatDate = (date, language = 'en') => {
-  return format(new Date(date), 'yyyy-MM-dd', { locale: getDateLocale(language) });
+  if (!date) return '';
+  const parsedDate = parseSafeDate(date);
+  if (!parsedDate) return '';
+  return format(parsedDate, 'yyyy-MM-dd', { locale: getDateLocale(language) });
 };
 
 export const formatDisplayDate = (date, language = 'en') => {
   if (!date) return '';
-  return format(new Date(date), 'dd MMM yyyy', { locale: getDateLocale(language) });
+  const parsedDate = parseSafeDate(date);
+  if (!parsedDate) return '';
+  return format(parsedDate, 'dd MMM yyyy', { locale: getDateLocale(language) });
 }; 
