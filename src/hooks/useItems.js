@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getAllItems } from '../services/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { deleteItem, getAllItems } from '../services/api';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 import { invalidateDashboardQuery } from './useDashboard';
 import { invalidateDurabilityQuery } from './useDurabilityAnalytics';
@@ -23,6 +23,23 @@ export const invalidateItemQueries = async (queryClient) => {
     invalidateDashboardQuery(queryClient),
     invalidateDurabilityQuery(queryClient),
   ]);
+};
+
+
+export const useDeleteItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteItem,
+    onSuccess: async (_result, deletedItemId) => {
+      queryClient.setQueryData(queryKeys.items, (cachedItems) => (
+        Array.isArray(cachedItems)
+          ? cachedItems.filter((item) => String(item.id) !== String(deletedItemId))
+          : cachedItems
+      ));
+      await invalidateItemQueries(queryClient);
+    },
+  });
 };
 
 export const useInvalidateItems = () => {
