@@ -1,15 +1,21 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion, useReducedMotion } from 'motion/react';
+import {
+  animate,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+} from 'motion/react';
 import AddItem from './AddItem';
 import PlannedPurchaseCreateForm from './PlannedPurchaseCreateForm';
 
 const ADD_TYPES = ['item', 'planned'];
-const SWIPE_DISTANCE = 64;
-const SWIPE_FLICK_DISTANCE = 36;
-const SWIPE_VELOCITY = 0.45;
-const SWIPE_DIRECTION_RATIO = 1.35;
+const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
+const SWIPE_FLICK_DISTANCE = 28;
+const SWIPE_VELOCITY = 0.5;
+const EDGE_RESISTANCE = 0.16;
 const INTERACTIVE_SELECTOR = [
   'a',
   'button',
@@ -29,12 +35,23 @@ function AddEntryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedType = searchParams.get('type');
   const activeType = ADD_TYPES.includes(requestedType) ? requestedType : 'item';
+  const activeTypeRef = useRef(activeType);
+  activeTypeRef.current = activeType;
   const tabRefs = useRef({});
   const pageRef = useRef(null);
+  const formViewportRef = useRef(null);
   const itemPanelRef = useRef(null);
   const plannedPanelRef = useRef(null);
   const swipeStartRef = useRef(null);
+  const swipeAnimationRef = useRef(null);
   const [panelHeights, setPanelHeights] = useState({});
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const trackX = useMotionValue(0);
+  const swipeProgress = useTransform(trackX, (latestX) => {
+    if (!viewportWidth) return activeType === 'planned' ? 1 : 0;
+    return Math.min(Math.max(-latestX / viewportWidth, 0), 1);
+  });
+  const indicatorX = useTransform(swipeProgress, (progress) => `${progress * 100}%`);
 
   useEffect(() => {
     if (requestedType !== activeType) {
@@ -51,6 +68,17 @@ function AddEntryPage() {
     };
 
     const measurePanels = () => {
+      const nextViewportWidth = formViewportRef.current?.getBoundingClientRect().width || 0;
+      if (nextViewportWidth > 0) {
+        setViewportWidth((currentWidth) => {
+          if (currentWidth === nextViewportWidth) return currentWidth;
+          if (!swipeStartRef.current) {
+            trackX.set(activeTypeRef.current === 'planned' ? -nextViewportWidth : 0);
+          }
+          return nextViewportWidth;
+        });
+      }
+
       setPanelHeights((currentHeights) => {
         const nextHeights = { ...currentHeights };
         let hasChanged = false;
@@ -74,10 +102,32 @@ function AddEntryPage() {
     if (typeof ResizeObserver === 'undefined') return undefined;
 
     const observer = new ResizeObserver(measurePanels);
-    Object.values(panels).forEach((panel) => panel && observer.observe(panel));
+    [...Object.values(panels), formViewportRef.current]
+      .forEach((element) => element && observer.observe(element));
 
     return () => observer.disconnect();
-  }, []);
+  }, [trackX]);
+
+  useEffect(() => {
+    if (!viewportWidth || swipeStartRef.current) return undefined;
+
+    swipeAnimationRef.current?.stop();
+    const targetX = activeType === 'planned' ? -viewportWidth : 0;
+    if (shouldReduceMotion) {
+      trackX.set(targetX);
+      return undefined;
+    }
+
+    const animation = animate(trackX, targetX, {
+      type: 'spring',
+      stiffness: 280,
+      damping: 34,
+      mass: 0.85,
+    });
+    swipeAnimationRef.current = animation;
+
+    return () => animation.stop();
+  }, [activeType, shouldReduceMotion, trackX, viewportWidth]);
 
   const selectType = (type, focus = false) => {
     if (type === activeType) return;
@@ -94,12 +144,51 @@ function AddEntryPage() {
     if (event.pointerType === 'mouse' || !event.isPrimary) return;
     if (event.target.closest?.(INTERACTIVE_SELECTOR)) return;
 
+    swipeAnimationRef.current?.stop();
     swipeStartRef.current = {
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
       timestamp: event.timeStamp,
+      lastX: event.clientX,
+      lastTimestamp: event.timeStamp,
+      velocityX: 0,
+      direction: null,
+      startTrackX: trackX.get(),
     };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handlePointerMove = (event) => {
+    const swipeStart = swipeStartRef.current;
+    if (!swipeStart || swipeStart.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - swipeStart.x;
+    const deltaY = event.clientY - swipeStart.y;
+    const horizontalDistance = Math.abs(deltaX);
+    const verticalDistance = Math.abs(deltaY);
+
+    if (!swipeStart.direction) {
+      if (Math.max(horizontalDistance, verticalDistance) < SWIPE_DIRECTION_LOCK_DISTANCE) return;
+      swipeStart.direction = horizontalDistance > verticalDistance ? 'horizontal' : 'vertical';
+    }
+
+    if (swipeStart.direction !== 'horizontal') return;
+
+    if (!viewportWidth) return;
+
+    const elapsed = Math.max(event.timeStamp - swipeStart.lastTimestamp, 1);
+    swipeStart.velocityX = (event.clientX - swipeStart.lastX) / elapsed;
+    swipeStart.lastX = event.clientX;
+    swipeStart.lastTimestamp = event.timeStamp;
+
+    const rawX = swipeStart.startTrackX + deltaX;
+    const resistedX = rawX > 0
+      ? rawX * EDGE_RESISTANCE
+      : rawX < -viewportWidth
+        ? -viewportWidth + ((rawX + viewportWidth) * EDGE_RESISTANCE)
+        : rawX;
+    trackX.set(resistedX);
   };
 
   const handlePointerUp = (event) => {
@@ -109,28 +198,55 @@ function AddEntryPage() {
     if (!swipeStart || swipeStart.pointerId !== event.pointerId) return;
 
     const deltaX = event.clientX - swipeStart.x;
-    const deltaY = event.clientY - swipeStart.y;
-    const elapsed = Math.max(event.timeStamp - swipeStart.timestamp, 1);
     const horizontalDistance = Math.abs(deltaX);
-    const isHorizontal = horizontalDistance > Math.abs(deltaY) * SWIPE_DIRECTION_RATIO;
-    const isCommittedSwipe = horizontalDistance >= SWIPE_DISTANCE
-      || (horizontalDistance >= SWIPE_FLICK_DISTANCE
-        && horizontalDistance / elapsed >= SWIPE_VELOCITY);
+    const elapsed = Math.max(event.timeStamp - swipeStart.timestamp, 1);
+    const releaseVelocity = swipeStart.velocityX || deltaX / elapsed;
+    const distanceThreshold = Math.min(Math.max(viewportWidth * 0.22, 64), 110);
+    const movedTowardPlanned = activeType === 'item' && deltaX < 0;
+    const movedTowardItem = activeType === 'planned' && deltaX > 0;
+    const passedDistance = horizontalDistance >= distanceThreshold;
+    const passedVelocity = horizontalDistance >= SWIPE_FLICK_DISTANCE
+      && Math.abs(releaseVelocity) >= SWIPE_VELOCITY;
+    const shouldCommit = swipeStart.direction === 'horizontal'
+      && (movedTowardPlanned || movedTowardItem)
+      && (passedDistance || passedVelocity);
 
-    if (!isHorizontal || !isCommittedSwipe) return;
+    if (shouldCommit) {
+      const nextType = movedTowardPlanned ? 'planned' : 'item';
+      pageRef.current?.scrollIntoView?.({
+        behavior: shouldReduceMotion ? 'auto' : 'smooth',
+        block: 'start',
+      });
+      selectType(nextType);
+      return;
+    }
 
-    const nextType = deltaX < 0 ? 'planned' : 'item';
-    if (nextType === activeType) return;
-
-    pageRef.current?.scrollIntoView?.({
-      behavior: shouldReduceMotion ? 'auto' : 'smooth',
-      block: 'start',
+    const targetX = activeType === 'planned' ? -viewportWidth : 0;
+    if (shouldReduceMotion) {
+      trackX.set(targetX);
+      return;
+    }
+    swipeAnimationRef.current = animate(trackX, targetX, {
+      type: 'spring',
+      stiffness: 320,
+      damping: 34,
+      mass: 0.8,
     });
-    selectType(nextType);
   };
 
   const handlePointerCancel = () => {
     swipeStartRef.current = null;
+    const targetX = activeType === 'planned' ? -viewportWidth : 0;
+    if (shouldReduceMotion) {
+      trackX.set(targetX);
+      return;
+    }
+    swipeAnimationRef.current = animate(trackX, targetX, {
+      type: 'spring',
+      stiffness: 320,
+      damping: 34,
+      mass: 0.8,
+    });
   };
 
   const calmTransition = {
@@ -138,6 +254,19 @@ function AddEntryPage() {
     ease: [0.16, 1, 0.3, 1],
   };
   const activePanelHeight = panelHeights[activeType];
+
+  const clampPageScroll = () => {
+    const scrollContainer = pageRef.current?.closest('.page-content');
+    if (!scrollContainer) return;
+
+    const maximumScrollTop = Math.max(
+      scrollContainer.scrollHeight - scrollContainer.clientHeight,
+      0
+    );
+    if (scrollContainer.scrollTop > maximumScrollTop) {
+      scrollContainer.scrollTop = maximumScrollTop;
+    }
+  };
 
   const handleTabKeyDown = (event, currentType) => {
     const currentIndex = ADD_TYPES.indexOf(currentType);
@@ -172,9 +301,7 @@ function AddEntryPage() {
             data-testid="add-type-indicator"
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-1 left-1 z-0 w-[calc(50%_-_0.25rem)] rounded-lg bg-white shadow-sm"
-            initial={false}
-            animate={{ x: activeType === 'item' ? '0%' : '100%' }}
-            transition={{ type: 'spring', stiffness: 240, damping: 30, mass: 0.9 }}
+            style={{ x: indicatorX }}
           />
           {ADD_TYPES.map((type) => {
             const isActive = activeType === type;
@@ -204,20 +331,22 @@ function AddEntryPage() {
       </div>
 
       <motion.div
+        ref={formViewportRef}
         data-testid="add-form-viewport"
         className="relative w-full overflow-hidden touch-pan-y"
         initial={false}
         animate={activePanelHeight ? { height: activePanelHeight } : undefined}
         transition={calmTransition}
         onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
+        onAnimationComplete={clampPageScroll}
       >
         <motion.div
+          data-testid="add-form-track"
           className="flex w-full items-start"
-          initial={false}
-          animate={{ x: activeType === 'item' ? '0%' : '-100%' }}
-          transition={calmTransition}
+          style={{ x: trackX }}
         >
           <div
             ref={itemPanelRef}
@@ -226,9 +355,7 @@ function AddEntryPage() {
             aria-labelledby="add-item-tab"
             aria-hidden={activeType !== 'item'}
             inert={activeType !== 'item'}
-            className={`w-full shrink-0 transition-opacity duration-200 motion-reduce:transition-none ${
-              activeType === 'item' ? 'opacity-100' : 'pointer-events-none opacity-0'
-            }`}
+            className={`w-full shrink-0 ${activeType === 'item' ? '' : 'pointer-events-none'}`}
           >
             <AddItem showHeader={false} />
           </div>
@@ -239,9 +366,7 @@ function AddEntryPage() {
             aria-labelledby="add-planned-tab"
             aria-hidden={activeType !== 'planned'}
             inert={activeType !== 'planned'}
-            className={`w-full shrink-0 transition-opacity duration-200 motion-reduce:transition-none ${
-              activeType === 'planned' ? 'opacity-100' : 'pointer-events-none opacity-0'
-            }`}
+            className={`w-full shrink-0 ${activeType === 'planned' ? '' : 'pointer-events-none'}`}
           >
             <PlannedPurchaseCreateForm />
           </div>

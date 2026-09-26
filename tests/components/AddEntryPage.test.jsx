@@ -109,6 +109,13 @@ describe('AddEntryPage', () => {
       clientX: 260,
       clientY: 120,
     });
+    fireEvent.pointerMove(viewport, {
+      pointerId: 1,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 190,
+      clientY: 126,
+    });
     fireEvent.pointerUp(viewport, {
       pointerId: 1,
       pointerType: 'touch',
@@ -129,6 +136,13 @@ describe('AddEntryPage', () => {
       clientX: 120,
       clientY: 120,
     });
+    fireEvent.pointerMove(viewport, {
+      pointerId: 2,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 190,
+      clientY: 124,
+    });
     fireEvent.pointerUp(viewport, {
       pointerId: 2,
       pointerType: 'touch',
@@ -140,6 +154,41 @@ describe('AddEntryPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
     });
+  });
+
+  it('moves the form track while the finger is still down', async () => {
+    const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      width: 360,
+      height: 600,
+      top: 0,
+      right: 360,
+      bottom: 600,
+      left: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    });
+    renderPage('/add?type=item');
+    const viewport = screen.getByTestId('add-form-viewport');
+    const track = screen.getByTestId('add-form-track');
+
+    fireEvent.pointerDown(viewport, {
+      pointerId: 3,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 260,
+      clientY: 120,
+    });
+    fireEvent.pointerMove(viewport, {
+      pointerId: 3,
+      pointerType: 'touch',
+      isPrimary: true,
+      clientX: 180,
+      clientY: 124,
+    });
+
+    await waitFor(() => expect(track.style.transform).toContain('-80px'));
+    rectSpy.mockRestore();
   });
 
   it('does not interpret gestures starting on form controls as tab swipes', () => {
