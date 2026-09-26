@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  background-color: #000000;
+}
+
 html, body {
   position: fixed;
   width: 100%;
@@ -592,6 +596,17 @@ code {
   -webkit-backdrop-filter: blur(12px);
   background-color: rgba(246, 247, 248, 0.96);
   border-top: 1px solid #E6E8EC;
+}
+
+.app-footer::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background-color: #000000;
+  pointer-events: none;
 }
 
 /* Calm Ownership Duration Cycling Animations (Dual-Layer 500ms) */
