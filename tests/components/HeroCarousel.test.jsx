@@ -115,13 +115,13 @@ describe('HeroCarousel component', () => {
     expect(screen.getByText('Owned for 508 days')).toBeInTheDocument();
   });
 
-  it('allows long insight copy to wrap within a narrow slide', () => {
+  it('allows long localized insight copy to wrap and grow beyond the minimum slide height', () => {
     const longInsight = {
       kind: 'ownership_cost_trend',
-      eyebrow: 'A significantly longer insight category than the available mobile width',
-      primary: 'Your daily ownership cost continues to improve across a particularly long ownership period',
-      secondary: 'down Rp 123.456.789.012/day over the last 30 days',
-      caption: 'More ownership time spreads the purchase cost across more days without leaving the card.'
+      eyebrow: 'Semakin Bernilai Seiring Waktu Kepemilikan',
+      primary: 'Biaya kepemilikan harianmu terus menurun setelah digunakan dalam periode yang sangat panjang',
+      secondary: 'turun Rp 123.456.789.012 per hari dibandingkan dengan 30 hari yang lalu',
+      caption: 'Semakin lama barang dimiliki, biaya pembeliannya tersebar ke lebih banyak hari tanpa ada informasi yang terpotong.'
     };
 
     render(<HeroCarousel insightsOverride={[longInsight]} />);
@@ -136,7 +136,9 @@ describe('HeroCarousel component', () => {
     expect(eyebrow).toHaveClass('max-w-full', 'min-w-0', 'break-words');
     expect(secondary).toHaveClass('max-w-full', 'min-w-0', 'break-words');
     expect(caption).toHaveClass('max-w-full', 'min-w-0', 'break-words');
-    expect(headline.closest('[role="group"]')?.firstElementChild).toHaveClass('h-[172px]');
+    const slideContent = headline.closest('[role="group"]')?.firstElementChild;
+    expect(slideContent).toHaveClass('min-h-[172px]', 'sm:min-h-[176px]');
+    expect(slideContent).not.toHaveClass('h-[172px]', 'sm:h-[176px]');
     expect(secondary.parentElement).toHaveClass('mt-auto', 'pt-3');
   });
 

@@ -99,7 +99,7 @@ export const GenericInsightSlide = ({ insight }) => {
   const hasCaption = Boolean(insight.caption);
 
   return (
-    <div className="flex h-[172px] w-full min-w-0 flex-col items-start px-0.5 py-2 text-left sm:h-[176px]">
+    <div className="flex min-h-[172px] w-full min-w-0 flex-col items-start px-0.5 py-2 text-left sm:min-h-[176px]">
       <div className="w-full min-w-0">
         {displayEyebrow && (
           <p className="mb-3 max-w-full min-w-0 break-words text-[11px] font-semibold uppercase leading-4 tracking-[0.16em] text-white/70">
