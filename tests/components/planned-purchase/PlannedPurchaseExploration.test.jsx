@@ -53,6 +53,7 @@ describe('PlannedPurchaseExploration', () => {
     fireEvent.click(toggle);
 
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('$')).toBeInTheDocument();
     expect(screen.getByText('Reach in 3 days')).toBeInTheDocument();
     expect(screen.getByText('Try another pace')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /apply/i })).toBeDisabled();
@@ -116,7 +117,6 @@ describe('PlannedPurchaseExploration', () => {
       });
     });
 
-    // Accordion automatically closes on successful save
     expect(screen.getByRole('button', { name: /explore framing/i })).toHaveAttribute(
       'aria-expanded',
       'false'
@@ -148,7 +148,6 @@ describe('PlannedPurchaseExploration', () => {
       expect(screen.getByText('Network error on save')).toBeInTheDocument();
     });
 
-    // Draft input is preserved, accordion remains open
     expect(screen.getByPlaceholderText('Enter contribution amount')).toHaveValue('200');
     expect(screen.getByRole('button', { name: /explore framing/i })).toHaveAttribute(
       'aria-expanded',
