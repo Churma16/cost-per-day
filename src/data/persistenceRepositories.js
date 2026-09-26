@@ -1,16 +1,5 @@
-import {
-  addItem,
-  deleteItem,
-  getAllItems,
-  replaceAllItems,
-  updateItem,
-} from '../services/api';
-import {
-  createPlannedPurchase,
-  deletePlannedPurchase,
-  fetchPlannedPurchases,
-  updatePlannedPurchase,
-} from '../services/plannedPurchaseService';
+import * as itemApi from '../services/api';
+import * as plannedPurchaseApi from '../services/plannedPurchaseService';
 
 export const GUEST_ITEM_LIMIT = 5;
 export const GUEST_PLANNED_PURCHASE_LIMIT = 2;
@@ -397,17 +386,17 @@ export const hasGuestData = async () => {
 
 export const apiRepositories = {
   items: {
-    list: getAllItems,
-    create: addItem,
-    update: updateItem,
-    delete: deleteItem,
-    replaceAll: replaceAllItems,
+    list: (...args) => itemApi.getAllItems(...args),
+    create: (...args) => itemApi.addItem(...args),
+    update: (...args) => itemApi.updateItem(...args),
+    delete: (...args) => itemApi.deleteItem(...args),
+    replaceAll: (...args) => itemApi.replaceAllItems(...args),
   },
   plannedPurchases: {
-    list: fetchPlannedPurchases,
-    create: createPlannedPurchase,
-    update: updatePlannedPurchase,
-    delete: deletePlannedPurchase,
+    list: (...args) => plannedPurchaseApi.fetchPlannedPurchases(...args),
+    create: (...args) => plannedPurchaseApi.createPlannedPurchase(...args),
+    update: (...args) => plannedPurchaseApi.updatePlannedPurchase(...args),
+    delete: (...args) => plannedPurchaseApi.deletePlannedPurchase(...args),
   },
 };
 
