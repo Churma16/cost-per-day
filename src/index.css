@@ -61,9 +61,7 @@ html, body {
 /* Base styles */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
@@ -113,7 +111,6 @@ code {
   color: #ff4d4d;
   text-shadow: 0 2px 4px rgba(255, 77, 77, 0.2);
   margin: 5px 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   animation: numberPulse 2s infinite;
   display: inline-block;
   padding: 15px 30px;
@@ -329,7 +326,7 @@ code {
 }
 
 .react-datepicker {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-family: inherit !important;
   border-radius: 10px !important;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1) !important;
   border: none !important;
