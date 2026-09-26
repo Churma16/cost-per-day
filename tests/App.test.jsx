@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import App from '../src/App';
 import { ApiError, getCurrentUser } from '../src/services/api';
@@ -40,6 +40,21 @@ test('shows Google sign-in when there is no application session', async () => {
     expect(screen.getByRole('heading', { name: 'Worthwhile', level: 1 })).toBeInTheDocument();
     expect(screen.getByAltText('Worthwhile')).toBeInTheDocument();
   });
+});
+
+
+test('continues into the core app without an authenticated session when guest mode is chosen', async () => {
+  getCurrentUser.mockRejectedValue(new ApiError('authenticated user identity is required', 401));
+
+  render(<App />);
+
+  const guestButton = await screen.findByRole('button', { name: /continue without an account/i });
+  fireEvent.click(guestButton);
+
+  await waitFor(() => {
+    expect(screen.getByRole('navigation', { name: /primary navigation/i })).toBeInTheDocument();
+  });
+  expect(window.localStorage.getItem('worthwhile:guest-mode')).toBe('1');
 });
 
 describe('Header route isolation regression tests', () => {
