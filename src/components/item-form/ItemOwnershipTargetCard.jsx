@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'motion/react';
 import { IoScaleOutline } from 'react-icons/io5';
@@ -22,6 +22,50 @@ function ItemOwnershipTargetCard({
 }) {
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
+  const manualPanelRef = useRef(null);
+  const benchmarkPanelRef = useRef(null);
+  const [panelHeights, setPanelHeights] = useState({});
+
+  useLayoutEffect(() => {
+    const panels = {
+      manual: manualPanelRef.current,
+      benchmark: benchmarkPanelRef.current,
+    };
+
+    const measurePanels = () => {
+      setPanelHeights((currentHeights) => {
+        const nextHeights = { ...currentHeights };
+        let hasChanged = false;
+
+        Object.entries(panels).forEach(([mode, panel]) => {
+          if (!panel) return;
+
+          const nextHeight = panel.getBoundingClientRect().height || panel.scrollHeight;
+          if (nextHeight > 0 && nextHeights[mode] !== nextHeight) {
+            nextHeights[mode] = nextHeight;
+            hasChanged = true;
+          }
+        });
+
+        return hasChanged ? nextHeights : currentHeights;
+      });
+    };
+
+    measurePanels();
+
+    if (typeof ResizeObserver === 'undefined') return undefined;
+
+    const observer = new ResizeObserver(measurePanels);
+    Object.values(panels).forEach((panel) => panel && observer.observe(panel));
+
+    return () => observer.disconnect();
+  }, []);
+
+  const activePanelHeight = panelHeights[targetMode];
+  const calmTransition = {
+    duration: shouldReduceMotion ? 0 : 0.32,
+    ease: [0.16, 1, 0.3, 1],
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-[#E6E8EC] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-2">
@@ -61,19 +105,28 @@ function ItemOwnershipTargetCard({
       </div>
 
       {/* Horizontal Slide Carousel Track (Kanan-Kiri) */}
-      <div className="overflow-hidden w-full relative">
+      <motion.div
+        data-testid="ownership-target-panels"
+        className="overflow-hidden w-full relative"
+        initial={false}
+        animate={activePanelHeight ? { height: activePanelHeight } : undefined}
+        transition={calmTransition}
+      >
         <motion.div
           className="flex w-full items-start"
           initial={false}
           animate={{ x: targetMode === 'manual' ? '0%' : '-100%' }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.32, ease: [0.16, 1, 0.3, 1] }}
+          transition={calmTransition}
         >
           {/* Panel 1: Set manually (Left) */}
           <div
+            ref={manualPanelRef}
+            data-testid="manual-ownership-target-panel"
             className={`w-full shrink-0 transition-opacity duration-200 ${
               targetMode === 'manual' ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
             aria-hidden={targetMode !== 'manual'}
+            inert={targetMode !== 'manual'}
           >
             <div className="space-y-2 pt-0.5">
               <p className="text-[11px] text-gray-500">
@@ -160,10 +213,13 @@ function ItemOwnershipTargetCard({
 
           {/* Panel 2: Based on past item (Right) */}
           <div
+            ref={benchmarkPanelRef}
+            data-testid="benchmark-ownership-target-panel"
             className={`w-full shrink-0 transition-opacity duration-200 ${
               targetMode === 'benchmark' ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
             aria-hidden={targetMode !== 'benchmark'}
+            inert={targetMode !== 'benchmark'}
           >
             <div className="space-y-2 pt-0.5">
               <p className="text-[11px] text-gray-500">
@@ -203,7 +259,7 @@ function ItemOwnershipTargetCard({
             </div>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 }

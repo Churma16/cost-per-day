@@ -876,13 +876,20 @@ describe('AddItem component date localization', () => {
     // Initial mode is manual
     const setManuallyButton = screen.getByRole('button', { name: 'Set manually' });
     const fromCompletedItemButton = screen.getByRole('button', { name: 'Based on past item' });
+    const manualPanel = screen.getByTestId('manual-ownership-target-panel');
+    const benchmarkPanel = screen.getByTestId('benchmark-ownership-target-panel');
     expect(setManuallyButton).toHaveClass('border-teal-600');
     expect(screen.getByLabelText('Target type')).toBeInTheDocument();
+    expect(screen.getByTestId('ownership-target-panels')).toHaveClass('overflow-hidden');
+    expect(manualPanel).toHaveAttribute('aria-hidden', 'false');
+    expect(benchmarkPanel).toHaveAttribute('aria-hidden', 'true');
 
     // Switch to benchmark tab
     fireEvent.click(fromCompletedItemButton);
     expect(fromCompletedItemButton).toHaveClass('border-teal-600');
     expect(await screen.findByLabelText('Based on past item')).toBeInTheDocument();
+    expect(manualPanel).toHaveAttribute('aria-hidden', 'true');
+    expect(benchmarkPanel).toHaveAttribute('aria-hidden', 'false');
 
     // Switch back to manual tab
     fireEvent.click(setManuallyButton);

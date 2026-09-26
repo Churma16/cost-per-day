@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import PlannedPurchaseForm from '../../src/components/PlannedPurchaseForm';
 
@@ -100,7 +100,27 @@ describe('PlannedPurchaseForm', () => {
       },
     });
 
-    expect(screen.getByLabelText('Target date')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Recurring contribution')).not.toBeInTheDocument();
+    const contributionPanel = screen.getByTestId('contribution-planning-panel');
+    const targetDatePanel = screen.getByTestId('target-date-planning-panel');
+
+    expect(within(targetDatePanel).getByLabelText('Target date')).toBeInTheDocument();
+    expect(targetDatePanel).toHaveAttribute('aria-hidden', 'false');
+    expect(contributionPanel).toHaveAttribute('aria-hidden', 'true');
+    expect(contributionPanel).toHaveAttribute('inert');
+  });
+
+  it('keeps both planning panels mounted while changing the active panel', () => {
+    renderForm();
+
+    const contributionPanel = screen.getByTestId('contribution-planning-panel');
+    const targetDatePanel = screen.getByTestId('target-date-planning-panel');
+    expect(contributionPanel).toHaveAttribute('aria-hidden', 'false');
+    expect(targetDatePanel).toHaveAttribute('aria-hidden', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a target date' }));
+
+    expect(contributionPanel).toHaveAttribute('aria-hidden', 'true');
+    expect(targetDatePanel).toHaveAttribute('aria-hidden', 'false');
+    expect(screen.getByTestId('planning-mode-panels')).toHaveClass('overflow-hidden');
   });
 });

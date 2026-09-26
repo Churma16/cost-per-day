@@ -6,6 +6,7 @@ import PlannedPurchaseCoreFields from './planned-purchase/PlannedPurchaseCoreFie
 import PlanningModeSelector from './planned-purchase/PlanningModeSelector';
 import ContributionPlanningSection from './planned-purchase/ContributionPlanningSection';
 import TargetDatePlanningSection from './planned-purchase/TargetDatePlanningSection';
+import AnimatedPlanningModePanels from './planned-purchase/AnimatedPlanningModePanels';
 import FormSectionCard from './common/FormSectionCard';
 
 function PlannedPurchaseForm({
@@ -151,25 +152,27 @@ function PlannedPurchaseForm({
           onPlanningModeChange={handleModeChange}
         />
 
-        {planningMode === 'contributionToTime' && (
-          <ContributionPlanningSection
-            targetPrice={numericTargetPrice}
-            contributionCadence={contributionCadence}
-            onContributionCadenceChange={setContributionCadence}
-            contributionAmount={contributionAmount}
-            onContributionAmountChange={setContributionAmount}
-            currencyCode={currencyCode}
-          />
-        )}
-
-        {planningMode === 'targetDateToContribution' && (
-          <TargetDatePlanningSection
-            targetPrice={numericTargetPrice}
-            targetDate={targetDate}
-            onTargetDateChange={setTargetDate}
-            currencyCode={currencyCode}
-          />
-        )}
+        <AnimatedPlanningModePanels
+          planningMode={planningMode}
+          contributionPanel={(
+            <ContributionPlanningSection
+              targetPrice={numericTargetPrice}
+              contributionCadence={contributionCadence}
+              onContributionCadenceChange={setContributionCadence}
+              contributionAmount={contributionAmount}
+              onContributionAmountChange={setContributionAmount}
+              currencyCode={currencyCode}
+            />
+          )}
+          targetDatePanel={(
+            <TargetDatePlanningSection
+              targetPrice={numericTargetPrice}
+              targetDate={targetDate}
+              onTargetDateChange={setTargetDate}
+              currencyCode={currencyCode}
+            />
+          )}
+        />
 
         <p className="text-[11px] text-gray-500 italic bg-gray-50 p-2.5 rounded-xl border border-gray-100">
           {t('planningDisclaimer')}
