@@ -117,10 +117,10 @@ export function PlannedPurchaseEditDialog({
             tabIndex={-1}
             aria-modal="true"
             aria-labelledby="planned-purchase-edit-title"
-            className="relative z-10 w-full sm:max-w-lg max-h-[85vh] max-h-[85dvh] rounded-t-3xl sm:rounded-2xl bg-white shadow-2xl border border-gray-100 flex flex-col overscroll-contain"
+            className="relative z-10 w-full sm:max-w-lg max-h-[85vh] max-h-[85dvh] rounded-t-3xl sm:rounded-2xl bg-white shadow-2xl border border-gray-100 flex flex-col overscroll-contain overflow-hidden"
           >
             {/* Header */}
-            <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-[#E6E8EC] bg-white">
+            <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-[#E6E8EC] bg-white rounded-t-3xl sm:rounded-t-2xl">
               <div className="flex items-center gap-2">
                 <IoCreateOutline className="text-lg text-[#2F7473]" aria-hidden="true" />
                 <h2 id="planned-purchase-edit-title" className="font-semibold text-[#20242A] text-base">
