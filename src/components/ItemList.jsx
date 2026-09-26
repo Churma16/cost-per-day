@@ -30,7 +30,7 @@ export {
   formatOwnershipDuration,
 } from '../utils/itemLifecycle';
 
-function ItemList() {
+function ItemListContent({ itemsQuery }) {
   const { t, i18n } = useTranslation();
   const [expandedItem, setExpandedItem] = useState(null);
   const [benchmarkModalItem, setBenchmarkModalItem] = useState(null);
@@ -41,7 +41,7 @@ function ItemList() {
   const navigate = useNavigate();
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
-  const { data: itemsData, isLoading, error: itemsError } = useItems();
+  const { data: itemsData, isLoading, error: itemsError } = itemsQuery;
   const items = itemsData ?? [];
   const deleteItemMutation = useDeleteItem();
   const {
@@ -164,4 +164,10 @@ function ItemList() {
   );
 }
 
+function ItemList() {
+  const itemsQuery = useItems();
+  return <ItemListContent itemsQuery={itemsQuery} />;
+}
+
+export { ItemListContent };
 export default ItemList;
