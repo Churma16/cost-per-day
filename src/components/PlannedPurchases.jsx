@@ -2,42 +2,31 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   usePlannedPurchases,
-  useCreatePlannedPurchase,
   useUpdatePlannedPurchase,
   useDeletePlannedPurchase,
 } from '../hooks/usePlannedPurchases';
 import PlannedPurchaseCard from './PlannedPurchaseCard';
 import PlannedPurchaseForm from './PlannedPurchaseForm';
-import { IoAddOutline, IoTimeOutline } from 'react-icons/io5';
+import { IoTimeOutline } from 'react-icons/io5';
 
 function PlannedPurchases() {
   const { t } = useTranslation();
   const { data: plannedPurchasesData, isLoading, isError, error, refetch } = usePlannedPurchases();
   const plannedPurchases = plannedPurchasesData ?? [];
 
-  const createMutation = useCreatePlannedPurchase();
   const updateMutation = useUpdatePlannedPurchase();
   const deleteMutation = useDeletePlannedPurchase();
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [actionError, setActionError] = useState(null);
 
-  const handleOpenCreate = () => {
-    setEditingItem(null);
-    setActionError(null);
-    setIsFormOpen(true);
-  };
-
   const handleOpenEdit = (item) => {
     setEditingItem(item);
     setActionError(null);
-    setIsFormOpen(true);
   };
 
   const handleCloseForm = () => {
-    setIsFormOpen(false);
     setEditingItem(null);
     setActionError(null);
   };
@@ -45,14 +34,10 @@ function PlannedPurchases() {
   const handleFormSubmit = async (payload) => {
     setActionError(null);
     try {
-      if (editingItem) {
-        await updateMutation.mutateAsync({
-          plannedPurchaseId: editingItem.id,
-          plannedPurchasePayload: payload,
-        });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
+      await updateMutation.mutateAsync({
+        plannedPurchaseId: editingItem.id,
+        plannedPurchasePayload: payload,
+      });
       handleCloseForm();
     } catch (err) {
       setActionError(err.message || t('operationFailed'));
@@ -70,7 +55,7 @@ function PlannedPurchases() {
   };
 
   const isMutating =
-    createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
+    updateMutation.isPending || deleteMutation.isPending;
 
   return (
     <div className="px-4 pt-4 pb-8 space-y-5 max-w-3xl mx-auto planning-page-content">
@@ -90,23 +75,13 @@ function PlannedPurchases() {
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
           {t('itemCount', { count: plannedPurchases.length })}
         </span>
-        {!isFormOpen && (
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 transition-colors"
-          >
-            <IoAddOutline className="text-base" />
-            {t('newPlan')}
-          </button>
-        )}
       </div>
 
-      {/* Form Drawer / Card */}
-      {isFormOpen && (
+      {/* Planned-purchase editing stays with its Planning card. */}
+      {editingItem && (
         <div className="rounded-2xl bg-white p-5 border border-teal-200 shadow-md">
           <h3 className="text-base font-bold text-gray-900 mb-3">
-            {editingItem ? t('editPlannedPurchase') : t('addPlannedPurchase')}
+            {t('editPlannedPurchase')}
           </h3>
           <PlannedPurchaseForm
             initialData={editingItem}
@@ -134,7 +109,7 @@ function PlannedPurchases() {
             {t('retry')}
           </button>
         </div>
-      ) : plannedPurchases.length === 0 && !isFormOpen ? (
+      ) : plannedPurchases.length === 0 ? (
         /* Empty State */
         <div className="rounded-2xl bg-white border border-gray-200 p-8 text-center space-y-4 shadow-sm">
           <div className="mx-auto w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 text-2xl">
@@ -146,14 +121,6 @@ function PlannedPurchases() {
               {t('noPlannedPurchasesDescription')}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 transition-colors"
-          >
-            <IoAddOutline className="text-base" />
-            {t('newPlan')}
-          </button>
         </div>
       ) : (
         /* List of Cards */

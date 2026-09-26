@@ -145,142 +145,16 @@ describe('PlannedPurchases Component', () => {
     expect(planningContainer).toHaveClass('pt-4');
   });
 
-  it('opens create form when clicking New Plan', async () => {
+  it('keeps Planning focused on reviewing existing plans', async () => {
     plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument();
+      expect(screen.getByText('No planned purchases yet')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /new plan/i }));
-
-    expect(screen.getByLabelText(/target item name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/target price/i)).toBeInTheDocument();
-  });
-
-  it('clears inactive mode fields and sets them to null when switching from contribution to target date', async () => {
-    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
-    plannedPurchaseService.createPlannedPurchase.mockResolvedValue({ id: 'new-1' });
-    renderComponent();
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /new plan/i }));
-
-    // 1. Fill contribution fields
-    fireEvent.change(screen.getByLabelText(/target item name/i), { target: { value: 'Winter Coat' } });
-    fireEvent.change(screen.getByLabelText(/target price/i), { target: { value: '1200000' } });
-    fireEvent.change(screen.getByLabelText(/recurring contribution/i), { target: { value: '14000' } });
-
-    // 2. Switch to Target Date mode
-    fireEvent.click(screen.getByRole('button', { name: /choose a target date/i }));
-
-    // 3. Fill target date
-    fireEvent.change(screen.getByLabelText(/target date/i), { target: { value: '2028-12-31' } });
-
-    // 4. Submit form
-    fireEvent.click(screen.getByRole('button', { name: /save/i }));
-
-    await waitFor(() => {
-      expect(plannedPurchaseService.createPlannedPurchase).toHaveBeenCalledWith({
-        name: 'Winter Coat',
-        targetPrice: 1200000,
-        currencyCode: 'IDR',
-        targetDate: '2028-12-31',
-        contributionAmount: null,
-        contributionCadence: null,
-      });
-    });
-  });
-
-  it('clears inactive mode fields and sets them to null when switching from target date to contribution', async () => {
-    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
-    plannedPurchaseService.createPlannedPurchase.mockResolvedValue({ id: 'new-2' });
-    renderComponent();
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /new plan/i }));
-
-    // 1. Switch to Target Date mode first and fill
-    fireEvent.change(screen.getByLabelText(/target item name/i), { target: { value: 'Camera' } });
-    fireEvent.change(screen.getByLabelText(/target price/i), { target: { value: '5000000' } });
-    fireEvent.click(screen.getByRole('button', { name: /choose a target date/i }));
-    fireEvent.change(screen.getByLabelText(/target date/i), { target: { value: '2028-12-31' } });
-
-    // 2. Switch back to Contribution mode and fill
-    fireEvent.click(screen.getByRole('button', { name: /choose an amount/i }));
-    fireEvent.change(screen.getByLabelText(/recurring contribution/i), { target: { value: '50000' } });
-
-    // 3. Submit form
-    fireEvent.click(screen.getByRole('button', { name: /save/i }));
-
-    await waitFor(() => {
-      expect(plannedPurchaseService.createPlannedPurchase).toHaveBeenCalledWith({
-        name: 'Camera',
-        targetPrice: 5000000,
-        currencyCode: 'IDR',
-        targetDate: null,
-        contributionAmount: 50000,
-        contributionCadence: 'daily',
-      });
-    });
-  });
-
-  it('shows live time projection calculation when entering price and contribution', async () => {
-    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
-    renderComponent();
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /new plan/i }));
-
-    const nameInput = screen.getByLabelText(/target item name/i);
-    const priceInput = screen.getByLabelText(/target price/i);
-    const contributionInput = screen.getByLabelText(/recurring contribution/i);
-
-    fireEvent.change(nameInput, { target: { value: 'MacBook Air' } });
-    fireEvent.change(priceInput, { target: { value: '18000000' } });
-    fireEvent.change(contributionInput, { target: { value: '25000' } });
-
-    // 18,000,000 / 25,000 = 720 days
-    await waitFor(() => {
-      expect(screen.getByText(/720 days/i)).toBeInTheDocument();
-    });
-  });
-
-  it('rejects non-empty recurring contribution of 0 and shows validation error without saving', async () => {
-    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
-    renderComponent();
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /new plan/i }));
-
-    const nameInput = screen.getByLabelText(/target item name/i);
-    const priceInput = screen.getByLabelText(/target price/i);
-    const contributionInput = screen.getByLabelText(/recurring contribution/i);
-
-    fireEvent.change(nameInput, { target: { value: 'Headphones' } });
-    fireEvent.change(priceInput, { target: { value: '1000000' } });
-    fireEvent.change(contributionInput, { target: { value: '0' } });
-
-    fireEvent.click(screen.getByRole('button', { name: /save/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeInTheDocument();
-    });
-
-    expect(plannedPurchaseService.createPlannedPurchase).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /new plan/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/target item name/i)).not.toBeInTheDocument();
   });
 
   it('renders planned purchase cards with clean rounded periods and no long decimals', async () => {

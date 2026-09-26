@@ -83,6 +83,10 @@ const translation = {
   "ownershipDays": "ownership days",
   
   // Add/Edit Item
+  "addEntryTitle": "Add",
+  "addEntryTypeLabel": "What would you like to add?",
+  "ownedItemTab": "Owned item",
+  "plannedItemTab": "Planned item",
   "addNewItem": "Add New Item",
   "editItem": "Edit Item",
   "back": "Back",

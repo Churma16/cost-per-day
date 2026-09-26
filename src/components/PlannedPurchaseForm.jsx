@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
@@ -13,6 +13,7 @@ function PlannedPurchaseForm({
   onCancel,
   isSubmitting = false,
   errorMessage = null,
+  onDraftChange = null,
 }) {
   const { t } = useTranslation();
   const { currencyCode: activeCurrencyCode } = useCurrency();
@@ -25,6 +26,9 @@ function PlannedPurchaseForm({
     initialData?.currencyCode || activeCurrencyCode || 'USD'
   );
   const [planningMode, setPlanningMode] = useState(() => {
+    if (initialData?.planningMode) {
+      return initialData.planningMode;
+    }
     if (initialData?.targetDate && !initialData?.contributionAmount) {
       return 'targetDateToContribution';
     }
@@ -40,6 +44,28 @@ function PlannedPurchaseForm({
   );
   const [targetDate, setTargetDate] = useState(initialData?.targetDate || '');
   const [validationError, setValidationError] = useState(null);
+
+  const draftData = useMemo(() => ({
+    name,
+    targetPrice,
+    currencyCode,
+    planningMode,
+    contributionCadence,
+    contributionAmount,
+    targetDate,
+  }), [
+    name,
+    targetPrice,
+    currencyCode,
+    planningMode,
+    contributionCadence,
+    contributionAmount,
+    targetDate,
+  ]);
+
+  useEffect(() => {
+    onDraftChange?.(draftData);
+  }, [draftData, onDraftChange]);
 
   const handleModeChange = (newMode) => {
     setPlanningMode(newMode);

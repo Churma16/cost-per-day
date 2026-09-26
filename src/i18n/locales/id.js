@@ -83,6 +83,10 @@ const translation = {
   "ownershipDays": "hari dimiliki",
 
   // Add/Edit Item
+  "addEntryTitle": "Tambah",
+  "addEntryTypeLabel": "Apa yang ingin Anda tambahkan?",
+  "ownedItemTab": "Barang dimiliki",
+  "plannedItemTab": "Barang terencana",
   "addNewItem": "Tambah Barang Baru",
   "editItem": "Edit Barang",
   "back": "Kembali",

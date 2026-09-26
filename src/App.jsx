@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ValueEquivalentsProvider } from './contexts/ValueEquivalentsContext';
 import Home from './components/Home';
 import AddItem from './components/AddItem';
+import AddEntryPage from './components/AddEntryPage';
 import Settings from './components/Settings';
 import PlannedPurchases from './components/PlannedPurchases';
 import DurabilityAnalytics from './components/DurabilityAnalytics';
@@ -47,7 +48,7 @@ const MainContent = () => {
           <Route path="/" element={<Home />} />
           <Route path="/planning" element={<PlannedPurchases />} />
           <Route path="/analytics" element={<DurabilityAnalytics />} />
-          <Route path="/add" element={<AddItem />} />
+          <Route path="/add" element={<AddEntryPage />} />
           <Route path="/edit" element={<AddItem />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -33,7 +33,7 @@ import {
   writeAddItemDraft,
 } from '../utils/addItemDraft';
 
-function AddItem() {
+function AddItem({ showHeader = true }) {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -429,21 +429,23 @@ function AddItem() {
   return (
     <>
       {/* Header */}
-      <div className="px-3.5 pt-3 pb-1.5">
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center justify-center w-7 h-7 -ml-1 text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label={t('back')}
-          >
-            <IoArrowBack className="text-lg" />
-          </button>
-          <h1 className="text-base font-bold text-gray-900 m-0 translate-y-[0.5px]">
-            {isEditMode ? t('editItem') : t('addNewItem')}
-          </h1>
+      {showHeader && (
+        <div className="px-3.5 pt-3 pb-1.5">
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center justify-center w-7 h-7 -ml-1 text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label={t('back')}
+            >
+              <IoArrowBack className="text-lg" />
+            </button>
+            <h1 className="text-base font-bold text-gray-900 m-0 translate-y-[0.5px]">
+              {isEditMode ? t('editItem') : t('addNewItem')}
+            </h1>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Form - main content */}
       <div className="px-3.5 py-1.5 space-y-2.5 form-page-content pb-8">
