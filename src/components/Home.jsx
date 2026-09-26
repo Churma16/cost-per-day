@@ -15,31 +15,82 @@ export const calculateActiveItemsDailyCost = (items = []) => items.reduce((total
     : total;
 }, 0);
 
+function useHeroPastStickyBoundary() {
+  const heroRef = React.useRef(null);
+  const [isPastBoundary, setIsPastBoundary] = React.useState(false);
+
+  React.useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero || typeof IntersectionObserver === 'undefined') {
+      return undefined;
+    }
+
+    const scrollRoot = hero.closest('.page-content');
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry) {
+        return;
+      }
+
+      const rootTop = entry.rootBounds?.top ?? 0;
+      const heroIsAboveRoot = entry.boundingClientRect.bottom <= rootTop;
+
+      setIsPastBoundary(!entry.isIntersecting && heroIsAboveRoot);
+    }, {
+      root: scrollRoot || null,
+      threshold: 0,
+    });
+
+    observer.observe(hero);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return { heroRef, isPastBoundary };
+}
+
+function CompactHomeBrandHeader() {
+  return (
+    <div
+      className="sticky top-0 z-10 h-14 w-full flex-shrink-0 border-b border-[#E6E8EC] bg-[#F6F7F8]/95 px-4 backdrop-blur-sm"
+      data-home-header="compact"
+    >
+      <div className="mx-auto flex h-full w-full max-w-lg items-center px-1">
+        <WorthwhileBrandLockup />
+      </div>
+    </div>
+  );
+}
+
 function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode }) {
   const { t } = useTranslation();
   const { currencyCode } = useCurrency();
   const resolvedCurrencyCode = dashboardCurrencyCode || currencyCode;
+  const { heroRef, isPastBoundary } = useHeroPastStickyBoundary();
 
   return (
-    <header
-      className="sticky top-0 z-10 w-full min-w-0 flex-shrink-0 bg-[#F6F7F8] px-4 pt-4"
-    >
-      <div className="mx-auto mb-3 w-full max-w-lg px-1">
-        <WorthwhileBrandLockup />
-      </div>
-      <div className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[1.25rem] bg-white ring-1 ring-black/[0.04]">
-        <div className="home-reflection-surface relative isolate w-full min-w-0 text-white">
-          <div className="relative z-[1] w-full min-w-0 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
-            <HeroCarousel />
-          </div>
+    <>
+      <header className="w-full min-w-0 flex-shrink-0 bg-[#F6F7F8] px-4 pt-4">
+        <div className="mx-auto mb-3 w-full max-w-lg px-1">
+          <WorthwhileBrandLockup />
         </div>
-        <p className="max-w-md px-5 py-4 text-sm leading-5 text-[#66707A] sm:px-6">
-          {t('dailyOwnershipReflection', {
-            amount: formatCurrency(totalDailyCost, resolvedCurrencyCode),
-          })}
-        </p>
-      </div>
-    </header>
+        <div
+          ref={heroRef}
+          className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[1.25rem] bg-white ring-1 ring-black/[0.04]"
+        >
+          <div className="home-reflection-surface relative isolate w-full min-w-0 text-white">
+            <div className="relative z-[1] w-full min-w-0 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
+              <HeroCarousel />
+            </div>
+          </div>
+          <p className="max-w-md px-5 py-4 text-sm leading-5 text-[#66707A] sm:px-6">
+            {t('dailyOwnershipReflection', {
+              amount: formatCurrency(totalDailyCost, resolvedCurrencyCode),
+            })}
+          </p>
+        </div>
+      </header>
+      {isPastBoundary ? <CompactHomeBrandHeader /> : null}
+    </>
   );
 }
 
