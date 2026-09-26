@@ -39,6 +39,7 @@ const translation = {
   // Header
   "totalDailyCost": "Daily Ownership Cost",
   "perDay": "/day",
+  "dailyOwnershipReflection": "Today, what you own is worth about {{amount}} per day.",
   
   // Item List
   "noItems": "No items yet",
@@ -173,6 +174,7 @@ const translation = {
   // Insights Carousel
   "insights": "Insights",
   "insightsCarousel": "Insights Carousel",
+  "carouselPosition": "Insight position",
   "previousInsight": "Previous insight",
   "nextInsight": "Next insight",
   "goToSlide": "Go to slide {{number}}",

@@ -10,6 +10,25 @@
   --color-navigation-ring: #B9C0C8;
 }
 
+.home-reflection-surface {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0) 38%),
+    linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%);
+}
+
+.home-insight-card {
+  box-shadow: 0 12px 28px -22px rgba(27, 54, 61, 0.55);
+}
+
+.home-reflection-surface::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 42%;
+  background: linear-gradient(to bottom, transparent, rgba(19, 47, 54, 0.1));
+  pointer-events: none;
+}
+
 html {
   background-color: #000000;
 }

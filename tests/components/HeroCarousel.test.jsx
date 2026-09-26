@@ -15,6 +15,7 @@ vi.mock('react-i18next', () => ({
       }
       return {
         insightsCarousel: 'Insights Carousel',
+        carouselPosition: 'Insight position',
         previousInsight: 'Previous insight',
         nextInsight: 'Next insight',
         insightsWelcomeTitle: 'Ownership Over Time',
@@ -132,10 +133,11 @@ describe('HeroCarousel component', () => {
 
     expect(headline).toHaveClass('w-full', 'min-w-0', 'break-words');
     expect(headline).not.toHaveClass('line-clamp-1');
-    expect(eyebrow).toHaveClass('min-w-0', 'break-words');
-    expect(eyebrow.parentElement).toHaveClass('max-w-full', 'min-w-0');
+    expect(eyebrow).toHaveClass('max-w-full', 'min-w-0', 'break-words');
     expect(secondary).toHaveClass('max-w-full', 'min-w-0', 'break-words');
     expect(caption).toHaveClass('max-w-full', 'min-w-0', 'break-words');
+    expect(headline.closest('[role="group"]')?.firstElementChild).toHaveClass('h-[172px]');
+    expect(secondary.parentElement).toHaveClass('mt-auto', 'pt-3');
   });
 
   it('navigates to next and previous slides via controls', () => {
@@ -166,6 +168,23 @@ describe('HeroCarousel component', () => {
 
     expect(screen.getByText('Your daily ownership cost is lower than 30 days ago')).toBeInTheDocument();
     expect(screen.getByText('down Rp 6.800/day over the last 30 days')).toBeInTheDocument();
+  });
+
+  it('uses accessible hit targets and strip-shaped position indicators with the shared accent', () => {
+    render(<HeroCarousel insightsOverride={mockInsights} />);
+
+    const firstIndicator = screen.getByRole('button', { name: 'Go to slide 1' });
+    const secondIndicator = screen.getByRole('button', { name: 'Go to slide 2' });
+
+    expect(firstIndicator).toHaveClass('h-8', 'w-6');
+    expect(firstIndicator).toHaveAttribute('aria-current', 'true');
+    expect(firstIndicator.firstElementChild).toHaveClass(
+      'h-1',
+      'w-4',
+      'bg-[var(--color-interaction-accent-lighter)]'
+    );
+    expect(secondIndicator).not.toHaveAttribute('aria-current');
+    expect(secondIndicator.firstElementChild).toHaveClass('h-1', 'w-4', 'bg-white/30');
   });
 
   it('auto-advances slides slowly when not paused', () => {

@@ -6,6 +6,7 @@ import { useItems } from '../hooks/useItems';
 import { formatCurrency } from '../utils/formatters';
 import HeroCarousel from './HeroCarousel';
 import { ItemListContent } from './ItemList';
+import WorthwhileBrandLockup from './WorthwhileBrandLockup';
 
 export const calculateActiveItemsDailyCost = (items = []) => items.reduce((total, item) => {
   const status = item?.status || 'active';
@@ -21,22 +22,22 @@ function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode })
 
   return (
     <header
-      className="sticky top-0 z-10 w-full min-w-0 flex-shrink-0 text-white shadow-sm"
-      style={{
-        background: 'linear-gradient(135deg, #334A5B 0%, #32636A 55%, #2F7473 100%)',
-      }}
+      className="w-full min-w-0 flex-shrink-0 bg-[#F6F7F8] px-4 pt-4"
     >
-      <div className="mx-auto w-full min-w-0 max-w-lg px-4 pb-3 pt-3">
-        <div className="w-full min-w-0">
-          <HeroCarousel />
-          <div className="mt-2.5 grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-t border-white/10 px-1 pt-2.5 text-white/90">
-            <span className="min-w-0 text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
-            <span className="max-w-full whitespace-nowrap text-right font-semibold text-base text-white tracking-tight tabular-nums">
-              {formatCurrency(totalDailyCost, resolvedCurrencyCode)}
-              <span className="text-xs font-normal text-white/75">{t('perDay')}</span>
-            </span>
+      <div className="mx-auto mb-3 w-full max-w-lg px-1">
+        <WorthwhileBrandLockup />
+      </div>
+      <div className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[1.25rem] bg-white ring-1 ring-black/[0.04]">
+        <div className="home-reflection-surface relative isolate w-full min-w-0 text-white">
+          <div className="relative z-[1] w-full min-w-0 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
+            <HeroCarousel />
           </div>
         </div>
+        <p className="max-w-md px-5 py-4 text-sm leading-5 text-[#66707A] sm:px-6">
+          {t('dailyOwnershipReflection', {
+            amount: formatCurrency(totalDailyCost, resolvedCurrencyCode),
+          })}
+        </p>
       </div>
     </header>
   );
