@@ -158,16 +158,23 @@ describe('PlannedPurchaseForm', () => {
     });
   });
 
-  it('disables save button when required fields are missing and enables when valid', () => {
-    renderForm();
+  it('provides accessible validation feedback when target price or contribution amount is invalid', () => {
+    const onSubmit = renderForm();
     const saveButton = screen.getByRole('button', { name: 'Save' });
-    expect(saveButton).toBeDisabled();
 
+    // Enter a valid name with target price 0
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Headphones' } });
-    expect(saveButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '0' } });
+    fireEvent.click(saveButton);
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter target price');
+    expect(onSubmit).not.toHaveBeenCalled();
 
+    // Valid target price, contribution amount 0
     fireEvent.change(screen.getByLabelText(/Target price/), { target: { value: '1500000' } });
-    expect(saveButton).toBeEnabled();
+    fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '0' } });
+    fireEvent.click(saveButton);
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter amount');
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 });
 

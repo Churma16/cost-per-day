@@ -83,16 +83,6 @@ function PlannedPurchaseForm({
   const numericTargetPrice = parseFloat(targetPrice);
   const numericContributionAmount = parseFloat(contributionAmount);
 
-  const isFormValid =
-    name.trim() !== '' &&
-    !isNaN(numericTargetPrice) &&
-    numericTargetPrice > 0 &&
-    (
-      planningMode !== 'contributionToTime' ||
-      contributionAmount === '' ||
-      (!isNaN(numericContributionAmount) && numericContributionAmount > 0)
-    );
-
   const handleSubmit = (event) => {
     event.preventDefault();
     setValidationError(null);
@@ -217,7 +207,7 @@ function PlannedPurchaseForm({
       <div className="space-y-2 pt-1">
         <button
           type="submit"
-          disabled={!isFormValid || isSubmitting}
+          disabled={isSubmitting}
           className="w-full py-2.5 bg-teal-600 text-white rounded-xl font-medium
             hover:bg-teal-700 transition-all duration-200 shadow-sm hover:shadow
             disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
