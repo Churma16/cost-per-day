@@ -25,6 +25,7 @@ type RouterConfig struct {
 	ValueEquivalentHandler *handler.ValueEquivalentHandler
 	DashboardHandler       *handler.DashboardHandler
 	PlannedPurchaseHandler *handler.PlannedPurchaseHandler
+	GuestMigrationHandler  *handler.GuestMigrationHandler
 	DurabilityHandler      *handler.DurabilityHandler
 	StaticDir              string
 	UserIdentityMiddleware gin.HandlerFunc
@@ -111,6 +112,10 @@ func SetupRouter(config RouterConfig) *gin.Engine {
 				plannedPurchaseRouteGroup.PUT("/:id", config.PlannedPurchaseHandler.Update)
 				plannedPurchaseRouteGroup.DELETE("/:id", config.PlannedPurchaseHandler.Delete)
 			}
+		}
+
+		if config.GuestMigrationHandler != nil {
+			apiRouteGroup.POST("/guest-migrations", config.GuestMigrationHandler.Import)
 		}
 
 		if config.DurabilityHandler != nil {
