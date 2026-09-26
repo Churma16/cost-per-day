@@ -16,6 +16,8 @@ function AnimatedPlanningModePanels({
   const contributionPanelRef = useRef(null);
   const targetDatePanelRef = useRef(null);
   const [activeHeight, setActiveHeight] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const previousModeRef = useRef(planningMode);
 
   const measureActivePanel = useCallback(() => {
     const activePanel = planningMode === CONTRIBUTION_MODE
@@ -32,6 +34,17 @@ function AnimatedPlanningModePanels({
     );
     if (nextHeight > 0) {
       setActiveHeight((currentHeight) => (currentHeight === nextHeight ? currentHeight : nextHeight));
+    }
+  }, [planningMode]);
+
+  useEffect(() => {
+    if (previousModeRef.current !== planningMode) {
+      previousModeRef.current = planningMode;
+      setIsTransitioning(true);
+      const timer = window.setTimeout(() => {
+        setIsTransitioning(false);
+      }, 350);
+      return () => window.clearTimeout(timer);
     }
   }, [planningMode]);
 
@@ -68,6 +81,11 @@ function AnimatedPlanningModePanels({
     }
   }, [isVisible, measureActivePanel]);
 
+  const handleAnimationComplete = () => {
+    setIsTransitioning(false);
+    measureActivePanel();
+  };
+
   const transition = shouldReduceMotion ? { duration: 0 } : calmTransition;
 
   return (
@@ -78,7 +96,7 @@ function AnimatedPlanningModePanels({
       initial={false}
       animate={activeHeight ? { height: activeHeight } : undefined}
       transition={transition}
-      onAnimationComplete={measureActivePanel}
+      onAnimationComplete={handleAnimationComplete}
     >
       <motion.div
         className="flex w-full items-start"
@@ -92,7 +110,7 @@ function AnimatedPlanningModePanels({
           className={`w-full shrink-0 transition-opacity duration-200 motion-reduce:transition-none ${
             planningMode === CONTRIBUTION_MODE
               ? 'opacity-100'
-              : 'pointer-events-none opacity-0'
+              : `pointer-events-none opacity-0 ${!isTransitioning ? 'h-0 overflow-hidden' : ''}`
           }`}
           aria-hidden={planningMode !== CONTRIBUTION_MODE}
           inert={planningMode !== CONTRIBUTION_MODE}
@@ -106,7 +124,7 @@ function AnimatedPlanningModePanels({
           className={`w-full shrink-0 transition-opacity duration-200 motion-reduce:transition-none ${
             planningMode === TARGET_DATE_MODE
               ? 'opacity-100'
-              : 'pointer-events-none opacity-0'
+              : `pointer-events-none opacity-0 ${!isTransitioning ? 'h-0 overflow-hidden' : ''}`
           }`}
           aria-hidden={planningMode !== TARGET_DATE_MODE}
           inert={planningMode !== TARGET_DATE_MODE}

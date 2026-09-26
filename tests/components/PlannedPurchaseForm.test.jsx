@@ -106,8 +106,11 @@ describe('PlannedPurchaseForm', () => {
 
     expect(within(targetDatePanel).getByLabelText('Target date')).toBeInTheDocument();
     expect(targetDatePanel).toHaveAttribute('aria-hidden', 'false');
+    expect(targetDatePanel).not.toHaveClass('h-0');
     expect(contributionPanel).toHaveAttribute('aria-hidden', 'true');
     expect(contributionPanel).toHaveAttribute('inert');
+    expect(contributionPanel).toHaveClass('h-0');
+    expect(contributionPanel).toHaveClass('overflow-hidden');
   });
 
   it('keeps both planning panels mounted while changing the active panel', () => {
