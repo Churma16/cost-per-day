@@ -98,7 +98,7 @@ function PlannedPurchaseCard({
   const headerContent = (
     <div>
       {/* Row 1: What + Price (Identity) */}
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex items-baseline justify-between gap-3 leading-snug">
         <span className="font-semibold text-[#20242A] text-sm sm:text-base truncate block">
           {plannedPurchase.name}
         </span>
@@ -108,7 +108,7 @@ function PlannedPurchaseCard({
       </div>
 
       {/* Row 2 (Constraint) & Row 3 (Interpretation) with Vertically Centered Chevron */}
-      <div className="mt-1.5 flex items-center justify-between gap-3">
+      <div className="mt-0.5 flex items-center justify-between gap-3">
         <div className="min-w-0 space-y-0.5">
           <div className="text-xs font-medium text-gray-600 truncate">
             {userConstraintText}

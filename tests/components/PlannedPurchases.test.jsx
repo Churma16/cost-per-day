@@ -151,13 +151,12 @@ describe('PlannedPurchases Component', () => {
     expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
-  it('includes planning-page-content class and pt-4 top spacing to match shared shell', async () => {
+  it('includes planning-page-content class to match shared shell', async () => {
     plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
     const { container } = renderComponent();
 
     const planningContainer = container.querySelector('.planning-page-content');
     expect(planningContainer).toBeInTheDocument();
-    expect(planningContainer).toHaveClass('pt-4');
   });
 
   it('keeps Planning focused on reviewing existing plans', async () => {

@@ -97,19 +97,12 @@ function PlannedPurchases() {
   const isMutating = updateMutation.isPending || deleteMutation.isPending;
 
   return (
-    <div className="px-4 pt-4 pb-8 space-y-5 max-w-3xl mx-auto planning-page-content">
+    <div className="px-4 pb-8 space-y-4 max-w-3xl mx-auto planning-page-content">
       {/* Intro Header & Philosophy */}
       <PageHeader
         title={t('plannedPurchases')}
         subtitle={t('planningSubtitle')}
       />
-
-      {/* Action Bar / Section Label matching Home */}
-      <div className="flex items-center justify-between px-1">
-        <span className="font-bold text-[#20242A] text-sm">
-          {t('yourPlans')}
-        </span>
-      </div>
 
       {/* Planned-purchase editing stays with its Planning card. */}
       {editingItem && (
@@ -158,20 +151,28 @@ function PlannedPurchases() {
         </div>
       ) : (
         /* List of Cards */
-        <div className="space-y-3">
-          {plannedPurchases.map((plannedPurchase) => (
-            <PlannedPurchaseCard
-              key={plannedPurchase.id}
-              plannedPurchase={plannedPurchase}
-              isExpanded={expandedPurchaseId === plannedPurchase.id}
-              onToggle={() => handleToggleExpand(plannedPurchase.id)}
-              onEdit={handleOpenEdit}
-              onDelete={(id) => setDeletingId(id)}
-              onApplyScenario={handleApplyScenario}
-              isUpdating={updatingScenarioId === plannedPurchase.id && updateMutation.isPending}
-              updateError={updatingScenarioId === plannedPurchase.id ? actionError : null}
-            />
-          ))}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="font-bold text-[#20242A] text-sm">
+              {t('yourPlans')}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {plannedPurchases.map((plannedPurchase) => (
+              <PlannedPurchaseCard
+                key={plannedPurchase.id}
+                plannedPurchase={plannedPurchase}
+                isExpanded={expandedPurchaseId === plannedPurchase.id}
+                onToggle={() => handleToggleExpand(plannedPurchase.id)}
+                onEdit={handleOpenEdit}
+                onDelete={(id) => setDeletingId(id)}
+                onApplyScenario={handleApplyScenario}
+                isUpdating={updatingScenarioId === plannedPurchase.id && updateMutation.isPending}
+                updateError={updatingScenarioId === plannedPurchase.id ? actionError : null}
+              />
+            ))}
+          </div>
         </div>
       )}
 

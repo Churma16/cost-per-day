@@ -36,7 +36,7 @@ export function CollapsibleCard({
         aria-controls={resolvedContentId}
         aria-label={triggerAriaLabel}
         onClick={onToggle}
-        className={`w-full text-left p-3 sm:p-3.5 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset transition-colors rounded-xl ${triggerClassName}`}
+        className={`w-full text-left py-2.5 px-3 sm:py-3 sm:px-3.5 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-inset transition-colors rounded-xl ${triggerClassName}`}
       >
         {header}
       </button>
