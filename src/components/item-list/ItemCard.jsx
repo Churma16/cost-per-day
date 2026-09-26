@@ -98,7 +98,7 @@ export function CalmCycleText({ text, hasCycled }) {
     >
       <AnimatePresence initial={false} mode="popLayout">
         <motion.span
-          key={text}
+          key={hasCycled ? text : 'static'}
           initial={hasCycled ? { opacity: 0, y: shouldReduceMotion ? 0 : 5 } : false}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -5 }}
