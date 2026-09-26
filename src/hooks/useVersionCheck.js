@@ -5,7 +5,7 @@ import { fetchVersion } from '../services/versionService';
 export const VERSION_QUERY_KEY = ['version'];
 export const VERSION_RELOAD_STORAGE_KEY = 'worthwhile:version-reload';
 
-const getEmbeddedBuildVersion = () => import.meta.env.VITE_APP_VERSION?.trim() ?? '';
+const getEmbeddedBuildRevision = () => import.meta.env.VITE_APP_REVISION?.trim() ?? '';
 
 const getStoredReloadTransition = () => {
   try {
@@ -32,11 +32,11 @@ const clearStoredReloadTransition = () => {
   }
 };
 
-export const useVersionCheck = ({ runningVersion = getEmbeddedBuildVersion() } = {}) => {
+export const useVersionCheck = ({ runningRevision = getEmbeddedBuildRevision() } = {}) => {
   const reloadTriggered = useRef(false);
-  const normalizedRunningVersion = runningVersion?.trim() ?? '';
+  const normalizedRunningRevision = runningRevision?.trim() ?? '';
   const versionChecksEnabled =
-    normalizedRunningVersion.length > 0 && normalizedRunningVersion !== 'development';
+    normalizedRunningRevision.length > 0 && normalizedRunningRevision !== 'development';
 
   const { data: latestVersionData, isSuccess } = useQuery({
     queryKey: VERSION_QUERY_KEY,
@@ -52,17 +52,17 @@ export const useVersionCheck = ({ runningVersion = getEmbeddedBuildVersion() } =
       return;
     }
 
-    const latestVersionIdentifier = latestVersionData?.version?.trim();
-    if (!latestVersionIdentifier) {
+    const latestRevision = latestVersionData?.revision?.trim();
+    if (!latestRevision) {
       return;
     }
 
-    if (latestVersionIdentifier === normalizedRunningVersion) {
+    if (latestRevision === normalizedRunningRevision) {
       clearStoredReloadTransition();
       return;
     }
 
-    const transition = `${normalizedRunningVersion}->${latestVersionIdentifier}`;
+    const transition = `${normalizedRunningRevision}->${latestRevision}`;
 
     if (
       reloadTriggered.current ||
@@ -74,11 +74,11 @@ export const useVersionCheck = ({ runningVersion = getEmbeddedBuildVersion() } =
     reloadTriggered.current = true;
     storeReloadTransition(transition);
     window.location.reload();
-  }, [latestVersionData, normalizedRunningVersion, versionChecksEnabled]);
+  }, [latestVersionData, normalizedRunningRevision, versionChecksEnabled]);
 
   return {
-    runningVersion: normalizedRunningVersion,
-    latestVersionIdentifier: latestVersionData?.version,
+    runningRevision: normalizedRunningRevision,
+    latestRevision: latestVersionData?.revision,
     isSuccess,
   };
 };
