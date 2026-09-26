@@ -12,7 +12,6 @@ import ItemList, {
   CalmCycleText
 } from '../../src/components/ItemList';
 import { getAllItems, deleteItem } from '../../src/services/api';
-import { useTotalCost } from '../../src/contexts/TotalCostContext';
 import { useCurrency } from '../../src/contexts/CurrencyContext';
 import { useValueEquivalents } from '../../src/contexts/ValueEquivalentsContext';
 import { queryKeys } from '../../src/query/queryConfig';
@@ -105,10 +104,6 @@ vi.mock('../../src/services/api', () => ({
   deleteItem: vi.fn()
 }));
 
-vi.mock('../../src/contexts/TotalCostContext', () => ({
-  useTotalCost: vi.fn()
-}));
-
 vi.mock('../../src/contexts/CurrencyContext', () => ({
   useCurrency: vi.fn()
 }));
@@ -148,12 +143,9 @@ const createMemoryStorage = () => {
 };
 
 describe('ItemList lifecycle display', () => {
-  const setTotalDailyCost = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('localStorage', createMemoryStorage());
-    useTotalCost.mockReturnValue({ setTotalDailyCost });
     useCurrency.mockReturnValue({ currencyCode: 'USD' });
     useValueEquivalents.mockReturnValue({ valueEquivalents: [] });
   });
@@ -200,10 +192,6 @@ describe('ItemList lifecycle display', () => {
     const laptopTrigger = screen.getByRole('button', { name: /Laptop/i });
     expect(within(laptopTrigger).queryByText('Still With You')).not.toBeInTheDocument();
     expect(screen.getByText('$4.00')).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(setTotalDailyCost).toHaveBeenCalledWith(4);
-    });
 
     fireEvent.click(screen.getByText('Phone'));
 

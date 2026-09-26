@@ -1,4 +1,4 @@
-import { getLifecycleTranslationKey } from '../components/item-list/ItemCard';
+import { getLifecycleTranslationKey } from './itemLifecycle';
 
 export const HOME_ORGANIZATION_STORAGE_KEY = 'worthwhile.homeOrganization.v1';
 
