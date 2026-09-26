@@ -52,7 +52,9 @@ export const useVersionCheck = ({ runningRevision = getEmbeddedBuildRevision() }
       return;
     }
 
-    const latestRevision = latestVersionData?.revision?.trim();
+    const latestRevision =
+      latestVersionData?.revision?.trim() ||
+      latestVersionData?.version?.trim();
     if (!latestRevision) {
       return;
     }
