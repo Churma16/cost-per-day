@@ -19,10 +19,10 @@ vi.mock('../../src/services/api', () => ({
 }));
 
 const AuthProbe = () => {
-  const { user, error, signOut } = useAuth();
+  const { user, isGuest, error, signOut } = useAuth();
 
   if (!user) {
-    return <div>signed out</div>;
+    return <div>{isGuest ? 'guest mode' : 'signed out'}</div>;
   }
 
   return (
@@ -36,6 +36,7 @@ const AuthProbe = () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.clear();
   getCurrentUser.mockResolvedValue({
     id: 'user-1',
     email: 'user@example.com'
@@ -58,4 +59,18 @@ test('keeps logout failure inside auth state without rejecting the click handler
     expect(screen.getByRole('alert')).toHaveTextContent('logout failed');
   });
   expect(screen.getByText('user@example.com')).toBeInTheDocument();
+});
+
+
+test('restores local guest mode when session bootstrap fails for a non-401 reason', async () => {
+  window.localStorage.setItem('worthwhile:guest-mode', '1');
+  getCurrentUser.mockRejectedValue(new Error('backend unavailable'));
+
+  render(
+    <AuthProvider>
+      <AuthProbe />
+    </AuthProvider>
+  );
+
+  expect(await screen.findByText('guest mode')).toBeInTheDocument();
 });

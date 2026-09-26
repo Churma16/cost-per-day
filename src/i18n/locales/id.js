@@ -32,9 +32,15 @@ const translation = {
   "errorUpdatingCurrency": "Gagal memperbarui pengaturan mata uang.",
   "errorSavingEquivalent": "Gagal menyimpan pembanding ini.",
   "errorDeletingEquivalent": "Gagal menghapus pembanding ini.",
-  "authDescription": "Masuk untuk membawa riwayat kepemilikanmu ke berbagai perangkat.",
+  "authDescription": "Pahami nilai dari apa yang kamu miliki seiring waktu.",
   "authSessionError": "Sesi tidak dapat diperiksa. Kamu bisa mencoba masuk lagi.",
   "signInWithGoogle": "Masuk dengan Google",
+  "continueAsGuest": "Lanjut tanpa akun",
+  "guestLocalOnlyNotice": "Tanpa akun, datamu tetap di perangkat ini dan tidak dicadangkan atau disinkronkan.",
+  "guestModeTitle": "Menggunakan Worthwhile di perangkat ini",
+  "guestModeSettingsNotice": "Data guest hanya tersimpan di browser ini. Masuk untuk menyimpan riwayat, memigrasikan data ini, dan melanjutkan di perangkat lain.",
+  "guestMigrationFailed": "Akunmu sudah masuk, tetapi data guest lokal belum berhasil dimigrasikan. Salinan lokal tetap aman di perangkat ini.",
+  "retryGuestMigration": "Coba lagi migrasi data guest",
 
   // Header
   "totalDailyCost": "Biaya Kepemilikan Harian",

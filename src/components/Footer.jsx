@@ -2,6 +2,7 @@ import React, { memo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NavigationIcon from './navigation/NavigationIcon';
+import { useAuth } from '../contexts/AuthContext';
 
 const NAVIGATION_DESTINATIONS = [
   { key: 'home', path: '/', labelKey: 'navHome' },
@@ -11,7 +12,7 @@ const NAVIGATION_DESTINATIONS = [
   { key: 'settings', path: '/settings', labelKey: 'navSettings' },
 ];
 
-const FooterNavigation = memo(function FooterNavigation({ currentPathname, onNavigate }) {
+const FooterNavigation = memo(function FooterNavigation({ currentPathname, onNavigate, isGuest }) {
   const { t } = useTranslation();
 
   return (
@@ -20,7 +21,9 @@ const FooterNavigation = memo(function FooterNavigation({ currentPathname, onNav
       className="fixed bottom-0 left-0 right-0 z-20 backdrop-blur-md bg-[#F6F7F8]/95 border-t border-[#E6E8EC] app-footer"
     >
       <div className="max-w-lg mx-auto px-4 h-full flex justify-around items-center">
-        {NAVIGATION_DESTINATIONS.map((destination) => {
+        {NAVIGATION_DESTINATIONS
+          .filter((destination) => !(isGuest && destination.key === 'analytics'))
+          .map((destination) => {
           const isCurrentRouteActive =
             destination.path === '/'
               ? currentPathname === '/'
@@ -54,6 +57,7 @@ const FooterNavigation = memo(function FooterNavigation({ currentPathname, onNav
 
 function Footer() {
   const { pathname } = useLocation();
+  const { isGuest = false } = useAuth() ?? {};
   const navigateToRoute = useNavigate();
   const navigateRef = useRef(navigateToRoute);
   navigateRef.current = navigateToRoute;
@@ -66,6 +70,7 @@ function Footer() {
     <FooterNavigation
       currentPathname={pathname}
       onNavigate={handleNavigationClick}
+      isGuest={isGuest}
     />
   );
 }
