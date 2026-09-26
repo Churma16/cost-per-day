@@ -50,6 +50,9 @@ function AddEntryPage() {
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
             {t('addEntryTitle')}
           </h1>
+          <p className="mt-1 text-sm leading-relaxed text-[#6F7782]">
+            {t('addEntrySubtitle')}
+          </p>
         </div>
 
         <div

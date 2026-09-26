@@ -83,10 +83,11 @@ const translation = {
   "ownershipDays": "ownership days",
   
   // Add/Edit Item
-  "addEntryTitle": "Add",
+  "addEntryTitle": "Add an item",
+  "addEntrySubtitle": "Track what you already own or plan your next purchase.",
   "addEntryTypeLabel": "What would you like to add?",
-  "ownedItemTab": "Owned item",
-  "plannedItemTab": "Planned item",
+  "ownedItemTab": "Already owned",
+  "plannedItemTab": "Planned",
   "addNewItem": "Add New Item",
   "editItem": "Edit Item",
   "back": "Back",
@@ -240,7 +241,7 @@ const translation = {
   "ownershipTargetDescription": "Set an optional cost-per-day or duration milestone for this item.",
   "ownershipTargetSubheading": "Choose one way to set a milestone for this item.",
   "setManually": "Set manually",
-  "fromCompletedItem": "Based on past item",
+  "fromCompletedItem": "Based on history",
   "noCompletedItemsForBenchmark": "No past items available to use as a baseline.",
   "targetType": "Measure target by",
   "targetTypeNone": "None",
