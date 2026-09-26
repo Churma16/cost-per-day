@@ -15,7 +15,7 @@ import { CollapsibleCard } from './ui/CollapsibleCard';
 import { InfoTile } from './ui/InfoTile';
 import { ActionButton } from './ui/ActionButton';
 
-export const PlannedPurchaseCard = memo(function PlannedPurchaseCard({
+function PlannedPurchaseCardComponent({
   plannedPurchase,
   isExpanded = false,
   onToggle,
@@ -272,6 +272,22 @@ export const PlannedPurchaseCard = memo(function PlannedPurchaseCard({
       </div>
     </CollapsibleCard>
   );
-});
+}
+
+function arePlannedPurchaseCardPropsEqual(previousProps, nextProps) {
+  return (
+    previousProps.isExpanded === nextProps.isExpanded &&
+    previousProps.isUpdating === nextProps.isUpdating &&
+    previousProps.updateError === nextProps.updateError &&
+    previousProps.plannedPurchase === nextProps.plannedPurchase
+  );
+}
+
+export const PlannedPurchaseCard = memo(
+  PlannedPurchaseCardComponent,
+  arePlannedPurchaseCardPropsEqual
+);
+
+PlannedPurchaseCard.displayName = 'PlannedPurchaseCard';
 
 export default PlannedPurchaseCard;
