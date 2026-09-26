@@ -20,7 +20,10 @@ vi.mock('react-i18next', () => ({
         return `Estimated target · ${options?.date}`;
       }
       if (key === 'needsPace') {
-        return `Needs ≈ ${options?.daily} · ${options?.monthly}`;
+        return `Estimated contribution ≈ ${options?.daily}/day`;
+      }
+      if (key === 'targetDatePaceDetail') {
+        return `${options?.daily}/day · ${options?.weekly}/week · ${options?.monthly}/month`;
       }
       if (key === 'timeRemainingWeeks') {
         return `~${options?.weeks} weeks remaining`;
@@ -118,7 +121,7 @@ describe('PlannedPurchaseCard Component', () => {
     expect(screen.getByText('Stranger Than Heaven')).toBeInTheDocument();
     expect(screen.getAllByText('Rp 849.000')[0]).toBeInTheDocument();
     expect(screen.getByText('Target 15 Jan 2027')).toBeInTheDocument();
-    expect(screen.getByText(/Needs ≈ Rp 7.447 per day · Rp 226.524 per month/i)).toBeInTheDocument();
+    expect(screen.getByText(/Estimated contribution ≈ Rp 7.447\/day/i)).toBeInTheDocument();
   });
 
   it('renders expanded state with action buttons and primary planning hero panel', () => {

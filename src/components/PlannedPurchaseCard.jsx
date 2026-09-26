@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useContext, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   IoCalendarOutline,
@@ -8,6 +8,8 @@ import {
   IoPricetagOutline,
   IoTrashOutline,
 } from 'react-icons/io5';
+import { ValueEquivalentsContext } from '../contexts/ValueEquivalentsContext';
+import { selectBestEquivalent } from '../utils/equivalentCalculator';
 import { formatCurrency, formatDisplayDate } from '../utils/formatters';
 import { computeTargetDateFromEstimatedDays } from '../utils/plannedPurchaseProjection';
 import PlannedPurchaseExploration from './planned-purchase/PlannedPurchaseExploration';
@@ -70,6 +72,48 @@ function PlannedPurchaseCardComponent({
         days: estimatedDays,
       });
 
+  const valueEquivalentsContext = useContext(ValueEquivalentsContext);
+  const valueEquivalents = valueEquivalentsContext?.valueEquivalents || [];
+
+  const weeklyContribution = useMemo(() => {
+    return (Number(plannedPurchase.requiredDailyContribution) || 0) * 7;
+  }, [plannedPurchase.requiredDailyContribution]);
+
+  const monthlyContribution = useMemo(() => {
+    return (
+      Number(plannedPurchase.requiredMonthlyContribution) ||
+      (Number(plannedPurchase.requiredDailyContribution) || 0) * (365 / 12)
+    );
+  }, [plannedPurchase.requiredMonthlyContribution, plannedPurchase.requiredDailyContribution]);
+
+  const dailyCostRate = useMemo(() => {
+    if (hasTargetDate && plannedPurchase.requiredDailyContribution) {
+      return Number(plannedPurchase.requiredDailyContribution);
+    }
+    if (hasContribution) {
+      if (plannedPurchase.contributionCadence === 'daily') {
+        return Number(plannedPurchase.contributionAmount);
+      }
+      if (estimatedDays > 0 && targetPrice > 0) {
+        return targetPrice / estimatedDays;
+      }
+    }
+    return 0;
+  }, [
+    hasTargetDate,
+    plannedPurchase.requiredDailyContribution,
+    hasContribution,
+    plannedPurchase.contributionCadence,
+    plannedPurchase.contributionAmount,
+    estimatedDays,
+    targetPrice,
+  ]);
+
+  const bestEquivalent = useMemo(() => {
+    if (!dailyCostRate || dailyCostRate <= 0) return null;
+    return selectBestEquivalent(dailyCostRate, valueEquivalents, currencyCode, t);
+  }, [dailyCostRate, valueEquivalents, currencyCode, t]);
+
   // Row 2: User's chosen constraint (input)
   let userConstraintText = '';
   // Row 3: Worthwhile's interpretation (value)
@@ -85,10 +129,8 @@ function PlannedPurchaseCardComponent({
       date: formatDisplayDate(plannedPurchase.targetDate, i18n?.language),
     });
     const dailyStr = formatCurrency(plannedPurchase.requiredDailyContribution, currencyCode);
-    const monthlyStr = formatCurrency(plannedPurchase.requiredMonthlyContribution || 0, currencyCode);
     worthwhileInterpretationText = t('needsPace', {
-      daily: `${dailyStr} ${t('cadencePerDaily')}`,
-      monthly: `${monthlyStr} ${t('cadencePerMonthly')}`,
+      daily: dailyStr,
     });
   } else {
     userConstraintText = t('noScenarioConfigured');
@@ -210,6 +252,11 @@ function PlannedPurchaseCardComponent({
               ({heroDurationText})
             </span>
           </div>
+          {bestEquivalent && (
+            <div className="text-[11px] text-teal-800 font-medium pt-0.5">
+              &asymp; {bestEquivalent.text}
+            </div>
+          )}
         </div>
       ) : hasTargetDate ? (
         <div className="bg-[#F6F9FA] rounded-xl p-3 border border-cyan-100/90 space-y-1">
@@ -222,7 +269,16 @@ function PlannedPurchaseCardComponent({
           </div>
           {plannedPurchase.requiredDailyContribution && (
             <div className="text-xs text-cyan-900 font-medium">
-              {formatCurrency(plannedPurchase.requiredDailyContribution, currencyCode)} {t('cadencePerDaily')} &middot; {formatCurrency(plannedPurchase.requiredMonthlyContribution || 0, currencyCode)} {t('cadencePerMonthly')}
+              {t('targetDatePaceDetail', {
+                daily: formatCurrency(plannedPurchase.requiredDailyContribution, currencyCode),
+                weekly: formatCurrency(weeklyContribution, currencyCode),
+                monthly: formatCurrency(monthlyContribution, currencyCode),
+              })}
+            </div>
+          )}
+          {bestEquivalent && (
+            <div className="text-[11px] text-cyan-800 font-medium pt-0.5">
+              &asymp; {bestEquivalent.text}
             </div>
           )}
         </div>

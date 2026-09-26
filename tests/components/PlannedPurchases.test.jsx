@@ -22,7 +22,10 @@ vi.mock('react-i18next', () => ({
         return `Estimated target · ${options?.date}`;
       }
       if (key === 'needsPace') {
-        return `Needs ≈ ${options?.daily} · ${options?.monthly}`;
+        return `Estimated contribution ≈ ${options?.daily}/day`;
+      }
+      if (key === 'targetDatePaceDetail') {
+        return `${options?.daily}/day · ${options?.weekly}/week · ${options?.monthly}/month`;
       }
       const translations = {
         plannedPurchases: 'Planned Purchases',
