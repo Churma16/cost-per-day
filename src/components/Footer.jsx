@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -18,14 +18,8 @@ const NAVIGATION_DESTINATIONS = [
   { key: 'settings', path: '/settings', Icon: IoSettingsOutline, labelKey: 'navSettings' },
 ];
 
-function Footer() {
+const FooterNavigation = memo(function FooterNavigation({ currentPathname, onNavigate }) {
   const { t } = useTranslation();
-  const currentLocation = useLocation();
-  const navigateToRoute = useNavigate();
-
-  const handleNavigationClick = (targetPath) => {
-    navigateToRoute(targetPath);
-  };
 
   return (
     <nav
@@ -36,8 +30,8 @@ function Footer() {
         {NAVIGATION_DESTINATIONS.map((destination) => {
           const isCurrentRouteActive =
             destination.path === '/'
-              ? currentLocation.pathname === '/'
-              : currentLocation.pathname.startsWith(destination.path);
+              ? currentPathname === '/'
+              : currentPathname.startsWith(destination.path);
 
           const DestinationIconComponent = destination.Icon;
 
@@ -45,7 +39,7 @@ function Footer() {
             <button
               key={destination.key}
               type="button"
-              onClick={() => handleNavigationClick(destination.path)}
+              onClick={() => onNavigate(destination.path)}
               aria-label={t(destination.labelKey)}
               aria-current={isCurrentRouteActive ? 'page' : undefined}
               className="relative flex flex-col items-center justify-center min-w-[48px] min-h-[48px] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] rounded-lg group"
@@ -73,6 +67,24 @@ function Footer() {
         })}
       </div>
     </nav>
+  );
+});
+
+function Footer() {
+  const { pathname } = useLocation();
+  const navigateToRoute = useNavigate();
+  const navigateRef = useRef(navigateToRoute);
+  navigateRef.current = navigateToRoute;
+
+  const handleNavigationClick = useCallback((targetPath) => {
+    navigateRef.current(targetPath);
+  }, []);
+
+  return (
+    <FooterNavigation
+      currentPathname={pathname}
+      onNavigate={handleNavigationClick}
+    />
   );
 }
 

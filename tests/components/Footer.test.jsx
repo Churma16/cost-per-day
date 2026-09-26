@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { act, render, screen, fireEvent } from '@testing-library/react';
+import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import Footer from '../../src/components/Footer';
 
@@ -90,6 +90,25 @@ describe('Footer Navigation Component', () => {
 
     expect(screen.getByRole('button', { name: 'Add' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByTestId('active-indicator-add')).toBeInTheDocument();
+  });
+
+  it('keeps the rendered bottom navigation stable for query-only changes', () => {
+    window.history.pushState({}, '', '/add?type=item');
+    render(
+      <BrowserRouter>
+        <Footer />
+      </BrowserRouter>
+    );
+    const navigation = screen.getByRole('navigation', { name: /primary navigation/i });
+    const activeIndicator = screen.getByTestId('active-indicator-add');
+
+    act(() => {
+      window.history.pushState({}, '', '/add?type=planned');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    expect(screen.getByRole('navigation', { name: /primary navigation/i })).toBe(navigation);
+    expect(screen.getByTestId('active-indicator-add')).toBe(activeIndicator);
   });
 
   it('correctly activates the analytics destination when on /analytics', () => {
