@@ -15,49 +15,43 @@ export const calculateActiveItemsDailyCost = (items = []) => items.reduce((total
     : total;
 }, 0);
 
-function useHeroPastStickyBoundary() {
-  const heroRef = React.useRef(null);
-  const [isPastBoundary, setIsPastBoundary] = React.useState(false);
+function HomeBrandHeader() {
+  const headerRef = React.useRef(null);
+  const [isCompact, setIsCompact] = React.useState(false);
 
   React.useEffect(() => {
-    const hero = heroRef.current;
-    if (!hero || typeof IntersectionObserver === 'undefined') {
+    const scrollRoot = headerRef.current?.closest('.page-content');
+    if (!scrollRoot) {
       return undefined;
     }
 
-    const scrollRoot = hero.closest('.page-content');
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry) {
-        return;
-      }
+    const updateCompactState = () => {
+      setIsCompact(scrollRoot.scrollTop > 12);
+    };
 
-      const rootTop = entry.rootBounds?.top ?? 0;
-      const heroIsAboveRoot = entry.boundingClientRect.bottom <= rootTop;
+    updateCompactState();
+    scrollRoot.addEventListener('scroll', updateCompactState, { passive: true });
 
-      setIsPastBoundary(!entry.isIntersecting && heroIsAboveRoot);
-    }, {
-      root: scrollRoot || null,
-      threshold: 0,
-    });
-
-    observer.observe(hero);
-
-    return () => observer.disconnect();
+    return () => scrollRoot.removeEventListener('scroll', updateCompactState);
   }, []);
 
-  return { heroRef, isPastBoundary };
-}
-
-function CompactHomeBrandHeader() {
   return (
-    <div
-      className="sticky top-0 z-10 h-14 w-full flex-shrink-0 border-b border-[#E6E8EC] bg-[#F6F7F8]/95 px-4 backdrop-blur-sm"
-      data-home-header="compact"
+    <header
+      ref={headerRef}
+      className={`sticky top-0 z-10 w-full flex-shrink-0 bg-[#F6F7F8] transition-[height,padding] duration-300 ease-out ${
+        isCompact ? 'h-10 px-3' : 'h-14 px-4'
+      }`}
+      data-home-header="brand"
+      data-compact={isCompact ? 'true' : 'false'}
     >
-      <div className="mx-auto flex h-full w-full max-w-lg items-center px-1">
-        <WorthwhileBrandLockup />
+      <div className={`mx-auto flex h-full w-full max-w-lg items-center transition-[padding] duration-300 ease-out ${
+        isCompact ? 'px-0.5' : 'px-1'
+      }`}>
+        <WorthwhileBrandLockup
+          size={isCompact ? 'compact' : 'small'}
+        />
       </div>
-    </div>
+    </header>
   );
 }
 
@@ -65,18 +59,12 @@ function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode })
   const { t } = useTranslation();
   const { currencyCode } = useCurrency();
   const resolvedCurrencyCode = dashboardCurrencyCode || currencyCode;
-  const { heroRef, isPastBoundary } = useHeroPastStickyBoundary();
 
   return (
     <>
-      <header className="w-full min-w-0 flex-shrink-0 bg-[#F6F7F8] px-4 pt-4">
-        <div className="mx-auto mb-3 w-full max-w-lg px-1">
-          <WorthwhileBrandLockup />
-        </div>
-        <div
-          ref={heroRef}
-          className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[1.25rem] bg-white ring-1 ring-black/[0.04]"
-        >
+      <HomeBrandHeader />
+      <div className="w-full min-w-0 flex-shrink-0 px-4">
+        <div className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[1.25rem] bg-white ring-1 ring-black/[0.04]">
           <div className="home-reflection-surface relative isolate w-full min-w-0 text-white">
             <div className="relative z-[1] w-full min-w-0 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
               <HeroCarousel />
@@ -88,8 +76,7 @@ function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode })
             })}
           </p>
         </div>
-      </header>
-      {isPastBoundary ? <CompactHomeBrandHeader /> : null}
+      </div>
     </>
   );
 }
