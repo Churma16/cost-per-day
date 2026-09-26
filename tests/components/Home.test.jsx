@@ -93,6 +93,32 @@ describe('HomeHeader', () => {
     expect(useItems).toHaveBeenCalledTimes(1);
   });
 
+  test('falls back to active items when cached dashboard data is stale after a refetch error', () => {
+    useDashboard.mockReturnValue({
+      data: {
+        totalDailyCost: 42.5,
+        currencyCode: 'USD',
+      },
+      isError: true,
+      isRefetchError: true,
+    });
+    useItems.mockReturnValue({
+      data: [
+        { id: 'active-1', status: 'active', grossCostPerDay: 4 },
+        { id: 'active-2', status: 'active', grossCostPerDay: 1.5 },
+        { id: 'sold-1', status: 'sold', grossCostPerDay: 10 },
+      ],
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Home />);
+
+    expect(screen.getByText('Daily Ownership Cost').nextElementSibling).toHaveTextContent('$5.50');
+    expect(screen.getByText('Item list: 3')).toBeInTheDocument();
+    expect(useItems).toHaveBeenCalledTimes(1);
+  });
+
   test('falls back to active items when dashboard data is unavailable', () => {
     useDashboard.mockReturnValue({
       data: undefined,
