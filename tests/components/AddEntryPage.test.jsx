@@ -60,6 +60,8 @@ describe('AddEntryPage', () => {
   it('defaults ordinary /add navigation to the owned-item tab and canonical URL', async () => {
     renderPage('/add');
 
+    expect(screen.getByRole('heading', { name: 'Add' })).toHaveClass('text-2xl');
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Owned item' })).toHaveAttribute('aria-selected', 'true');
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/add?type=item'));
   });

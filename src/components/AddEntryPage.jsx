@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { IoArrowBack } from 'react-icons/io5';
+import { motion } from 'motion/react';
 import AddItem from './AddItem';
 import PlannedPurchaseCreateForm from './PlannedPurchaseCreateForm';
 
@@ -9,7 +9,6 @@ const ADD_TYPES = ['item', 'planned'];
 
 function AddEntryPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedType = searchParams.get('type');
   const activeType = ADD_TYPES.includes(requestedType) ? requestedType : 'item';
@@ -46,17 +45,9 @@ function AddEntryPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="px-3.5 pt-3 pb-2 space-y-3">
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center justify-center w-7 h-7 -ml-1 text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
-            aria-label={t('back')}
-          >
-            <IoArrowBack className="text-lg" />
-          </button>
-          <h1 className="text-base font-bold text-gray-900 m-0 translate-y-[0.5px]">
+      <div className="px-4 space-y-4 pb-2">
+        <div className="pt-6 pb-1 px-1">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
             {t('addEntryTitle')}
           </h1>
         </div>
@@ -80,13 +71,23 @@ function AddEntryPage() {
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => selectType(type)}
                 onKeyDown={(event) => handleTabKeyDown(event, type)}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1 ${
+                className={`relative isolate rounded-lg px-3 py-2 text-sm font-semibold transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-1 ${
                   isActive
-                    ? 'bg-white text-teal-800 shadow-sm'
+                    ? 'text-teal-800'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {t(type === 'item' ? 'ownedItemTab' : 'plannedItemTab')}
+                {isActive && (
+                  <motion.span
+                    layoutId="addTypeActiveIndicator"
+                    aria-hidden="true"
+                    className="absolute inset-0 z-0 rounded-lg bg-white shadow-sm"
+                    transition={{ type: 'spring', stiffness: 240, damping: 30, mass: 0.9 }}
+                  />
+                )}
+                <span className="relative z-10">
+                  {t(type === 'item' ? 'ownedItemTab' : 'plannedItemTab')}
+                </span>
               </button>
             );
           })}
