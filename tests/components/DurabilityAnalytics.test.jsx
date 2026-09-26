@@ -9,6 +9,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, options) => {
       const dictionary = {
+        underDevelopment: 'Under Development',
         durabilityAndOwnership: 'Ownership Over Time',
         durabilitySubtitle: 'Personal history of how long categories and brands last.',
         filterByCategory: 'Filter by Category',
@@ -163,6 +164,7 @@ describe('DurabilityAnalytics Component', () => {
     render(<DurabilityAnalytics />);
 
     expect(screen.getByText('Ownership Over Time')).toBeInTheDocument();
+    expect(screen.getByText('Under Development')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 2, name: 'Audio' })).toBeInTheDocument();
     expect(screen.getByText('In your history for Audio, Sony lasted longest.')).toBeInTheDocument();
     expect(screen.getByText('Based on 2 items')).toBeInTheDocument();

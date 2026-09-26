@@ -321,6 +321,7 @@ const translation = {
 
   // Durability & Ownership Analytics
   "analytics": "Analytics",
+  "underDevelopment": "Under Development",
   "durabilityAndOwnership": "Ownership Over Time",
   "durabilityAnalytics": "Ownership History",
   "durabilitySubtitle": "Your history of how long categories and brands lasted, and what they cost per day over time.",

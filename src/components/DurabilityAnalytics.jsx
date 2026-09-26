@@ -18,6 +18,7 @@ import {
   IoRefreshOutline,
   IoCashOutline,
   IoCalendarOutline,
+  IoConstructOutline,
 } from 'react-icons/io5';
 
 function DurabilityAnalytics() {
@@ -53,9 +54,15 @@ function DurabilityAnalytics() {
     <div className="px-4 pt-4 pb-12 space-y-6 max-w-4xl mx-auto durability-analytics-content">
       {/* Intro Header */}
       <div className="rounded-2xl p-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white shadow-sm space-y-2">
-        <div className="flex items-center gap-2">
-          <IoShieldCheckmarkOutline className="text-2xl text-purple-300" />
-          <h1 className="text-xl font-bold tracking-tight">{t('durabilityAndOwnership')}</h1>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <IoShieldCheckmarkOutline className="text-2xl text-purple-300 shrink-0" />
+            <h1 className="text-xl font-bold tracking-tight">{t('durabilityAndOwnership')}</h1>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30 shrink-0">
+            <IoConstructOutline className="text-xs" />
+            {t('underDevelopment')}
+          </span>
         </div>
         <p className="text-xs sm:text-sm text-purple-200 max-w-2xl leading-relaxed">
           {t('durabilitySubtitle')}

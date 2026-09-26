@@ -321,6 +321,7 @@ const translation = {
 
   // Durability & Ownership Analytics
   "analytics": "Analitik",
+  "underDevelopment": "Dalam Pengembangan",
   "durabilityAndOwnership": "Kepemilikan Seiring Waktu",
   "durabilityAnalytics": "Riwayat Kepemilikan",
   "durabilitySubtitle": "Riwayatmu tentang berapa lama kategori dan merek bertahan, serta biaya hariannya seiring waktu.",
