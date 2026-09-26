@@ -63,7 +63,7 @@ describe('HomeHeader', () => {
     const headerContent = reflectionSurface.firstElementChild;
 
     expect(header).toHaveClass('w-full', 'min-w-0');
-    expect(header).not.toHaveClass('sticky');
+    expect(header).toHaveClass('sticky', 'top-0', 'z-10');
     expect(brandRow).toHaveTextContent('Worthwhile');
     expect(brandPlacement).toHaveClass('max-w-lg', 'mb-3', 'px-1');
     expect(brandRow.querySelector('img')).toHaveAttribute('src', '/worthwhile-icon-192-v2.png');

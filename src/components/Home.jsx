@@ -22,7 +22,7 @@ function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode })
 
   return (
     <header
-      className="w-full min-w-0 flex-shrink-0 bg-[#F6F7F8] px-4 pt-4"
+      className="sticky top-0 z-10 w-full min-w-0 flex-shrink-0 bg-[#F6F7F8] px-4 pt-4"
     >
       <div className="mx-auto mb-3 w-full max-w-lg px-1">
         <WorthwhileBrandLockup />

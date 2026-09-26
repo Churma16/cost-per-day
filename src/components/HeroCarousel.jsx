@@ -292,7 +292,11 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
       </div>
 
       {insights.length > 1 && (
-        <div className="mt-1 flex items-center justify-start gap-0 pb-0.5" aria-label={t('carouselPosition')}>
+        <div
+          role="group"
+          aria-label={t('carouselPosition')}
+          className="mt-1 flex items-center justify-start gap-0 pb-0.5"
+        >
           {/* Previous Slide Button (Screen-reader accessible only) */}
           <button
             type="button"

@@ -175,7 +175,10 @@ describe('HeroCarousel component', () => {
 
     const firstIndicator = screen.getByRole('button', { name: 'Go to slide 1' });
     const secondIndicator = screen.getByRole('button', { name: 'Go to slide 2' });
+    const indicatorGroup = screen.getByRole('group', { name: 'Insight position' });
 
+    expect(indicatorGroup).toContainElement(firstIndicator);
+    expect(indicatorGroup).toContainElement(secondIndicator);
     expect(firstIndicator).toHaveClass('h-8', 'w-6');
     expect(firstIndicator).toHaveAttribute('aria-current', 'true');
     expect(firstIndicator.firstElementChild).toHaveClass(
