@@ -1,6 +1,11 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { deleteItem, getAllItems } from '../services/api';
+import {
+  addItem,
+  deleteItem,
+  getAllItems,
+  updateItem,
+} from '../services/api';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 import { invalidateDashboardQuery } from './useDashboard';
 import { invalidateDurabilityQuery } from './useDurabilityAnalytics';
@@ -25,6 +30,37 @@ export const invalidateItemQueries = async (queryClient) => {
   ]);
 };
 
+export const useCreateItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (itemData) => addItem(itemData),
+    onSuccess: async (savedItem) => {
+      queryClient.setQueryData(queryKeys.items, (cachedItems = []) => (
+        [...cachedItems, savedItem]
+      ));
+      await invalidateItemQueries(queryClient);
+    },
+  });
+};
+
+export const useUpdateItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ itemId, itemData }) => updateItem(itemId, itemData),
+    onSuccess: async (savedItem, { itemId }) => {
+      queryClient.setQueryData(queryKeys.items, (cachedItems) => (
+        Array.isArray(cachedItems)
+          ? cachedItems.map((item) => (
+            String(item.id) === String(itemId) ? savedItem : item
+          ))
+          : cachedItems
+      ));
+      await invalidateItemQueries(queryClient);
+    },
+  });
+};
 
 export const useDeleteItem = () => {
   const queryClient = useQueryClient();
