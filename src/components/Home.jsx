@@ -1,15 +1,15 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { useTotalCost } from '../contexts/TotalCostContext';
+import { useDashboard } from '../hooks/useDashboard';
 import { formatCurrency } from '../utils/formatters';
 import HeroCarousel from './HeroCarousel';
 import ItemList from './ItemList';
 
-function HomeHeader() {
+function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode }) {
   const { t } = useTranslation();
-  const { totalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
+  const resolvedCurrencyCode = dashboardCurrencyCode || currencyCode;
 
   return (
     <header
@@ -24,7 +24,7 @@ function HomeHeader() {
           <div className="mt-2.5 grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-t border-white/10 px-1 pt-2.5 text-white/90">
             <span className="min-w-0 text-xs tracking-wide text-white/75 font-normal">{t('totalDailyCost')}</span>
             <span className="max-w-full whitespace-nowrap text-right font-semibold text-base text-white tracking-tight tabular-nums">
-              {formatCurrency(totalDailyCost, currencyCode)}
+              {formatCurrency(totalDailyCost, resolvedCurrencyCode)}
               <span className="text-xs font-normal text-white/75">{t('perDay')}</span>
             </span>
           </div>
@@ -35,9 +35,15 @@ function HomeHeader() {
 }
 
 function Home() {
+  const { data: dashboardData } = useDashboard();
+  const totalDailyCost = Number(dashboardData?.totalDailyCost || 0);
+
   return (
     <div className="min-h-full">
-      <HomeHeader />
+      <HomeHeader
+        totalDailyCost={totalDailyCost}
+        currencyCode={dashboardData?.currencyCode}
+      />
       <ItemList />
     </div>
   );
