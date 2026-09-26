@@ -73,37 +73,6 @@ export const getStatusBadgeStyle = (status) => {
   }
 };
 
-export const getNextDurationUnit = (currentUnit = 'days', days) => {
-  if (days < 30) {
-    return 'days';
-  }
-  if (days < 365) {
-    return currentUnit === 'days' ? 'months' : 'days';
-  }
-  if (currentUnit === 'days') return 'months';
-  if (currentUnit === 'months') return 'years';
-  return 'days';
-};
-
-export const formatOwnershipDuration = (ownershipDays, unit = 'days', t, language = 'en') => {
-  const days = Math.max(1, Number(ownershipDays) || 1);
-
-  if (unit === 'months' && days >= 30) {
-    const months = (days / 30.4375).toFixed(1).replace(/\.0$/, '');
-    const localizedMonths = language === 'id' ? months.replace('.', ',') : months;
-    return `~${localizedMonths} ${t('unitMonths')}`;
-  }
-
-  if (unit === 'years' && days >= 365) {
-    const years = (days / 365.25).toFixed(1).replace(/\.0$/, '');
-    const localizedYears = language === 'id' ? years.replace('.', ',') : years;
-    return `~${localizedYears} ${t('unitYears')}`;
-  }
-
-  const daysLabel = language === 'en' && days === 1 ? 'day' : t('unitDays');
-  return `${days} ${daysLabel}`;
-};
-
 export function CalmCycleText({ text, hasCycled }) {
   const [currentText, setCurrentText] = useState(text);
   const [previousText, setPreviousText] = useState(null);
