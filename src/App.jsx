@@ -15,7 +15,6 @@ import PlannedPurchases from './components/PlannedPurchases';
 import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
-import { TotalCostProvider } from './contexts/TotalCostContext';
 import { MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
@@ -65,14 +64,12 @@ function AuthenticatedApp() {
         <CurrencyProvider>
           <ValueEquivalentsProvider>
             <PageMetadata />
-            <TotalCostProvider>
-              <Router>
-                <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
-                  <MainContent />
-                  <Footer />
-                </div>
-              </Router>
-            </TotalCostProvider>
+            <Router>
+              <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
+                <MainContent />
+                <Footer />
+              </div>
+            </Router>
           </ValueEquivalentsProvider>
         </CurrencyProvider>
       </LanguageProvider>
