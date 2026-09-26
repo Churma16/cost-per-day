@@ -10,7 +10,7 @@ const translation = {
   "navHome": "Beranda",
   "navPlanning": "Rencana",
   "navAdd": "Tambah",
-  "navAnalytics": "Analitik",
+  "navAnalytics": "Ketahanan",
   "navSettings": "Pengaturan",
   "primaryNavigation": "Navigasi utama",
   "retry": "Coba lagi",

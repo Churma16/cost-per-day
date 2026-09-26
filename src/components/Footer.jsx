@@ -1,21 +1,14 @@
 import React, { memo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
-import {
-  IoHomeOutline,
-  IoTimeOutline,
-  IoAddOutline,
-  IoStatsChartOutline,
-  IoSettingsOutline,
-} from 'react-icons/io5';
+import NavigationIcon from './navigation/NavigationIcon';
 
 const NAVIGATION_DESTINATIONS = [
-  { key: 'home', path: '/', Icon: IoHomeOutline, labelKey: 'navHome' },
-  { key: 'planning', path: '/planning', Icon: IoTimeOutline, labelKey: 'navPlanning' },
-  { key: 'add', path: '/add', Icon: IoAddOutline, labelKey: 'navAdd' },
-  { key: 'analytics', path: '/analytics', Icon: IoStatsChartOutline, labelKey: 'navAnalytics' },
-  { key: 'settings', path: '/settings', Icon: IoSettingsOutline, labelKey: 'navSettings' },
+  { key: 'home', path: '/', labelKey: 'navHome' },
+  { key: 'planning', path: '/planning', labelKey: 'navPlanning' },
+  { key: 'add', path: '/add', labelKey: 'navAdd' },
+  { key: 'analytics', path: '/analytics', labelKey: 'navAnalytics' },
+  { key: 'settings', path: '/settings', labelKey: 'navSettings' },
 ];
 
 const FooterNavigation = memo(function FooterNavigation({ currentPathname, onNavigate }) {
@@ -33,8 +26,6 @@ const FooterNavigation = memo(function FooterNavigation({ currentPathname, onNav
               ? currentPathname === '/'
               : currentPathname.startsWith(destination.path);
 
-          const DestinationIconComponent = destination.Icon;
-
           return (
             <button
               key={destination.key}
@@ -42,25 +33,16 @@ const FooterNavigation = memo(function FooterNavigation({ currentPathname, onNav
               onClick={() => onNavigate(destination.path)}
               aria-label={t(destination.labelKey)}
               aria-current={isCurrentRouteActive ? 'page' : undefined}
-              className="relative flex flex-col items-center justify-center min-w-[48px] min-h-[48px] p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] rounded-lg group"
+              className={`navigation-destination relative flex flex-1 min-w-0 min-h-[48px] flex-col items-center justify-center px-1 py-1 focus:outline-none focus-visible:ring-2 rounded-lg ${
+                isCurrentRouteActive ? 'navigation-destination--active' : ''
+              }`}
             >
-              <DestinationIconComponent
-                className={`text-2xl transition-colors duration-150 ${
-                  isCurrentRouteActive
-                    ? 'text-[#2F7473]'
-                    : 'text-gray-400 group-hover:text-gray-600'
-                }`}
+              <NavigationIcon
+                name={destination.key}
+                active={isCurrentRouteActive}
               />
-              <span className="mt-1 h-1 w-full flex items-center justify-center">
-                {isCurrentRouteActive && (
-                  <motion.span
-                    layoutId="activeNavigationIndicator"
-                    data-testid={`active-indicator-${destination.key}`}
-                    aria-hidden="true"
-                    className="w-1 h-1 rounded-full bg-[#2F7473]"
-                    transition={{ type: 'spring', stiffness: 300, damping: 35 }}
-                  />
-                )}
+              <span className="navigation-destination__label mt-0.5">
+                {t(destination.labelKey)}
               </span>
             </button>
           );
