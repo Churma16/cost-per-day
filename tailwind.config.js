@@ -45,7 +45,7 @@ module.exports = {
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
       },
       fontFamily: {
-        orbitron: ['Orbitron', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
       },
     },
   },
