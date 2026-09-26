@@ -33,6 +33,13 @@ export class GuestLimitError extends Error {
   }
 }
 
+export const assertGuestCapacity = (kind, currentCount) => {
+  const limit = kind === 'item' ? GUEST_ITEM_LIMIT : GUEST_PLANNED_PURCHASE_LIMIT;
+  if (currentCount >= limit) {
+    throw new GuestLimitError(kind, limit);
+  }
+};
+
 const requireIndexedDB = () => {
   if (!globalThis.indexedDB) {
     throw new Error('Local guest storage is unavailable in this browser.');
@@ -295,9 +302,7 @@ const guestItemRepository = {
   },
   async create(candidate) {
     const items = await listStore(ITEM_STORE);
-    if (items.length >= GUEST_ITEM_LIMIT) {
-      throw new GuestLimitError('item', GUEST_ITEM_LIMIT);
-    }
+    assertGuestCapacity('item', items.length);
     const item = normalizeGuestItemInput(candidate);
     await putStoreRecord(ITEM_STORE, item);
     return item;
@@ -337,9 +342,7 @@ const guestPlannedPurchaseRepository = {
   },
   async create(candidate) {
     const purchases = await listStore(PLANNED_PURCHASE_STORE);
-    if (purchases.length >= GUEST_PLANNED_PURCHASE_LIMIT) {
-      throw new GuestLimitError('planned', GUEST_PLANNED_PURCHASE_LIMIT);
-    }
+    assertGuestCapacity('planned', purchases.length);
     const purchase = normalizeGuestPlannedPurchaseInput(candidate);
     await putStoreRecord(PLANNED_PURCHASE_STORE, purchase);
     return purchase;

@@ -74,12 +74,18 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
+        const guestModeEnabled = readGuestMode();
         if (loadError instanceof ApiError && loadError.status === 401) {
           setUser(null);
-          setIsGuest(readGuestMode());
+          setIsGuest(guestModeEnabled);
+          setError(null);
+        } else if (guestModeEnabled) {
+          setUser(null);
+          setIsGuest(true);
           setError(null);
         } else {
           setUser(null);
+          setIsGuest(false);
           setError(loadError);
         }
       } finally {
