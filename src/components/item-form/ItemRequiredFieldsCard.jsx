@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DayPicker } from 'react-day-picker';
 import { IoCalendarOutline } from 'react-icons/io5';
-import { formatDisplayDate } from '../../utils/formatters';
+import { formatDisplayDate, getDateLocale } from '../../utils/formatters';
 import {
   currentUTCDateOnly,
   dateOnlyToOwnershipDate,
@@ -22,13 +22,31 @@ function ItemRequiredFieldsCard({
   currencySymbol,
   currencyCode,
   language,
-  showDatePicker,
-  setShowDatePicker,
-  month,
-  setMonth,
-  getLocale,
 }) {
   const { t } = useTranslation();
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [month, setMonth] = useState(purchaseDate);
+  const dateLocale = getDateLocale(language);
+
+  useEffect(() => {
+    setMonth(purchaseDate);
+    setShowDatePicker(false);
+  }, [purchaseDate]);
+
+  useEffect(() => {
+    if (!showDatePicker) {
+      return undefined;
+    }
+
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.date-picker-container')) {
+        setShowDatePicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDatePicker]);
 
   return (
     <FormSectionCard title={t('requiredSection')} data-swipe-protected>
@@ -85,7 +103,7 @@ function ItemRequiredFieldsCard({
                   }
                 }
               } else {
-                setShowDatePicker(!showDatePicker);
+                setShowDatePicker((current) => !current);
               }
             }}
           >
@@ -147,7 +165,10 @@ function ItemRequiredFieldsCard({
                     className="px-2 py-1 border border-gray-300 rounded-md"
                   >
                     {Array.from({ length: 12 }, (_, monthIndex) => {
-                      const monthName = new Intl.DateTimeFormat(getLocale().code, { month: 'long' }).format(new Date(2000, monthIndex));
+                      const monthName = new Intl.DateTimeFormat(
+                        dateLocale.code,
+                        { month: 'long' }
+                      ).format(new Date(2000, monthIndex));
                       return (
                         <option key={monthIndex} value={monthIndex}>{monthName}</option>
                       );
@@ -166,7 +187,7 @@ function ItemRequiredFieldsCard({
                   }}
                   month={month}
                   onMonthChange={setMonth}
-                  locale={getLocale()}
+                  locale={dateLocale}
                   toDate={new Date()}
                   modifiersClassNames={{
                     selected: 'bg-teal-600 text-white',
