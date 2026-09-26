@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import Home, { HomeHeader } from '../../src/components/Home';
 import { useCurrency } from '../../src/contexts/CurrencyContext';
@@ -58,17 +58,16 @@ describe('HomeHeader', () => {
     const header = screen.getByRole('banner');
     const brandRow = screen.getByLabelText('Worthwhile');
     const brandPlacement = brandRow.parentElement;
-    const heroCard = brandPlacement.nextElementSibling;
+    const heroCard = document.querySelector('.home-insight-card');
     const reflectionSurface = heroCard.firstElementChild;
     const headerContent = reflectionSurface.firstElementChild;
 
-    expect(header).toHaveClass('w-full', 'min-w-0');
-    expect(header).toHaveClass('sticky', 'top-0', 'z-10');
+    expect(header).toHaveClass('sticky', 'top-0', 'z-10', 'h-14');
     expect(brandRow).toHaveTextContent('Worthwhile');
-    expect(brandPlacement).toHaveClass('max-w-lg', 'mb-3', 'px-1');
+    expect(brandPlacement).toHaveClass('max-w-lg', 'h-full', 'px-1');
     expect(brandRow.querySelector('img')).toHaveAttribute('src', '/worthwhile-icon-192-v2.png');
     expect(screen.getByText('Worthwhile')).toHaveClass(
-      'text-xl',
+      'text-lg',
       'font-semibold',
       'leading-6',
       'tracking-[-0.015em]'
@@ -80,6 +79,47 @@ describe('HomeHeader', () => {
     expect(summary).toHaveClass('text-sm', 'leading-5');
     expect(summary).toHaveTextContent(/Rp/);
     expect(summary).toHaveTextContent(/per day\.$/);
+  });
+
+  test('keeps one calm brand header while the hero remains separate scroll content', () => {
+    const { container } = render(<HomeHeader totalDailyCost={12.5} currencyCode="USD" />);
+
+    const brandHeader = container.querySelector('[data-home-header="brand"]');
+
+    expect(container.querySelectorAll('header')).toHaveLength(1);
+    expect(brandHeader).toHaveClass('sticky', 'top-0', 'z-10', 'h-14');
+    expect(within(brandHeader).getByLabelText('Worthwhile')).toHaveTextContent('Worthwhile');
+    expect(within(brandHeader).queryByText('Insight carousel')).not.toBeInTheDocument();
+    expect(within(brandHeader).queryByText(/Today, what you own is worth about/)).not.toBeInTheDocument();
+    expect(container.querySelector('.home-insight-card')).toHaveTextContent('Insight carousel');
+  });
+
+  test('gently tightens the same brand header after scrolling', () => {
+    const { container } = render(
+      <div className="page-content">
+        <HomeHeader totalDailyCost={12.5} currencyCode="USD" />
+      </div>
+    );
+    const scrollRoot = container.querySelector('.page-content');
+    const brandHeader = container.querySelector('[data-home-header="brand"]');
+    const brandLockup = within(brandHeader).getByLabelText('Worthwhile');
+    const wordmark = within(brandHeader).getByText('Worthwhile');
+
+    expect(brandHeader).toHaveAttribute('data-compact', 'false');
+    expect(brandHeader).toHaveClass('h-14', 'px-4');
+    expect(wordmark).toHaveClass('text-lg', 'leading-6');
+
+    Object.defineProperty(scrollRoot, 'scrollTop', {
+      configurable: true,
+      value: 24,
+    });
+    fireEvent.scroll(scrollRoot);
+
+    expect(brandHeader).toHaveAttribute('data-compact', 'true');
+    expect(brandHeader).toHaveClass('h-10', 'px-3');
+    expect(wordmark).toHaveClass('text-base', 'leading-5');
+    expect(brandLockup.firstElementChild).toHaveClass('h-6', 'w-6');
+    expect(container.querySelectorAll('header')).toHaveLength(1);
   });
 
   test('uses dashboard data as the canonical Home daily cost when available', () => {
