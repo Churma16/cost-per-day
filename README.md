@@ -98,6 +98,8 @@ Worthwhile currently does not register a service worker. Production frontend upd
 
 See [docs/production.md](./docs/production.md) for the supported single-VPS topology, HTTPS requirements, persistent-volume permissions, backup/restore steps, upgrade behavior, and the remaining Google OIDC dependency.
 
+See [docs/color-branding.md](./docs/color-branding.md) for the canonical color palette, semantic roles, interaction rules, accessibility requirements, and implementation guidance.
+
 ## How to Use
 
 ### Adding Items
