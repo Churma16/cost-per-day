@@ -1,24 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import React, { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { deleteItem } from '../services/api';
-import { useTotalCost } from '../contexts/TotalCostContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
-import { useItems, useInvalidateItems } from '../hooks/useItems';
-import { queryKeys } from '../query/queryConfig';
+import { useDeleteItem, useItems } from '../hooks/useItems';
+import { useHomeOrganization } from '../hooks/useHomeOrganization';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 import ItemCard from './item-list/ItemCard';
 import ItemDeleteConfirmDialog from './item-list/ItemDeleteConfirmDialog';
 import ItemOrganizationDialog from './item-list/ItemOrganizationDialog';
 import { IoOptionsOutline } from 'react-icons/io5';
-import {
-  loadHomeOrganization,
-  normalizeHomeOrganization,
-  organizeItems,
-  saveHomeOrganization,
-} from '../utils/itemOrganization';
 
 const OWNERSHIP_STATE_LABEL_KEYS = {
   justJoined: 'statusActiveEarly',
@@ -31,38 +22,34 @@ const OWNERSHIP_STATE_LABEL_KEYS = {
 export {
   getCategoryIconInfo,
   getStatusBadgeStyle,
+  CalmCycleText,
+} from './item-list/ItemCard';
+export {
   getLifecycleTranslationKey,
   getNextDurationUnit,
   formatOwnershipDuration,
-  CalmCycleText,
-} from './item-list/ItemCard';
+} from '../utils/itemLifecycle';
 
 function ItemList() {
   const { t, i18n } = useTranslation();
   const [expandedItem, setExpandedItem] = useState(null);
   const [benchmarkModalItem, setBenchmarkModalItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [isOrganizationOpen, setIsOrganizationOpen] = useState(false);
-  const [organization, setOrganization] = useState(loadHomeOrganization);
   const organizationTriggerRef = useRef(null);
   const navigate = useNavigate();
-  const { setTotalDailyCost } = useTotalCost();
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
-  const queryClient = useQueryClient();
   const { data: itemsData, isLoading, error: itemsError } = useItems();
   const items = itemsData ?? [];
-  const invalidateItems = useInvalidateItems();
-
-  useEffect(() => {
-    const total = items.reduce((sum, item) => {
-      const itemStatus = item.status || 'active';
-      return itemStatus === 'active' ? sum + Number(item.grossCostPerDay || 0) : sum;
-    }, 0);
-    setTotalDailyCost(total);
-  }, [items, setTotalDailyCost]);
+  const deleteItemMutation = useDeleteItem();
+  const {
+    organization,
+    organizedGroups,
+    visibleItemCount,
+    setOrganization,
+  } = useHomeOrganization(items, i18n?.language);
 
   const handleEditItem = (item) => {
     navigate(`/edit?id=${item.id}`);
@@ -74,36 +61,22 @@ function ItemList() {
 
   const confirmDeleteItem = async () => {
     if (!itemToDelete) return;
-    setIsDeleting(true);
     try {
-      await deleteItem(itemToDelete.id);
-      queryClient.setQueryData(queryKeys.items, (cachedItems = []) =>
-        cachedItems.filter((item) => String(item.id) !== String(itemToDelete.id))
-      );
-      await invalidateItems();
+      await deleteItemMutation.mutateAsync(itemToDelete.id);
       setItemToDelete(null);
     } catch (error) {
       console.error('Error deleting item:', error);
       setErrorMessage(error.message || t('errorDeletingItem'));
-    } finally {
-      setIsDeleting(false);
     }
   };
 
   const handleOrganizationChange = useCallback((nextOrganization) => {
-    const normalized = normalizeHomeOrganization(nextOrganization);
-    setOrganization(normalized);
-    saveHomeOrganization(normalized);
-  }, []);
+    setOrganization(nextOrganization);
+  }, [setOrganization]);
   const handleOrganizationClose = useCallback(() => {
     setIsOrganizationOpen(false);
   }, []);
 
-  const organizedGroups = useMemo(
-    () => organizeItems(items, organization, i18n?.language),
-    [items, organization, i18n?.language]
-  );
-  const visibleItemCount = organizedGroups.reduce((count, group) => count + group.items.length, 0);
 
   return (
     <div className="px-4 pt-3 pb-8 space-y-2.5 home-page-content max-w-lg mx-auto">
@@ -175,7 +148,7 @@ function ItemList() {
 
       <ItemDeleteConfirmDialog
         item={itemToDelete}
-        isDeleting={isDeleting}
+        isDeleting={deleteItemMutation.isPending}
         onCancel={() => setItemToDelete(null)}
         onConfirm={confirmDeleteItem}
       />
