@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 /**
  * PageHeader - Standardized top page header for top-level pages
  * (Planned Purchases, Add Entry, Settings) ensuring consistent typography and vertical rhythm.
  */
-export function PageHeader({
+export const PageHeader = memo(function PageHeader({
   title,
   subtitle,
   className = '',
@@ -23,6 +23,6 @@ export function PageHeader({
       {children}
     </div>
   );
-}
+});
 
 export default PageHeader;

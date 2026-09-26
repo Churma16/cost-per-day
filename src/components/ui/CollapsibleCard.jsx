@@ -23,7 +23,7 @@ export function CollapsibleCard({
 
   return (
     <div
-      className={`bg-white rounded-2xl overflow-hidden transition-all duration-200 ${
+      className={`bg-white rounded-2xl overflow-hidden transition-[border-color,box-shadow] duration-200 ${
         isExpanded
           ? 'border border-teal-200 shadow-[0_2px_8px_rgba(0,0,0,0.08)]'
           : 'border border-[#E6E8EC] shadow-[0_1px_3px_rgba(0,0,0,0.05)] hover:border-[#D5D8DF]'
