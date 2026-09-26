@@ -30,7 +30,7 @@ export const useDeleteItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteItem,
+    mutationFn: (itemId) => deleteItem(itemId),
     onSuccess: async (_result, deletedItemId) => {
       queryClient.setQueryData(queryKeys.items, (cachedItems) => (
         Array.isArray(cachedItems)
