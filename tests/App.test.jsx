@@ -133,6 +133,33 @@ describe('Header route isolation regression tests', () => {
     expect(routeTransition).not.toHaveClass('h-full');
   });
 
+  test('preserves the height chain and avoids a transformed ancestor around the app scroll container', async () => {
+    window.history.pushState({}, '', '/');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.page-content')).toBeInTheDocument();
+    });
+
+    const pageContent = document.querySelector('.page-content');
+    const applicationRouteSurface = pageContent.closest('[data-route-surface="application"]');
+    const authenticatedAppShell = pageContent.parentElement;
+    const brandHeader = document.querySelector('[data-home-header="brand"]');
+
+    expect(applicationRouteSurface).toHaveClass('h-full', 'min-h-0', 'w-full');
+    expect(applicationRouteSurface.style.transform).toBe('');
+    expect(authenticatedAppShell).toHaveClass('h-full', 'flex', 'flex-col');
+    expect(pageContent).toHaveAttribute('class', 'page-content');
+
+    Object.defineProperty(pageContent, 'scrollTop', {
+      configurable: true,
+      value: 24,
+    });
+    fireEvent.scroll(pageContent);
+
+    expect(brandHeader).toHaveAttribute('data-compact', 'true');
+  });
+
   test('renders clean header on /settings without page-header banner', async () => {
     window.history.pushState({}, '', '/settings');
     render(<App />);

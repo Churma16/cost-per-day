@@ -36,7 +36,14 @@ const applicationQueryClient = new QueryClient({
 
 const MotionLink = motion.create(Link);
 
-const publicRouteTransition = {
+const applicationRouteTransition = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.14, ease: 'easeOut' },
+};
+
+const legalRouteTransition = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -4 },
@@ -218,16 +225,21 @@ function AuthGate() {
 
 function ApplicationRoutes() {
   const location = useLocation();
-  const transitionKey = ['/privacy', '/terms'].includes(location.pathname)
+  const isLegalRoute = ['/privacy', '/terms'].includes(location.pathname);
+  const transitionKey = isLegalRoute
     ? location.pathname
     : 'application';
+  const transition = isLegalRoute
+    ? legalRouteTransition
+    : applicationRouteTransition;
 
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={transitionKey}
-        {...publicRouteTransition}
-        className="min-h-full w-full"
+        {...transition}
+        data-route-surface={isLegalRoute ? 'legal' : 'application'}
+        className="h-full min-h-0 w-full"
       >
         <Routes location={location}>
           <Route path="/privacy" element={<LegalDocumentPage documentKey="privacy" />} />
