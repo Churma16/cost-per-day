@@ -25,6 +25,12 @@ const toMigrationPlannedPurchase = (plannedPurchase) => ({
   contributionCadence: plannedPurchase.contributionCadence ?? null,
 });
 
+const toMigrationValueEquivalent = (equivalent) => ({
+  name: equivalent.name,
+  amount: Number(equivalent.amount),
+  currencyCode: equivalent.currencyCode,
+});
+
 export const createGuestMigrationService = ({
   guestStorage = guestRepositories,
   importGuestData = (payload) => apiRequest('/api/guest-migrations', {
@@ -47,6 +53,7 @@ export const createGuestMigrationService = ({
           migrationId: snapshot.migrationId,
           items: snapshot.items.map(toMigrationItem),
           plannedPurchases: snapshot.plannedPurchases.map(toMigrationPlannedPurchase),
+          valueEquivalents: (snapshot.valueEquivalents || []).map(toMigrationValueEquivalent),
         });
       } catch (error) {
         if (error?.status === 400) {
