@@ -71,6 +71,7 @@ vi.mock('react-i18next', () => ({
         ownershipTargetSubheading: 'Choose one way to set a milestone for this item.',
         back: 'Back',
         discardDraft: 'Discard draft',
+        guestItemLimitReached: 'You\'ve reached the ' + options?.limit + '-item limit without an account.',
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -213,6 +214,37 @@ describe('AddItem component date localization', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
         'Unable to reach the server. Check the backend connection and try again.'
+      );
+    });
+  });
+
+  test('renders the localized guest item limit prompt from structured error metadata', async () => {
+    useLanguage.mockReturnValue({
+      language: 'en'
+    });
+    const limitError = Object.assign(new Error('Guest item limit reached'), {
+      code: 'guest_item_limit',
+      limit: 10,
+    });
+    addItem.mockRejectedValueOnce(limitError);
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'Laptop' }
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), {
+      target: { value: '1200' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        "You've reached the 10-item limit without an account."
       );
     });
   });
