@@ -35,6 +35,7 @@ const translation = {
   "authDescription": "Pahami nilai dari apa yang kamu miliki seiring waktu.",
   "authSessionError": "Sesi tidak dapat diperiksa. Kamu bisa mencoba masuk lagi.",
   "signInWithGoogle": "Masuk dengan Google",
+  "authOr": "atau",
   "continueAsGuest": "Lanjut tanpa akun",
   "guestLocalOnlyNotice": "Tanpa akun, datamu tetap di perangkat ini dan tidak dicadangkan atau disinkronkan.",
   "guestModeTitle": "Menggunakan Worthwhile di perangkat ini",
