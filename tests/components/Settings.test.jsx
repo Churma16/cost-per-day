@@ -293,6 +293,9 @@ describe('Settings component', () => {
     fireEvent.click(screen.getByRole('button', { name: /language.*english/i }));
     fireEvent.click(screen.getByRole('button', { name: /Bahasa Indonesia/i }));
     await waitFor(() => expect(mockChangeLanguage).toHaveBeenCalledWith('id'));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Select Language' })).not.toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole('button', { name: /currency.*us dollar/i }));
     fireEvent.click(screen.getByRole('button', { name: /Rp Indonesian Rupiah \(IDR\)/i }));
