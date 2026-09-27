@@ -59,17 +59,17 @@ const translation = {
   "contactProjectOwner": "Hubungi pemilik proyek",
 
   // Onboarding pertama kali
-  "onboardingWelcomeEyebrow": "Pengaturan singkat",
+  "onboardingWelcomeEyebrow": "Mari sesuaikan untukmu",
   "onboardingWelcomeTitle": "Selamat datang di {{productName}}",
-  "onboardingWelcomeBody": "Pahami arti pembelian seiring waktu. Pertama, pilih bahasa dan mata uang yang paling nyaman untukmu.",
+  "onboardingWelcomeBody": "Pahami arti pembelianmu seiring waktu. Mulai dengan memilih bahasa dan mata uang yang paling nyaman untukmu.",
   "onboardingStart": "Atur Worthwhile",
   "onboardingTimeNote": "Hanya butuh kurang dari satu menit.",
   "onboardingPreferencesTitle": "Buat Worthwhile terasa familiar",
-  "onboardingPreferencesBody": "Kami menyarankan pilihan dari perangkatmu. Keduanya bisa diubah sekarang atau nanti di Pengaturan.",
-  "onboardingPrimaryCurrency": "Mata uang utama",
-  "onboardingCurrencyHelp": "Harga dan perhitungan akan ditampilkan dalam mata uang ini.",
-  "onboardingReferencesTitle": "Tambahkan pembanding sehari-hari",
-  "onboardingReferencesBody": "Pembanding opsional membantu mengubah biaya harian menjadi perbandingan yang familiar. Tambahkan hingga tiga, atau lewati dulu.",
+  "onboardingPreferencesBody": "Kami menyarankan ini berdasarkan perangkatmu. Kamu bisa mengubahnya kapan saja di Pengaturan.",
+  "onboardingCurrencyHelp": "Harga dan perhitungan akan menggunakan mata uang ini.",
+  "onboardingReferencesTitle": "Tambahkan yang familiar",
+  "onboardingReferencesBody": "Pilih pembanding sehari-hari agar Worthwhile dapat mengubah biaya harian menjadi sesuatu yang lebih mudah dipahami.",
+  "onboardingReferencesNote": "Tambahkan hingga tiga, atau lewati dulu.",
   "onboardingReferenceCoffee": "Kopi",
   "onboardingReferenceSnack": "Gorengan",
   "onboardingReferenceLunch": "Makan siang",
@@ -80,7 +80,7 @@ const translation = {
   "removeReference": "Hapus pembanding",
   "continue": "Lanjut",
   "optional": "Opsional",
-  "skip": "Lewati",
+  "skipForNow": "Lewati dulu",
 
   // Header
   "totalDailyCost": "Biaya Kepemilikan Harian",

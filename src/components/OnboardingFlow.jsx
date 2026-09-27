@@ -155,7 +155,7 @@ function OnboardingFlow({ onComplete }) {
             </div>
           </fieldset>
 
-          <label className="mt-6 block text-xs font-semibold uppercase tracking-wider text-gray-500" htmlFor="onboarding-currency">{t('onboardingPrimaryCurrency')}</label>
+          <label className="mt-6 block text-xs font-semibold uppercase tracking-wider text-gray-500" htmlFor="onboarding-currency">{t('currency')}</label>
           <select id="onboarding-currency" value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#2F7473] focus:outline-none focus:ring-2 focus:ring-[#2F7473]/20">
             {currencies.map((option) => <option key={option.code} value={option.code}>{option.symbol} {option.name}</option>)}
           </select>
@@ -190,6 +190,8 @@ function OnboardingFlow({ onComplete }) {
           <button type="button" disabled={references.length >= 3} onClick={addCustomReference} className="flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:border-[#83AAA7] disabled:opacity-40"><IoAdd /> {t('onboardingCustomReference')}</button>
         </div>
 
+        <p className="mt-3 text-xs text-gray-500">{t('onboardingReferencesNote')}</p>
+
         <div className="mt-4 space-y-3">
           {references.map((reference, index) => (
             <div key={index} className="rounded-2xl border border-gray-200 bg-white p-3">
@@ -205,7 +207,7 @@ function OnboardingFlow({ onComplete }) {
         {error && <p role="alert" className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-medium text-red-700">{error}</p>}
 
         <div className="mt-6 flex gap-3">
-          <button type="button" disabled={isSaving} onClick={() => finish({ skipReferences: true })} className="flex-1 rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50">{t('skip')}</button>
+          <button type="button" disabled={isSaving} onClick={() => finish({ skipReferences: true })} className="flex-1 rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50">{t('skipForNow')}</button>
           <button type="button" disabled={isSaving} onClick={() => finish()} className="flex-1 rounded-xl bg-[#2F7473] px-4 py-3 text-sm font-semibold text-white hover:bg-[#265e5d] disabled:opacity-50">{isSaving ? t('saving') : t('onboardingEnter')}</button>
         </div>
       </div>

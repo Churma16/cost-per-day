@@ -48,9 +48,9 @@ describe('first-run onboarding flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));
     fireEvent.click(screen.getByRole('button', { name: 'Bahasa Indonesia' }));
-    fireEvent.change(screen.getByLabelText('Primary currency'), { target: { value: 'IDR' } });
+    fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'IDR' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
     expect(mocks.changeLanguage).toHaveBeenCalledWith('id');
@@ -66,7 +66,7 @@ describe('first-run onboarding flow', () => {
     render(<OnboardingFlow onComplete={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));
-    fireEvent.change(screen.getByLabelText('Primary currency'), { target: { value: 'IDR' } });
+    fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'IDR' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: '+ Coffee' }));
     fireEvent.change(screen.getByLabelText('Price'), { target: { value: '25000' } });
