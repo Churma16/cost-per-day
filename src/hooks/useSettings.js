@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getAllSettings, updateSetting } from '../services/api';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
-import { useAuth } from '../contexts/AuthContext';
+import { usePersistence } from '../contexts/PersistenceContext';
 
 export const SETTINGS_QUERY_KEY = queryKeys.settings;
 
 export const useSettings = () => {
-  const auth = useAuth();
-  const enabled = auth === null ? true : Boolean(auth.user);
+  const { repositories } = usePersistence();
+  const settingsRepository = repositories?.settings;
+
   return useQuery({
     queryKey: queryKeys.settings,
-    queryFn: getAllSettings,
-    enabled,
+    queryFn: () => settingsRepository.getAll(),
+    enabled: Boolean(settingsRepository),
     staleTime: SERVER_STATE_STALE_TIME,
     retry: 1,
   });
@@ -19,14 +19,15 @@ export const useSettings = () => {
 
 export const useUpdateSetting = () => {
   const queryClient = useQueryClient();
-  const auth = useAuth();
+  const { repositories } = usePersistence();
+  const settingsRepository = repositories?.settings;
 
   return useMutation({
     mutationFn: ({ key, value }) => {
-      if (auth && !auth.user) {
-        throw new Error('Sign in to sync shared settings.');
+      if (!settingsRepository) {
+        throw new Error('Settings persistence is unavailable.');
       }
-      return updateSetting(key, value);
+      return settingsRepository.set(key, value);
     },
     onMutate: async ({ key, value }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.settings });
