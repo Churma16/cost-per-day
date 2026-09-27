@@ -90,6 +90,11 @@ func TestGuestMigrationRequiresAuthenticationAndIsIdempotent(t *testing.T) {
 			"name":"Guest lens",
 			"targetPrice":500,
 			"currencyCode":"USD"
+		}],
+		"valueEquivalents":[{
+			"name":"Coffee",
+			"amount":5,
+			"currencyCode":"USD"
 		}]
 	}`)
 
@@ -108,7 +113,8 @@ func TestGuestMigrationRequiresAuthenticationAndIsIdempotent(t *testing.T) {
 	firstData := parseResponseBody(t, firstResponse).Data.(map[string]any)
 	if firstData["alreadyImported"] != false ||
 		firstData["importedItems"] != float64(1) ||
-		firstData["importedPlannedPurchases"] != float64(1) {
+		firstData["importedPlannedPurchases"] != float64(1) ||
+		firstData["importedValueEquivalents"] != float64(1) {
 		t.Fatalf("unexpected first migration result: %v", firstData)
 	}
 
@@ -135,6 +141,18 @@ func TestGuestMigrationRequiresAuthenticationAndIsIdempotent(t *testing.T) {
 	plannedData := parseResponseBody(t, plannedRecorder).Data.([]any)
 	if len(plannedData) != 1 {
 		t.Fatalf("expected exactly one migrated planned purchase, got %d", len(plannedData))
+	}
+
+	equivalentRepository := sqliterepository.NewValueEquivalentRepository(gormDB)
+	equivalents, equivalentsError := equivalentRepository.List(ctx, user.ID)
+	if equivalentsError != nil {
+		t.Fatalf("list migrated value equivalents: %v", equivalentsError)
+	}
+	if len(equivalents) != 1 {
+		t.Fatalf("expected exactly one migrated value equivalent, got %d", len(equivalents))
+	}
+	if equivalents[0].Name != "Coffee" || equivalents[0].Amount != 5 || equivalents[0].CurrencyCode != "USD" {
+		t.Fatalf("unexpected migrated value equivalent: %+v", equivalents[0])
 	}
 
 	unauthenticatedRouter := appHttp.SetupRouter(appHttp.RouterConfig{
@@ -214,14 +232,15 @@ func TestGuestMigrationValidationFailureDoesNotPersistPartialData(t *testing.T) 
 				"purchaseDate": "2026-09-20",
 				"status":       "active",
 			},
-			{
-				"name":         "",
-				"price":        200,
-				"purchaseDate": "2026-09-20",
-				"status":       "active",
-			},
 		},
 		"plannedPurchases": []any{},
+		"valueEquivalents": []map[string]any{
+			{
+				"name":         "",
+				"amount":       5,
+				"currencyCode": "USD",
+			},
+		},
 	}
 	requestBody, _ := json.Marshal(invalidPayload)
 	request := httptest.NewRequest(http.MethodPost, "/api/guest-migrations", bytes.NewReader(requestBody))
@@ -238,5 +257,14 @@ func TestGuestMigrationValidationFailureDoesNotPersistPartialData(t *testing.T) 
 	itemsData := parseResponseBody(t, itemsRecorder).Data.([]any)
 	if len(itemsData) != 0 {
 		t.Fatalf("expected validation failure to persist zero items, got %d", len(itemsData))
+	}
+
+	equivalentRepository := sqliterepository.NewValueEquivalentRepository(gormDB)
+	equivalents, equivalentsError := equivalentRepository.List(ctx, user.ID)
+	if equivalentsError != nil {
+		t.Fatalf("list value equivalents after failed migration: %v", equivalentsError)
+	}
+	if len(equivalents) != 0 {
+		t.Fatalf("expected validation failure to persist zero value equivalents, got %d", len(equivalents))
 	}
 }
