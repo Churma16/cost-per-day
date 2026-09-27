@@ -59,6 +59,11 @@ test('continues into the core app without an authenticated session when guest mo
   const guestButton = await screen.findByRole('button', { name: /continue without an account/i });
   fireEvent.click(guestButton);
 
+  expect(guestButton).toBeDisabled();
+  expect(guestButton).toHaveAttribute('aria-busy', 'true');
+  expect(guestButton).toHaveClass('collapsing');
+  expect(guestButton.querySelector('.auth-button__loader')).toBeInTheDocument();
+
   await waitFor(() => {
     expect(screen.getByRole('navigation', { name: /primary navigation/i })).toBeInTheDocument();
   });

@@ -1,7 +1,6 @@
 import { apiRequest } from './httpClient';
 import {
   guestRepositories,
-  hasGuestData,
 } from '../data/persistenceRepositories';
 
 const toMigrationItem = (item) => ({
@@ -33,27 +32,24 @@ export const createGuestMigrationService = ({
     json: payload,
     networkErrorMessage: 'Unable to migrate local guest data.',
   }),
-  guestDataExists = hasGuestData,
 } = {}) => ({
   async migrate() {
-    if (!(await guestDataExists())) {
-      return { skipped: true };
+    let lastResult = null;
+
+    while (true) {
+      const snapshot = await guestStorage.migrations.getOrCreateSnapshot();
+      if (!snapshot) {
+        return lastResult || { skipped: true };
+      }
+
+      lastResult = await importGuestData({
+        migrationId: snapshot.migrationId,
+        items: snapshot.items.map(toMigrationItem),
+        plannedPurchases: snapshot.plannedPurchases.map(toMigrationPlannedPurchase),
+      });
+
+      await guestStorage.migrations.completeSnapshot(snapshot);
     }
-
-    const [items, plannedPurchases, migrationId] = await Promise.all([
-      guestStorage.items.list(),
-      guestStorage.plannedPurchases.list(),
-      guestStorage.meta.getOrCreateMigrationId(),
-    ]);
-
-    const result = await importGuestData({
-      migrationId,
-      items: items.map(toMigrationItem),
-      plannedPurchases: plannedPurchases.map(toMigrationPlannedPurchase),
-    });
-
-    await guestStorage.clear();
-    return result;
   },
 });
 

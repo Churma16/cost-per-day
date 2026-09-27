@@ -603,6 +603,38 @@ describe('AddItem component date localization', () => {
     });
   });
 
+  test('disables Save while a create is pending to prevent duplicate submissions', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    let resolveCreate;
+    addItem.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveCreate = resolve;
+    }));
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'Keyboard' }
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), {
+      target: { value: '150' }
+    });
+
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => expect(saveButton).toBeDisabled());
+    fireEvent.click(saveButton);
+    expect(addItem).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveCreate({ id: 'pending-item' });
+    });
+  });
+
   test('populates and updates existing ownership target in edit mode', async () => {
     useLanguage.mockReturnValue({ language: 'en' });
     const monitorItem = {

@@ -95,6 +95,7 @@ describe('Settings component', () => {
   const mockEditEquivalent = vi.fn();
   const mockRemoveEquivalent = vi.fn();
   const mockSignOut = vi.fn();
+  const mockSignIn = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -118,6 +119,8 @@ describe('Settings component', () => {
     });
     useAuth.mockReturnValue({
       user: { id: 'user-1', email: 'test@example.com' },
+      isGuest: false,
+      signIn: mockSignIn,
       signOut: mockSignOut,
       error: null
     });
@@ -249,6 +252,33 @@ describe('Settings component', () => {
 
     await waitFor(() => {
       expect(mockSignOut).toHaveBeenCalled();
+    });
+  });
+
+  test('morphs the guest sign-in button into the ownership loader before redirecting', async () => {
+    useAuth.mockReturnValue({
+      user: null,
+      isGuest: true,
+      signIn: mockSignIn,
+      signOut: mockSignOut,
+      error: null,
+      guestMigrationError: null,
+      isMigratingGuestData: false,
+      retryGuestMigration: vi.fn(),
+    });
+
+    render(<Settings />);
+
+    const signInButton = screen.getByRole('button', { name: /signInWithGoogle/i });
+    fireEvent.click(signInButton);
+
+    expect(signInButton).toBeDisabled();
+    expect(signInButton).toHaveAttribute('aria-busy', 'true');
+    expect(signInButton).toHaveClass('collapsing');
+    expect(signInButton.querySelector('.ownership-loader--active')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mockSignIn).toHaveBeenCalledTimes(1);
     });
   });
 

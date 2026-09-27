@@ -1,9 +1,10 @@
 import { describe, expect, test, vi } from 'vitest';
 import { createGuestMigrationService } from '../../src/services/guestMigrationService';
 
-const createStorage = () => ({
-  items: {
-    list: vi.fn().mockResolvedValue([{
+const createStorage = () => {
+  const snapshot = {
+    migrationId: 'guest-migration-stable',
+    items: [{
       id: 'guest-item-1',
       userId: 'untrusted-owner',
       name: 'Camera',
@@ -12,36 +13,39 @@ const createStorage = () => ({
       status: 'active',
       ownershipDays: 7,
       grossCostPerDay: 171.42,
-    }]),
-  },
-  plannedPurchases: {
-    list: vi.fn().mockResolvedValue([{
+      updatedAt: '2026-09-27T00:00:00.000Z',
+    }],
+    plannedPurchases: [{
       id: 'guest-plan-1',
       userId: 'untrusted-owner',
       name: 'Lens',
       targetPrice: 500,
       currencyCode: 'USD',
       estimatedDays: 10,
-    }]),
-  },
-  meta: {
-    getOrCreateMigrationId: vi.fn().mockResolvedValue('guest-migration-stable'),
-  },
-  clear: vi.fn().mockResolvedValue(undefined),
-});
+      updatedAt: '2026-09-27T00:00:00.000Z',
+    }],
+  };
+  let pendingSnapshot = snapshot;
+
+  return {
+    snapshot,
+    migrations: {
+      getOrCreateSnapshot: vi.fn(async () => pendingSnapshot),
+      completeSnapshot: vi.fn(async () => {
+        pendingSnapshot = null;
+      }),
+    },
+  };
+};
 
 describe('guest migration orchestration', () => {
-  test('imports sanitized guest payload and clears local data only after confirmation', async () => {
+  test('imports a sanitized immutable snapshot and completes it only after confirmation', async () => {
     const guestStorage = createStorage();
     const importGuestData = vi.fn().mockResolvedValue({
       importedItems: 1,
       importedPlannedPurchases: 1,
     });
-    const service = createGuestMigrationService({
-      guestStorage,
-      importGuestData,
-      guestDataExists: vi.fn().mockResolvedValue(true),
-    });
+    const service = createGuestMigrationService({ guestStorage, importGuestData });
 
     await service.migrate();
 
@@ -68,41 +72,49 @@ describe('guest migration orchestration', () => {
         contributionCadence: null,
       }],
     });
-    expect(guestStorage.clear).toHaveBeenCalledTimes(1);
+    expect(guestStorage.migrations.completeSnapshot).toHaveBeenCalledWith(guestStorage.snapshot);
   });
 
-  test('preserves local guest data and migration id after a failed import so retry is safe', async () => {
+  test('preserves the same snapshot after a failed import so retry is safe', async () => {
     const guestStorage = createStorage();
     const importGuestData = vi.fn()
       .mockRejectedValueOnce(new Error('network failed'))
       .mockResolvedValueOnce({ alreadyImported: false });
-    const service = createGuestMigrationService({
-      guestStorage,
-      importGuestData,
-      guestDataExists: vi.fn().mockResolvedValue(true),
-    });
+    const service = createGuestMigrationService({ guestStorage, importGuestData });
 
     await expect(service.migrate()).rejects.toThrow('network failed');
-    expect(guestStorage.clear).not.toHaveBeenCalled();
+    expect(guestStorage.migrations.completeSnapshot).not.toHaveBeenCalled();
 
     await expect(service.migrate()).resolves.toEqual({ alreadyImported: false });
-    expect(guestStorage.meta.getOrCreateMigrationId).toHaveBeenCalledTimes(2);
-    expect(importGuestData.mock.calls[0][0].migrationId).toBe('guest-migration-stable');
-    expect(importGuestData.mock.calls[1][0].migrationId).toBe('guest-migration-stable');
-    expect(guestStorage.clear).toHaveBeenCalledTimes(1);
+    expect(importGuestData.mock.calls[0][0]).toEqual(importGuestData.mock.calls[1][0]);
+    expect(guestStorage.migrations.completeSnapshot).toHaveBeenCalledTimes(1);
   });
 
-  test('does not call the backend when there is no guest data to migrate', async () => {
+  test('retries idempotently when the backend succeeds but snapshot cleanup fails', async () => {
     const guestStorage = createStorage();
+    guestStorage.migrations.completeSnapshot
+      .mockRejectedValueOnce(new Error('indexeddb cleanup failed'));
+    const importGuestData = vi.fn()
+      .mockResolvedValueOnce({ alreadyImported: false })
+      .mockResolvedValueOnce({ alreadyImported: true });
+    const service = createGuestMigrationService({ guestStorage, importGuestData });
+
+    await expect(service.migrate()).rejects.toThrow('indexeddb cleanup failed');
+    await expect(service.migrate()).resolves.toMatchObject({ alreadyImported: true });
+
+    expect(importGuestData).toHaveBeenCalledTimes(2);
+    expect(importGuestData.mock.calls[0][0]).toEqual(importGuestData.mock.calls[1][0]);
+    expect(guestStorage.migrations.completeSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  test('does not call the backend when there is no guest snapshot to migrate', async () => {
+    const guestStorage = createStorage();
+    guestStorage.migrations.getOrCreateSnapshot.mockResolvedValue(null);
     const importGuestData = vi.fn();
-    const service = createGuestMigrationService({
-      guestStorage,
-      importGuestData,
-      guestDataExists: vi.fn().mockResolvedValue(false),
-    });
+    const service = createGuestMigrationService({ guestStorage, importGuestData });
 
     await expect(service.migrate()).resolves.toEqual({ skipped: true });
     expect(importGuestData).not.toHaveBeenCalled();
-    expect(guestStorage.clear).not.toHaveBeenCalled();
+    expect(guestStorage.migrations.completeSnapshot).not.toHaveBeenCalled();
   });
 });

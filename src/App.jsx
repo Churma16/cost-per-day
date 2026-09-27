@@ -16,6 +16,7 @@ import PlannedPurchases from './components/PlannedPurchases';
 import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
+import OwnershipLoader from './components/ui/OwnershipLoader';
 import { MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
@@ -44,6 +45,21 @@ const GoogleLogo = () => (
     <path fill="#34A853" d="M9 3.581c1.321 0 2.507.454 3.44 1.345l2.581-2.581C13.464.891 11.426 0 9 0A9 9 0 0 0 .956 4.96l3.007 2.332C4.672 5.165 6.656 3.581 9 3.581Z" />
   </svg>
 );
+
+function AuthButtonContent({ pending, icon = null, children }) {
+  return (
+    <span className="relative flex h-full w-full items-center justify-center">
+      <span className="auth-button__label flex items-center justify-center gap-2.5">
+        {icon}
+        <span>{children}</span>
+      </span>
+      <OwnershipLoader
+        active={pending}
+        className="auth-button__loader h-[26px] w-[26px]"
+      />
+    </span>
+  );
+}
 
 const MainContent = () => {
   const location = useLocation();
@@ -94,6 +110,14 @@ function AuthenticatedApp() {
 function AuthGate() {
   const { t } = useTranslation();
   const { user, isGuest, isLoading, error, signIn, continueAsGuest } = useAuth();
+  const [pendingAction, setPendingAction] = React.useState(null);
+
+  const startAuthAction = (action, callback) => {
+    if (pendingAction) return;
+
+    setPendingAction(action);
+    window.setTimeout(callback, 480);
+  };
 
   if (isLoading) {
     return (
@@ -105,15 +129,15 @@ function AuthGate() {
 
   if (!user && !isGuest) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <section className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center">
+      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-1.5 sm:p-6">
+        <section className="w-full max-w-sm rounded-2xl bg-[#F8F9FA] px-6 py-7 text-center sm:px-7">
           <img
             src="/logo192.png"
             alt="Worthwhile"
-            className="w-20 h-20 mx-auto mb-4"
+            className="mx-auto mb-4 h-20 w-20"
           />
-          <h1 className="text-2xl font-bold text-gray-900">{PRODUCT_NAME}</h1>
-          <p className="mt-3 text-sm text-gray-600">
+          <h1 className="text-xl font-bold tracking-[-0.02em] text-gray-950">{PRODUCT_NAME}</h1>
+          <p className="mt-2 text-sm leading-5 text-gray-600">
             {t('authDescription')}
           </p>
           {error && (
@@ -121,31 +145,40 @@ function AuthGate() {
               {t('authSessionError')}
             </p>
           )}
-          <div className="mt-6 space-y-3">
+          <div className="mt-7 flex flex-col items-center gap-3">
             <button
               type="button"
-              onClick={signIn}
-              className="flex w-full items-center justify-center gap-3 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+              onClick={() => startAuthAction('google', signIn)}
+              disabled={Boolean(pendingAction)}
+              aria-busy={pendingAction === 'google'}
+              className={`auth-button text-sm font-medium text-gray-950 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] focus-visible:ring-offset-2 disabled:cursor-wait ${
+                pendingAction === 'google' ? 'collapsing' : ''
+              }`}
             >
-              <span className="flex h-7 w-7 items-center justify-center rounded bg-white">
-                <GoogleLogo />
-              </span>
-              <span>{t('signInWithGoogle')}</span>
+              <AuthButtonContent pending={pendingAction === 'google'} icon={<GoogleLogo />}>
+                {t('signInWithGoogle')}
+              </AuthButtonContent>
             </button>
-            <div className="flex items-center gap-3" role="separator" aria-label={t('authOr')}>
+            <div className="flex w-full items-center gap-3" role="separator" aria-label={t('authOr')}>
               <span className="h-px flex-1 bg-gray-200" />
               <span className="text-xs font-medium text-gray-400">{t('authOr')}</span>
               <span className="h-px flex-1 bg-gray-200" />
             </div>
             <button
               type="button"
-              onClick={continueAsGuest}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 font-semibold text-gray-800 hover:bg-gray-50"
+              onClick={() => startAuthAction('guest', continueAsGuest)}
+              disabled={Boolean(pendingAction)}
+              aria-busy={pendingAction === 'guest'}
+              className={`auth-button text-sm font-medium text-gray-950 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] focus-visible:ring-offset-2 disabled:cursor-wait ${
+                pendingAction === 'guest' ? 'collapsing' : ''
+              }`}
             >
-              {t('continueAsGuest')}
+              <AuthButtonContent pending={pendingAction === 'guest'}>
+                {t('continueAsGuest')}
+              </AuthButtonContent>
             </button>
           </div>
-          <p className="mt-4 text-xs leading-5 text-gray-500">
+          <p className="mt-3 text-xs leading-5 text-gray-500">
             {t('guestLocalOnlyNotice')}
           </p>
         </section>

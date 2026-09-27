@@ -10,6 +10,7 @@ const ITEM_STORE = 'items';
 const PLANNED_PURCHASE_STORE = 'plannedPurchases';
 const META_STORE = 'meta';
 const MIGRATION_ID_KEY = 'migrationId';
+const MIGRATION_SNAPSHOT_KEY = 'migrationSnapshot';
 
 export class GuestLimitError extends Error {
   constructor(kind, limit) {
@@ -118,6 +119,14 @@ const deleteStoreRecord = (storeName, id) => runStoreOperation(
   'readwrite',
   (store) => requestAsPromise(store.delete(String(id))),
 );
+
+const abortTransaction = (transaction) => {
+  try {
+    transaction.abort();
+  } catch {
+    // The transaction may already have completed after a request failure.
+  }
+};
 
 const createLocalID = (prefix) => {
   if (globalThis.crypto?.randomUUID) {
@@ -284,17 +293,38 @@ const normalizeGuestPlannedPurchaseInput = (candidate, existing = {}) => {
   return enrichGuestPlannedPurchase(normalized);
 };
 
+const createGuestRecordWithinLimit = async (storeName, kind, candidate, normalize) => {
+  const database = await openGuestDatabase();
+  const transaction = database.transaction(storeName, 'readwrite');
+  const completion = transactionAsPromise(transaction);
+  const store = transaction.objectStore(storeName);
+
+  try {
+    const existingRecords = await requestAsPromise(store.getAll());
+    assertGuestCapacity(kind, existingRecords.length);
+    const record = normalize(candidate);
+    await requestAsPromise(store.put(record));
+    await completion;
+    return record;
+  } catch (error) {
+    abortTransaction(transaction);
+    await completion.catch(() => undefined);
+    throw error;
+  }
+};
+
 const guestItemRepository = {
   async list() {
     const items = await listStore(ITEM_STORE);
     return items.map(enrichGuestItem);
   },
   async create(candidate) {
-    const items = await listStore(ITEM_STORE);
-    assertGuestCapacity('item', items.length);
-    const item = normalizeGuestItemInput(candidate);
-    await putStoreRecord(ITEM_STORE, item);
-    return item;
+    return createGuestRecordWithinLimit(
+      ITEM_STORE,
+      'item',
+      candidate,
+      normalizeGuestItemInput,
+    );
   },
   async update(id, candidate) {
     const existing = await getStoreRecord(ITEM_STORE, id);
@@ -330,11 +360,12 @@ const guestPlannedPurchaseRepository = {
     return purchases.map(enrichGuestPlannedPurchase);
   },
   async create(candidate) {
-    const purchases = await listStore(PLANNED_PURCHASE_STORE);
-    assertGuestCapacity('planned', purchases.length);
-    const purchase = normalizeGuestPlannedPurchaseInput(candidate);
-    await putStoreRecord(PLANNED_PURCHASE_STORE, purchase);
-    return purchase;
+    return createGuestRecordWithinLimit(
+      PLANNED_PURCHASE_STORE,
+      'planned',
+      candidate,
+      normalizeGuestPlannedPurchaseInput,
+    );
   },
   async update(id, candidate) {
     const existing = await getStoreRecord(PLANNED_PURCHASE_STORE, id);
@@ -360,6 +391,98 @@ const guestMetaRepository = {
     const value = createLocalID('guest-migration');
     await putStoreRecord(META_STORE, { key: MIGRATION_ID_KEY, value });
     return value;
+  },
+};
+
+const guestMigrationRepository = {
+  async getOrCreateSnapshot() {
+    const database = await openGuestDatabase();
+    const transaction = database.transaction(
+      [ITEM_STORE, PLANNED_PURCHASE_STORE, META_STORE],
+      'readwrite',
+    );
+    const completion = transactionAsPromise(transaction);
+    const itemStore = transaction.objectStore(ITEM_STORE);
+    const plannedPurchaseStore = transaction.objectStore(PLANNED_PURCHASE_STORE);
+    const metaStore = transaction.objectStore(META_STORE);
+
+    try {
+      const [existingSnapshotRecord, existingMigrationIDRecord, items, plannedPurchases] = await Promise.all([
+        requestAsPromise(metaStore.get(MIGRATION_SNAPSHOT_KEY)),
+        requestAsPromise(metaStore.get(MIGRATION_ID_KEY)),
+        requestAsPromise(itemStore.getAll()),
+        requestAsPromise(plannedPurchaseStore.getAll()),
+      ]);
+
+      if (existingSnapshotRecord?.value) {
+        await completion;
+        return existingSnapshotRecord.value;
+      }
+      if (items.length === 0 && plannedPurchases.length === 0) {
+        await completion;
+        return null;
+      }
+
+      const migrationId = existingMigrationIDRecord?.value || createLocalID('guest-migration');
+      const snapshot = {
+        migrationId,
+        items,
+        plannedPurchases,
+        createdAt: new Date().toISOString(),
+      };
+
+      if (!existingMigrationIDRecord?.value) {
+        await requestAsPromise(metaStore.put({ key: MIGRATION_ID_KEY, value: migrationId }));
+      }
+      await requestAsPromise(metaStore.put({ key: MIGRATION_SNAPSHOT_KEY, value: snapshot }));
+      await completion;
+      return snapshot;
+    } catch (error) {
+      abortTransaction(transaction);
+      await completion.catch(() => undefined);
+      throw error;
+    }
+  },
+
+  async completeSnapshot(snapshot) {
+    const database = await openGuestDatabase();
+    const transaction = database.transaction(
+      [ITEM_STORE, PLANNED_PURCHASE_STORE, META_STORE],
+      'readwrite',
+    );
+    const completion = transactionAsPromise(transaction);
+    const itemStore = transaction.objectStore(ITEM_STORE);
+    const plannedPurchaseStore = transaction.objectStore(PLANNED_PURCHASE_STORE);
+    const metaStore = transaction.objectStore(META_STORE);
+
+    try {
+      const [currentItems, currentPlannedPurchases] = await Promise.all([
+        requestAsPromise(itemStore.getAll()),
+        requestAsPromise(plannedPurchaseStore.getAll()),
+      ]);
+      const currentItemsByID = new Map(currentItems.map((item) => [String(item.id), item]));
+      const currentPlansByID = new Map(
+        currentPlannedPurchases.map((purchase) => [String(purchase.id), purchase]),
+      );
+      const matchingSnapshotRecords = (records, currentByID) => records.filter((record) => {
+        const current = currentByID.get(String(record.id));
+        return current && JSON.stringify(current) === JSON.stringify(record);
+      });
+
+      await Promise.all([
+        ...matchingSnapshotRecords(snapshot.items, currentItemsByID)
+          .map((item) => requestAsPromise(itemStore.delete(item.id))),
+        ...matchingSnapshotRecords(snapshot.plannedPurchases, currentPlansByID)
+          .map((purchase) => requestAsPromise(plannedPurchaseStore.delete(purchase.id))),
+        requestAsPromise(metaStore.delete(MIGRATION_SNAPSHOT_KEY)),
+        requestAsPromise(metaStore.delete(MIGRATION_ID_KEY)),
+      ]);
+      await completion;
+    } catch (error) {
+      abortTransaction(transaction);
+      await completion.catch(() => undefined);
+      throw error;
+    }
   },
 };
 
@@ -404,6 +527,7 @@ export const guestRepositories = {
   items: guestItemRepository,
   plannedPurchases: guestPlannedPurchaseRepository,
   meta: guestMetaRepository,
+  migrations: guestMigrationRepository,
   clear: clearGuestData,
 };
 

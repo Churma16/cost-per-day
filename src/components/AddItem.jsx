@@ -389,7 +389,12 @@ function AddItem({ showHeader = true, isVisible = true }) {
                 className="w-full py-2.5 bg-teal-600 text-white rounded-xl font-medium
                 hover:bg-teal-700 transition-all duration-200 shadow-sm hover:shadow
                 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
-                disabled={!isFormValid || (isEditMode && (loadFailed || !itemLoaded))}
+                disabled={
+                  !isFormValid
+                  || createItemMutation.isPending
+                  || updateItemMutation.isPending
+                  || (isEditMode && (loadFailed || !itemLoaded))
+                }
               >
                 {t('save')}
               </button>
