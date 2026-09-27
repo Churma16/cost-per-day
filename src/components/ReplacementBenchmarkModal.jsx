@@ -1,42 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoClose, IoScaleOutline, IoCalendarOutline, IoCashOutline } from 'react-icons/io5';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useReplacementBenchmark } from '../hooks/useBenchmark';
 import { formatCurrency } from '../utils/formatters';
-import CurrencyInput from './common/CurrencyInput';
 
 function ReplacementBenchmarkModal({
   isOpen,
   onClose,
   completedItem,
   initialCandidatePrice = '',
-  onCandidatePriceChange,
   onApplyBenchmark,
 }) {
   const { t } = useTranslation();
-  const { currencyCode, currencySymbol } = useCurrency();
+  const { currencyCode } = useCurrency();
   const shouldReduceMotion = useReducedMotion();
-  const [candidatePriceInput, setCandidatePriceInput] = useState(
-    initialCandidatePrice ? String(initialCandidatePrice) : ''
-  );
-
-  React.useEffect(() => {
-    if (isOpen) {
-      setCandidatePriceInput(initialCandidatePrice ? String(initialCandidatePrice) : '');
-    }
-  }, [isOpen]);
-
-  const handleCandidatePriceChange = (event) => {
-    const updatedValue = event.target.value;
-    setCandidatePriceInput(updatedValue);
-    if (onCandidatePriceChange) {
-      onCandidatePriceChange(updatedValue);
-    }
-  };
-
-  const numericCandidatePrice = Number(candidatePriceInput);
+  const numericCandidatePrice = Number(initialCandidatePrice);
   const isValidCandidatePrice = Number.isFinite(numericCandidatePrice) && numericCandidatePrice > 0;
 
   const {
@@ -146,31 +126,11 @@ function ReplacementBenchmarkModal({
           </div>
         </div>
 
-        {/* Candidate price input */}
-        <div className="space-y-1">
-          <label htmlFor="candidate-replacement-price" className="text-xs text-gray-600 font-medium">
-            {t('candidatePrice')}
-          </label>
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-              {currencySymbol}
-            </div>
-            <CurrencyInput
-              id="candidate-replacement-price"
-              value={candidatePriceInput}
-              onChange={handleCandidatePriceChange}
-              currencyCode={currencyCode}
-              placeholder={t('enterCandidatePrice')}
-              className={`w-full px-3 py-2 ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'} rounded-xl border border-[#E6E8EC] focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all duration-200 text-sm`}
-            />
-          </div>
-        </div>
-
         {/* State 1: Empty input prompt */}
         {!isValidCandidatePrice && (
           <div className="min-h-[88px] rounded-xl border border-[#E6E8EC] bg-[#F6F7F8] p-3 flex flex-col justify-center">
             <p className="text-xs text-gray-500 leading-relaxed">
-              {t('benchmarkEmptyHint', {
+              {t('benchmarkMissingPriceHint', {
                 amount: formatCurrency(Number(completedItem.netCostPerDay ?? completedItem.grossCostPerDay ?? 0), currencyCode)
               })}
             </p>

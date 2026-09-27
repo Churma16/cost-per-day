@@ -33,6 +33,11 @@ import ItemStatusCard from './item-form/ItemStatusCard';
 import ItemOwnershipTargetCard from './item-form/ItemOwnershipTargetCard';
 import ItemDeleteConfirmModal from './item-form/ItemDeleteConfirmModal';
 
+const createTargetDraftValues = ({ targetType, targetValue }) => ({
+  cost_per_day: targetType === 'cost_per_day' ? targetValue : '',
+  duration: targetType === 'duration' ? targetValue : '',
+});
+
 function AddItem({ showHeader = true, isVisible = true }) {
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -67,7 +72,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const [endedAt, setEndedAt] = useState(initialFormValues.endedAt);
   const [salePrice, setSalePrice] = useState(initialFormValues.salePrice);
   const [targetType, setTargetType] = useState(initialFormValues.targetType);
-  const [targetValue, setTargetValue] = useState(initialFormValues.targetValue);
+  const [targetDraftValues, setTargetDraftValues] = useState(
+    () => createTargetDraftValues(initialFormValues)
+  );
   const [targetMode, setTargetMode] = useState(initialFormValues.targetMode);
   const [selectedBenchmarkItemId, setSelectedBenchmarkItemId] = useState(
     initialFormValues.selectedBenchmarkItemId
@@ -95,6 +102,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const { data: availableBrands = [] } = useBrands();
 
   const effectiveTargetMode = isGuest ? 'manual' : targetMode;
+  const targetValue = targetDraftValues[targetType] ?? '';
   const formValues = {
     name,
     price,
@@ -162,7 +170,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setEndedAt(hydratedValues.endedAt);
     setSalePrice(hydratedValues.salePrice);
     setTargetType(hydratedValues.targetType);
-    setTargetValue(hydratedValues.targetValue);
+    setTargetDraftValues(createTargetDraftValues(hydratedValues));
     setHydratedEditId(String(editId));
     setLoadFailed(false);
     setErrorMessage(null);
@@ -201,12 +209,12 @@ function AddItem({ showHeader = true, isVisible = true }) {
   }
 
   const handleApplyBenchmark = (benchmarkResult) => {
-    if (benchmarkResult?.candidatePrice) {
-      setPrice(String(benchmarkResult.candidatePrice));
-    }
     if (benchmarkResult?.daysToMatchPrevious) {
       setTargetType('duration');
-      setTargetValue(String(benchmarkResult.daysToMatchPrevious));
+      setTargetDraftValues((currentValues) => ({
+        ...currentValues,
+        duration: String(benchmarkResult.daysToMatchPrevious),
+      }));
       setTargetMode('manual');
     }
   };
@@ -225,7 +233,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setEndedAt(resetValues.endedAt);
     setSalePrice(resetValues.salePrice);
     setTargetType(resetValues.targetType);
-    setTargetValue(resetValues.targetValue);
+    setTargetDraftValues(createTargetDraftValues(resetValues));
     setTargetMode(resetValues.targetMode);
     setSelectedBenchmarkItemId(resetValues.selectedBenchmarkItemId);
     setBenchmarkModalOpen(false);
@@ -309,6 +317,13 @@ function AddItem({ showHeader = true, isVisible = true }) {
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-2.5">
+            {showHeader && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" aria-label={t('ownedItemContext')}>
+                <p className="text-xs font-semibold text-slate-900">{t('ownedItemContext')}</p>
+                <p className="mt-0.5 text-[11px] text-slate-600">{t('ownedItemContextHelp')}</p>
+              </div>
+            )}
+
             {/* Required Section Card */}
             <ItemRequiredFieldsCard
               name={name}
@@ -363,14 +378,16 @@ function AddItem({ showHeader = true, isVisible = true }) {
               onTargetModeChange={setTargetMode}
               allowBenchmark={!isGuest}
               targetType={targetType}
-              onTargetTypeChange={(nextTargetType) => {
-                setTargetType(nextTargetType);
-                if (nextTargetType === 'none') {
-                  setTargetValue('');
-                }
-              }}
+              onTargetTypeChange={setTargetType}
               targetValue={targetValue}
-              onTargetValueChange={setTargetValue}
+              targetValues={targetDraftValues}
+              onTargetValueChange={(nextTargetValue, valueTargetType = targetType) => {
+                if (valueTargetType === 'none') return;
+                setTargetDraftValues((currentValues) => ({
+                  ...currentValues,
+                  [valueTargetType]: nextTargetValue,
+                }));
+              }}
               currencySymbol={currencySymbol}
               currencyCode={currencyCode}
               equivalentTargetNote={equivalentTargetNote}
@@ -447,7 +464,6 @@ function AddItem({ showHeader = true, isVisible = true }) {
           onClose={() => setBenchmarkModalOpen(false)}
           completedItem={benchmarkSourceItem}
           initialCandidatePrice={price}
-          onCandidatePriceChange={(updatedPrice) => setPrice(updatedPrice)}
           onApplyBenchmark={handleApplyBenchmark}
         />
       )}

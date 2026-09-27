@@ -22,6 +22,7 @@ vi.mock('react-i18next', () => ({
         benchmarkResultDaysToBeat: `After ${options?.days} days, its daily ownership cost would be lower than your previous item's`,
         useBenchmarkAsTarget: 'Set as Ownership Target',
         benchmarkEmptyHint: `Enter a price above to calculate how long this purchase needs to last to reach the same daily ownership cost of ${options?.amount}/day.`,
+        benchmarkMissingPriceHint: 'Enter the item price in the main form first to calculate this baseline.',
         benchmarkUnmatchableZeroCost: 'This item had a zero or negative net ownership cost (sold at or above purchase price). A new purchase cannot match a zero-cost baseline.',
         cancel: 'Cancel',
         close: 'Close',
@@ -90,12 +91,12 @@ describe('ReplacementBenchmarkModal component', () => {
       />
     );
 
-    expect(screen.getByText(/Enter a price above to calculate/i)).toBeInTheDocument();
+    expect(screen.getByText(/Enter the item price in the main form first/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Set as Ownership Target' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
   });
 
-  it('renders completed item details and accepts candidate price or initial candidate price', () => {
+  it('renders completed item details and uses the price from the main form', () => {
     render(
       <ReplacementBenchmarkModal
         isOpen={true}
@@ -111,11 +112,10 @@ describe('ReplacementBenchmarkModal component', () => {
     expect(screen.getByText('Final daily ownership cost: $1.50/day')).toBeInTheDocument();
     expect(screen.getByText('No Longer in Use')).toBeInTheDocument();
 
-    const priceInput = screen.getByPlaceholderText('Enter new item price');
-    expect(priceInput.value).toBe('250');
-
-    fireEvent.change(priceInput, { target: { value: '300' } });
-    expect(priceInput.value).toBe('300');
+    expect(screen.queryByLabelText('New item price')).not.toBeInTheDocument();
+    expect(useReplacementBenchmark).toHaveBeenCalledWith('item-10', 250, {
+      enabled: true,
+    });
   });
 
   it('displays benchmark results with canonical backend contract and calls onApplyBenchmark', () => {
@@ -163,25 +163,6 @@ describe('ReplacementBenchmarkModal component', () => {
       daysToMatchPrevious: 200
     }));
     expect(onClose).toHaveBeenCalled();
-  });
-
-  it('calls onCandidatePriceChange when candidate price is modified', () => {
-    const onCandidatePriceChange = vi.fn();
-    render(
-      <ReplacementBenchmarkModal
-        isOpen={true}
-        onClose={vi.fn()}
-        completedItem={mockCompletedItem}
-        initialCandidatePrice={250}
-        onCandidatePriceChange={onCandidatePriceChange}
-      />
-    );
-
-    const priceInput = screen.getByPlaceholderText('Enter new item price');
-    fireEvent.change(priceInput, { target: { value: '350' } });
-
-    expect(priceInput.value).toBe('350');
-    expect(onCandidatePriceChange).toHaveBeenCalledWith('350');
   });
 
   it('displays unmatchable warning notice and disables apply button when benchmark is unmatchable', () => {

@@ -74,13 +74,17 @@ describe('PlannedPurchaseForm', () => {
     });
   });
 
-  it('clears contribution fields when switching to target-date mode', () => {
+  it('preserves both strategy drafts while switching and submits only target-date mode', () => {
     const onSubmit = renderForm();
     fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Winter Coat' } });
     fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '1200000' } });
     fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '14000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Choose a target date' }));
     fireEvent.change(screen.getByLabelText('Target date'), { target: { value: '2028-12-31' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose an amount' }));
+    expect(screen.getByLabelText('Recurring contribution')).toHaveValue('14.000');
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a target date' }));
+    expect(screen.getByLabelText('Target date')).toHaveValue('2028-12-31');
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(onSubmit).toHaveBeenCalledWith({
@@ -91,6 +95,23 @@ describe('PlannedPurchaseForm', () => {
       contributionAmount: null,
       contributionCadence: null,
     });
+  });
+
+  it('submits only contribution mode after exploring a target date', () => {
+    const onSubmit = renderForm();
+    fireEvent.change(screen.getByLabelText(/Target item name/), { target: { value: 'Desk' } });
+    fireEvent.change(screen.getByLabelText(/Item price/), { target: { value: '2400000' } });
+    fireEvent.change(screen.getByLabelText('Recurring contribution'), { target: { value: '20000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a target date' }));
+    fireEvent.change(screen.getByLabelText('Target date'), { target: { value: '2028-06-30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose an amount' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      targetDate: null,
+      contributionAmount: 20000,
+      contributionCadence: 'daily',
+    }));
   });
 
   it('restores the selected planning mode from a creation draft', () => {
