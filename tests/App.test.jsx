@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import App from '../src/App';
 import { ApiError, getCurrentUser } from '../src/services/api';
@@ -17,6 +17,7 @@ vi.mock('../src/services/api', async (importOriginal) => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
 test('renders authentication loading state while session bootstrap is pending', () => {
@@ -33,10 +34,40 @@ test('shows Google sign-in when there is no application session', async () => {
   render(<App />);
 
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+    const googleButton = screen.getByRole('button', { name: /sign in with google/i });
+    const guestButton = screen.getByRole('button', { name: /continue without an account/i });
+
+    expect(googleButton).toBeInTheDocument();
+    expect(guestButton).toBeInTheDocument();
+    expect(
+      googleButton.compareDocumentPosition(guestButton) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(googleButton.querySelector('svg[aria-hidden="true"]')).toBeInTheDocument();
+    expect(screen.getByRole('separator', { name: /or/i })).toBeInTheDocument();
+    expect(screen.getByText(/data stays on this device/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Worthwhile', level: 1 })).toBeInTheDocument();
     expect(screen.getByAltText('Worthwhile')).toBeInTheDocument();
   });
+});
+
+
+test('continues into the core app without an authenticated session when guest mode is chosen', async () => {
+  getCurrentUser.mockRejectedValue(new ApiError('authenticated user identity is required', 401));
+
+  render(<App />);
+
+  const guestButton = await screen.findByRole('button', { name: /continue without an account/i });
+  fireEvent.click(guestButton);
+
+  expect(guestButton).toBeDisabled();
+  expect(guestButton).toHaveAttribute('aria-busy', 'true');
+  expect(guestButton).toHaveClass('collapsing');
+  expect(guestButton.querySelector('.auth-button__loader')).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(screen.getByRole('navigation', { name: /primary navigation/i })).toBeInTheDocument();
+  });
+  expect(window.localStorage.getItem('worthwhile:guest-mode')).toBe('1');
 });
 
 describe('Header route isolation regression tests', () => {

@@ -38,7 +38,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth() ?? {};
+  const { user, isGuest = false } = useAuth() ?? {};
   const draftUserId = user?.id ?? null;
   const isAddMode = location.pathname === '/add';
   const isEditMode = location.pathname === '/edit';
@@ -94,6 +94,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const { data: availableCategories = [] } = useCategories();
   const { data: availableBrands = [] } = useBrands();
 
+  const effectiveTargetMode = isGuest ? 'manual' : targetMode;
   const formValues = {
     name,
     price,
@@ -105,7 +106,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     salePrice,
     targetType,
     targetValue,
-    targetMode,
+    targetMode: effectiveTargetMode,
     selectedBenchmarkItemId,
   };
   const addDraftData = itemFormValuesToDraftData(formValues);
@@ -354,8 +355,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
             {/* Ownership Target Section Card */}
             <ItemOwnershipTargetCard
               isVisible={isVisible}
-              targetMode={targetMode}
+              targetMode={effectiveTargetMode}
               onTargetModeChange={setTargetMode}
+              allowBenchmark={!isGuest}
               targetType={targetType}
               onTargetTypeChange={(nextTargetType) => {
                 setTargetType(nextTargetType);
@@ -389,7 +391,12 @@ function AddItem({ showHeader = true, isVisible = true }) {
                 className="w-full py-2.5 bg-teal-600 text-white rounded-xl font-medium
                 hover:bg-teal-700 transition-all duration-200 shadow-sm hover:shadow
                 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
-                disabled={!isFormValid || (isEditMode && (loadFailed || !itemLoaded))}
+                disabled={
+                  !isFormValid
+                  || createItemMutation.isPending
+                  || updateItemMutation.isPending
+                  || (isEditMode && (loadFailed || !itemLoaded))
+                }
               >
                 {t('save')}
               </button>
@@ -430,14 +437,16 @@ function AddItem({ showHeader = true, isVisible = true }) {
       />
 
       {/* Replacement Benchmark Modal */}
-      <ReplacementBenchmarkModal
-        isOpen={benchmarkModalOpen && Boolean(benchmarkSourceItem)}
-        onClose={() => setBenchmarkModalOpen(false)}
-        completedItem={benchmarkSourceItem}
-        initialCandidatePrice={price}
-        onCandidatePriceChange={(updatedPrice) => setPrice(updatedPrice)}
-        onApplyBenchmark={handleApplyBenchmark}
-      />
+      {!isGuest && (
+        <ReplacementBenchmarkModal
+          isOpen={benchmarkModalOpen && Boolean(benchmarkSourceItem)}
+          onClose={() => setBenchmarkModalOpen(false)}
+          completedItem={benchmarkSourceItem}
+          initialCandidatePrice={price}
+          onCandidatePriceChange={(updatedPrice) => setPrice(updatedPrice)}
+          onApplyBenchmark={handleApplyBenchmark}
+        />
+      )}
     </>
   );
 }

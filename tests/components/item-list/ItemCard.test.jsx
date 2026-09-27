@@ -151,4 +151,35 @@ describe('ItemCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalledWith(item);
   });
+
+  test('does not expose the API-only replacement benchmark to guests', () => {
+    const onBenchmark = vi.fn();
+    const item = {
+      id: 'guest-item-1',
+      name: 'Retired guest phone',
+      price: 500,
+      purchaseDate: '2025-01-01T00:00:00Z',
+      ownershipDays: 365,
+      grossCostPerDay: 1.37,
+      status: 'retired',
+    };
+
+    render(
+      <ItemCard
+        item={item}
+        isExpanded
+        isGuest
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onBenchmark={onBenchmark}
+        currencyCode="USD"
+        valueEquivalents={[]}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: 'Benchmark replacement' }))
+      .not.toBeInTheDocument();
+    expect(onBenchmark).not.toHaveBeenCalled();
+  });
 });

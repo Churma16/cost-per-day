@@ -6,7 +6,7 @@ import React, {
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getAllItems } from '../services/api';
+import { usePersistence } from '../contexts/PersistenceContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
@@ -37,9 +37,19 @@ const NOTIFICATION_DURATION_MS = 3000;
 function Settings() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { repositories } = usePersistence();
   const { language, changeLanguage, error: languageError } = useLanguage();
   const { currencyCode, changeCurrency, error: currencyError } = useCurrency();
-  const { user, signOut, error: authError } = useAuth();
+  const {
+    user,
+    isGuest,
+    signIn,
+    signOut,
+    error: authError,
+    guestMigrationError,
+    isMigratingGuestData,
+    retryGuestMigration,
+  } = useAuth();
   const {
     valueEquivalents = [],
     isLoading: isLoadingEquivalents,
@@ -173,7 +183,7 @@ function Settings() {
     try {
       const items = await queryClient.fetchQuery({
         queryKey: queryKeys.items,
-        queryFn: getAllItems,
+        queryFn: () => repositories.items.list(),
         staleTime: SERVER_STATE_STALE_TIME,
       });
 
@@ -362,7 +372,7 @@ function Settings() {
           </div>
         )}
 
-        <GeneralSettingsSection
+        {!isGuest && <GeneralSettingsSection
           language={language}
           languageName={getLanguageName(language)}
           selectedCurrencyOption={selectedCurrencyOption}
@@ -375,9 +385,9 @@ function Settings() {
             setActiveModal('currency');
             setShowCurrencyDropdown(true);
           }}
-        />
+        />}
 
-        <ValueEquivalentsSection
+        {!isGuest && <ValueEquivalentsSection
           valueEquivalents={valueEquivalents}
           isLoading={isLoadingEquivalents}
           error={equivalentsError}
@@ -385,23 +395,28 @@ function Settings() {
           onAdd={handleOpenAddEquivalent}
           onEdit={handleOpenEditEquivalent}
           onDelete={handleOpenDeleteConfirm}
-        />
+        />}
 
-        <DataManagementSection
+        {!isGuest && <DataManagementSection
           fileInputRef={fileInputRef}
           isInteractionBlocked={Boolean(activeModal)}
           onExport={handleExportData}
           onImport={handleImportData}
           onFileChange={handleFileChange}
-        />
+        />}
 
         <AccountSettingsSection
           user={user}
+          isGuest={isGuest}
           isSigningOut={isSigningOut}
           isInteractionBlocked={Boolean(activeModal)}
           signOutError={signOutError}
           authError={authError}
           onSignOut={handleSignOut}
+          onSignIn={signIn}
+          guestMigrationError={guestMigrationError}
+          isMigratingGuestData={isMigratingGuestData}
+          onRetryGuestMigration={retryGuestMigration}
         />
 
         <div className="text-center text-gray-400 text-xs py-2">
@@ -409,25 +424,25 @@ function Settings() {
         </div>
       </PageContainer>
 
-      <LanguageSelectionModal
+      {!isGuest && <LanguageSelectionModal
         isOpen={showLanguageDropdown}
         languages={languages}
         selectedLanguage={language}
         onSelect={handleLanguageChange}
         onRequestClose={() => setShowLanguageDropdown(false)}
         onExitComplete={() => setActiveModal(null)}
-      />
+      />}
 
-      <CurrencySelectionModal
+      {!isGuest && <CurrencySelectionModal
         isOpen={showCurrencyDropdown}
         currencyOptions={currencyOptions}
         selectedCurrencyCode={currencyCode}
         onSelect={handleCurrencyChange}
         onRequestClose={() => setShowCurrencyDropdown(false)}
         onExitComplete={() => setActiveModal(null)}
-      />
+      />}
 
-      <ImportConfirmDialog
+      {!isGuest && <ImportConfirmDialog
         isOpen={showImportConfirm}
         isImporting={replaceItemsMutation.isPending}
         onCancel={() => setShowImportConfirm(false)}
@@ -436,9 +451,9 @@ function Settings() {
           setImportData(null);
           setActiveModal(null);
         }}
-      />
+      />}
 
-      <EquivalentFormModal
+      {!isGuest && <EquivalentFormModal
         isOpen={showEquivalentModal}
         equivalent={editingEquivalent}
         defaultCurrency={currencyCode}
@@ -446,9 +461,9 @@ function Settings() {
         onCancel={() => setShowEquivalentModal(false)}
         onSave={handleSaveEquivalent}
         onExitComplete={() => setActiveModal(null)}
-      />
+      />}
 
-      <DeleteEquivalentConfirmDialog
+      {!isGuest && <DeleteEquivalentConfirmDialog
         target={showDeleteEquivalentConfirm}
         isOpen={Boolean(showDeleteEquivalentConfirm)}
         isDeleting={isDeletingEquivalent}
@@ -458,7 +473,7 @@ function Settings() {
           setIsDeletingEquivalent(false);
           setActiveModal(null);
         }}
-      />
+      />}
     </>
   );
 }

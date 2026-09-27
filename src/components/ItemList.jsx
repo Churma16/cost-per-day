@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useDeleteItem, useItems } from '../hooks/useItems';
 import { useHomeOrganization } from '../hooks/useHomeOrganization';
 import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
@@ -41,6 +42,7 @@ function ItemListContent({ itemsQuery }) {
   const navigate = useNavigate();
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
+  const { isGuest = false } = useAuth() ?? {};
   const { data: itemsData, isLoading, error: itemsError } = itemsQuery;
   const items = itemsData ?? [];
   const deleteItemMutation = useDeleteItem();
@@ -129,6 +131,7 @@ function ItemListContent({ itemsQuery }) {
                   onEdit={handleEditItem}
                   onDelete={setItemToDelete}
                   onBenchmark={setBenchmarkModalItem}
+                  isGuest={isGuest}
                   currencyCode={currencyCode}
                   valueEquivalents={valueEquivalents}
                 />

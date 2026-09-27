@@ -55,6 +55,17 @@ type PlannedPurchaseRepository interface {
 	Delete(ctx context.Context, userID string, id string) error
 }
 
+// GuestMigrationRepository atomically imports validated guest data for an authenticated user.
+type GuestMigrationRepository interface {
+	ImportGuestData(
+		ctx context.Context,
+		userID string,
+		migrationID string,
+		items []domain.Item,
+		plannedPurchases []domain.PlannedPurchase,
+	) (domain.GuestMigrationResult, error)
+}
+
 // CategoryRepository defines the persistence contract for user-owned category operations.
 type CategoryRepository interface {
 	List(ctx context.Context, userID string) ([]domain.Category, error)

@@ -131,5 +131,8 @@ var (
 
 	// ErrBenchmarkItemNotCompleted indicates that benchmark was attempted on an active item.
 	ErrBenchmarkItemNotCompleted = errors.New("replacement benchmark requires a completed historical item")
+
+	// ErrInvalidGuestMigrationID indicates that a guest migration retry key is missing or malformed.
+	ErrInvalidGuestMigrationID = errors.New("guest migration identifier is invalid")
 )
 

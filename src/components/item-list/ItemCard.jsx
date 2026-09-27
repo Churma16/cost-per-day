@@ -119,6 +119,7 @@ function ItemCard({
   onEdit,
   onDelete,
   onBenchmark,
+  isGuest = false,
   currencyCode,
   valueEquivalents,
 }) {
@@ -344,7 +345,7 @@ function ItemCard({
                 </div>
               )}
 
-              {!isActive && (
+              {!isActive && !isGuest && (
                 <button
                   type="button"
                   tabIndex={isExpanded ? 0 : -1}

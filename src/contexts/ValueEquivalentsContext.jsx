@@ -7,27 +7,37 @@ import {
   deleteValueEquivalent
 } from '../services/api';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
+import { useAuth } from './AuthContext';
 
 export const ValueEquivalentsContext = createContext(null);
 
 export const ValueEquivalentsProvider = ({ children }) => {
   const queryClient = useQueryClient();
+  const auth = useAuth();
+  const hasAuthenticatedUser = auth === null ? true : Boolean(auth.user);
   const equivalentsQuery = useQuery({
     queryKey: queryKeys.valueEquivalents,
     queryFn: getAllValueEquivalents,
+    enabled: hasAuthenticatedUser,
     staleTime: SERVER_STATE_STALE_TIME,
     retry: 1,
   });
 
   const createMutation = useMutation({
-    mutationFn: createValueEquivalent,
+    mutationFn: (data) => {
+      if (!hasAuthenticatedUser) throw new Error('Sign in to use synced value equivalents.');
+      return createValueEquivalent(data);
+    },
     onSuccess: (created) => {
       queryClient.setQueryData(queryKeys.valueEquivalents, (items = []) => [...items, created]);
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
     },
   });
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => updateValueEquivalent(id, data),
+    mutationFn: ({ id, data }) => {
+      if (!hasAuthenticatedUser) throw new Error('Sign in to use synced value equivalents.');
+      return updateValueEquivalent(id, data);
+    },
     onSuccess: (updated, { id }) => {
       queryClient.setQueryData(queryKeys.valueEquivalents, (items = []) =>
         items.map((item) => (String(item.id) === String(id) ? updated : item))
@@ -36,7 +46,10 @@ export const ValueEquivalentsProvider = ({ children }) => {
     },
   });
   const deleteMutation = useMutation({
-    mutationFn: deleteValueEquivalent,
+    mutationFn: (id) => {
+      if (!hasAuthenticatedUser) throw new Error('Sign in to use synced value equivalents.');
+      return deleteValueEquivalent(id);
+    },
     onSuccess: (_result, id) => {
       queryClient.setQueryData(queryKeys.valueEquivalents, (items = []) =>
         items.filter((item) => String(item.id) !== String(id))

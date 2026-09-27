@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PersistenceProvider } from './contexts/PersistenceContext';
 import { ValueEquivalentsProvider } from './contexts/ValueEquivalentsContext';
 import Home from './components/Home';
 import AddItem from './components/AddItem';
@@ -15,6 +16,7 @@ import PlannedPurchases from './components/PlannedPurchases';
 import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
+import OwnershipLoader from './components/ui/OwnershipLoader';
 import { MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
@@ -30,6 +32,34 @@ const applicationQueryClient = new QueryClient({
     },
   },
 });
+
+const GoogleLogo = () => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 18 18"
+    className="h-5 w-5"
+  >
+    <path fill="#EA4335" d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.797 2.715v2.258h2.909c1.702-1.567 2.684-3.878 2.684-6.613Z" />
+    <path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.956-2.182l-2.909-2.258c-.806.54-1.835.859-3.047.859-2.344 0-4.328-1.584-5.037-3.711H.956v2.332A9 9 0 0 0 9 18Z" />
+    <path fill="#FBBC05" d="M3.963 10.708A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.281-1.708V4.96H.956A9 9 0 0 0 0 9c0 1.452.347 2.827.956 4.04l3.007-2.332Z" />
+    <path fill="#34A853" d="M9 3.581c1.321 0 2.507.454 3.44 1.345l2.581-2.581C13.464.891 11.426 0 9 0A9 9 0 0 0 .956 4.96l3.007 2.332C4.672 5.165 6.656 3.581 9 3.581Z" />
+  </svg>
+);
+
+function AuthButtonContent({ pending, icon = null, children }) {
+  return (
+    <span className="relative flex h-full w-full items-center justify-center">
+      <span className="auth-button__label flex items-center justify-center gap-2.5">
+        {icon}
+        <span>{children}</span>
+      </span>
+      <OwnershipLoader
+        active={pending}
+        className="auth-button__loader h-[26px] w-[26px]"
+      />
+    </span>
+  );
+}
 
 const MainContent = () => {
   const location = useLocation();
@@ -79,7 +109,15 @@ function AuthenticatedApp() {
 
 function AuthGate() {
   const { t } = useTranslation();
-  const { user, isLoading, error, signIn } = useAuth();
+  const { user, isGuest, isLoading, error, signIn, continueAsGuest } = useAuth();
+  const [pendingAction, setPendingAction] = React.useState(null);
+
+  const startAuthAction = (action, callback) => {
+    if (pendingAction) return;
+
+    setPendingAction(action);
+    window.setTimeout(callback, 480);
+  };
 
   if (isLoading) {
     return (
@@ -89,17 +127,17 @@ function AuthGate() {
     );
   }
 
-  if (!user) {
+  if (!user && !isGuest) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <section className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg text-center">
+      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-1.5 sm:p-6">
+        <section className="w-full max-w-sm rounded-2xl bg-[#F8F9FA] px-6 py-7 text-center sm:px-7">
           <img
             src="/logo192.png"
             alt="Worthwhile"
-            className="w-20 h-20 mx-auto mb-4"
+            className="mx-auto mb-4 h-20 w-20"
           />
-          <h1 className="text-2xl font-bold text-gray-900">{PRODUCT_NAME}</h1>
-          <p className="mt-3 text-sm text-gray-600">
+          <h1 className="text-xl font-bold tracking-[-0.02em] text-gray-950">{PRODUCT_NAME}</h1>
+          <p className="mt-2 text-sm leading-5 text-gray-600">
             {t('authDescription')}
           </p>
           {error && (
@@ -107,13 +145,42 @@ function AuthGate() {
               {t('authSessionError')}
             </p>
           )}
-          <button
-            type="button"
-            onClick={signIn}
-            className="mt-6 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
-          >
-            {t('signInWithGoogle')}
-          </button>
+          <div className="mt-7 flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={() => startAuthAction('google', signIn)}
+              disabled={Boolean(pendingAction)}
+              aria-busy={pendingAction === 'google'}
+              className={`auth-button text-sm font-medium text-gray-950 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] focus-visible:ring-offset-2 disabled:cursor-wait ${
+                pendingAction === 'google' ? 'collapsing' : ''
+              }`}
+            >
+              <AuthButtonContent pending={pendingAction === 'google'} icon={<GoogleLogo />}>
+                {t('signInWithGoogle')}
+              </AuthButtonContent>
+            </button>
+            <div className="flex w-full items-center gap-3" role="separator" aria-label={t('authOr')}>
+              <span className="h-px flex-1 bg-gray-200" />
+              <span className="text-xs font-medium text-gray-400">{t('authOr')}</span>
+              <span className="h-px flex-1 bg-gray-200" />
+            </div>
+            <button
+              type="button"
+              onClick={() => startAuthAction('guest', continueAsGuest)}
+              disabled={Boolean(pendingAction)}
+              aria-busy={pendingAction === 'guest'}
+              className={`auth-button text-sm font-medium text-gray-950 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] focus-visible:ring-offset-2 disabled:cursor-wait ${
+                pendingAction === 'guest' ? 'collapsing' : ''
+              }`}
+            >
+              <AuthButtonContent pending={pendingAction === 'guest'}>
+                {t('continueAsGuest')}
+              </AuthButtonContent>
+            </button>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-gray-500">
+            {t('guestLocalOnlyNotice')}
+          </p>
         </section>
       </main>
     );
@@ -127,7 +194,9 @@ function AppContent() {
 
   return (
     <AuthProvider>
-      <AuthGate />
+      <PersistenceProvider>
+        <AuthGate />
+      </PersistenceProvider>
     </AuthProvider>
   );
 }

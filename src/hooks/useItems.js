@@ -1,24 +1,22 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  addItem,
-  deleteItem,
-  getAllItems,
-  replaceAllItems,
-  updateItem,
-} from '../services/api';
+import { usePersistence } from '../contexts/PersistenceContext';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
 import { invalidateDashboardQuery } from './useDashboard';
 import { invalidateDurabilityQuery } from './useDurabilityAnalytics';
 
 export const ITEMS_QUERY_KEY = queryKeys.items;
 
-export const useItems = () => useQuery({
-  queryKey: queryKeys.items,
-  queryFn: getAllItems,
-  staleTime: SERVER_STATE_STALE_TIME,
-  retry: 1,
-});
+export const useItems = () => {
+  const { repositories } = usePersistence();
+  return useQuery({
+    queryKey: queryKeys.items,
+    queryFn: () => repositories.items.list(),
+    enabled: Boolean(repositories),
+    staleTime: SERVER_STATE_STALE_TIME,
+    retry: 1,
+  });
+};
 
 export const invalidateItemQueries = async (queryClient) => {
   if (!queryClient || typeof queryClient.invalidateQueries !== 'function') return;
@@ -33,9 +31,10 @@ export const invalidateItemQueries = async (queryClient) => {
 
 export const useCreateItem = () => {
   const queryClient = useQueryClient();
+  const { repositories } = usePersistence();
 
   return useMutation({
-    mutationFn: (itemData) => addItem(itemData),
+    mutationFn: (itemData) => repositories.items.create(itemData),
     onSuccess: async (savedItem) => {
       queryClient.setQueryData(queryKeys.items, (cachedItems = []) => (
         [...cachedItems, savedItem]
@@ -47,9 +46,10 @@ export const useCreateItem = () => {
 
 export const useUpdateItem = () => {
   const queryClient = useQueryClient();
+  const { repositories } = usePersistence();
 
   return useMutation({
-    mutationFn: ({ itemId, itemData }) => updateItem(itemId, itemData),
+    mutationFn: ({ itemId, itemData }) => repositories.items.update(itemId, itemData),
     onSuccess: async (savedItem, { itemId }) => {
       queryClient.setQueryData(queryKeys.items, (cachedItems) => (
         Array.isArray(cachedItems)
@@ -65,9 +65,10 @@ export const useUpdateItem = () => {
 
 export const useDeleteItem = () => {
   const queryClient = useQueryClient();
+  const { repositories } = usePersistence();
 
   return useMutation({
-    mutationFn: (itemId) => deleteItem(itemId),
+    mutationFn: (itemId) => repositories.items.delete(itemId),
     onSuccess: async (_result, deletedItemId) => {
       queryClient.setQueryData(queryKeys.items, (cachedItems) => (
         Array.isArray(cachedItems)
@@ -81,9 +82,10 @@ export const useDeleteItem = () => {
 
 export const useReplaceItems = () => {
   const queryClient = useQueryClient();
+  const { repositories } = usePersistence();
 
   return useMutation({
-    mutationFn: (items) => replaceAllItems(items),
+    mutationFn: (items) => repositories.items.replaceAll(items),
     onSuccess: async (replacedItems) => {
       queryClient.setQueryData(queryKeys.items, replacedItems);
       await invalidateItemQueries(queryClient);
