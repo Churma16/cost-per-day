@@ -18,7 +18,7 @@ import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
 import LegalDocumentPage from './components/LegalDocumentPage';
-import { MotionConfig, motion } from 'motion/react';
+import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
 import { useVersionCheck } from './hooks/useVersionCheck';
@@ -33,6 +33,15 @@ const applicationQueryClient = new QueryClient({
     },
   },
 });
+
+const MotionLink = motion.create(Link);
+
+const publicRouteTransition = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -4 },
+  transition: { duration: 0.18, ease: 'easeOut' },
+};
 
 const GoogleLogo = () => (
   <svg
@@ -90,19 +99,17 @@ const MainContent = () => {
 
 function AuthenticatedApp() {
   return (
-    <MotionConfig reducedMotion="user">
-      <LanguageProvider>
-        <CurrencyProvider>
-          <ValueEquivalentsProvider>
-            <PageMetadata />
-            <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
-              <MainContent />
-              <Footer />
-            </div>
-          </ValueEquivalentsProvider>
-        </CurrencyProvider>
-      </LanguageProvider>
-    </MotionConfig>
+    <LanguageProvider>
+      <CurrencyProvider>
+        <ValueEquivalentsProvider>
+          <PageMetadata />
+          <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
+            <MainContent />
+            <Footer />
+          </div>
+        </ValueEquivalentsProvider>
+      </CurrencyProvider>
+    </LanguageProvider>
   );
 }
 
@@ -185,13 +192,21 @@ function AuthGate() {
             {t('guestLocalOnlyNotice')}
           </p>
           <nav aria-label={t('legalNavigation')} className="mt-6 text-xs text-gray-500">
-            <Link className="rounded-sm underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473]" to="/privacy">
+            <MotionLink
+              className="inline-block rounded-sm underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473]"
+              to="/privacy"
+              whileTap={{ scale: 0.97 }}
+            >
               {t('privacyPolicy')}
-            </Link>
+            </MotionLink>
             <span aria-hidden="true" className="mx-2">·</span>
-            <Link className="rounded-sm underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473]" to="/terms">
+            <MotionLink
+              className="inline-block rounded-sm underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473]"
+              to="/terms"
+              whileTap={{ scale: 0.97 }}
+            >
               {t('termsOfService')}
-            </Link>
+            </MotionLink>
           </nav>
         </section>
       </main>
@@ -201,13 +216,20 @@ function AuthGate() {
   return <AuthenticatedApp />;
 }
 
-function AppContent() {
-  useVersionCheck();
+function ApplicationRoutes() {
+  const location = useLocation();
+  const transitionKey = ['/privacy', '/terms'].includes(location.pathname)
+    ? location.pathname
+    : 'application';
 
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={transitionKey}
+        {...publicRouteTransition}
+        className="min-h-full w-full"
+      >
+        <Routes location={location}>
           <Route path="/privacy" element={<LegalDocumentPage documentKey="privacy" />} />
           <Route path="/terms" element={<LegalDocumentPage documentKey="terms" />} />
           <Route
@@ -219,7 +241,21 @@ function AppContent() {
             )}
           />
         </Routes>
-      </Router>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function AppContent() {
+  useVersionCheck();
+
+  return (
+    <AuthProvider>
+      <MotionConfig reducedMotion="user">
+        <Router>
+          <ApplicationRoutes />
+        </Router>
+      </MotionConfig>
     </AuthProvider>
   );
 }

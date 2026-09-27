@@ -88,6 +88,17 @@ test.each([
   expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument();
 });
 
+test('transitions from the login surface to a legal page without delaying navigation', async () => {
+  getCurrentUser.mockRejectedValue(new ApiError('authenticated user identity is required', 401));
+  render(<App />);
+
+  fireEvent.click(await screen.findByRole('link', { name: 'Privacy Policy' }));
+
+  expect(window.location.pathname).toBe('/privacy');
+  expect(await screen.findByRole('heading', { name: 'Privacy Policy', level: 1 })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /sign in with google/i })).not.toBeInTheDocument();
+});
+
 describe('Header route isolation regression tests', () => {
   beforeEach(() => {
     getCurrentUser.mockResolvedValue({ id: 'user-1', email: 'test@example.com' });

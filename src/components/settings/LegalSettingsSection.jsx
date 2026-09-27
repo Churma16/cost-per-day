@@ -1,12 +1,15 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import {
   IoChevronForwardOutline,
   IoDocumentTextOutline,
   IoShieldCheckmarkOutline,
 } from 'react-icons/io5';
 import { APP_VERSION } from '../../constants/branding';
+
+const MotionLink = motion.create(Link);
 
 const legalDestinations = [
   {
@@ -33,13 +36,14 @@ function LegalSettingsSection({ isInteractionBlocked }) {
       </h2>
       <div className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm">
         {legalDestinations.map(({ path, labelKey, descriptionKey, Icon }, index) => (
-          <Link
+          <MotionLink
             key={path}
             to={path}
             aria-disabled={isInteractionBlocked || undefined}
             onClick={(event) => {
               if (isInteractionBlocked) event.preventDefault();
             }}
+            whileTap={isInteractionBlocked ? undefined : { scale: 0.985 }}
             className={`flex min-h-[64px] items-center gap-3 px-3.5 py-3 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2F7473] ${
               index > 0 ? 'border-t border-gray-100' : ''
             } ${isInteractionBlocked ? 'pointer-events-none opacity-50' : ''}`}
@@ -52,7 +56,7 @@ function LegalSettingsSection({ isInteractionBlocked }) {
               <span className="mt-0.5 block text-xs leading-5 text-gray-500">{t(descriptionKey)}</span>
             </span>
             <IoChevronForwardOutline aria-hidden="true" className="flex-none text-gray-400" />
-          </Link>
+          </MotionLink>
         ))}
       </div>
       <p className="py-3 text-center text-xs text-gray-400">

@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { IoArrowBackOutline } from 'react-icons/io5';
 import { PRODUCT_NAME } from '../constants/branding';
 import { getLegalDocument } from '../content/legalDocuments';
 
 export const LEGAL_CONTACT_URL = 'https://github.com/Churma16/cost-per-day/issues';
+const MotionLink = motion.create(Link);
 
 function LegalDocumentPage({ documentKey }) {
   const { t, i18n } = useTranslation();
@@ -13,19 +15,22 @@ function LegalDocumentPage({ documentKey }) {
 
   useEffect(() => {
     document.title = `${legalDocument.title} · ${PRODUCT_NAME}`;
+    const rootElement = document.getElementById('root');
+    if (rootElement) rootElement.scrollTop = 0;
   }, [legalDocument.title]);
 
   return (
     <main className="min-h-screen bg-[#F6F7F8] px-4 py-6 sm:py-10">
       <article className="mx-auto max-w-2xl overflow-hidden rounded-3xl border border-[#E6E8EC] bg-white shadow-sm">
         <header className="border-b border-[#E6E8EC] bg-[#F9FAFA] px-5 py-6 sm:px-8 sm:py-8">
-          <Link
+          <MotionLink
             to="/"
+            whileTap={{ scale: 0.97 }}
             className="inline-flex min-h-11 items-center gap-2 rounded-lg pr-3 text-sm font-medium text-[#2F7473] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473]"
           >
             <IoArrowBackOutline aria-hidden="true" className="text-lg" />
             {t('backToWorthwhile')}
-          </Link>
+          </MotionLink>
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#2F7473]">
             {PRODUCT_NAME} · {t('earlyBeta')}
           </p>
