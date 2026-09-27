@@ -342,7 +342,7 @@ describe('guest IndexedDB persistence', () => {
     const persistence = await import('../../src/data/persistenceRepositories.js');
     await persistence.clearGuestData();
 
-    for (let index = 0; index < 4; index += 1) {
+    for (let index = 0; index < 9; index += 1) {
       await persistence.guestRepositories.items.create({
         name: `Item ${index + 1}`,
         price: 100 + index,
@@ -369,13 +369,15 @@ describe('guest IndexedDB persistence', () => {
     expect(itemResults.filter((result) => result.status === 'rejected')).toHaveLength(1);
     expect(itemResults.find((result) => result.status === 'rejected').reason)
       .toBeInstanceOf(persistence.GuestLimitError);
-    expect(await persistence.guestRepositories.items.list()).toHaveLength(5);
+    expect(await persistence.guestRepositories.items.list()).toHaveLength(10);
 
-    await persistence.guestRepositories.plannedPurchases.create({
-      name: 'Plan 1',
-      targetPrice: 500,
-      currencyCode: 'USD',
-    });
+    for (let index = 0; index < 4; index += 1) {
+      await persistence.guestRepositories.plannedPurchases.create({
+        name: `Plan ${index + 1}`,
+        targetPrice: 500 + index,
+        currencyCode: 'USD',
+      });
+    }
     const planResults = await Promise.allSettled([
       persistence.guestRepositories.plannedPurchases.create({
         name: 'Concurrent plan A',
@@ -393,6 +395,6 @@ describe('guest IndexedDB persistence', () => {
     expect(planResults.filter((result) => result.status === 'rejected')).toHaveLength(1);
     expect(planResults.find((result) => result.status === 'rejected').reason)
       .toBeInstanceOf(persistence.GuestLimitError);
-    expect(await persistence.guestRepositories.plannedPurchases.list()).toHaveLength(2);
+    expect(await persistence.guestRepositories.plannedPurchases.list()).toHaveLength(5);
   });
 });
