@@ -42,6 +42,17 @@ const translation = {
   "guestModeSettingsNotice": "Data guest hanya tersimpan di browser ini. Masuk untuk menyimpan riwayat, memigrasikan data ini, dan melanjutkan di perangkat lain.",
   "guestMigrationFailed": "Akunmu sudah masuk, tetapi data guest lokal belum berhasil dimigrasikan. Salinan lokal tetap aman di perangkat ini.",
   "retryGuestMigration": "Coba lagi migrasi data guest",
+  "legalNavigation": "Informasi hukum",
+  "privacyPolicy": "Kebijakan Privasi",
+  "termsOfService": "Syarat Penggunaan",
+  "privacyPolicySubtitle": "Cara informasi Anda ditangani",
+  "termsOfServiceSubtitle": "Ketentuan penggunaan Worthwhile",
+  "aboutAndLegal": "Tentang & Legal",
+  "backToWorthwhile": "Kembali ke Worthwhile",
+  "earlyBeta": "Early Beta",
+  "effectiveDate": "Tanggal berlaku",
+  "legalQuestions": "Ada pertanyaan tentang dokumen ini?",
+  "contactProjectOwner": "Hubungi pemilik proyek",
 
   // Header
   "totalDailyCost": "Biaya Kepemilikan Harian",

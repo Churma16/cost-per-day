@@ -42,6 +42,17 @@ const translation = {
   "guestModeSettingsNotice": "Your guest data stays only in this browser. Sign in to keep your history, migrate these items, and continue across devices.",
   "guestMigrationFailed": "Your account is signed in, but local guest data could not be migrated yet. The local copy is still safe on this device.",
   "retryGuestMigration": "Retry guest data migration",
+  "legalNavigation": "Legal information",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfService": "Terms of Service",
+  "privacyPolicySubtitle": "How your information is handled",
+  "termsOfServiceSubtitle": "Terms for using Worthwhile",
+  "aboutAndLegal": "About & Legal",
+  "backToWorthwhile": "Back to Worthwhile",
+  "earlyBeta": "Early Beta",
+  "effectiveDate": "Effective date",
+  "legalQuestions": "Questions about this document?",
+  "contactProjectOwner": "Contact the project owner",
 
   // Header
   "totalDailyCost": "Daily Ownership Cost",

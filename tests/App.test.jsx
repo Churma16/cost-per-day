@@ -18,6 +18,7 @@ vi.mock('../src/services/api', async (importOriginal) => {
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
+  window.history.pushState({}, '', '/');
 });
 
 test('renders authentication loading state while session bootstrap is pending', () => {
@@ -47,9 +48,10 @@ test('shows Google sign-in when there is no application session', async () => {
     expect(screen.getByText(/data stays on this device/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Worthwhile', level: 1 })).toBeInTheDocument();
     expect(screen.getByAltText('Worthwhile')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/terms');
   });
 });
-
 
 test('continues into the core app without an authenticated session when guest mode is chosen', async () => {
   getCurrentUser.mockRejectedValue(new ApiError('authenticated user identity is required', 401));
@@ -68,6 +70,22 @@ test('continues into the core app without an authenticated session when guest mo
     expect(screen.getByRole('navigation', { name: /primary navigation/i })).toBeInTheDocument();
   });
   expect(window.localStorage.getItem('worthwhile:guest-mode')).toBe('1');
+});
+
+test.each([
+  ['/privacy', 'Privacy Policy', 'Information Worthwhile handles'],
+  ['/terms', 'Terms of Service', 'The service'],
+])('renders %s without waiting for an authenticated session', (path, title, sectionTitle) => {
+  getCurrentUser.mockImplementation(() => new Promise(() => {}));
+  window.history.pushState({}, '', path);
+
+  render(<App />);
+
+  expect(screen.getByRole('heading', { name: title, level: 1 })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: sectionTitle, level: 2 })).toBeInTheDocument();
+  expect(screen.getByText(/Effective date:/)).toBeInTheDocument();
+  expect(screen.queryByText(/^Loading/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument();
 });
 
 describe('Header route isolation regression tests', () => {

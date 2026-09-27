@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -17,6 +17,7 @@ import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
+import LegalDocumentPage from './components/LegalDocumentPage';
 import { MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
@@ -94,12 +95,10 @@ function AuthenticatedApp() {
         <CurrencyProvider>
           <ValueEquivalentsProvider>
             <PageMetadata />
-            <Router>
-              <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
-                <MainContent />
-                <Footer />
-              </div>
-            </Router>
+            <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
+              <MainContent />
+              <Footer />
+            </div>
           </ValueEquivalentsProvider>
         </CurrencyProvider>
       </LanguageProvider>
@@ -118,6 +117,10 @@ function AuthGate() {
     setPendingAction(action);
     window.setTimeout(callback, 480);
   };
+
+  useEffect(() => {
+    document.title = t('appTitle');
+  }, [t]);
 
   if (isLoading) {
     return (
@@ -181,6 +184,15 @@ function AuthGate() {
           <p className="mt-3 text-xs leading-5 text-gray-500">
             {t('guestLocalOnlyNotice')}
           </p>
+          <nav aria-label={t('legalNavigation')} className="mt-6 text-xs text-gray-500">
+            <Link className="rounded-sm underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473]" to="/privacy">
+              {t('privacyPolicy')}
+            </Link>
+            <span aria-hidden="true" className="mx-2">·</span>
+            <Link className="rounded-sm underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473]" to="/terms">
+              {t('termsOfService')}
+            </Link>
+          </nav>
         </section>
       </main>
     );
@@ -194,9 +206,20 @@ function AppContent() {
 
   return (
     <AuthProvider>
-      <PersistenceProvider>
-        <AuthGate />
-      </PersistenceProvider>
+      <Router>
+        <Routes>
+          <Route path="/privacy" element={<LegalDocumentPage documentKey="privacy" />} />
+          <Route path="/terms" element={<LegalDocumentPage documentKey="terms" />} />
+          <Route
+            path="*"
+            element={(
+              <PersistenceProvider>
+                <AuthGate />
+              </PersistenceProvider>
+            )}
+          />
+        </Routes>
+      </Router>
     </AuthProvider>
   );
 }

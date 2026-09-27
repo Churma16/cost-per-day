@@ -14,7 +14,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSupportedCurrencies } from '../utils/currencyConfig';
 import { useReplaceItems } from '../hooks/useItems';
 import { queryKeys, SERVER_STATE_STALE_TIME } from '../query/queryConfig';
-import { APP_VERSION } from '../constants/branding';
 import {
   buildExportFilename,
   serializeItemsExport,
@@ -24,6 +23,7 @@ import GeneralSettingsSection from './settings/GeneralSettingsSection';
 import ValueEquivalentsSection from './settings/ValueEquivalentsSection';
 import DataManagementSection from './settings/DataManagementSection';
 import AccountSettingsSection from './settings/AccountSettingsSection';
+import LegalSettingsSection from './settings/LegalSettingsSection';
 import LanguageSelectionModal from './settings/LanguageSelectionModal';
 import CurrencySelectionModal from './settings/CurrencySelectionModal';
 import ImportConfirmDialog from './settings/ImportConfirmDialog';
@@ -419,9 +419,7 @@ function Settings() {
           onRetryGuestMigration={retryGuestMigration}
         />
 
-        <div className="text-center text-gray-400 text-xs py-2">
-          <p>{t('versionText', { version: APP_VERSION })}</p>
-        </div>
+        <LegalSettingsSection isInteractionBlocked={Boolean(activeModal)} />
       </PageContainer>
 
       {!isGuest && <LanguageSelectionModal
