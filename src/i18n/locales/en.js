@@ -35,6 +35,7 @@ const translation = {
   "authDescription": "Understand the value of what you own over time.",
   "authSessionError": "Unable to check your session. You can try signing in again.",
   "signInWithGoogle": "Sign in with Google",
+  "authOr": "or",
   "continueAsGuest": "Continue without an account",
   "guestLocalOnlyNotice": "Without an account, your data stays on this device and is not backed up or synced.",
   "guestModeTitle": "Using Worthwhile on this device",
