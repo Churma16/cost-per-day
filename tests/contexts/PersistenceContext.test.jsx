@@ -17,6 +17,8 @@ describe('persistence scope cache isolation', () => {
       defaultOptions: { queries: { retry: false } },
     });
     queryClient.setQueryData(['items'], [{ id: 'guest-item' }]);
+    queryClient.setQueryData(['settings'], { language: 'id', currency: 'IDR' });
+    queryClient.setQueryData(['value-equivalents'], [{ id: 'guest-equivalent' }]);
 
     const { rerender } = render(
       <QueryClientProvider client={queryClient}>
@@ -27,6 +29,8 @@ describe('persistence scope cache isolation', () => {
     );
 
     expect(queryClient.getQueryData(['items'])).toEqual([{ id: 'guest-item' }]);
+    expect(queryClient.getQueryData(['settings'])).toEqual({ language: 'id', currency: 'IDR' });
+    expect(queryClient.getQueryData(['value-equivalents'])).toEqual([{ id: 'guest-equivalent' }]);
 
     authState = { user: { id: 'user-1' }, isGuest: false };
     rerender(
@@ -39,6 +43,8 @@ describe('persistence scope cache isolation', () => {
 
     await waitFor(() => {
       expect(queryClient.getQueryData(['items'])).toBeUndefined();
+      expect(queryClient.getQueryData(['settings'])).toBeUndefined();
+      expect(queryClient.getQueryData(['value-equivalents'])).toBeUndefined();
     });
   });
 });
