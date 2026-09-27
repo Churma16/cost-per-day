@@ -44,6 +44,18 @@ const translation = {
   "guestItemLimitReached": "Kamu sudah mencapai batas {{limit}} barang tanpa akun. Masuk untuk menambah barang lagi dan menjaga riwayatmu tetap tersedia di perangkat lain.",
   "guestPlannedPurchaseLimitReached": "Kamu sudah mencapai batas {{limit}} rencana tanpa akun. Masuk untuk menambah rencana lagi dan menjaganya tetap tersedia di perangkat lain.",
   "retryGuestMigration": "Coba lagi migrasi data guest",
+  "legalNavigation": "Informasi hukum",
+  "privacyPolicy": "Kebijakan Privasi",
+  "termsOfService": "Syarat Penggunaan",
+  "privacyPolicySubtitle": "Cara informasi Anda ditangani",
+  "termsOfServiceSubtitle": "Ketentuan penggunaan Worthwhile",
+  "aboutAndLegal": "Tentang & Legal",
+  "backToWorthwhile": "Kembali ke Worthwhile",
+  "backToSettings": "Kembali ke Pengaturan",
+  "earlyBeta": "Early Beta",
+  "effectiveDate": "Tanggal berlaku",
+  "legalQuestions": "Ada pertanyaan tentang dokumen ini?",
+  "contactProjectOwner": "Hubungi pemilik proyek",
 
   // Header
   "totalDailyCost": "Biaya Kepemilikan Harian",

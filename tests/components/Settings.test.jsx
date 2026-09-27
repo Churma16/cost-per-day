@@ -1,6 +1,7 @@
 import React from 'react';
 import { render as testingLibraryRender, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import Settings from '../../src/components/Settings';
 import { useLanguage } from '../../src/contexts/LanguageContext';
@@ -31,6 +32,11 @@ vi.mock('react-i18next', () => ({
         account: 'Account',
         signOut: 'Sign out',
         signOutError: 'Sign out failed. Please try again.',
+        aboutAndLegal: 'About & Legal',
+        privacyPolicy: 'Privacy Policy',
+        privacyPolicySubtitle: 'How your information is handled',
+        termsOfService: 'Terms of Service',
+        termsOfServiceSubtitle: 'Terms for using Worthwhile',
         version: 'Version',
         versionText: options?.version ? `Version ${options.version}` : `Version ${APP_VERSION}`,
         usd: 'US Dollar (USD)',
@@ -84,7 +90,11 @@ vi.mock('../../src/services/api', () => ({
 const render = (ui) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return testingLibraryRender(ui, {
-    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    wrapper: ({ children }) => (
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </MemoryRouter>
+    )
   });
 };
 
@@ -141,6 +151,10 @@ describe('Settings component', () => {
 
     // Relocated Sign out action
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+
+    expect(screen.getByRole('heading', { name: 'About & Legal', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Privacy Policy/ })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: /Terms of Service/ })).toHaveAttribute('href', '/terms');
 
     // Version text
     expect(screen.getByText(`Version ${APP_VERSION}`)).toBeInTheDocument();

@@ -44,6 +44,18 @@ const translation = {
   "guestItemLimitReached": "You've reached the {{limit}}-item limit without an account. Sign in to add more items and keep your history available across devices.",
   "guestPlannedPurchaseLimitReached": "You've reached the {{limit}}-plan limit without an account. Sign in to add more plans and keep them available across devices.",
   "retryGuestMigration": "Retry guest data migration",
+  "legalNavigation": "Legal information",
+  "privacyPolicy": "Privacy Policy",
+  "termsOfService": "Terms of Service",
+  "privacyPolicySubtitle": "How your information is handled",
+  "termsOfServiceSubtitle": "Terms for using Worthwhile",
+  "aboutAndLegal": "About & Legal",
+  "backToWorthwhile": "Back to Worthwhile",
+  "backToSettings": "Back to Settings",
+  "earlyBeta": "Early Beta",
+  "effectiveDate": "Effective date",
+  "legalQuestions": "Questions about this document?",
+  "contactProjectOwner": "Contact the project owner",
 
   // Header
   "totalDailyCost": "Daily Ownership Cost",

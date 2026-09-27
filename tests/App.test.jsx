@@ -18,6 +18,7 @@ vi.mock('../src/services/api', async (importOriginal) => {
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
+  window.history.pushState({}, '', '/');
 });
 
 test('renders authentication loading state while session bootstrap is pending', () => {
@@ -47,9 +48,10 @@ test('shows Google sign-in when there is no application session', async () => {
     expect(screen.getByText(/data stays on this device/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Worthwhile', level: 1 })).toBeInTheDocument();
     expect(screen.getByAltText('Worthwhile')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/terms');
   });
 });
-
 
 test('continues into the core app without an authenticated session when guest mode is chosen', async () => {
   getCurrentUser.mockRejectedValue(new ApiError('authenticated user identity is required', 401));
@@ -68,6 +70,33 @@ test('continues into the core app without an authenticated session when guest mo
     expect(screen.getByRole('navigation', { name: /primary navigation/i })).toBeInTheDocument();
   });
   expect(window.localStorage.getItem('worthwhile:guest-mode')).toBe('1');
+});
+
+test.each([
+  ['/privacy', 'Privacy Policy', 'Information Worthwhile handles'],
+  ['/terms', 'Terms of Service', 'The service'],
+])('renders %s without waiting for an authenticated session', (path, title, sectionTitle) => {
+  getCurrentUser.mockImplementation(() => new Promise(() => {}));
+  window.history.pushState({}, '', path);
+
+  render(<App />);
+
+  expect(screen.getByRole('heading', { name: title, level: 1 })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: sectionTitle, level: 2 })).toBeInTheDocument();
+  expect(screen.getByText(/Effective date:/)).toBeInTheDocument();
+  expect(screen.queryByText(/^Loading/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument();
+});
+
+test('transitions from the login surface to a legal page without delaying navigation', async () => {
+  getCurrentUser.mockRejectedValue(new ApiError('authenticated user identity is required', 401));
+  render(<App />);
+
+  fireEvent.click(await screen.findByRole('link', { name: 'Privacy Policy' }));
+
+  expect(window.location.pathname).toBe('/privacy');
+  expect(await screen.findByRole('heading', { name: 'Privacy Policy', level: 1 })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /sign in with google/i })).not.toBeInTheDocument();
 });
 
 describe('Header route isolation regression tests', () => {
@@ -102,6 +131,33 @@ describe('Header route isolation regression tests', () => {
     expect(pageContent.tagName).toBe('MAIN');
     expect(routeTransition).toHaveClass('min-h-full', 'w-full');
     expect(routeTransition).not.toHaveClass('h-full');
+  });
+
+  test('preserves the height chain and avoids a transformed ancestor around the app scroll container', async () => {
+    window.history.pushState({}, '', '/');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(document.querySelector('.page-content')).toBeInTheDocument();
+    });
+
+    const pageContent = document.querySelector('.page-content');
+    const applicationRouteSurface = pageContent.closest('[data-route-surface="application"]');
+    const authenticatedAppShell = pageContent.parentElement;
+    const brandHeader = document.querySelector('[data-home-header="brand"]');
+
+    expect(applicationRouteSurface).toHaveClass('h-full', 'min-h-0', 'w-full');
+    expect(applicationRouteSurface.style.transform).toBe('');
+    expect(authenticatedAppShell).toHaveClass('h-full', 'flex', 'flex-col');
+    expect(pageContent).toHaveAttribute('class', 'page-content');
+
+    Object.defineProperty(pageContent, 'scrollTop', {
+      configurable: true,
+      value: 24,
+    });
+    fireEvent.scroll(pageContent);
+
+    expect(brandHeader).toHaveAttribute('data-compact', 'true');
   });
 
   test('renders clean header on /settings without page-header banner', async () => {
