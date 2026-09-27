@@ -41,7 +41,6 @@ function Settings() {
   const { language, changeLanguage, error: languageError } = useLanguage();
   const { currencyCode, changeCurrency, error: currencyError } = useCurrency();
   const {
-    user,
     isGuest,
     signIn,
     signOut,
@@ -384,6 +383,14 @@ function Settings() {
           </div>
         )}
 
+        {isGuest && (
+          <AccountSettingsSection
+            isInteractionBlocked={Boolean(activeModal)}
+            authError={authError}
+            onSignIn={signIn}
+          />
+        )}
+
         <GeneralSettingsSection
           language={language}
           languageName={getLanguageName(language)}
@@ -415,21 +422,14 @@ function Settings() {
           onExport={handleExportData}
           onImport={handleImportData}
           onFileChange={handleFileChange}
-        />}
-
-        <AccountSettingsSection
-          user={user}
-          isGuest={isGuest}
           isSigningOut={isSigningOut}
-          isInteractionBlocked={Boolean(activeModal)}
           signOutError={signOutError}
           authError={authError}
           onSignOut={handleSignOut}
-          onSignIn={signIn}
           guestMigrationError={guestMigrationError}
           isMigratingGuestData={isMigratingGuestData}
           onRetryGuestMigration={retryGuestMigration}
-        />
+        />}
 
         <LegalSettingsSection isInteractionBlocked={Boolean(activeModal)} />
       </PageContainer>

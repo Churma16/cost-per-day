@@ -24,6 +24,7 @@ vi.mock('react-i18next', () => ({
         selectLanguage: 'Select Language',
         selectCurrency: 'Select Currency',
         data: 'Data',
+        dataAndAccount: 'Data & Account',
         dataManagement: 'Data Management',
         exportData: 'Export Data',
         exportDataSubtitle: 'Save as .json file',
@@ -31,8 +32,15 @@ vi.mock('react-i18next', () => ({
         importDataSubtitle: 'Restore from backup file',
         account: 'Account',
         signOut: 'Sign out',
+        signOutSubtitle: 'Your data will stay with your account.',
         signOutError: 'Sign out failed. Please try again.',
+        signInWithGoogle: 'Sign in with Google',
+        guestModeTitle: 'Using Worthwhile on this device',
+        guestModeSettingsNotice: 'Your guest data stays only in this browser.',
+        authSessionError: 'Your session could not be checked.',
         aboutAndLegal: 'About & Legal',
+        aboutWorthwhile: 'About Worthwhile',
+        aboutWorthwhileSubtitle: 'Why ownership over time matters',
         privacyPolicy: 'Privacy Policy',
         privacyPolicySubtitle: 'How your information is handled',
         termsOfService: 'Terms of Service',
@@ -145,7 +153,7 @@ describe('Settings component', () => {
     // Section headers
     expect(screen.getByRole('heading', { name: 'General', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Personalized Value Equivalents', level: 2 })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Data', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Data & Account', level: 2 })).toBeInTheDocument();
 
     // Consequence subtexts
     expect(screen.getByText('Translate daily costs into familiar everyday references.')).toBeInTheDocument();
@@ -153,9 +161,15 @@ describe('Settings component', () => {
     expect(screen.getByText('Restore from backup file')).toBeInTheDocument();
 
     // Relocated Sign out action
-    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+    const exportButton = screen.getByRole('button', { name: /Export Data/ });
+    const signOutButton = screen.getByRole('button', { name: 'Sign out' });
+    expect(signOutButton).toBeInTheDocument();
+    expect(screen.getByText('Your data will stay with your account.')).toBeInTheDocument();
+    expect(signOutButton.parentElement).toBe(exportButton.parentElement);
+    expect(signOutButton).toHaveClass('min-h-[60px]', 'px-3.5', 'py-2.5');
 
     expect(screen.getByRole('heading', { name: 'About & Legal', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /About Worthwhile/ })).toHaveAttribute('href', '/about');
     expect(screen.getByRole('link', { name: /Privacy Policy/ })).toHaveAttribute('href', '/privacy');
     expect(screen.getByRole('link', { name: /Terms of Service/ })).toHaveAttribute('href', '/terms');
 
@@ -166,6 +180,36 @@ describe('Settings component', () => {
   test('renders dynamic application version matching configured APP_VERSION', () => {
     render(<Settings />);
     expect(screen.getByText(`Version ${APP_VERSION}`)).toBeInTheDocument();
+  });
+
+  test('uses the shared geometry for standard settings rows and navigation chevrons', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [{ id: 'eq-1', name: 'Coffee', amount: 5, currencyCode: 'USD' }],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Settings />);
+
+    const standardRows = [
+      screen.getByRole('button', { name: /language.*english/i }),
+      screen.getByRole('button', { name: /Export Data/ }),
+      screen.getByText('Coffee').closest('[class*="min-h-"]'),
+      screen.getByRole('link', { name: /About Worthwhile/ }),
+    ];
+
+    standardRows.forEach((row) => {
+      expect(row).toHaveClass('min-h-[60px]', 'gap-3', 'px-3.5', 'py-2.5');
+      expect(row.querySelector('.h-8.w-8')).toBeInTheDocument();
+    });
+
+    const navigationRows = screen.getAllByRole('link');
+    navigationRows.forEach((row) => {
+      expect(row.querySelector('svg.h-4.w-4')).toBeInTheDocument();
+    });
   });
 
   test('renders currency selector with options dynamically generated from canonical config', () => {
@@ -286,9 +330,15 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
+    const guestPrompt = screen.getByText('Using Worthwhile on this device').closest('div.rounded-2xl');
+    const generalSection = screen.getByRole('heading', { name: 'General', level: 2 }).closest('section');
+    expect(
+      guestPrompt.compareDocumentPosition(generalSection) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
     expect(screen.getByRole('heading', { name: 'General', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Personalized Value Equivalents', level: 2 })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Data', level: 2 })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Data & Account', level: 2 })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /language.*english/i }));
     fireEvent.click(screen.getByRole('button', { name: /Bahasa Indonesia/i }));
@@ -366,7 +416,7 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
-    const signInButton = screen.getByRole('button', { name: /signInWithGoogle/i });
+    const signInButton = screen.getByRole('button', { name: /sign in with google/i });
     fireEvent.click(signInButton);
 
     expect(signInButton).toBeDisabled();
