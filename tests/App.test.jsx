@@ -34,8 +34,16 @@ test('shows Google sign-in when there is no application session', async () => {
   render(<App />);
 
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: /continue without an account/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+    const googleButton = screen.getByRole('button', { name: /sign in with google/i });
+    const guestButton = screen.getByRole('button', { name: /continue without an account/i });
+
+    expect(googleButton).toBeInTheDocument();
+    expect(guestButton).toBeInTheDocument();
+    expect(
+      googleButton.compareDocumentPosition(guestButton) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(googleButton.querySelector('svg[aria-hidden="true"]')).toBeInTheDocument();
+    expect(screen.getByRole('separator', { name: /or/i })).toBeInTheDocument();
     expect(screen.getByText(/data stays on this device/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Worthwhile', level: 1 })).toBeInTheDocument();
     expect(screen.getByAltText('Worthwhile')).toBeInTheDocument();
