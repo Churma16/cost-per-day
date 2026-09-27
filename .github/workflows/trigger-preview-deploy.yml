@@ -1,0 +1,48 @@
+name: Trigger Development Preview Deployment
+
+on:
+  push:
+    branches:
+      - "preview/*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trigger-worthwhile-development-preview
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    name: Dispatch preview commit to Development Preview
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Trigger deployment repository Development Preview workflow
+        shell: bash
+        env:
+          PREVIEW_DEPLOY_TOKEN: ${{ secrets.PREVIEW_DEPLOY_TOKEN }}
+          APP_SHA: ${{ github.sha }}
+          SOURCE_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$PREVIEW_DEPLOY_TOKEN" ]; then
+            echo "PREVIEW_DEPLOY_TOKEN is required to dispatch the Development Preview workflow."
+            exit 1
+          fi
+
+          payload="$(jq -nc \
+            --arg app_ref "$APP_SHA" \
+            --arg source_ref "$SOURCE_REF" \
+            '{ref:"main",inputs:{app_ref:$app_ref,source_ref:$source_ref}}')"
+
+          curl --fail-with-body --silent --show-error --location \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $PREVIEW_DEPLOY_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/Churma16/cost-per-day-deployment/actions/workflows/deploy-preview.yml/dispatches \
+            --data "$payload"
+
+          echo "Dispatched Development Preview for $SOURCE_REF at $APP_SHA."
