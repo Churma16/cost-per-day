@@ -19,6 +19,7 @@ type GuestMigrationService interface {
 		migrationID string,
 		items []domain.Item,
 		plannedPurchases []domain.PlannedPurchase,
+		valueEquivalents []domain.ValueEquivalent,
 	) (domain.GuestMigrationResult, error)
 }
 
@@ -51,6 +52,7 @@ func (serviceInstance *guestMigrationServiceImpl) ImportGuestData(
 	migrationID string,
 	items []domain.Item,
 	plannedPurchases []domain.PlannedPurchase,
+	valueEquivalents []domain.ValueEquivalent,
 ) (domain.GuestMigrationResult, error) {
 	normalizedUserID, identityError := normalizeUserID(userID)
 	if identityError != nil {
@@ -109,11 +111,30 @@ func (serviceInstance *guestMigrationServiceImpl) ImportGuestData(
 		validatedPlannedPurchases = append(validatedPlannedPurchases, validatedPurchase)
 	}
 
+	validatedValueEquivalents := make([]domain.ValueEquivalent, 0, len(valueEquivalents))
+	for _, equivalent := range valueEquivalents {
+		equivalent.ID = ""
+		equivalent.UserID = ""
+		equivalent.CreatedAt = time.Time{}
+		equivalent.UpdatedAt = time.Time{}
+
+		validatedEquivalent, validationError := validateValueEquivalent(
+			equivalent.Name,
+			equivalent.Amount,
+			equivalent.CurrencyCode,
+		)
+		if validationError != nil {
+			return domain.GuestMigrationResult{}, validationError
+		}
+		validatedValueEquivalents = append(validatedValueEquivalents, validatedEquivalent)
+	}
+
 	return serviceInstance.repository.ImportGuestData(
 		ctx,
 		normalizedUserID,
 		normalizedMigrationID,
 		validatedItems,
 		validatedPlannedPurchases,
+		validatedValueEquivalents,
 	)
 }
