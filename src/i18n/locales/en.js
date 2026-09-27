@@ -41,6 +41,8 @@ const translation = {
   "guestModeTitle": "Using Worthwhile on this device",
   "guestModeSettingsNotice": "Your guest data stays only in this browser. Sign in to keep your history, migrate these items, and continue across devices.",
   "guestMigrationFailed": "Your account is signed in, but local guest data could not be migrated yet. The local copy is still safe on this device.",
+  "guestItemLimitReached": "You've reached the {{limit}}-item limit without an account. Sign in to add more items and keep your history available across devices.",
+  "guestPlannedPurchaseLimitReached": "You've reached the {{limit}}-plan limit without an account. Sign in to add more plans and keep them available across devices.",
   "retryGuestMigration": "Retry guest data migration",
 
   // Header
