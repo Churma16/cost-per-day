@@ -12,7 +12,7 @@ import {
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key) => ({
+    t: (key, options) => ({
       targetItemName: 'Target item name',
       enterTargetItemName: 'Enter name',
       itemPrice: 'Item price',
@@ -37,6 +37,7 @@ vi.mock('react-i18next', () => ({
       currency: 'Currency',
       usd: 'US Dollar (USD)',
       idr: 'Indonesian Rupiah (IDR)',
+      guestPlannedPurchaseLimitReached: 'You\'ve reached the ' + options?.limit + '-plan limit without an account.',
     })[key] || key,
   }),
 }));
@@ -112,6 +113,33 @@ describe('PlannedPurchaseCreateForm', () => {
       expect(screen.getByTestId('location')).toHaveTextContent('/planning');
     });
     expect(window.localStorage.getItem(getPlannedPurchaseDraftStorageKey('user-1'))).toBeNull();
+  });
+
+  it('renders the localized guest plan limit prompt from structured error metadata', async () => {
+    writePlannedPurchaseDraft('user-1', {
+      name: 'Camera',
+      targetPrice: '5000000',
+      currencyCode: 'IDR',
+      planningMode: 'contributionToTime',
+      contributionCadence: 'daily',
+      contributionAmount: '50000',
+      targetDate: '',
+    });
+    const limitError = Object.assign(new Error('Guest planned purchase limit reached'), {
+      code: 'guest_planned_purchase_limit',
+      limit: 5,
+    });
+    plannedPurchaseService.createPlannedPurchase.mockRejectedValueOnce(limitError);
+
+    renderForm();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        "You've reached the 5-plan limit without an account."
+      );
+    });
+    expect(screen.getByTestId('location')).toHaveTextContent('/add');
   });
 
   it('discards a restored draft without leaving the Planned tab', () => {
