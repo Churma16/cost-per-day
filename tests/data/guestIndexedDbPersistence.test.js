@@ -225,7 +225,7 @@ describe('guest IndexedDB persistence', () => {
     expect(await afterReload.guestRepositories.plannedPurchases.list()).toEqual([]);
   });
 
-  test('keeps records created or changed after a migration snapshot for the next migration', async () => {
+  test('locks snapshot members while allowing new records to queue for the next migration', async () => {
     vi.resetModules();
     const persistence = await import('../../src/data/persistenceRepositories.js');
     await persistence.clearGuestData();
@@ -236,13 +236,13 @@ describe('guest IndexedDB persistence', () => {
       purchaseDate: '2026-09-20',
       status: 'active',
     });
+    const originalPlan = await persistence.guestRepositories.plannedPurchases.create({
+      name: 'Laptop plan',
+      targetPrice: 1800,
+      currencyCode: 'USD',
+    });
     const firstSnapshot = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
 
-    await new Promise((resolve) => setTimeout(resolve, 2));
-    await persistence.guestRepositories.items.update(original.id, {
-      ...original,
-      name: 'Camera updated after lost response',
-    });
     await persistence.guestRepositories.items.create({
       name: 'Lens added after lost response',
       price: 500,
@@ -250,17 +250,28 @@ describe('guest IndexedDB persistence', () => {
       status: 'active',
     });
 
+    await expect(persistence.guestRepositories.items.update(original.id, {
+      ...original,
+      name: 'Camera updated after lost response',
+    })).rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
+    await expect(persistence.guestRepositories.items.delete(original.id))
+      .rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
+    await expect(persistence.guestRepositories.plannedPurchases.update(originalPlan.id, {
+      ...originalPlan,
+      name: 'Updated plan',
+    })).rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
+    await expect(persistence.guestRepositories.plannedPurchases.delete(originalPlan.id))
+      .rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
+
     await persistence.guestRepositories.migrations.completeSnapshot(firstSnapshot);
 
     const remainingItems = await persistence.guestRepositories.items.list();
-    expect(remainingItems.map((item) => item.name)).toEqual([
-      'Camera updated after lost response',
-      'Lens added after lost response',
-    ]);
+    expect(remainingItems.map((item) => item.name)).toEqual(['Lens added after lost response']);
+    expect(await persistence.guestRepositories.plannedPurchases.list()).toEqual([]);
 
     const nextSnapshot = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
     expect(nextSnapshot.migrationId).not.toBe(firstSnapshot.migrationId);
-    expect(nextSnapshot.items).toHaveLength(2);
+    expect(nextSnapshot.items).toHaveLength(1);
   });
 
   test('enforces guest item and plan limits across concurrent creates', async () => {

@@ -23,6 +23,14 @@ export class GuestLimitError extends Error {
   }
 }
 
+export class GuestMigrationLockedError extends Error {
+  constructor() {
+    super('This guest record is being migrated. Finish or retry sign-in before changing it.');
+    this.name = 'GuestMigrationLockedError';
+    this.code = 'guest_migration_locked';
+  }
+}
+
 export const assertGuestCapacity = (kind, currentCount) => {
   const limit = kind === 'item' ? GUEST_ITEM_LIMIT : GUEST_PLANNED_PURCHASE_LIMIT;
   if (currentCount >= limit) {
@@ -102,22 +110,10 @@ const listStore = (storeName) => runStoreOperation(
   (store) => requestAsPromise(store.getAll()),
 );
 
-const getStoreRecord = (storeName, id) => runStoreOperation(
-  storeName,
-  'readonly',
-  (store) => requestAsPromise(store.get(String(id))),
-);
-
 const putStoreRecord = (storeName, value) => runStoreOperation(
   storeName,
   'readwrite',
   (store) => requestAsPromise(store.put(value)),
-);
-
-const deleteStoreRecord = (storeName, id) => runStoreOperation(
-  storeName,
-  'readwrite',
-  (store) => requestAsPromise(store.delete(String(id))),
 );
 
 const abortTransaction = (transaction) => {
@@ -313,6 +309,43 @@ const createGuestRecordWithinLimit = async (storeName, kind, candidate, normaliz
   }
 };
 
+const mutateUnlockedGuestRecord = async ({
+  storeName,
+  snapshotCollection,
+  id,
+  missingMessage,
+  mutate,
+}) => {
+  const database = await openGuestDatabase();
+  const transaction = database.transaction([storeName, META_STORE], 'readwrite');
+  const completion = transactionAsPromise(transaction);
+  const store = transaction.objectStore(storeName);
+  const metaStore = transaction.objectStore(META_STORE);
+
+  try {
+    const [existing, snapshotRecord] = await Promise.all([
+      requestAsPromise(store.get(String(id))),
+      requestAsPromise(metaStore.get(MIGRATION_SNAPSHOT_KEY)),
+    ]);
+    const snapshotContainsRecord = snapshotRecord?.value?.[snapshotCollection]
+      ?.some((record) => String(record.id) === String(id));
+    if (snapshotContainsRecord) {
+      throw new GuestMigrationLockedError();
+    }
+    if (!existing && missingMessage) {
+      throw new Error(missingMessage);
+    }
+
+    const result = await mutate(store, existing);
+    await completion;
+    return result;
+  } catch (error) {
+    abortTransaction(transaction);
+    await completion.catch(() => undefined);
+    throw error;
+  }
+};
+
 const guestItemRepository = {
   async list() {
     const items = await listStore(ITEM_STORE);
@@ -327,15 +360,28 @@ const guestItemRepository = {
     );
   },
   async update(id, candidate) {
-    const existing = await getStoreRecord(ITEM_STORE, id);
-    if (!existing) throw new Error('Guest item not found.');
-    const item = normalizeGuestItemInput({ ...candidate, id: String(id) }, existing);
-    await putStoreRecord(ITEM_STORE, item);
-    return item;
+    return mutateUnlockedGuestRecord({
+      storeName: ITEM_STORE,
+      snapshotCollection: 'items',
+      id,
+      missingMessage: 'Guest item not found.',
+      mutate: async (store, existing) => {
+        const item = normalizeGuestItemInput({ ...candidate, id: String(id) }, existing);
+        await requestAsPromise(store.put(item));
+        return item;
+      },
+    });
   },
   async delete(id) {
-    await deleteStoreRecord(ITEM_STORE, id);
-    return null;
+    return mutateUnlockedGuestRecord({
+      storeName: ITEM_STORE,
+      snapshotCollection: 'items',
+      id,
+      mutate: async (store) => {
+        await requestAsPromise(store.delete(String(id)));
+        return null;
+      },
+    });
   },
   async replaceAll(items) {
     if (!Array.isArray(items)) throw new Error('Import data must be an array of items.');
@@ -368,15 +414,31 @@ const guestPlannedPurchaseRepository = {
     );
   },
   async update(id, candidate) {
-    const existing = await getStoreRecord(PLANNED_PURCHASE_STORE, id);
-    if (!existing) throw new Error('Guest planned purchase not found.');
-    const purchase = normalizeGuestPlannedPurchaseInput({ ...candidate, id: String(id) }, existing);
-    await putStoreRecord(PLANNED_PURCHASE_STORE, purchase);
-    return purchase;
+    return mutateUnlockedGuestRecord({
+      storeName: PLANNED_PURCHASE_STORE,
+      snapshotCollection: 'plannedPurchases',
+      id,
+      missingMessage: 'Guest planned purchase not found.',
+      mutate: async (store, existing) => {
+        const purchase = normalizeGuestPlannedPurchaseInput(
+          { ...candidate, id: String(id) },
+          existing,
+        );
+        await requestAsPromise(store.put(purchase));
+        return purchase;
+      },
+    });
   },
   async delete(id) {
-    await deleteStoreRecord(PLANNED_PURCHASE_STORE, id);
-    return null;
+    return mutateUnlockedGuestRecord({
+      storeName: PLANNED_PURCHASE_STORE,
+      snapshotCollection: 'plannedPurchases',
+      id,
+      mutate: async (store) => {
+        await requestAsPromise(store.delete(String(id)));
+        return null;
+      },
+    });
   },
 };
 

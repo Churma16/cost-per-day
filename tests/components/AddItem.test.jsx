@@ -635,6 +635,32 @@ describe('AddItem component date localization', () => {
     });
   });
 
+  test('does not expose or initialize the API-only replacement benchmark for guests', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    useAuth.mockReturnValue({ user: null, isGuest: true });
+    getAllItems.mockResolvedValueOnce([{
+      id: 'guest-item-completed',
+      name: 'Completed guest phone',
+      price: 500,
+      purchaseDate: '2025-01-01T00:00:00Z',
+      status: 'retired',
+      grossCostPerDay: 1.37,
+      ownershipDays: 365,
+    }]);
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getAllItems).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: 'Based on past item' }))
+      .not.toBeInTheDocument();
+    expect(screen.getByLabelText('Target type')).toBeInTheDocument();
+    expect(useReplacementBenchmark).not.toHaveBeenCalled();
+  });
+
   test('populates and updates existing ownership target in edit mode', async () => {
     useLanguage.mockReturnValue({ language: 'en' });
     const monitorItem = {

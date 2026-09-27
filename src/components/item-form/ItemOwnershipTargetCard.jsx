@@ -20,6 +20,7 @@ function ItemOwnershipTargetCard({
   onSelectBenchmarkItemId,
   onOpenBenchmarkModal,
   isVisible = true,
+  allowBenchmark = true,
 }) {
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
@@ -119,31 +120,32 @@ function ItemOwnershipTargetCard({
         </p>
       </div>
 
-      {/* Segmented Pill Toggle: Set manually / Based on past item */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => onTargetModeChange('manual')}
-          className={`py-1.5 px-3 text-xs font-medium rounded-xl border transition-all ${
-            targetMode === 'manual'
-              ? 'border-teal-600 bg-teal-50 text-teal-700 shadow-sm'
-              : 'border-[#E6E8EC] bg-white text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          {t('setManually')}
-        </button>
-        <button
-          type="button"
-          onClick={() => onTargetModeChange('benchmark')}
-          className={`py-1.5 px-3 text-xs font-medium rounded-xl border transition-all ${
-            targetMode === 'benchmark'
-              ? 'border-teal-600 bg-teal-50 text-teal-700 shadow-sm'
-              : 'border-[#E6E8EC] bg-white text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          {t('fromCompletedItem')}
-        </button>
-      </div>
+      {allowBenchmark && (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onTargetModeChange('manual')}
+            className={`py-1.5 px-3 text-xs font-medium rounded-xl border transition-all ${
+              targetMode === 'manual'
+                ? 'border-teal-600 bg-teal-50 text-teal-700 shadow-sm'
+                : 'border-[#E6E8EC] bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {t('setManually')}
+          </button>
+          <button
+            type="button"
+            onClick={() => onTargetModeChange('benchmark')}
+            className={`py-1.5 px-3 text-xs font-medium rounded-xl border transition-all ${
+              targetMode === 'benchmark'
+                ? 'border-teal-600 bg-teal-50 text-teal-700 shadow-sm'
+                : 'border-[#E6E8EC] bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {t('fromCompletedItem')}
+          </button>
+        </div>
+      )}
 
       {/* Horizontal Slide Carousel Track (Kanan-Kiri) */}
       <motion.div
@@ -256,7 +258,7 @@ function ItemOwnershipTargetCard({
           </div>
 
           {/* Panel 2: Based on past item (Right) */}
-          <div
+          {allowBenchmark && <div
             ref={benchmarkPanelRef}
             data-testid="benchmark-ownership-target-panel"
             className={`w-full shrink-0 transition-opacity duration-200 ${
@@ -303,7 +305,7 @@ function ItemOwnershipTargetCard({
                 </p>
               )}
             </div>
-          </div>
+          </div>}
         </motion.div>
       </motion.div>
     </div>
