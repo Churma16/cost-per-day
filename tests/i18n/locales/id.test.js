@@ -19,6 +19,12 @@ describe('Indonesian translation resource', () => {
     expect(translationID.appDescription).toBe(
       'Pahami arti pembelian seiring waktu, sebelum membeli dan selama memilikinya.'
     );
+    expect(translationID.guestItemLimitReached).toBe(
+      'Kamu sudah mencapai batas {{limit}} barang tanpa akun. Masuk untuk menambah barang lagi dan menjaga riwayatmu tetap tersedia di perangkat lain.'
+    );
+    expect(translationID.guestPlannedPurchaseLimitReached).toBe(
+      'Kamu sudah mencapai batas {{limit}} rencana tanpa akun. Masuk untuk menambah rencana lagi dan menjaganya tetap tersedia di perangkat lain.'
+    );
     expect(translationEN.itemStatus).toBe('Ownership Journey');
     expect(translationEN.statusActiveEarly).toBe('Just Joined You');
     expect(translationEN.statusActive).toBe('Still With You');
