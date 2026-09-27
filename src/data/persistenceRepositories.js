@@ -518,6 +518,12 @@ const guestMigrationRepository = {
     const metaStore = transaction.objectStore(META_STORE);
 
     try {
+      const activeSnapshotRecord = await requestAsPromise(metaStore.get(MIGRATION_SNAPSHOT_KEY));
+      if (activeSnapshotRecord?.value?.migrationId !== snapshot.migrationId) {
+        await completion;
+        return { completed: false };
+      }
+
       const [currentItems, currentPlannedPurchases] = await Promise.all([
         requestAsPromise(itemStore.getAll()),
         requestAsPromise(plannedPurchaseStore.getAll()),
@@ -540,6 +546,33 @@ const guestMigrationRepository = {
         requestAsPromise(metaStore.delete(MIGRATION_ID_KEY)),
       ]);
       await completion;
+      return { completed: true };
+    } catch (error) {
+      abortTransaction(transaction);
+      await completion.catch(() => undefined);
+      throw error;
+    }
+  },
+
+  async releaseSnapshot(snapshot) {
+    const database = await openGuestDatabase();
+    const transaction = database.transaction(META_STORE, 'readwrite');
+    const completion = transactionAsPromise(transaction);
+    const metaStore = transaction.objectStore(META_STORE);
+
+    try {
+      const activeSnapshotRecord = await requestAsPromise(metaStore.get(MIGRATION_SNAPSHOT_KEY));
+      if (activeSnapshotRecord?.value?.migrationId !== snapshot.migrationId) {
+        await completion;
+        return { released: false };
+      }
+
+      await Promise.all([
+        requestAsPromise(metaStore.delete(MIGRATION_SNAPSHOT_KEY)),
+        requestAsPromise(metaStore.delete(MIGRATION_ID_KEY)),
+      ]);
+      await completion;
+      return { released: true };
     } catch (error) {
       abortTransaction(transaction);
       await completion.catch(() => undefined);

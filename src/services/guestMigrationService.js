@@ -42,11 +42,18 @@ export const createGuestMigrationService = ({
         return lastResult || { skipped: true };
       }
 
-      lastResult = await importGuestData({
-        migrationId: snapshot.migrationId,
-        items: snapshot.items.map(toMigrationItem),
-        plannedPurchases: snapshot.plannedPurchases.map(toMigrationPlannedPurchase),
-      });
+      try {
+        lastResult = await importGuestData({
+          migrationId: snapshot.migrationId,
+          items: snapshot.items.map(toMigrationItem),
+          plannedPurchases: snapshot.plannedPurchases.map(toMigrationPlannedPurchase),
+        });
+      } catch (error) {
+        if (error?.status === 400) {
+          await guestStorage.migrations.releaseSnapshot(snapshot);
+        }
+        throw error;
+      }
 
       await guestStorage.migrations.completeSnapshot(snapshot);
     }

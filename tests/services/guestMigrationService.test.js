@@ -34,6 +34,9 @@ const createStorage = () => {
       completeSnapshot: vi.fn(async () => {
         pendingSnapshot = null;
       }),
+      releaseSnapshot: vi.fn(async () => {
+        pendingSnapshot = null;
+      }),
     },
   };
 };
@@ -105,6 +108,32 @@ describe('guest migration orchestration', () => {
     expect(importGuestData).toHaveBeenCalledTimes(2);
     expect(importGuestData.mock.calls[0][0]).toEqual(importGuestData.mock.calls[1][0]);
     expect(guestStorage.migrations.completeSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  test('releases a definitively rejected snapshot so local records can be fixed', async () => {
+    const guestStorage = createStorage();
+    const validationError = Object.assign(new Error('target date must be in the future'), {
+      status: 400,
+    });
+    const importGuestData = vi.fn().mockRejectedValue(validationError);
+    const service = createGuestMigrationService({ guestStorage, importGuestData });
+
+    await expect(service.migrate()).rejects.toBe(validationError);
+
+    expect(guestStorage.migrations.releaseSnapshot).toHaveBeenCalledWith(guestStorage.snapshot);
+    expect(guestStorage.migrations.completeSnapshot).not.toHaveBeenCalled();
+  });
+
+  test('preserves an ambiguous failed snapshot for an idempotent retry', async () => {
+    const guestStorage = createStorage();
+    const serverError = Object.assign(new Error('temporary server failure'), { status: 500 });
+    const importGuestData = vi.fn().mockRejectedValue(serverError);
+    const service = createGuestMigrationService({ guestStorage, importGuestData });
+
+    await expect(service.migrate()).rejects.toBe(serverError);
+
+    expect(guestStorage.migrations.releaseSnapshot).not.toHaveBeenCalled();
+    expect(guestStorage.migrations.completeSnapshot).not.toHaveBeenCalled();
   });
 
   test('does not call the backend when there is no guest snapshot to migrate', async () => {

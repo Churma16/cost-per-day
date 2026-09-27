@@ -274,6 +274,69 @@ describe('guest IndexedDB persistence', () => {
     expect(nextSnapshot.items).toHaveLength(1);
   });
 
+  test('treats stale snapshot completion as a no-op when a newer snapshot is active', async () => {
+    vi.resetModules();
+    const persistence = await import('../../src/data/persistenceRepositories.js');
+    await persistence.clearGuestData();
+
+    await persistence.guestRepositories.items.create({
+      name: 'Snapshot A item',
+      price: 100,
+      purchaseDate: '2026-09-20',
+      status: 'active',
+    });
+    const snapshotA = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
+    await persistence.guestRepositories.migrations.completeSnapshot(snapshotA);
+
+    await persistence.guestRepositories.items.create({
+      name: 'Snapshot B item',
+      price: 200,
+      purchaseDate: '2026-09-21',
+      status: 'active',
+    });
+    const snapshotB = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
+
+    await expect(persistence.guestRepositories.migrations.completeSnapshot(snapshotA))
+      .resolves.toEqual({ completed: false });
+    const stillActiveSnapshot = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
+
+    expect(stillActiveSnapshot.migrationId).toBe(snapshotB.migrationId);
+    expect(stillActiveSnapshot.items).toHaveLength(1);
+    expect(stillActiveSnapshot.items[0].name).toBe('Snapshot B item');
+  });
+
+  test('releases a validation-rejected snapshot without deleting its local records', async () => {
+    vi.resetModules();
+    const persistence = await import('../../src/data/persistenceRepositories.js');
+    await persistence.clearGuestData();
+
+    const plan = await persistence.guestRepositories.plannedPurchases.create({
+      name: 'Time-sensitive plan',
+      targetPrice: 900,
+      currencyCode: 'USD',
+      targetDate: '2026-09-30',
+    });
+    const rejectedSnapshot = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
+
+    await expect(persistence.guestRepositories.plannedPurchases.update(plan.id, {
+      ...plan,
+      targetDate: '2026-10-30',
+    })).rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
+
+    await expect(persistence.guestRepositories.migrations.releaseSnapshot(rejectedSnapshot))
+      .resolves.toEqual({ released: true });
+    expect(await persistence.guestRepositories.plannedPurchases.list()).toHaveLength(1);
+
+    await persistence.guestRepositories.plannedPurchases.update(plan.id, {
+      ...plan,
+      targetDate: '2026-10-30',
+    });
+    const correctedSnapshot = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
+
+    expect(correctedSnapshot.migrationId).not.toBe(rejectedSnapshot.migrationId);
+    expect(correctedSnapshot.plannedPurchases[0].targetDate).toBe('2026-10-30');
+  });
+
   test('enforces guest item and plan limits across concurrent creates', async () => {
     vi.resetModules();
     const persistence = await import('../../src/data/persistenceRepositories.js');
