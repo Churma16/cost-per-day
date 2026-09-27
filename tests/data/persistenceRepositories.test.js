@@ -45,4 +45,14 @@ describe('guest product limits', () => {
       limit: 5,
     });
   });
+
+  test('allows up to three value equivalents and points the fourth toward sign-in', () => {
+    expect(() => assertGuestCapacity('equivalent', 2)).not.toThrow();
+    expect(() => assertGuestCapacity('equivalent', 3)).toThrow(GuestLimitError);
+    expect(() => assertGuestCapacity('equivalent', 3)).toThrow(/Sign in to save more/i);
+    expect(new GuestLimitError('equivalent', 3)).toMatchObject({
+      code: 'guest_value_equivalent_limit',
+      limit: 3,
+    });
+  });
 });

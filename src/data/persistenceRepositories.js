@@ -3,23 +3,42 @@ import * as plannedPurchaseApi from '../services/plannedPurchaseService';
 
 export const GUEST_ITEM_LIMIT = 10;
 export const GUEST_PLANNED_PURCHASE_LIMIT = 5;
+export const GUEST_VALUE_EQUIVALENT_LIMIT = 3;
 
 const DATABASE_NAME = 'worthwhile-guest';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const ITEM_STORE = 'items';
 const PLANNED_PURCHASE_STORE = 'plannedPurchases';
+const SETTINGS_STORE = 'settings';
+const VALUE_EQUIVALENT_STORE = 'valueEquivalents';
 const META_STORE = 'meta';
+const DEFAULT_GUEST_SETTINGS = {
+  language: 'en',
+  currency: 'USD',
+};
 const MIGRATION_ID_KEY = 'migrationId';
 const MIGRATION_SNAPSHOT_KEY = 'migrationSnapshot';
 
 export class GuestLimitError extends Error {
   constructor(kind, limit) {
-    const message = kind === 'item'
-      ? `You've tried Worthwhile with ${limit} items. Sign in to keep your history and continue across devices.`
-      : `You've tried Worthwhile with ${limit} planned purchases. Sign in to keep your plans and continue across devices.`;
-    super(message);
+    const configuration = {
+      item: {
+        code: 'guest_item_limit',
+        message: `You've tried Worthwhile with ${limit} items. Sign in to keep your history and continue across devices.`,
+      },
+      planned: {
+        code: 'guest_planned_purchase_limit',
+        message: `You've tried Worthwhile with ${limit} planned purchases. Sign in to keep your plans and continue across devices.`,
+      },
+      equivalent: {
+        code: 'guest_value_equivalent_limit',
+        message: `You've used ${limit} value equivalents. Sign in to save more and use them across devices.`,
+      },
+    }[kind];
+
+    super(configuration?.message || 'Guest limit reached.');
     this.name = 'GuestLimitError';
-    this.code = kind === 'item' ? 'guest_item_limit' : 'guest_planned_purchase_limit';
+    this.code = configuration?.code || 'guest_limit';
     this.limit = limit;
   }
 }
@@ -33,7 +52,12 @@ export class GuestMigrationLockedError extends Error {
 }
 
 export const assertGuestCapacity = (kind, currentCount) => {
-  const limit = kind === 'item' ? GUEST_ITEM_LIMIT : GUEST_PLANNED_PURCHASE_LIMIT;
+  const limits = {
+    item: GUEST_ITEM_LIMIT,
+    planned: GUEST_PLANNED_PURCHASE_LIMIT,
+    equivalent: GUEST_VALUE_EQUIVALENT_LIMIT,
+  };
+  const limit = limits[kind];
   if (currentCount >= limit) {
     throw new GuestLimitError(kind, limit);
   }
@@ -72,6 +96,12 @@ const openGuestDatabase = () => {
       }
       if (!database.objectStoreNames.contains(PLANNED_PURCHASE_STORE)) {
         database.createObjectStore(PLANNED_PURCHASE_STORE, { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains(SETTINGS_STORE)) {
+        database.createObjectStore(SETTINGS_STORE, { keyPath: 'key' });
+      }
+      if (!database.objectStoreNames.contains(VALUE_EQUIVALENT_STORE)) {
+        database.createObjectStore(VALUE_EQUIVALENT_STORE, { keyPath: 'id' });
       }
       if (!database.objectStoreNames.contains(META_STORE)) {
         database.createObjectStore(META_STORE, { keyPath: 'key' });
@@ -290,6 +320,30 @@ const normalizeGuestPlannedPurchaseInput = (candidate, existing = {}) => {
   return enrichGuestPlannedPurchase(normalized);
 };
 
+const normalizeGuestValueEquivalentInput = (candidate, existing = {}) => {
+  const name = String(candidate?.name || '').trim();
+  const amount = roundToSixDecimals(candidate?.amount);
+  const currencyCode = String(candidate?.currencyCode || '').trim().toUpperCase();
+
+  if (!name) throw new Error('Value equivalent name cannot be empty.');
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Value equivalent amount must be greater than zero.');
+  }
+  if (!currencyCode) throw new Error('Value equivalent currency code is invalid.');
+
+  const updatedAt = new Date().toISOString();
+  return {
+    ...existing,
+    ...candidate,
+    id: existing.id || candidate.id || createLocalID('guest-equivalent'),
+    name,
+    amount,
+    currencyCode,
+    createdAt: existing.createdAt || updatedAt,
+    updatedAt,
+  };
+};
+
 const createGuestRecordWithinLimit = async (storeName, kind, candidate, normalize) => {
   const database = await openGuestDatabase();
   const transaction = database.transaction(storeName, 'readwrite');
@@ -443,6 +497,65 @@ const guestPlannedPurchaseRepository = {
   },
 };
 
+const guestSettingsRepository = {
+  async getAll() {
+    const records = await listStore(SETTINGS_STORE);
+    return records.reduce(
+      (settings, record) => ({ ...settings, [record.key]: record.value }),
+      { ...DEFAULT_GUEST_SETTINGS },
+    );
+  },
+  async set(key, value) {
+    const normalizedKey = String(key || '').trim();
+    const normalizedValue = String(value || '').trim();
+    if (!normalizedKey) throw new Error('Setting key cannot be empty.');
+    if (!normalizedValue) throw new Error('Setting value cannot be empty.');
+    await putStoreRecord(SETTINGS_STORE, { key: normalizedKey, value: normalizedValue });
+    return normalizedValue;
+  },
+};
+
+const guestValueEquivalentRepository = {
+  async list() {
+    return listStore(VALUE_EQUIVALENT_STORE);
+  },
+  async create(candidate) {
+    return createGuestRecordWithinLimit(
+      VALUE_EQUIVALENT_STORE,
+      'equivalent',
+      candidate,
+      normalizeGuestValueEquivalentInput,
+    );
+  },
+  async update(id, candidate) {
+    return mutateUnlockedGuestRecord({
+      storeName: VALUE_EQUIVALENT_STORE,
+      snapshotCollection: 'valueEquivalents',
+      id,
+      missingMessage: 'Guest value equivalent not found.',
+      mutate: async (store, existing) => {
+        const equivalent = normalizeGuestValueEquivalentInput(
+          { ...candidate, id: String(id) },
+          existing,
+        );
+        await requestAsPromise(store.put(equivalent));
+        return equivalent;
+      },
+    });
+  },
+  async delete(id) {
+    return mutateUnlockedGuestRecord({
+      storeName: VALUE_EQUIVALENT_STORE,
+      snapshotCollection: 'valueEquivalents',
+      id,
+      mutate: async (store) => {
+        await requestAsPromise(store.delete(String(id)));
+        return null;
+      },
+    });
+  },
+};
+
 const guestMetaRepository = {
   async getOrCreateMigrationId() {
     const existing = await runStoreOperation(
@@ -461,27 +574,35 @@ const guestMigrationRepository = {
   async getOrCreateSnapshot() {
     const database = await openGuestDatabase();
     const transaction = database.transaction(
-      [ITEM_STORE, PLANNED_PURCHASE_STORE, META_STORE],
+      [ITEM_STORE, PLANNED_PURCHASE_STORE, VALUE_EQUIVALENT_STORE, META_STORE],
       'readwrite',
     );
     const completion = transactionAsPromise(transaction);
     const itemStore = transaction.objectStore(ITEM_STORE);
     const plannedPurchaseStore = transaction.objectStore(PLANNED_PURCHASE_STORE);
+    const valueEquivalentStore = transaction.objectStore(VALUE_EQUIVALENT_STORE);
     const metaStore = transaction.objectStore(META_STORE);
 
     try {
-      const [existingSnapshotRecord, existingMigrationIDRecord, items, plannedPurchases] = await Promise.all([
+      const [
+        existingSnapshotRecord,
+        existingMigrationIDRecord,
+        items,
+        plannedPurchases,
+        valueEquivalents,
+      ] = await Promise.all([
         requestAsPromise(metaStore.get(MIGRATION_SNAPSHOT_KEY)),
         requestAsPromise(metaStore.get(MIGRATION_ID_KEY)),
         requestAsPromise(itemStore.getAll()),
         requestAsPromise(plannedPurchaseStore.getAll()),
+        requestAsPromise(valueEquivalentStore.getAll()),
       ]);
 
       if (existingSnapshotRecord?.value) {
         await completion;
         return existingSnapshotRecord.value;
       }
-      if (items.length === 0 && plannedPurchases.length === 0) {
+      if (items.length === 0 && plannedPurchases.length === 0 && valueEquivalents.length === 0) {
         await completion;
         return null;
       }
@@ -491,6 +612,7 @@ const guestMigrationRepository = {
         migrationId,
         items,
         plannedPurchases,
+        valueEquivalents,
         createdAt: new Date().toISOString(),
       };
 
@@ -510,12 +632,13 @@ const guestMigrationRepository = {
   async completeSnapshot(snapshot) {
     const database = await openGuestDatabase();
     const transaction = database.transaction(
-      [ITEM_STORE, PLANNED_PURCHASE_STORE, META_STORE],
+      [ITEM_STORE, PLANNED_PURCHASE_STORE, VALUE_EQUIVALENT_STORE, META_STORE],
       'readwrite',
     );
     const completion = transactionAsPromise(transaction);
     const itemStore = transaction.objectStore(ITEM_STORE);
     const plannedPurchaseStore = transaction.objectStore(PLANNED_PURCHASE_STORE);
+    const valueEquivalentStore = transaction.objectStore(VALUE_EQUIVALENT_STORE);
     const metaStore = transaction.objectStore(META_STORE);
 
     try {
@@ -525,13 +648,17 @@ const guestMigrationRepository = {
         return { completed: false };
       }
 
-      const [currentItems, currentPlannedPurchases] = await Promise.all([
+      const [currentItems, currentPlannedPurchases, currentValueEquivalents] = await Promise.all([
         requestAsPromise(itemStore.getAll()),
         requestAsPromise(plannedPurchaseStore.getAll()),
+        requestAsPromise(valueEquivalentStore.getAll()),
       ]);
       const currentItemsByID = new Map(currentItems.map((item) => [String(item.id), item]));
       const currentPlansByID = new Map(
         currentPlannedPurchases.map((purchase) => [String(purchase.id), purchase]),
+      );
+      const currentEquivalentsByID = new Map(
+        currentValueEquivalents.map((equivalent) => [String(equivalent.id), equivalent]),
       );
       const matchingSnapshotRecords = (records, currentByID) => records.filter((record) => {
         const current = currentByID.get(String(record.id));
@@ -541,8 +668,10 @@ const guestMigrationRepository = {
       await Promise.all([
         ...matchingSnapshotRecords(snapshot.items, currentItemsByID)
           .map((item) => requestAsPromise(itemStore.delete(item.id))),
-        ...matchingSnapshotRecords(snapshot.plannedPurchases, currentPlansByID)
+        ...matchingSnapshotRecords(snapshot.plannedPurchases || [], currentPlansByID)
           .map((purchase) => requestAsPromise(plannedPurchaseStore.delete(purchase.id))),
+        ...matchingSnapshotRecords(snapshot.valueEquivalents || [], currentEquivalentsByID)
+          .map((equivalent) => requestAsPromise(valueEquivalentStore.delete(equivalent.id))),
         requestAsPromise(metaStore.delete(MIGRATION_SNAPSHOT_KEY)),
         requestAsPromise(metaStore.delete(MIGRATION_ID_KEY)),
       ]);
@@ -585,22 +714,25 @@ const guestMigrationRepository = {
 export const clearGuestData = async () => {
   const database = await openGuestDatabase();
   const transaction = database.transaction(
-    [ITEM_STORE, PLANNED_PURCHASE_STORE, META_STORE],
+    [ITEM_STORE, PLANNED_PURCHASE_STORE, SETTINGS_STORE, VALUE_EQUIVALENT_STORE, META_STORE],
     'readwrite',
   );
   const completion = transactionAsPromise(transaction);
   transaction.objectStore(ITEM_STORE).clear();
   transaction.objectStore(PLANNED_PURCHASE_STORE).clear();
+  transaction.objectStore(SETTINGS_STORE).clear();
+  transaction.objectStore(VALUE_EQUIVALENT_STORE).clear();
   transaction.objectStore(META_STORE).clear();
   await completion;
 };
 
 export const hasGuestData = async () => {
-  const [items, plannedPurchases] = await Promise.all([
+  const [items, plannedPurchases, valueEquivalents] = await Promise.all([
     listStore(ITEM_STORE),
     listStore(PLANNED_PURCHASE_STORE),
+    listStore(VALUE_EQUIVALENT_STORE),
   ]);
-  return items.length > 0 || plannedPurchases.length > 0;
+  return items.length > 0 || plannedPurchases.length > 0 || valueEquivalents.length > 0;
 };
 
 export const apiRepositories = {
@@ -617,11 +749,23 @@ export const apiRepositories = {
     update: (...args) => plannedPurchaseApi.updatePlannedPurchase(...args),
     delete: (...args) => plannedPurchaseApi.deletePlannedPurchase(...args),
   },
+  settings: {
+    getAll: (...args) => itemApi.getAllSettings(...args),
+    set: (...args) => itemApi.updateSetting(...args),
+  },
+  valueEquivalents: {
+    list: (...args) => itemApi.getAllValueEquivalents(...args),
+    create: (...args) => itemApi.createValueEquivalent(...args),
+    update: (...args) => itemApi.updateValueEquivalent(...args),
+    delete: (...args) => itemApi.deleteValueEquivalent(...args),
+  },
 };
 
 export const guestRepositories = {
   items: guestItemRepository,
   plannedPurchases: guestPlannedPurchaseRepository,
+  settings: guestSettingsRepository,
+  valueEquivalents: guestValueEquivalentRepository,
   meta: guestMetaRepository,
   migrations: guestMigrationRepository,
   clear: clearGuestData,

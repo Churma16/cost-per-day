@@ -311,10 +311,22 @@ function Settings() {
   };
 
   const handleSaveEquivalent = async (equivalentData) => {
-    if (editingEquivalent) {
-      await editEquivalent(editingEquivalent.id, equivalentData);
-    } else {
-      await addEquivalent(equivalentData);
+    try {
+      if (editingEquivalent) {
+        await editEquivalent(editingEquivalent.id, equivalentData);
+      } else {
+        await addEquivalent(equivalentData);
+      }
+    } catch (saveError) {
+      if (saveError?.code === 'guest_value_equivalent_limit') {
+        const localizedError = new Error(t('guestValueEquivalentLimitReached', {
+          limit: saveError.limit,
+        }));
+        localizedError.code = saveError.code;
+        localizedError.limit = saveError.limit;
+        throw localizedError;
+      }
+      throw saveError;
     }
 
     setShowEquivalentModal(false);
@@ -372,7 +384,7 @@ function Settings() {
           </div>
         )}
 
-        {!isGuest && <GeneralSettingsSection
+        <GeneralSettingsSection
           language={language}
           languageName={getLanguageName(language)}
           selectedCurrencyOption={selectedCurrencyOption}
@@ -385,9 +397,9 @@ function Settings() {
             setActiveModal('currency');
             setShowCurrencyDropdown(true);
           }}
-        />}
+        />
 
-        {!isGuest && <ValueEquivalentsSection
+        <ValueEquivalentsSection
           valueEquivalents={valueEquivalents}
           isLoading={isLoadingEquivalents}
           error={equivalentsError}
@@ -395,7 +407,7 @@ function Settings() {
           onAdd={handleOpenAddEquivalent}
           onEdit={handleOpenEditEquivalent}
           onDelete={handleOpenDeleteConfirm}
-        />}
+        />
 
         {!isGuest && <DataManagementSection
           fileInputRef={fileInputRef}
@@ -422,23 +434,23 @@ function Settings() {
         <LegalSettingsSection isInteractionBlocked={Boolean(activeModal)} />
       </PageContainer>
 
-      {!isGuest && <LanguageSelectionModal
+      <LanguageSelectionModal
         isOpen={showLanguageDropdown}
         languages={languages}
         selectedLanguage={language}
         onSelect={handleLanguageChange}
         onRequestClose={() => setShowLanguageDropdown(false)}
         onExitComplete={() => setActiveModal(null)}
-      />}
+      />
 
-      {!isGuest && <CurrencySelectionModal
+      <CurrencySelectionModal
         isOpen={showCurrencyDropdown}
         currencyOptions={currencyOptions}
         selectedCurrencyCode={currencyCode}
         onSelect={handleCurrencyChange}
         onRequestClose={() => setShowCurrencyDropdown(false)}
         onExitComplete={() => setActiveModal(null)}
-      />}
+      />
 
       {!isGuest && <ImportConfirmDialog
         isOpen={showImportConfirm}
@@ -451,7 +463,7 @@ function Settings() {
         }}
       />}
 
-      {!isGuest && <EquivalentFormModal
+      <EquivalentFormModal
         isOpen={showEquivalentModal}
         equivalent={editingEquivalent}
         defaultCurrency={currencyCode}
@@ -459,9 +471,9 @@ function Settings() {
         onCancel={() => setShowEquivalentModal(false)}
         onSave={handleSaveEquivalent}
         onExitComplete={() => setActiveModal(null)}
-      />}
+      />
 
-      {!isGuest && <DeleteEquivalentConfirmDialog
+      <DeleteEquivalentConfirmDialog
         target={showDeleteEquivalentConfirm}
         isOpen={Boolean(showDeleteEquivalentConfirm)}
         isDeleting={isDeletingEquivalent}
@@ -471,7 +483,7 @@ function Settings() {
           setIsDeletingEquivalent(false);
           setActiveModal(null);
         }}
-      />}
+      />
     </>
   );
 }

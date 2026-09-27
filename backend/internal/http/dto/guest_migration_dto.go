@@ -24,9 +24,17 @@ type GuestMigrationPlannedPurchaseDTO struct {
 	ContributionCadence *string  `json:"contributionCadence,omitempty"`
 }
 
+// GuestMigrationValueEquivalentDTO contains client-owned value equivalent fields.
+type GuestMigrationValueEquivalentDTO struct {
+	Name         string  `json:"name"`
+	Amount       float64 `json:"amount"`
+	CurrencyCode string  `json:"currencyCode"`
+}
+
 // GuestMigrationRequestDTO is the authenticated import request for one local guest dataset.
 type GuestMigrationRequestDTO struct {
 	MigrationID      string                             `json:"migrationId"`
 	Items            []GuestMigrationItemDTO            `json:"items"`
 	PlannedPurchases []GuestMigrationPlannedPurchaseDTO `json:"plannedPurchases"`
+	ValueEquivalents []GuestMigrationValueEquivalentDTO `json:"valueEquivalents"`
 }

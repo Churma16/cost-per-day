@@ -31,6 +31,7 @@ func (repositoryInstance *GuestMigrationRepository) ImportGuestData(
 	migrationID string,
 	items []domain.Item,
 	plannedPurchases []domain.PlannedPurchase,
+	valueEquivalents []domain.ValueEquivalent,
 ) (domain.GuestMigrationResult, error) {
 	normalizedUserID, identityError := requireSQLiteUserID(userID)
 	if identityError != nil {
@@ -45,18 +46,21 @@ func (repositoryInstance *GuestMigrationRepository) ImportGuestData(
 	transactionError := repositoryInstance.database.WithContext(ctx).Transaction(func(transaction *gorm.DB) error {
 		var importedItems int
 		var importedPlannedPurchases int
+		var importedValueEquivalents int
 		existingError := transaction.Raw(`
-			SELECT imported_items, imported_planned_purchases
+			SELECT imported_items, imported_planned_purchases, imported_value_equivalents
 			FROM guest_migrations
 			WHERE user_id = ? AND migration_id = ?
 		`, normalizedUserID, normalizedMigrationID).Row().Scan(
 			&importedItems,
 			&importedPlannedPurchases,
+			&importedValueEquivalents,
 		)
 		if existingError == nil {
 			result = domain.GuestMigrationResult{
 				ImportedItems:            importedItems,
 				ImportedPlannedPurchases: importedPlannedPurchases,
+				ImportedValueEquivalents: importedValueEquivalents,
 				AlreadyImported:          true,
 			}
 			return nil
@@ -67,6 +71,7 @@ func (repositoryInstance *GuestMigrationRepository) ImportGuestData(
 
 		itemRepository := &ItemRepository{database: transaction}
 		plannedPurchaseRepository := &PlannedPurchaseRepository{database: transaction}
+		valueEquivalentRepository := &ValueEquivalentRepository{database: transaction}
 		categoryRepository := &CategoryRepository{database: transaction}
 		brandRepository := &BrandRepository{database: transaction}
 
@@ -101,9 +106,16 @@ func (repositoryInstance *GuestMigrationRepository) ImportGuestData(
 			}
 		}
 
+		for _, equivalent := range valueEquivalents {
+			if _, createError := valueEquivalentRepository.Create(ctx, normalizedUserID, equivalent); createError != nil {
+				return fmt.Errorf("import guest value equivalent: %w", createError)
+			}
+		}
+
 		result = domain.GuestMigrationResult{
 			ImportedItems:            len(items),
 			ImportedPlannedPurchases: len(plannedPurchases),
+			ImportedValueEquivalents: len(valueEquivalents),
 		}
 		ledgerResult := transaction.Exec(`
 			INSERT INTO guest_migrations (
@@ -111,14 +123,16 @@ func (repositoryInstance *GuestMigrationRepository) ImportGuestData(
 				migration_id,
 				imported_items,
 				imported_planned_purchases,
+				imported_value_equivalents,
 				created_at
 			)
-			VALUES (?, ?, ?, ?, ?)
+			VALUES (?, ?, ?, ?, ?, ?)
 		`,
 			normalizedUserID,
 			normalizedMigrationID,
 			result.ImportedItems,
 			result.ImportedPlannedPurchases,
+			result.ImportedValueEquivalents,
 			time.Now().UTC().Format(time.RFC3339Nano),
 		)
 		if ledgerResult.Error != nil {

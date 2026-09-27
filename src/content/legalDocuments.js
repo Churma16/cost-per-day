@@ -10,7 +10,7 @@ const legalDocuments = {
         {
           heading: 'Information Worthwhile handles',
           paragraphs: [
-            'If you continue without an account, the items and planned purchases you enter are kept in your browser on that device. Guest Mode does not send those records to the Worthwhile server. If you later sign in, Worthwhile automatically attempts to migrate them to your account.',
+            'If you continue without an account, the items, planned purchases, personalized value equivalents, and language or currency preferences you enter are kept in your browser on that device. Guest Mode does not send those records to the Worthwhile server. If you later sign in, Worthwhile automatically attempts to migrate your items, planned purchases, and value equivalents to your account; local guest language and currency preferences are not imported into the account.',
             'When you sign in with Google, Worthwhile receives the Google account identifier, email address, display name, and profile image made available by the sign-in flow. Worthwhile creates its own user and session identifiers so your records remain associated with your account.',
             'Worthwhile stores information you choose to record in the app. Depending on the features you use, this can include item names, prices, currencies, purchase and ownership dates, sale details, ownership targets, planned purchases, contribution plans, personalized value equivalents, and language or currency preferences.'
           ]
@@ -32,7 +32,7 @@ const legalDocuments = {
         {
           heading: 'Storage and sharing',
           paragraphs: [
-            'Guest items and planned purchases are stored locally in the browser’s IndexedDB storage on that device. Signed-in application records are stored in Worthwhile’s server-side database and associated with an application user identifier. Session tokens are stored in a browser cookie; the server stores a hash of the session token rather than the token itself.',
+            'Guest items, planned purchases, personalized value equivalents, and language or currency preferences are stored locally in the browser’s IndexedDB storage on that device. Signed-in application records are stored in Worthwhile’s server-side database and associated with an application user identifier. Session tokens are stored in a browser cookie; the server stores a hash of the session token rather than the token itself.',
             'Google processes information when you use Google sign-in and provides the profile details described above. Worthwhile does not sell your personal information or share it for advertising. The project operator may access stored records and logs when reasonably necessary to operate, secure, or troubleshoot the service.'
           ]
         },
@@ -109,7 +109,7 @@ const legalDocuments = {
         {
           heading: 'Informasi yang ditangani Worthwhile',
           paragraphs: [
-            'Jika Anda melanjutkan tanpa akun, barang dan rencana pembelian yang Anda masukkan disimpan di browser pada perangkat tersebut. Mode Guest tidak mengirimkan catatan itu ke server Worthwhile. Jika kemudian masuk, Worthwhile secara otomatis mencoba memigrasikannya ke akun Anda.',
+            'Jika Anda melanjutkan tanpa akun, barang, rencana pembelian, pembanding nilai pribadi, serta preferensi bahasa atau mata uang yang Anda masukkan disimpan di browser pada perangkat tersebut. Mode Guest tidak mengirimkan catatan itu ke server Worthwhile. Jika kemudian masuk, Worthwhile secara otomatis mencoba memigrasikan barang, rencana pembelian, dan pembanding nilai ke akun Anda; preferensi bahasa dan mata uang guest tetap lokal dan tidak diimpor ke akun.',
             'Saat Anda masuk dengan Google, Worthwhile menerima pengenal akun Google, alamat email, nama tampilan, dan foto profil yang tersedia melalui proses masuk tersebut. Worthwhile membuat pengenal pengguna dan sesi sendiri agar catatan Anda tetap terhubung dengan akun Anda.',
             'Worthwhile menyimpan informasi yang Anda pilih untuk dicatat di aplikasi. Bergantung pada fitur yang digunakan, informasi ini dapat mencakup nama barang, harga, mata uang, tanggal pembelian dan kepemilikan, detail penjualan, target kepemilikan, rencana pembelian, rencana kontribusi, pembanding nilai pribadi, serta preferensi bahasa atau mata uang.'
           ]
@@ -131,7 +131,7 @@ const legalDocuments = {
         {
           heading: 'Penyimpanan dan pembagian',
           paragraphs: [
-            'Barang dan rencana pembelian guest disimpan secara lokal dalam penyimpanan IndexedDB browser pada perangkat tersebut. Catatan aplikasi pengguna yang masuk disimpan dalam basis data sisi server Worthwhile dan dikaitkan dengan pengenal pengguna aplikasi. Token sesi disimpan dalam kuki browser; server menyimpan hash token sesi, bukan token itu sendiri.',
+            'Barang, rencana pembelian, pembanding nilai pribadi, serta preferensi bahasa atau mata uang guest disimpan secara lokal dalam penyimpanan IndexedDB browser pada perangkat tersebut. Catatan aplikasi pengguna yang masuk disimpan dalam basis data sisi server Worthwhile dan dikaitkan dengan pengenal pengguna aplikasi. Token sesi disimpan dalam kuki browser; server menyimpan hash token sesi, bukan token itu sendiri.',
             'Google memproses informasi saat Anda menggunakan proses masuk Google dan menyediakan detail profil yang dijelaskan di atas. Worthwhile tidak menjual informasi pribadi Anda atau membagikannya untuk periklanan. Pengelola proyek dapat mengakses catatan dan log tersimpan jika diperlukan secara wajar untuk menjalankan, mengamankan, atau memecahkan masalah layanan.'
           ]
         },

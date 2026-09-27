@@ -205,6 +205,13 @@ describe('guest IndexedDB persistence', () => {
       targetPrice: 500,
       currencyCode: 'USD',
     });
+    await firstLoad.guestRepositories.settings.set('language', 'id');
+    await firstLoad.guestRepositories.settings.set('currency', 'IDR');
+    await firstLoad.guestRepositories.valueEquivalents.create({
+      name: 'Gorengan',
+      amount: 2500,
+      currencyCode: 'IDR',
+    });
     const migrationId = await firstLoad.guestRepositories.meta.getOrCreateMigrationId();
 
     vi.resetModules();
@@ -212,17 +219,62 @@ describe('guest IndexedDB persistence', () => {
 
     const items = await afterReload.guestRepositories.items.list();
     const plannedPurchases = await afterReload.guestRepositories.plannedPurchases.list();
+    const settings = await afterReload.guestRepositories.settings.getAll();
+    const valueEquivalents = await afterReload.guestRepositories.valueEquivalents.list();
     const restoredMigrationId = await afterReload.guestRepositories.meta.getOrCreateMigrationId();
 
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ name: 'Camera', price: 1200, status: 'active' });
     expect(plannedPurchases).toHaveLength(1);
     expect(plannedPurchases[0]).toMatchObject({ name: 'Lens', targetPrice: 500, currencyCode: 'USD' });
+    expect(settings).toMatchObject({ language: 'id', currency: 'IDR' });
+    expect(valueEquivalents).toHaveLength(1);
+    expect(valueEquivalents[0]).toMatchObject({ name: 'Gorengan', amount: 2500, currencyCode: 'IDR' });
     expect(restoredMigrationId).toBe(migrationId);
 
     await afterReload.clearGuestData();
     expect(await afterReload.guestRepositories.items.list()).toEqual([]);
     expect(await afterReload.guestRepositories.plannedPurchases.list()).toEqual([]);
+    expect(await afterReload.guestRepositories.settings.getAll()).toEqual({
+      language: 'en',
+      currency: 'USD',
+    });
+    expect(await afterReload.guestRepositories.valueEquivalents.list()).toEqual([]);
+  });
+
+  test('supports guest value equivalent create, edit, and delete entirely in local storage', async () => {
+    vi.resetModules();
+    const persistence = await import('../../src/data/persistenceRepositories.js');
+    await persistence.clearGuestData();
+
+    const created = await persistence.guestRepositories.valueEquivalents.create({
+      name: 'Coffee',
+      amount: 5,
+      currencyCode: 'USD',
+    });
+    expect(await persistence.guestRepositories.valueEquivalents.list()).toEqual([
+      expect.objectContaining({
+        id: created.id,
+        name: 'Coffee',
+        amount: 5,
+        currencyCode: 'USD',
+      }),
+    ]);
+
+    const updated = await persistence.guestRepositories.valueEquivalents.update(created.id, {
+      ...created,
+      name: 'Specialty Coffee',
+      amount: 7.5,
+    });
+    expect(updated).toMatchObject({
+      id: created.id,
+      name: 'Specialty Coffee',
+      amount: 7.5,
+      currencyCode: 'USD',
+    });
+
+    await persistence.guestRepositories.valueEquivalents.delete(created.id);
+    expect(await persistence.guestRepositories.valueEquivalents.list()).toEqual([]);
   });
 
   test('locks snapshot members while allowing new records to queue for the next migration', async () => {
@@ -239,6 +291,11 @@ describe('guest IndexedDB persistence', () => {
     const originalPlan = await persistence.guestRepositories.plannedPurchases.create({
       name: 'Laptop plan',
       targetPrice: 1800,
+      currencyCode: 'USD',
+    });
+    const originalEquivalent = await persistence.guestRepositories.valueEquivalents.create({
+      name: 'Coffee',
+      amount: 5,
       currencyCode: 'USD',
     });
     const firstSnapshot = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
@@ -262,12 +319,19 @@ describe('guest IndexedDB persistence', () => {
     })).rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
     await expect(persistence.guestRepositories.plannedPurchases.delete(originalPlan.id))
       .rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
+    await expect(persistence.guestRepositories.valueEquivalents.update(originalEquivalent.id, {
+      ...originalEquivalent,
+      name: 'Updated coffee',
+    })).rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
+    await expect(persistence.guestRepositories.valueEquivalents.delete(originalEquivalent.id))
+      .rejects.toBeInstanceOf(persistence.GuestMigrationLockedError);
 
     await persistence.guestRepositories.migrations.completeSnapshot(firstSnapshot);
 
     const remainingItems = await persistence.guestRepositories.items.list();
     expect(remainingItems.map((item) => item.name)).toEqual(['Lens added after lost response']);
     expect(await persistence.guestRepositories.plannedPurchases.list()).toEqual([]);
+    expect(await persistence.guestRepositories.valueEquivalents.list()).toEqual([]);
 
     const nextSnapshot = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
     expect(nextSnapshot.migrationId).not.toBe(firstSnapshot.migrationId);
@@ -396,5 +460,31 @@ describe('guest IndexedDB persistence', () => {
     expect(planResults.find((result) => result.status === 'rejected').reason)
       .toBeInstanceOf(persistence.GuestLimitError);
     expect(await persistence.guestRepositories.plannedPurchases.list()).toHaveLength(5);
+
+    for (let index = 0; index < 2; index += 1) {
+      await persistence.guestRepositories.valueEquivalents.create({
+        name: `Equivalent ${index + 1}`,
+        amount: 10 + index,
+        currencyCode: 'USD',
+      });
+    }
+    const equivalentResults = await Promise.allSettled([
+      persistence.guestRepositories.valueEquivalents.create({
+        name: 'Concurrent equivalent A',
+        amount: 20,
+        currencyCode: 'USD',
+      }),
+      persistence.guestRepositories.valueEquivalents.create({
+        name: 'Concurrent equivalent B',
+        amount: 30,
+        currencyCode: 'USD',
+      }),
+    ]);
+
+    expect(equivalentResults.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(equivalentResults.filter((result) => result.status === 'rejected')).toHaveLength(1);
+    expect(equivalentResults.find((result) => result.status === 'rejected').reason)
+      .toBeInstanceOf(persistence.GuestLimitError);
+    expect(await persistence.guestRepositories.valueEquivalents.list()).toHaveLength(3);
   });
 });

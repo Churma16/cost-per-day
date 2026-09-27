@@ -24,6 +24,15 @@ const createStorage = () => {
       estimatedDays: 10,
       updatedAt: '2026-09-27T00:00:00.000Z',
     }],
+    valueEquivalents: [{
+      id: 'guest-equivalent-1',
+      userId: 'untrusted-owner',
+      name: 'Coffee',
+      amount: 5,
+      currencyCode: 'USD',
+      createdAt: '2026-09-27T00:00:00.000Z',
+      updatedAt: '2026-09-27T00:00:00.000Z',
+    }],
   };
   let pendingSnapshot = snapshot;
 
@@ -47,6 +56,7 @@ describe('guest migration orchestration', () => {
     const importGuestData = vi.fn().mockResolvedValue({
       importedItems: 1,
       importedPlannedPurchases: 1,
+      importedValueEquivalents: 1,
     });
     const service = createGuestMigrationService({ guestStorage, importGuestData });
 
@@ -73,6 +83,11 @@ describe('guest migration orchestration', () => {
         targetDate: null,
         contributionAmount: null,
         contributionCadence: null,
+      }],
+      valueEquivalents: [{
+        name: 'Coffee',
+        amount: 5,
+        currencyCode: 'USD',
       }],
     });
     expect(guestStorage.migrations.completeSnapshot).toHaveBeenCalledWith(guestStorage.snapshot);

@@ -3,6 +3,43 @@ import { vi } from 'vitest';
 import App from '../src/App';
 import { ApiError, getCurrentUser } from '../src/services/api';
 
+vi.mock('../src/contexts/PersistenceContext', () => {
+  const settings = { language: 'en', currency: 'USD' };
+  const repositories = {
+    items: {
+      list: async () => [],
+      create: async (item) => item,
+      update: async (_id, item) => item,
+      delete: async () => null,
+      replaceAll: async (items) => items,
+    },
+    plannedPurchases: {
+      list: async () => [],
+      create: async (purchase) => purchase,
+      update: async (_id, purchase) => purchase,
+      delete: async () => null,
+    },
+    settings: {
+      getAll: async () => ({ ...settings }),
+      set: async (key, value) => {
+        settings[key] = value;
+        return value;
+      },
+    },
+    valueEquivalents: {
+      list: async () => [],
+      create: async (equivalent) => equivalent,
+      update: async (_id, equivalent) => equivalent,
+      delete: async () => null,
+    },
+  };
+
+  return {
+    PersistenceProvider: ({ children }) => children,
+    usePersistence: () => ({ repositories, scope: 'app-test' }),
+  };
+});
+
 vi.mock('../src/services/api', async (importOriginal) => {
   const actual = await importOriginal();
   return {

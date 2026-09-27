@@ -63,6 +63,7 @@ type GuestMigrationRepository interface {
 		migrationID string,
 		items []domain.Item,
 		plannedPurchases []domain.PlannedPurchase,
+		valueEquivalents []domain.ValueEquivalent,
 	) (domain.GuestMigrationResult, error)
 }
 

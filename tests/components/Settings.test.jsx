@@ -57,6 +57,9 @@ vi.mock('react-i18next', () => ({
         noEquivalents: 'No personalized value equivalents added yet.',
         confirmDeleteEquivalent: 'Are you sure you want to delete this value equivalent?',
         errorLoadingEquivalents: 'Failed to load value equivalents',
+        guestValueEquivalentLimitReached: options?.limit
+          ? `You've used ${options.limit} value equivalents. Sign in to save more and use them across devices.`
+          : 'Value equivalent limit reached.',
         cancel: 'Cancel',
         save: 'Save',
         delete: 'Delete'
@@ -267,6 +270,86 @@ describe('Settings component', () => {
     await waitFor(() => {
       expect(mockSignOut).toHaveBeenCalled();
     });
+  });
+
+  test('keeps local-safe General and Value Equivalent settings available to guests', async () => {
+    useAuth.mockReturnValue({
+      user: null,
+      isGuest: true,
+      signIn: mockSignIn,
+      signOut: mockSignOut,
+      error: null,
+      guestMigrationError: null,
+      isMigratingGuestData: false,
+      retryGuestMigration: vi.fn(),
+    });
+
+    render(<Settings />);
+
+    expect(screen.getByRole('heading', { name: 'General', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Personalized Value Equivalents', level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Data', level: 2 })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /language.*english/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Bahasa Indonesia/i }));
+    await waitFor(() => expect(mockChangeLanguage).toHaveBeenCalledWith('id'));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Select Language' })).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /currency.*us dollar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Rp Indonesian Rupiah \(IDR\)/i }));
+    expect(mockChangeCurrency).toHaveBeenCalledWith('IDR');
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Select Currency' })).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Add Equivalent/i }));
+    expect(screen.getByPlaceholderText('e.g. Gorengan, Coffee')).toBeInTheDocument();
+  });
+
+  test('shows the guest sign-in value prompt when the three-equivalent limit is reached', async () => {
+    useAuth.mockReturnValue({
+      user: null,
+      isGuest: true,
+      signIn: mockSignIn,
+      signOut: mockSignOut,
+      error: null,
+      guestMigrationError: null,
+      isMigratingGuestData: false,
+      retryGuestMigration: vi.fn(),
+    });
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-1', name: 'Coffee', amount: 5, currencyCode: 'USD' },
+        { id: 'eq-2', name: 'Lunch', amount: 10, currencyCode: 'USD' },
+        { id: 'eq-3', name: 'Transit', amount: 3, currencyCode: 'USD' },
+      ],
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      isLoading: false,
+      error: null,
+    });
+    mockAddEquivalent.mockRejectedValueOnce(Object.assign(
+      new Error('Guest limit reached.'),
+      { code: 'guest_value_equivalent_limit', limit: 3 },
+    ));
+
+    render(<Settings />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Add Equivalent/i }));
+    fireEvent.change(screen.getByPlaceholderText('e.g. Gorengan, Coffee'), {
+      target: { value: 'Snack' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('e.g. 2500'), {
+      target: { value: '4' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+
+    expect(await screen.findByText(
+      "You've used 3 value equivalents. Sign in to save more and use them across devices."
+    )).toBeInTheDocument();
   });
 
   test('morphs the guest sign-in button into the ownership loader before redirecting', async () => {

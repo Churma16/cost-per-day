@@ -13,6 +13,15 @@ vi.mock('react-i18next', () => ({
       if (key === 'daysBeyondTarget') {
         return `${options?.days} days beyond target`;
       }
+      if (key === 'equivalentPerDay') {
+        return `${options?.count} ${options?.name}/day`;
+      }
+      if (key === 'equivalentEveryNDays') {
+        return `1 ${options?.name} every ${options?.count} days`;
+      }
+      if (key === 'equivalentPerMonth') {
+        return `${options?.count} ${options?.name}/month`;
+      }
       return {
         statusActiveEarly: 'Just Joined You',
         statusActive: 'Still With You',
@@ -150,6 +159,36 @@ describe('ItemCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalledWith(item);
+  });
+
+  test('shows guest-local value equivalents on the same item comparison surface', () => {
+    const item = {
+      id: 'guest-item-equivalent',
+      name: 'Guest headphones',
+      price: 200,
+      purchaseDate: '2026-09-01T00:00:00Z',
+      ownershipDays: 20,
+      grossCostPerDay: 10,
+      status: 'active',
+    };
+
+    render(
+      <ItemCard
+        item={item}
+        isExpanded={false}
+        isGuest
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onBenchmark={vi.fn()}
+        currencyCode="USD"
+        valueEquivalents={[
+          { id: 'guest-equivalent-1', name: 'Coffee', amount: 5, currencyCode: 'USD' },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('≈ 2 Coffee/day')).toBeInTheDocument();
   });
 
   test('does not expose the API-only replacement benchmark to guests', () => {

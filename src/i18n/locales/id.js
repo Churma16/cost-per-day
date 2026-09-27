@@ -43,6 +43,7 @@ const translation = {
   "guestMigrationFailed": "Akunmu sudah masuk, tetapi data guest lokal belum berhasil dimigrasikan. Salinan lokal tetap aman di perangkat ini.",
   "guestItemLimitReached": "Kamu sudah mencapai batas {{limit}} barang tanpa akun. Masuk untuk menambah barang lagi dan menjaga riwayatmu tetap tersedia di perangkat lain.",
   "guestPlannedPurchaseLimitReached": "Kamu sudah mencapai batas {{limit}} rencana tanpa akun. Masuk untuk menambah rencana lagi dan menjaganya tetap tersedia di perangkat lain.",
+  "guestValueEquivalentLimitReached": "Kamu sudah menggunakan {{limit}} perbandingan nilai. Masuk untuk menyimpan lebih banyak dan mengaksesnya di perangkat lain.",
   "retryGuestMigration": "Coba lagi migrasi data guest",
   "legalNavigation": "Informasi hukum",
   "privacyPolicy": "Kebijakan Privasi",

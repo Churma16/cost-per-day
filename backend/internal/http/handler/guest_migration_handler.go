@@ -73,12 +73,22 @@ func (handlerInstance *GuestMigrationHandler) Import(ginContext *gin.Context) {
 		})
 	}
 
+	valueEquivalents := make([]domain.ValueEquivalent, 0, len(requestBody.ValueEquivalents))
+	for _, candidate := range requestBody.ValueEquivalents {
+		valueEquivalents = append(valueEquivalents, domain.ValueEquivalent{
+			Name:         candidate.Name,
+			Amount:       candidate.Amount,
+			CurrencyCode: candidate.CurrencyCode,
+		})
+	}
+
 	migrationResult, migrationError := handlerInstance.service.ImportGuestData(
 		ginContext.Request.Context(),
 		userID,
 		requestBody.MigrationID,
 		items,
 		plannedPurchases,
+		valueEquivalents,
 	)
 	if migrationError != nil {
 		if isGuestMigrationValidationError(migrationError) {
@@ -95,5 +105,6 @@ func (handlerInstance *GuestMigrationHandler) Import(ginContext *gin.Context) {
 func isGuestMigrationValidationError(candidate error) bool {
 	return errors.Is(candidate, domain.ErrInvalidGuestMigrationID) ||
 		isItemValidationError(candidate) ||
-		isPlannedPurchaseValidationError(candidate)
+		isPlannedPurchaseValidationError(candidate) ||
+		isValueEquivalentValidationError(candidate)
 }
