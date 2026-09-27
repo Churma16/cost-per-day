@@ -1,8 +1,8 @@
 import * as itemApi from '../services/api';
 import * as plannedPurchaseApi from '../services/plannedPurchaseService';
 
-export const GUEST_ITEM_LIMIT = 5;
-export const GUEST_PLANNED_PURCHASE_LIMIT = 2;
+export const GUEST_ITEM_LIMIT = 10;
+export const GUEST_PLANNED_PURCHASE_LIMIT = 5;
 
 const DATABASE_NAME = 'worthwhile-guest';
 const DATABASE_VERSION = 1;
