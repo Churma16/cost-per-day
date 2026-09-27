@@ -4,7 +4,7 @@ import App from '../src/App';
 import { ApiError, getCurrentUser } from '../src/services/api';
 
 vi.mock('../src/contexts/PersistenceContext', () => {
-  const settings = { language: 'en', currency: 'USD' };
+  const settings = { language: 'en', currency: 'USD', onboardingCompleted: 'true' };
   const repositories = {
     items: {
       list: async () => [],
@@ -46,7 +46,7 @@ vi.mock('../src/services/api', async (importOriginal) => {
     ...actual,
     getCurrentUser: vi.fn(),
     logoutCurrentUser: vi.fn(),
-    getAllSettings: vi.fn().mockResolvedValue({ language: 'en', currency: 'USD' }),
+    getAllSettings: vi.fn().mockResolvedValue({ language: 'en', currency: 'USD', onboardingCompleted: 'true' }),
     getAllValueEquivalents: vi.fn().mockResolvedValue([]),
     getAllItems: vi.fn().mockResolvedValue([])
   };

@@ -18,6 +18,7 @@ import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
 import LegalDocumentPage from './components/LegalDocumentPage';
+import { OnboardingGate } from './components/OnboardingFlow';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
@@ -109,11 +110,13 @@ function AuthenticatedApp() {
     <LanguageProvider>
       <CurrencyProvider>
         <ValueEquivalentsProvider>
-          <PageMetadata />
-          <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
-            <MainContent />
-            <Footer />
-          </div>
+          <OnboardingGate>
+            <PageMetadata />
+            <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
+              <MainContent />
+              <Footer />
+            </div>
+          </OnboardingGate>
         </ValueEquivalentsProvider>
       </CurrencyProvider>
     </LanguageProvider>

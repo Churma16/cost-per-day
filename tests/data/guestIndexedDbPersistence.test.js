@@ -338,6 +338,28 @@ describe('guest IndexedDB persistence', () => {
     expect(nextSnapshot.items).toHaveLength(1);
   });
 
+  test('includes completed guest preferences in a settings-only migration snapshot', async () => {
+    vi.resetModules();
+    const persistence = await import('../../src/data/persistenceRepositories.js');
+    await persistence.clearGuestData();
+
+    await persistence.guestRepositories.settings.set('language', 'id');
+    await persistence.guestRepositories.settings.set('currency', 'IDR');
+    await persistence.guestRepositories.settings.set('onboardingCompleted', 'true');
+
+    const snapshot = await persistence.guestRepositories.migrations.getOrCreateSnapshot();
+
+    expect(snapshot.settings).toEqual({
+      language: 'id',
+      currency: 'IDR',
+      onboardingCompleted: 'true',
+    });
+    expect(snapshot.items).toEqual([]);
+
+    await persistence.guestRepositories.migrations.completeSnapshot(snapshot);
+    expect(await persistence.guestRepositories.migrations.getOrCreateSnapshot()).toBeNull();
+  });
+
   test('treats stale snapshot completion as a no-op when a newer snapshot is active', async () => {
     vi.resetModules();
     const persistence = await import('../../src/data/persistenceRepositories.js');

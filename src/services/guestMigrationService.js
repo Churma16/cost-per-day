@@ -3,6 +3,17 @@ import {
   guestRepositories,
 } from '../data/persistenceRepositories';
 
+const supportedLanguages = new Set(['en', 'id']);
+const supportedCurrencies = new Set(['USD', 'EUR', 'CNY', 'IDR']);
+
+const transferableSettings = (settings = {}) => ({
+  ...(supportedLanguages.has(settings.language) ? { language: settings.language } : {}),
+  ...(supportedCurrencies.has(settings.currency) ? { currency: settings.currency } : {}),
+  ...(String(settings.onboardingCompleted).toLowerCase() === 'true'
+    ? { onboardingCompleted: 'true' }
+    : {}),
+});
+
 const toMigrationItem = (item) => ({
   name: item.name,
   price: Number(item.price),
@@ -38,6 +49,11 @@ export const createGuestMigrationService = ({
     json: payload,
     networkErrorMessage: 'Unable to migrate local guest data.',
   }),
+  getAccountSettings = () => apiRequest('/api/settings'),
+  updateAccountSetting = (key, value) => apiRequest(
+    `/api/settings/${encodeURIComponent(key)}`,
+    { method: 'PUT', json: { value } },
+  ),
 } = {}) => ({
   async migrate() {
     let lastResult = null;
@@ -60,6 +76,16 @@ export const createGuestMigrationService = ({
           await guestStorage.migrations.releaseSnapshot(snapshot);
         }
         throw error;
+      }
+
+      const guestSettings = transferableSettings(snapshot.settings);
+      if (guestSettings.onboardingCompleted === 'true') {
+        const accountSettings = await getAccountSettings();
+        if (String(accountSettings?.onboardingCompleted).toLowerCase() !== 'true') {
+          for (const [key, value] of Object.entries(guestSettings)) {
+            await updateAccountSetting(key, value);
+          }
+        }
       }
 
       await guestStorage.migrations.completeSnapshot(snapshot);
