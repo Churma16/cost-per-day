@@ -39,6 +39,7 @@ function LegalSettingsSection({ isInteractionBlocked }) {
           <MotionLink
             key={path}
             to={path}
+            state={{ from: '/settings' }}
             aria-disabled={isInteractionBlocked || undefined}
             onClick={(event) => {
               if (isInteractionBlocked) event.preventDefault();

@@ -49,6 +49,7 @@ const translation = {
   "termsOfServiceSubtitle": "Terms for using Worthwhile",
   "aboutAndLegal": "About & Legal",
   "backToWorthwhile": "Back to Worthwhile",
+  "backToSettings": "Back to Settings",
   "earlyBeta": "Early Beta",
   "effectiveDate": "Effective date",
   "legalQuestions": "Questions about this document?",

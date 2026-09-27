@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { IoArrowBackOutline } from 'react-icons/io5';
 import { PRODUCT_NAME } from '../constants/branding';
@@ -11,7 +11,10 @@ const MotionLink = motion.create(Link);
 
 function LegalDocumentPage({ documentKey }) {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
   const legalDocument = getLegalDocument(documentKey, i18n.resolvedLanguage || i18n.language);
+  const returnToSettings = location.state?.from === '/settings';
+  const returnPath = returnToSettings ? '/settings' : '/';
 
   useEffect(() => {
     document.title = `${legalDocument.title} · ${PRODUCT_NAME}`;
@@ -24,12 +27,12 @@ function LegalDocumentPage({ documentKey }) {
       <article className="mx-auto max-w-2xl overflow-hidden rounded-3xl border border-[#E6E8EC] bg-white shadow-sm">
         <header className="border-b border-[#E6E8EC] bg-[#F9FAFA] px-5 py-6 sm:px-8 sm:py-8">
           <MotionLink
-            to="/"
+            to={returnPath}
             whileTap={{ scale: 0.97 }}
             className="inline-flex min-h-11 items-center gap-2 rounded-lg pr-3 text-sm font-medium text-[#2F7473] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473]"
           >
             <IoArrowBackOutline aria-hidden="true" className="text-lg" />
-            {t('backToWorthwhile')}
+            {t(returnToSettings ? 'backToSettings' : 'backToWorthwhile')}
           </MotionLink>
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#2F7473]">
             {PRODUCT_NAME} · {t('earlyBeta')}

@@ -49,6 +49,7 @@ const translation = {
   "termsOfServiceSubtitle": "Ketentuan penggunaan Worthwhile",
   "aboutAndLegal": "Tentang & Legal",
   "backToWorthwhile": "Kembali ke Worthwhile",
+  "backToSettings": "Kembali ke Pengaturan",
   "earlyBeta": "Early Beta",
   "effectiveDate": "Tanggal berlaku",
   "legalQuestions": "Ada pertanyaan tentang dokumen ini?",
