@@ -30,11 +30,19 @@ describe('guest product limits', () => {
     expect(() => assertGuestCapacity('item', 9)).not.toThrow();
     expect(() => assertGuestCapacity('item', 10)).toThrow(GuestLimitError);
     expect(() => assertGuestCapacity('item', 10)).toThrow(/Sign in to keep your history/i);
+    expect(new GuestLimitError('item', 10)).toMatchObject({
+      code: 'guest_item_limit',
+      limit: 10,
+    });
   });
 
   test('allows up to five planned purchases and points the sixth plan toward sign-in', () => {
     expect(() => assertGuestCapacity('planned', 4)).not.toThrow();
     expect(() => assertGuestCapacity('planned', 5)).toThrow(GuestLimitError);
     expect(() => assertGuestCapacity('planned', 5)).toThrow(/Sign in to keep your plans/i);
+    expect(new GuestLimitError('planned', 5)).toMatchObject({
+      code: 'guest_planned_purchase_limit',
+      limit: 5,
+    });
   });
 });
