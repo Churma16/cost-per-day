@@ -41,6 +41,8 @@ const translation = {
   "guestModeTitle": "Menggunakan Worthwhile di perangkat ini",
   "guestModeSettingsNotice": "Data guest hanya tersimpan di browser ini. Masuk untuk menyimpan riwayat, memigrasikan data ini, dan melanjutkan di perangkat lain.",
   "guestMigrationFailed": "Akunmu sudah masuk, tetapi data guest lokal belum berhasil dimigrasikan. Salinan lokal tetap aman di perangkat ini.",
+  "guestItemLimitReached": "Kamu sudah mencapai batas {{limit}} barang tanpa akun. Masuk untuk menambah barang lagi dan menjaga riwayatmu tetap tersedia di perangkat lain.",
+  "guestPlannedPurchaseLimitReached": "Kamu sudah mencapai batas {{limit}} rencana tanpa akun. Masuk untuk menambah rencana lagi dan menjaganya tetap tersedia di perangkat lain.",
   "retryGuestMigration": "Coba lagi migrasi data guest",
 
   // Header
