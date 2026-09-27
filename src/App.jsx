@@ -32,6 +32,19 @@ const applicationQueryClient = new QueryClient({
   },
 });
 
+const GoogleLogo = () => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 18 18"
+    className="h-5 w-5"
+  >
+    <path fill="#EA4335" d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.797 2.715v2.258h2.909c1.702-1.567 2.684-3.878 2.684-6.613Z" />
+    <path fill="#4285F4" d="M9 18c2.43 0 4.468-.806 5.956-2.182l-2.909-2.258c-.806.54-1.835.859-3.047.859-2.344 0-4.328-1.584-5.037-3.711H.956v2.332A9 9 0 0 0 9 18Z" />
+    <path fill="#FBBC05" d="M3.963 10.708A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.281-1.708V4.96H.956A9 9 0 0 0 0 9c0 1.452.347 2.827.956 4.04l3.007-2.332Z" />
+    <path fill="#34A853" d="M9 3.581c1.321 0 2.507.454 3.44 1.345l2.581-2.581C13.464.891 11.426 0 9 0A9 9 0 0 0 .956 4.96l3.007 2.332C4.672 5.165 6.656 3.581 9 3.581Z" />
+  </svg>
+);
+
 const MainContent = () => {
   const location = useLocation();
 
@@ -111,17 +124,25 @@ function AuthGate() {
           <div className="mt-6 space-y-3">
             <button
               type="button"
+              onClick={signIn}
+              className="flex w-full items-center justify-center gap-3 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded bg-white">
+                <GoogleLogo />
+              </span>
+              <span>{t('signInWithGoogle')}</span>
+            </button>
+            <div className="flex items-center gap-3" role="separator" aria-label={t('authOr')}>
+              <span className="h-px flex-1 bg-gray-200" />
+              <span className="text-xs font-medium text-gray-400">{t('authOr')}</span>
+              <span className="h-px flex-1 bg-gray-200" />
+            </div>
+            <button
+              type="button"
               onClick={continueAsGuest}
               className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 font-semibold text-gray-800 hover:bg-gray-50"
             >
               {t('continueAsGuest')}
-            </button>
-            <button
-              type="button"
-              onClick={signIn}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
-            >
-              {t('signInWithGoogle')}
             </button>
           </div>
           <p className="mt-4 text-xs leading-5 text-gray-500">
