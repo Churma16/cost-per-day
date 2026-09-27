@@ -253,7 +253,11 @@ function AddItem({ showHeader = true, isVisible = true }) {
       navigate('/');
     } catch (error) {
       console.error('Error saving item:', error);
-      setErrorMessage(error.message || t('errorSavingItem'));
+      setErrorMessage(
+        error?.code === 'guest_item_limit'
+          ? t('guestItemLimitReached', { limit: error.limit })
+          : error.message || t('errorSavingItem')
+      );
     }
   };
 
