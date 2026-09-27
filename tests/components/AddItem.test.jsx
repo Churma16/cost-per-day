@@ -44,8 +44,12 @@ vi.mock('react-i18next', () => ({
         salePrice: 'Sale price',
         enterSalePrice: 'Enter sale price',
         ownershipTargetOptional: 'Ownership Target (Optional)',
+        ownershipGoalOptional: 'Ownership Goal (Optional)',
+        ownershipGoalBy: 'Set this ownership goal by',
         targetType: 'Target type',
         targetTypeNone: 'None',
+        targetTypeCostPerDayShort: 'Daily cost',
+        targetTypeDurationShort: 'Duration',
         targetTypeCostPerDay: 'Target cost per day',
         targetTypeDuration: 'Target duration (days)',
         enterTargetCostPerDay: 'Enter target cost per day',
@@ -57,10 +61,10 @@ vi.mock('react-i18next', () => ({
         candidatePrice: 'New item price',
         category: 'Category',
         categoryOptional: 'Category (Optional)',
-        enterCategory: 'e.g. Audio, Footwear, Tech',
+        enterCategory: 'e.g. Audio',
         brand: 'Brand',
         brandOptional: 'Brand (Optional)',
-        enterBrand: 'e.g. Sony, Nike, Apple',
+        enterBrand: 'e.g. Sony',
         useBenchmarkAsTarget: 'Set as Ownership Target',
         benchmarkResultDays: `~${options?.days} days`,
         benchmarkResultRequiredDuration: `To match your previous item's value (${options?.rate}/day):`,
@@ -432,8 +436,8 @@ describe('AddItem component date localization', () => {
     expect(window.localStorage.getItem(storageKey)).toBeNull();
     expect(screen.getByPlaceholderText('Enter item name')).toHaveValue('');
     expect(screen.getByPlaceholderText('Enter price')).toHaveValue('');
-    expect(screen.getByPlaceholderText('e.g. Audio, Footwear, Tech')).toHaveValue('');
-    expect(screen.getByPlaceholderText('e.g. Sony, Nike, Apple')).toHaveValue('');
+    expect(screen.getByPlaceholderText('e.g. Audio')).toHaveValue('');
+    expect(screen.getByPlaceholderText('e.g. Sony')).toHaveValue('');
   });
 
   test('renders English month names in desktop date picker when language is set to en', () => {
@@ -615,8 +619,7 @@ describe('AddItem component date localization', () => {
       target: { value: '150' }
     });
 
-    const targetTypeSelect = screen.getByLabelText('Target type');
-    fireEvent.change(targetTypeSelect, { target: { value: 'cost_per_day' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Daily cost' }));
 
     const targetValueInput = screen.getByPlaceholderText('Enter target cost per day');
     fireEvent.change(targetValueInput, { target: { value: '1.5' } });
@@ -631,6 +634,36 @@ describe('AddItem component date localization', () => {
         price: 150,
         targetType: 'cost_per_day',
         targetValue: 1.5
+      }));
+    });
+  });
+
+  test('preserves ownership-goal drafts in both directions and submits only the active strategy', async () => {
+    addItem.mockResolvedValueOnce({ id: 'goal-drafts' });
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), { target: { value: 'Office Chair' } });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), { target: { value: '300' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Daily cost' }));
+    fireEvent.change(screen.getByPlaceholderText('Enter target cost per day'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Duration' }));
+    fireEvent.change(screen.getByPlaceholderText('Enter target duration in days'), { target: { value: '365' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Daily cost' }));
+    expect(screen.getByPlaceholderText('Enter target cost per day')).toHaveValue('2');
+    fireEvent.click(screen.getByRole('button', { name: 'Duration' }));
+    expect(screen.getByPlaceholderText('Enter target duration in days')).toHaveValue(365);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(addItem).toHaveBeenCalledWith(expect.objectContaining({
+        targetType: 'duration',
+        targetValue: 365,
       }));
     });
   });
@@ -689,7 +722,7 @@ describe('AddItem component date localization', () => {
     await waitFor(() => expect(getAllItems).toHaveBeenCalled());
     expect(screen.queryByRole('button', { name: 'Based on past item' }))
       .not.toBeInTheDocument();
-    expect(screen.getByLabelText('Target type')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Target type' })).toBeInTheDocument();
     expect(useReplacementBenchmark).not.toHaveBeenCalled();
   });
 
@@ -716,8 +749,7 @@ describe('AddItem component date localization', () => {
 
     expect(await screen.findByDisplayValue('Monitor')).toBeInTheDocument();
 
-    const targetTypeSelect = screen.getByLabelText('Target type');
-    expect(targetTypeSelect.value).toBe('duration');
+    expect(screen.getByRole('button', { name: 'Duration' })).toHaveAttribute('aria-pressed', 'true');
 
     const targetValueInput = screen.getByPlaceholderText('Enter target duration in days');
     expect(targetValueInput.value).toBe('365');
@@ -802,14 +834,13 @@ describe('AddItem component date localization', () => {
     fireEvent.click(applyButton);
 
     // Target type should now be 'duration' and value '150'
-    const targetTypeSelect = screen.getByLabelText('Target type');
-    expect(targetTypeSelect.value).toBe('duration');
+    expect(screen.getByRole('button', { name: 'Duration' })).toHaveAttribute('aria-pressed', 'true');
 
     const targetValueInput = screen.getByPlaceholderText('Enter target duration in days');
     expect(targetValueInput.value).toBe('150');
   });
 
-  test('synchronizes candidate price from modal and saves matching price and target duration', async () => {
+  test('uses the main form price for the benchmark and does not duplicate its input in the modal', async () => {
     addItem.mockResolvedValue({ id: 'new-phone-2' });
     getAllItems.mockResolvedValue([
       {
@@ -832,9 +863,9 @@ describe('AddItem component date localization', () => {
         previousPrice: 200,
         finalOwnershipDays: 100,
         finalCostPerDay: 2.0,
-        candidatePrice: 500,
-        daysToMatchPrevious: 250,
-        daysToBeatPrevious: 251,
+        candidatePrice: 300,
+        daysToMatchPrevious: 150,
+        daysToBeatPrevious: 151,
         hasTarget: false
       },
       isLoading: false,
@@ -864,26 +895,24 @@ describe('AddItem component date localization', () => {
 
     fireEvent.click(benchmarkButton);
 
-    const modalPriceInput = screen.getByLabelText('New item price');
-    fireEvent.change(modalPriceInput, { target: { value: '500' } });
-
-    expect(priceInput.value).toBe('500');
+    expect(screen.queryByLabelText('New item price')).not.toBeInTheDocument();
+    expect(priceInput.value).toBe('300');
 
     const applyButton = screen.getByRole('button', { name: 'Set as Ownership Target' });
     fireEvent.click(applyButton);
 
-    expect(priceInput.value).toBe('500');
-    expect(screen.getByLabelText('Target type').value).toBe('duration');
-    expect(screen.getByPlaceholderText('Enter target duration in days').value).toBe('250');
+    expect(priceInput.value).toBe('300');
+    expect(screen.getByRole('button', { name: 'Duration' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByPlaceholderText('Enter target duration in days').value).toBe('150');
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
       expect(addItem).toHaveBeenCalledWith(expect.objectContaining({
         name: 'New Phone 2',
-        price: 500,
+        price: 300,
         targetType: 'duration',
-        targetValue: 250
+        targetValue: 150
       }));
     });
   });
@@ -898,8 +927,8 @@ describe('AddItem component date localization', () => {
 
     const nameInput = screen.getByPlaceholderText('Enter item name');
     const priceInput = screen.getByPlaceholderText('Enter price');
-    const categoryInput = screen.getByPlaceholderText('e.g. Audio, Footwear, Tech');
-    const brandInput = screen.getByPlaceholderText('e.g. Sony, Nike, Apple');
+    const categoryInput = screen.getByPlaceholderText('e.g. Audio');
+    const brandInput = screen.getByPlaceholderText('e.g. Sony');
     const saveButton = screen.getByRole('button', { name: 'Save' });
 
     fireEvent.change(nameInput, { target: { value: 'Sony WH-1000XM4' } });
@@ -968,23 +997,23 @@ describe('AddItem component date localization', () => {
     const fromCompletedItemButton = screen.getByRole('button', { name: 'Based on past item' });
     const manualPanel = screen.getByTestId('manual-ownership-target-panel');
     const benchmarkPanel = screen.getByTestId('benchmark-ownership-target-panel');
-    expect(setManuallyButton).toHaveClass('border-teal-600');
-    expect(screen.getByLabelText('Target type')).toBeInTheDocument();
+    expect(setManuallyButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('group', { name: 'Target type' })).toBeInTheDocument();
     expect(screen.getByTestId('ownership-target-panels')).toHaveClass('overflow-hidden');
     expect(manualPanel).toHaveAttribute('aria-hidden', 'false');
     expect(benchmarkPanel).toHaveAttribute('aria-hidden', 'true');
 
     // Switch to benchmark tab
     fireEvent.click(fromCompletedItemButton);
-    expect(fromCompletedItemButton).toHaveClass('border-teal-600');
+    expect(fromCompletedItemButton).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByLabelText('Based on past item')).toBeInTheDocument();
     expect(manualPanel).toHaveAttribute('aria-hidden', 'true');
     expect(benchmarkPanel).toHaveAttribute('aria-hidden', 'false');
 
     // Switch back to manual tab
     fireEvent.click(setManuallyButton);
-    expect(setManuallyButton).toHaveClass('border-teal-600');
-    expect(screen.getByLabelText('Target type')).toBeInTheDocument();
+    expect(setManuallyButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('group', { name: 'Target type' })).toBeInTheDocument();
   });
 
   test('allows saving when manual target is incomplete but user switches to benchmark tab without applying', async () => {
@@ -1007,8 +1036,7 @@ describe('AddItem component date localization', () => {
     });
 
     // In manual mode, select Duration target but leave value empty
-    const targetTypeSelect = screen.getByLabelText('Target type');
-    fireEvent.change(targetTypeSelect, { target: { value: 'duration' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Duration' }));
 
     // Save should now be disabled because manual target value is required
     const saveButton = screen.getByRole('button', { name: 'Save' });

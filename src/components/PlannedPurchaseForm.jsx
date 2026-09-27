@@ -18,6 +18,7 @@ function PlannedPurchaseForm({
   errorMessage = null,
   onDraftChange = null,
   isVisible = true,
+  showContext = true,
 }) {
   const { t } = useTranslation();
   const { currencyCode: activeCurrencyCode } = useCurrency();
@@ -73,11 +74,6 @@ function PlannedPurchaseForm({
 
   const handleModeChange = (newMode) => {
     setPlanningMode(newMode);
-    if (newMode === 'contributionToTime') {
-      setTargetDate('');
-    } else {
-      setContributionAmount('');
-    }
   };
 
   const numericTargetPrice = parseFloat(targetPrice);
@@ -165,6 +161,13 @@ function PlannedPurchaseForm({
       {(errorMessage || validationError) && (
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {validationError || errorMessage}
+        </div>
+      )}
+
+      {showContext && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" aria-label={t('plannedPurchaseContext')}>
+          <p className="text-xs font-semibold text-slate-900">{t('plannedPurchaseContext')}</p>
+          <p className="mt-0.5 text-[11px] text-slate-600">{t('plannedPurchaseContextHelp')}</p>
         </div>
       )}
 

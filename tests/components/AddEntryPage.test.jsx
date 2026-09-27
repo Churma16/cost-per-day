@@ -11,8 +11,12 @@ vi.mock('react-i18next', () => ({
       addEntryTitle: 'Add an item',
       addEntrySubtitle: 'Track what you already own or plan your next purchase.',
       addEntryTypeLabel: 'What would you like to add?',
-      ownedItemTab: 'Already owned',
-      plannedItemTab: 'Planned',
+      ownedItemTab: 'Owned item',
+      plannedItemTab: 'Planned purchase',
+      ownedItemContext: 'Owned item',
+      ownedItemContextHelp: 'Track an item you already own.',
+      plannedPurchaseContext: 'Planned purchase',
+      plannedPurchaseContextHelp: 'Plan an item you want to buy.',
     })[key] || key,
   }),
 }));
@@ -75,14 +79,14 @@ describe('AddEntryPage', () => {
     expect(screen.getByRole('heading', { name: 'Add an item' })).toHaveClass('text-2xl');
     expect(screen.getByText('Track what you already own or plan your next purchase.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Owned item' })).toHaveAttribute('aria-selected', 'true');
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/add?type=item'));
   });
 
   it('restores a directly linked planned-item tab', () => {
     renderPage('/add?type=planned');
 
-    expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Planned purchase' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location')).toHaveTextContent('/add?type=planned');
   });
 
@@ -91,9 +95,9 @@ describe('AddEntryPage', () => {
 
     expect(screen.getAllByTestId('add-type-indicator')).toHaveLength(1);
     fireEvent.change(screen.getByTestId('owned-draft'), { target: { value: 'Camera' } });
-    fireEvent.click(screen.getByRole('tab', { name: 'Planned' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Planned purchase' }));
     fireEvent.change(screen.getByTestId('planned-draft'), { target: { value: 'Tripod' } });
-    fireEvent.click(screen.getByRole('tab', { name: 'Already owned' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Owned item' }));
 
     expect(screen.getByTestId('owned-draft')).toHaveValue('Camera');
     expect(screen.getByTestId('planned-draft')).toHaveValue('Tripod');
@@ -102,10 +106,10 @@ describe('AddEntryPage', () => {
   it('supports arrow-key tab navigation', async () => {
     renderPage('/add?type=item');
 
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Already owned' }), { key: 'ArrowRight' });
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Owned item' }), { key: 'ArrowRight' });
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'Planned purchase' })).toHaveAttribute('aria-selected', 'true');
     });
   });
 
@@ -136,7 +140,7 @@ describe('AddEntryPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'Planned purchase' })).toHaveAttribute('aria-selected', 'true');
       expect(screen.getByTestId('location')).toHaveTextContent('/add?type=planned');
     });
 
@@ -163,7 +167,7 @@ describe('AddEntryPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'Owned item' })).toHaveAttribute('aria-selected', 'true');
     });
   });
 
@@ -221,7 +225,7 @@ describe('AddEntryPage', () => {
       clientY: 124,
     });
 
-    expect(screen.getByRole('tab', { name: 'Already owned' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Owned item' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('location')).toHaveTextContent('/add?type=item');
   });
 
@@ -252,7 +256,7 @@ describe('AddEntryPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Planned' })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: 'Planned purchase' })).toHaveAttribute('aria-selected', 'true');
       expect(screen.getByTestId('location')).toHaveTextContent('/add?type=planned');
     });
   });

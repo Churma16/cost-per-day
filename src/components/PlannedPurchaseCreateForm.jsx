@@ -115,6 +115,7 @@ function PlannedPurchaseCreateForm({ isVisible = true } = {}) {
         errorMessage={errorMessage}
         onDraftChange={handleDraftChange}
         isVisible={isVisible}
+        showContext={false}
       />
     </div>
   );

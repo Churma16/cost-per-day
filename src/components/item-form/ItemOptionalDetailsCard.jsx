@@ -15,7 +15,7 @@ function ItemOptionalDetailsCard({
   return (
     <FormSectionCard title={t('optionalDetailsSection')} dashed>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
         <FormField label={t('category')} htmlFor="item-category">
           <input
             id="item-category"

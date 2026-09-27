@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const formControlClassName = `w-full px-3 py-2 rounded-xl border border-[#E6E8EC]
+export const formControlClassName = `w-full px-3 py-1.5 min-h-9 rounded-xl border border-[#E6E8EC]
   bg-white focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20
   outline-none transition-all duration-200 text-sm scroll-mt-6`;
 
@@ -21,7 +21,7 @@ function FormSectionCard({ title = null, dashed = false, children, className = '
     <section
       className={`bg-white rounded-2xl border ${
         dashed ? 'border-dashed' : 'border-solid'
-      } border-[#E6E8EC] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-2.5 ${className}`}
+      } border-[#E6E8EC] p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-2 ${className}`}
       {...props}
     >
       {title && (
