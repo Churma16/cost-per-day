@@ -20,6 +20,7 @@ export class GuestLimitError extends Error {
     super(message);
     this.name = 'GuestLimitError';
     this.code = kind === 'item' ? 'guest_item_limit' : 'guest_planned_purchase_limit';
+    this.limit = limit;
   }
 }
 
