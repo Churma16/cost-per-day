@@ -242,6 +242,41 @@ describe('guest IndexedDB persistence', () => {
     expect(await afterReload.guestRepositories.valueEquivalents.list()).toEqual([]);
   });
 
+  test('supports guest value equivalent create, edit, and delete entirely in local storage', async () => {
+    vi.resetModules();
+    const persistence = await import('../../src/data/persistenceRepositories.js');
+    await persistence.clearGuestData();
+
+    const created = await persistence.guestRepositories.valueEquivalents.create({
+      name: 'Coffee',
+      amount: 5,
+      currencyCode: 'USD',
+    });
+    expect(await persistence.guestRepositories.valueEquivalents.list()).toEqual([
+      expect.objectContaining({
+        id: created.id,
+        name: 'Coffee',
+        amount: 5,
+        currencyCode: 'USD',
+      }),
+    ]);
+
+    const updated = await persistence.guestRepositories.valueEquivalents.update(created.id, {
+      ...created,
+      name: 'Specialty Coffee',
+      amount: 7.5,
+    });
+    expect(updated).toMatchObject({
+      id: created.id,
+      name: 'Specialty Coffee',
+      amount: 7.5,
+      currencyCode: 'USD',
+    });
+
+    await persistence.guestRepositories.valueEquivalents.delete(created.id);
+    expect(await persistence.guestRepositories.valueEquivalents.list()).toEqual([]);
+  });
+
   test('locks snapshot members while allowing new records to queue for the next migration', async () => {
     vi.resetModules();
     const persistence = await import('../../src/data/persistenceRepositories.js');
