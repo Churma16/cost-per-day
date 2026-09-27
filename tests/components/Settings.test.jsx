@@ -300,6 +300,9 @@ describe('Settings component', () => {
     fireEvent.click(screen.getByRole('button', { name: /currency.*us dollar/i }));
     fireEvent.click(screen.getByRole('button', { name: /Rp Indonesian Rupiah \(IDR\)/i }));
     expect(mockChangeCurrency).toHaveBeenCalledWith('IDR');
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Select Currency' })).not.toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole('button', { name: /Add Equivalent/i }));
     expect(screen.getByPlaceholderText('e.g. Gorengan, Coffee')).toBeInTheDocument();
