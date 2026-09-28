@@ -31,6 +31,7 @@ import ItemRequiredFieldsCard from './item-form/ItemRequiredFieldsCard';
 import ItemOptionalDetailsCard from './item-form/ItemOptionalDetailsCard';
 import ItemStatusCard from './item-form/ItemStatusCard';
 import ItemOwnershipTargetCard from './item-form/ItemOwnershipTargetCard';
+import ItemOwnershipJourneyCard from './item-form/ItemOwnershipJourneyCard';
 import ItemDeleteConfirmModal from './item-form/ItemDeleteConfirmModal';
 
 const createTargetDraftValues = ({ targetType, targetValue }) => ({
@@ -79,6 +80,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const [selectedBenchmarkItemId, setSelectedBenchmarkItemId] = useState(
     initialFormValues.selectedBenchmarkItemId
   );
+  const [replacesItemId, setReplacesItemId] = useState(initialFormValues.replacesItemId);
   const [benchmarkModalOpen, setBenchmarkModalOpen] = useState(false);
   const [benchmarkSourceItem, setBenchmarkSourceItem] = useState(null);
   const [hydratedEditId, setHydratedEditId] = useState(null);
@@ -116,6 +118,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     targetValue,
     targetMode: effectiveTargetMode,
     selectedBenchmarkItemId,
+    replacesItemId,
   };
   const addDraftData = itemFormValuesToDraftData(formValues);
   const { clearDraft } = useAddItemDraft({
@@ -171,6 +174,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setSalePrice(hydratedValues.salePrice);
     setTargetType(hydratedValues.targetType);
     setTargetDraftValues(createTargetDraftValues(hydratedValues));
+    setReplacesItemId(hydratedValues.replacesItemId);
     setHydratedEditId(String(editId));
     setLoadFailed(false);
     setErrorMessage(null);
@@ -236,6 +240,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setTargetDraftValues(createTargetDraftValues(resetValues));
     setTargetMode(resetValues.targetMode);
     setSelectedBenchmarkItemId(resetValues.selectedBenchmarkItemId);
+    setReplacesItemId(resetValues.replacesItemId);
     setBenchmarkModalOpen(false);
     setBenchmarkSourceItem(null);
     setErrorMessage(null);
@@ -404,6 +409,15 @@ function AddItem({ showHeader = true, isVisible = true }) {
                 }
               }}
             />
+
+            {!isGuest && (
+              <ItemOwnershipJourneyCard
+                completedItems={completedItems}
+                currentItemId={editId}
+                replacesItemId={replacesItemId}
+                onReplacesItemIdChange={setReplacesItemId}
+              />
+            )}
 
             {/* Form CTA Buttons */}
             <div className="space-y-2 pt-1">
