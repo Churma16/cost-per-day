@@ -46,7 +46,12 @@ describe('first-run onboarding flow', () => {
     const onComplete = vi.fn();
     render(<OnboardingFlow onComplete={onComplete} />);
 
+    expect(screen.getByTestId('onboarding-step-1')).toBeInTheDocument();
+    expect(screen.getByTestId('onboarding-progress-1')).toHaveAttribute('data-active', 'true');
+    expect(screen.getByTestId('onboarding-progress-2')).toHaveAttribute('data-active', 'false');
     fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));
+    await screen.findByTestId('onboarding-step-2');
+    expect(screen.getByTestId('onboarding-progress-2')).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('language-options')).toHaveClass('flex', 'flex-wrap');
     expect(screen.getByRole('button', { name: 'English' })).toHaveClass(
       'min-w-[10rem]',
@@ -65,6 +70,8 @@ describe('first-run onboarding flow', () => {
     expect(screen.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'IDR' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByTestId('onboarding-step-3');
+    expect(screen.getByTestId('onboarding-progress-3')).toHaveAttribute('data-active', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
@@ -81,8 +88,10 @@ describe('first-run onboarding flow', () => {
     render(<OnboardingFlow onComplete={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));
+    await screen.findByTestId('onboarding-step-2');
     fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'IDR' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByTestId('onboarding-step-3');
     fireEvent.click(screen.getByRole('button', { name: '+ Coffee' }));
     fireEvent.change(screen.getByLabelText('Price'), { target: { value: '25000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enter Worthwhile' }));

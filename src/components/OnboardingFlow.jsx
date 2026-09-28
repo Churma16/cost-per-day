@@ -19,21 +19,63 @@ const SUGGESTED_REFERENCES = ['coffee', 'snack', 'lunch'];
 
 const emptyReference = (name = '') => ({ name, amount: '' });
 
-const OnboardingShell = ({ step, children }) => (
-  <main className="h-full overflow-y-auto bg-[#E9EAEC] px-3 py-5 sm:flex sm:items-center sm:justify-center sm:p-6">
-    <section className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-[#F8F9FA] shadow-[0_20px_60px_-35px_rgba(27,54,61,0.55)]">
-      <div className="flex gap-1.5 px-6 pt-6" aria-label={`Step ${step} of 3`}>
-        {[1, 2, 3].map((number) => (
-          <span
-            key={number}
-            className={`h-1 flex-1 rounded-full ${number <= step ? 'bg-[#2F7473]' : 'bg-gray-200'}`}
-          />
-        ))}
-      </div>
-      {children}
-    </section>
-  </main>
-);
+const CALM_EASE = [0.16, 1, 0.3, 1];
+
+const OnboardingShell = ({ step, children }) => {
+  const shouldReduceMotion = useReducedMotion();
+  const pageTransition = {
+    duration: shouldReduceMotion ? 0 : 0.24,
+    ease: CALM_EASE,
+  };
+
+  return (
+    <main className="h-full overflow-y-auto bg-[#E9EAEC] px-3 py-5 sm:flex sm:items-center sm:justify-center sm:p-6">
+      <motion.section
+        layout={!shouldReduceMotion}
+        transition={{ layout: { duration: shouldReduceMotion ? 0 : 0.32, ease: CALM_EASE } }}
+        className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-[#F8F9FA] shadow-[0_20px_60px_-35px_rgba(27,54,61,0.55)]"
+      >
+        <div className="flex gap-1.5 px-6 pt-6" aria-label={`Step ${step} of 3`}>
+          {[1, 2, 3].map((number) => {
+            const isActive = number <= step;
+            return (
+              <span
+                key={number}
+                data-testid={`onboarding-progress-${number}`}
+                data-active={isActive}
+                className="relative h-1 flex-1 overflow-hidden rounded-full bg-gray-200"
+              >
+                <motion.span
+                  aria-hidden="true"
+                  className="absolute inset-0 origin-left rounded-full bg-[#2F7473]"
+                  initial={false}
+                  animate={{ scaleX: isActive ? 1 : 0 }}
+                  transition={{
+                    duration: shouldReduceMotion ? 0 : 0.36,
+                    ease: CALM_EASE,
+                    delay: shouldReduceMotion ? 0 : Math.max(0, number - step) * 0.035,
+                  }}
+                />
+              </span>
+            );
+          })}
+        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={step}
+            data-testid={`onboarding-step-${step}`}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+            transition={pageTransition}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </motion.section>
+    </main>
+  );
+};
 
 function OnboardingFlow({ onComplete }) {
   const { t, i18n } = useTranslation();
@@ -60,7 +102,7 @@ function OnboardingFlow({ onComplete }) {
   })), [t, i18n.resolvedLanguage]);
   const calmSelectionTransition = {
     duration: shouldReduceMotion ? 0 : 0.28,
-    ease: [0.16, 1, 0.3, 1],
+    ease: CALM_EASE,
   };
 
   const addSuggestedReference = (kind) => {
