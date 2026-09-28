@@ -32,7 +32,15 @@ import ItemOptionalDetailsCard from './item-form/ItemOptionalDetailsCard';
 import ItemStatusCard from './item-form/ItemStatusCard';
 import ItemOwnershipTargetCard from './item-form/ItemOwnershipTargetCard';
 import ItemDeleteConfirmModal from './item-form/ItemDeleteConfirmModal';
-import { InlineStateNotice, StatePanel } from './ui/AsyncState';
+import {
+  ActionLoadingContent,
+  EmptyState,
+  ErrorCard,
+  FormSkeleton,
+  NoticeCard,
+  SlowLoadIndicator,
+} from './ui/AsyncState';
+import { useLoadingPhases, useSlowAction } from '../hooks/useLoadingPhases';
 
 const createTargetDraftValues = ({ targetType, targetValue }) => ({
   cost_per_day: targetType === 'cost_per_day' ? targetValue : '',
@@ -85,6 +93,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const [hydratedEditId, setHydratedEditId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [errorContext, setErrorContext] = useState(null);
   const { currencyCode, currencySymbol } = useCurrency();
   const {
     data: itemsData,
@@ -118,6 +127,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const createItemMutation = useCreateItem();
   const updateItemMutation = useUpdateItem();
   const deleteItemMutation = useDeleteItem();
+  const editLoadingState = useLoadingPhases(isEditHydrating);
+  const isSaving = createItemMutation.isPending || updateItemMutation.isPending;
+  const isSlowSaving = useSlowAction(isSaving);
   const { data: availableCategories = [] } = useCategories();
   const { data: availableBrands = [] } = useBrands();
 
@@ -183,6 +195,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setTargetDraftValues(createTargetDraftValues(hydratedValues));
     setHydratedEditId(String(editId));
     setErrorMessage(null);
+    setErrorContext(null);
   }, [
     editId,
     isEditMode,
@@ -247,6 +260,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setBenchmarkModalOpen(false);
     setBenchmarkSourceItem(null);
     setErrorMessage(null);
+    setErrorContext(null);
   };
 
   const handleSubmit = async (event) => {
@@ -254,6 +268,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
 
     const itemData = buildItemPayload(formValues, { isEditMode });
     setErrorMessage(null);
+    setErrorContext(null);
 
     try {
       if (isEditMode) {
@@ -269,11 +284,13 @@ function AddItem({ showHeader = true, isVisible = true }) {
       navigate('/');
     } catch (error) {
       console.error('Error saving item:', error);
-      setErrorMessage(
-        error?.code === 'guest_item_limit'
-          ? t('guestItemLimitReached', { limit: error.limit })
-          : t('errorSavingItem')
-      );
+      if (error?.code === 'guest_item_limit') {
+        setErrorContext('guest');
+        setErrorMessage(t('guestItemLimitReached', { limit: error.limit }));
+      } else {
+        setErrorContext('save');
+        setErrorMessage(t('itemSaveErrorBody'));
+      }
     }
   };
 
@@ -283,6 +300,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     }
 
     setErrorMessage(null);
+    setErrorContext(null);
 
     try {
       await deleteItemMutation.mutateAsync(editId);
@@ -290,7 +308,8 @@ function AddItem({ showHeader = true, isVisible = true }) {
     } catch (error) {
       console.error('Error deleting item:', error);
       setShowDeleteConfirm(false);
-      setErrorMessage(t('errorDeletingItem'));
+      setErrorContext('delete');
+      setErrorMessage(t('itemDeleteErrorBody'));
     }
   };
 
@@ -317,23 +336,26 @@ function AddItem({ showHeader = true, isVisible = true }) {
 
       {/* Form - main content */}
       <div className="px-3.5 py-1.5 space-y-2.5 form-page-content pb-8">
-        {isEditHydrating ? (
-          <StatePanel
-            variant="loading"
-            title={t('editItemLoadingTitle')}
-            description={t('editItemLoadingDescription')}
-          />
+        {editLoadingState.phase !== 'idle' ? (
+          <div aria-busy="true" className="min-h-[280px]">
+            {editLoadingState.phase !== 'blank' && (
+              <>
+                <FormSkeleton paused={editLoadingState.showSlowIndicator} />
+                {editLoadingState.showSlowIndicator && (
+                  <SlowLoadIndicator message={t('stillLoadingItem')} />
+                )}
+              </>
+            )}
+          </div>
         ) : isEditLoadError ? (
-          <StatePanel
-            variant="error"
-            title={t('editItemLoadErrorTitle')}
-            description={t('editItemLoadErrorDescription')}
-            actionLabel={t('retry')}
+          <NoticeCard
+            body={t('editItemLoadErrorDescription')}
+            actionLabel={t('tryAgain')}
             onAction={() => refetchItems()}
           />
         ) : isEditItemMissing ? (
-          <StatePanel
-            variant="empty"
+          <EmptyState
+            motif="home"
             title={t('itemNotFoundTitle')}
             description={t('itemNotFound')}
             actionLabel={t('backToWorthwhile')}
@@ -342,9 +364,19 @@ function AddItem({ showHeader = true, isVisible = true }) {
         ) : (
           <>
             {errorMessage && (
-              <InlineStateNotice
-                variant="error"
-                message={errorMessage}
+              <ErrorCard
+                title={
+                  errorContext === 'save'
+                    ? t('itemSaveErrorTitle')
+                    : errorContext === 'delete'
+                      ? t('itemDeleteErrorTitle')
+                      : undefined
+                }
+                body={errorMessage}
+                onDismiss={() => {
+                  setErrorMessage(null);
+                  setErrorContext(null);
+                }}
               />
             )}
 
@@ -440,20 +472,23 @@ function AddItem({ showHeader = true, isVisible = true }) {
 
             {/* Form CTA Buttons */}
             <div className="space-y-2 pt-1">
-              <button 
-                type="submit" 
-                className="w-full py-2.5 bg-teal-600 text-white rounded-xl font-medium
-                hover:bg-teal-700 transition-all duration-200 shadow-sm hover:shadow
-                disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
+              <button
+                type="submit"
+                aria-busy={isSaving ? 'true' : undefined}
+                className="w-full rounded-xl bg-[var(--accent-strong)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#146E65] disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={
                   !isFormValid
-                  || createItemMutation.isPending
-                  || updateItemMutation.isPending
+                  || isSaving
                   || (isEditMode && !itemLoaded)
                 }
               >
-                {t('save')}
+                {isSaving ? <ActionLoadingContent /> : t('save')}
               </button>
+              {isSlowSaving && (
+                <p role="status" className="text-center text-xs text-[var(--text-secondary)]">
+                  {t('saving')}
+                </p>
+              )}
 
               {!isEditMode && (
                 <button
@@ -467,11 +502,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
               )}
 
               {isEditMode && itemLoaded && (
-                <button 
-                  type="button" 
-                  className="w-full py-2 bg-white text-red-600 rounded-xl font-medium border border-red-200
-                  hover:bg-red-50 transition-all duration-200 text-sm
-                  flex items-center justify-center gap-1.5"
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-[var(--error-outline)] bg-white py-2 text-sm font-medium text-[var(--error-text)] transition-colors"
                   onClick={() => setShowDeleteConfirm(true)}
                 >
                   <IoTrashOutline className="text-lg" />
@@ -488,6 +521,8 @@ function AddItem({ showHeader = true, isVisible = true }) {
       {/* Delete Confirmation Modal */}
       <ItemDeleteConfirmModal
         isOpen={showDeleteConfirm}
+        itemName={name}
+        isDeleting={deleteItemMutation.isPending}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
       />
