@@ -87,6 +87,7 @@ vi.mock('react-i18next', () => ({
         equivalentsLoadErrorTitle: "Your value equivalents didn't load",
         equivalentsEmptyDescription: 'Add a familiar everyday amount to give daily ownership costs more personal context.',
         tryAgain: 'Try again',
+        refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
         stillLoadingEquivalents: 'Still loading your comparisons...',
         saving: 'Saving...',
         enterEquivalentNameToContinue: 'Enter a name to continue.',
@@ -676,6 +677,28 @@ describe('Settings component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(mockRefreshEquivalents).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
+  });
+
+  test('keeps cached value equivalents visible when refresh fails', () => {
+    useValueEquivalents.mockReturnValue({
+      valueEquivalents: [
+        { id: 'eq-cached', name: 'Coffee', amount: 5, currencyCode: 'USD' },
+      ],
+      isLoading: false,
+      error: new Error('raw refresh failure'),
+      addEquivalent: mockAddEquivalent,
+      editEquivalent: mockEditEquivalent,
+      removeEquivalent: mockRemoveEquivalent,
+      refreshEquivalents: mockRefreshEquivalents,
+    });
+
+    render(<Settings />);
+
+    expect(screen.getByText('Coffee')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "Couldn't refresh right now. Showing your last saved data."
+    );
+    expect(screen.queryByText('raw refresh failure')).not.toBeInTheDocument();
   });
 
   test('delays value-equivalent loading feedback before skeleton and slow status', () => {
