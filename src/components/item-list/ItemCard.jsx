@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import {
   IoChevronDown,
+  IoChevronForward,
   IoScaleOutline,
   IoHeadsetOutline,
   IoDesktopOutline,
@@ -13,6 +14,7 @@ import {
   IoPencilOutline,
   IoTrashOutline,
   IoSyncOutline,
+  IoTimeOutline,
 } from 'react-icons/io5';
 import { formatCurrency, formatDisplayDate } from '../../utils/formatters';
 import { selectBestEquivalent } from '../../utils/equivalentCalculator';
@@ -119,6 +121,8 @@ function ItemCard({
   onEdit,
   onDelete,
   onBenchmark,
+  ownershipJourney = null,
+  onOpenOwnershipJourney,
   isGuest = false,
   currencyCode,
   valueEquivalents,
@@ -140,6 +144,23 @@ function ItemCard({
   );
   const categoryInfo = getCategoryIconInfo(item.category);
   const CategoryIconComponent = categoryInfo.Icon;
+  const previousJourneyItem = ownershipJourney?.previousItem ?? null;
+  const nextJourneyItems = ownershipJourney?.nextItems ?? [];
+  let ownershipJourneySummary = null;
+
+  if (previousJourneyItem && nextJourneyItems.length > 0) {
+    ownershipJourneySummary = t('ownershipJourneyBeforeAndAfter');
+  } else if (previousJourneyItem) {
+    ownershipJourneySummary = t('ownershipJourneyCameBefore', {
+      name: previousJourneyItem.name,
+    });
+  } else if (nextJourneyItems.length === 1) {
+    ownershipJourneySummary = t('ownershipJourneyCameAfter', {
+      name: nextJourneyItems[0].name,
+    });
+  } else if (nextJourneyItems.length > 1) {
+    ownershipJourneySummary = t('ownershipJourneyAfterOnly');
+  }
 
   const days = Math.max(1, Number(item.ownershipDays) || 1);
   const isDurationInteractive = days >= 30;
@@ -280,6 +301,31 @@ function ItemCard({
                     </div>
                   )}
                 </div>
+              )}
+
+              {ownershipJourney?.hasJourney && ownershipJourneySummary && (
+                <button
+                  id={`ownership-journey-trigger-${item.id}`}
+                  type="button"
+                  tabIndex={isExpanded ? 0 : -1}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenOwnershipJourney?.(item);
+                  }}
+                  className="w-full rounded-xl bg-[#F6F7F8] border border-[#E6E8EC] p-3 flex items-center gap-2.5 text-left hover:bg-[#EEF0F3] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+                  aria-label={`${t('ownershipJourney')}: ${ownershipJourneySummary}`}
+                >
+                  <IoTimeOutline className="text-base text-[#2F7473] flex-shrink-0" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium text-[#20242A]">
+                      {t('ownershipJourney')}
+                    </div>
+                    <div className="mt-0.5 text-xs text-[#6F7782] truncate">
+                      {ownershipJourneySummary}
+                    </div>
+                  </div>
+                  <IoChevronForward className="text-sm text-[#8A929C] flex-shrink-0" aria-hidden="true" />
+                </button>
               )}
 
               {!isActive && item.endedAt && (
