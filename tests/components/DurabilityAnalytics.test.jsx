@@ -34,6 +34,15 @@ vi.mock('react-i18next', () => ({
         daysShort: 'days',
         loading: 'Loading...',
         perDay: '/day',
+        analyticsLoadingTitle: 'Reading your ownership history',
+        analyticsLoadingDescription: 'Worthwhile is looking for patterns across completed ownership.',
+        analyticsLoadErrorTitle: "Your history insights didn't load",
+        analyticsLoadErrorDescription: 'Try loading your ownership history again.',
+        analyticsRefreshError: "We couldn't refresh these insights. The last available history is still shown.",
+        analyticsFilteredEmptyTitle: 'No history in this category yet',
+        analyticsFilteredEmptyDescription: 'Your broader ownership history is still available. Clear this filter to see it.',
+        clearCategoryFilter: 'View all history',
+        retry: 'Retry',
       };
       return dictionary[key] || key;
     },
@@ -69,7 +78,27 @@ describe('DurabilityAnalytics Component', () => {
     });
 
     render(<DurabilityAnalytics />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Reading your ownership history');
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  it('renders a recoverable initial load error without raw transport copy', () => {
+    const refetch = vi.fn();
+    useDurabilityAnalytics.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: true,
+      error: new Error('raw analytics failure'),
+      refetch,
+    });
+
+    render(<DurabilityAnalytics />);
+
+    const errorState = screen.getByRole('alert');
+    expect(errorState).toHaveTextContent("Your history insights didn't load");
+    expect(errorState).not.toHaveTextContent('raw analytics failure');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders empty state when there are no completed items', () => {
@@ -105,7 +134,42 @@ describe('DurabilityAnalytics Component', () => {
     render(<DurabilityAnalytics />);
 
     expect(screen.getByText('No durability history yet')).toBeInTheDocument();
+    expect(screen.getByText("We couldn't refresh these insights. The last available history is still shown.")).toBeInTheDocument();
     expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
+  });
+
+  it('distinguishes a category filter with no matching history and can clear it', () => {
+    useDurabilityAnalytics.mockImplementation(({ category }) => ({
+      data: category
+        ? {
+            totalCompletedItems: 3,
+            totalCategorizedCompletedItems: 3,
+            mostFrequentlyReplacedCategory: null,
+            categories: [],
+          }
+        : {
+            totalCompletedItems: 3,
+            totalCategorizedCompletedItems: 3,
+            mostFrequentlyReplacedCategory: null,
+            categories: [{
+              category: 'Footwear',
+              completedCount: 1,
+              averageLifetimeDays: 180,
+              medianLifetimeDays: 180,
+              averageFinalCostPerDay: 1,
+              brands: [],
+            }],
+          },
+      isLoading: false,
+      isError: false,
+    }));
+
+    render(<DurabilityAnalytics />);
+    fireEvent.click(screen.getByRole('button', { name: 'Audio' }));
+
+    expect(screen.getByText('No history in this category yet')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'View all history' }));
+    expect(useDurabilityAnalytics).toHaveBeenLastCalledWith({ category: '' });
   });
 
   it('renders category and brand durability analytics with pattern and observation badges', () => {
