@@ -96,8 +96,13 @@ func (handlerInstance *ItemHandler) Create(ginContext *gin.Context) {
 		requestBody.Brand,
 		targetType,
 		requestBody.TargetValue,
+		requestBody.ReplacesItemID,
 	)
 	if serviceError != nil {
+		if errors.Is(serviceError, domain.ErrItemNotFound) {
+			response.Error(ginContext, http.StatusNotFound, "item not found")
+			return
+		}
 		if isItemValidationError(serviceError) {
 			response.Error(ginContext, http.StatusBadRequest, serviceError.Error())
 			return
@@ -134,6 +139,11 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 		targetType = &t
 	}
 
+	replacementArgs := make([]*string, 0, 1)
+	if requestBody.ReplacesItemID.Set {
+		replacementArgs = append(replacementArgs, requestBody.ReplacesItemID.Value)
+	}
+
 	updatedItem, serviceError := handlerInstance.itemService.UpdateItem(
 		ginContext.Request.Context(),
 		userID,
@@ -148,6 +158,7 @@ func (handlerInstance *ItemHandler) Update(ginContext *gin.Context) {
 		requestBody.Brand,
 		targetType,
 		requestBody.TargetValue,
+		replacementArgs...,
 	)
 	if serviceError != nil {
 		if errors.Is(serviceError, domain.ErrItemNotFound) {
@@ -274,5 +285,9 @@ func isItemValidationError(serviceError error) bool {
 		errors.Is(serviceError, domain.ErrUnsupportedOwnershipTargetValue) ||
 		errors.Is(serviceError, domain.ErrInvalidBenchmarkPrice) ||
 		errors.Is(serviceError, domain.ErrUnsupportedBenchmarkPrice) ||
-		errors.Is(serviceError, domain.ErrBenchmarkItemNotCompleted)
+		errors.Is(serviceError, domain.ErrBenchmarkItemNotCompleted) ||
+		errors.Is(serviceError, domain.ErrReplacementItemNotCompleted) ||
+		errors.Is(serviceError, domain.ErrReplacementSelfReference) ||
+		errors.Is(serviceError, domain.ErrReplacementCycle) ||
+		errors.Is(serviceError, domain.ErrReplacementTargetStillReferenced)
 }
