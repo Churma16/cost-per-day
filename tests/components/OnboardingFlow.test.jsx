@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import i18n from '../../src/i18n';
@@ -67,6 +67,7 @@ describe('first-run onboarding flow', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -229,7 +230,8 @@ describe('first-run onboarding flow', () => {
     }));
   });
 
-  test('uses a designed loading state while onboarding settings bootstrap', () => {
+  test('delays onboarding bootstrap feedback until the canonical loading thresholds', () => {
+    vi.useFakeTimers();
     mocks.settingsQuery = {
       data: undefined,
       isLoading: true,
@@ -237,13 +239,24 @@ describe('first-run onboarding flow', () => {
       refetch: vi.fn(),
     };
 
-    render(
+    const { container } = render(
       <MemoryRouter>
         <OnboardingGate><div>App content</div></OnboardingGate>
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('status')).toHaveTextContent('Preparing your Worthwhile setup');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(container.querySelector('.state-skeleton')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your setup...');
     expect(screen.queryByText('App content')).not.toBeInTheDocument();
   });
 
@@ -262,10 +275,10 @@ describe('first-run onboarding flow', () => {
       </MemoryRouter>,
     );
 
-    const errorState = screen.getByRole('alert');
-    expect(errorState).toHaveTextContent("Your setup didn't load");
+    const errorState = screen.getByRole('status');
+    expect(errorState).toHaveTextContent("Couldn't load your setup. Check your connection and try again.");
     expect(errorState).not.toHaveTextContent('raw settings transport failure');
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
