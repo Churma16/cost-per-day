@@ -1,5 +1,9 @@
 import * as itemApi from '../services/api';
 import * as plannedPurchaseApi from '../services/plannedPurchaseService';
+import {
+  ONBOARDING_COMPLETED_SETTING,
+  sanitizeOnboardingSettings,
+} from '../utils/onboarding';
 
 export const GUEST_ITEM_LIMIT = 10;
 export const GUEST_PLANNED_PURCHASE_LIMIT = 5;
@@ -18,6 +22,7 @@ const DEFAULT_GUEST_SETTINGS = {
 };
 const MIGRATION_ID_KEY = 'migrationId';
 const MIGRATION_SNAPSHOT_KEY = 'migrationSnapshot';
+const ONBOARDING_GRANDFATHERING_KEY = 'onboardingGrandfatheringV1';
 
 export class GuestLimitError extends Error {
   constructor(kind, limit) {
@@ -497,13 +502,58 @@ const guestPlannedPurchaseRepository = {
   },
 };
 
+const readGuestSettingsWithOnboardingMigration = async () => {
+  const database = await openGuestDatabase();
+  const transaction = database.transaction([SETTINGS_STORE, META_STORE], 'readwrite');
+  const completion = transactionAsPromise(transaction);
+  const settingsStore = transaction.objectStore(SETTINGS_STORE);
+  const metaStore = transaction.objectStore(META_STORE);
+
+  try {
+    const [records, grandfatheringRecord] = await Promise.all([
+      requestAsPromise(settingsStore.getAll()),
+      requestAsPromise(metaStore.get(ONBOARDING_GRANDFATHERING_KEY)),
+    ]);
+    const persistedSettings = records.reduce(
+      (settings, record) => ({ ...settings, [record.key]: record.value }),
+      {},
+    );
+
+    if (!grandfatheringRecord) {
+      const sanitizedSettings = sanitizeOnboardingSettings(persistedSettings);
+      const hasPersistedRequiredPreferences = Boolean(
+        sanitizedSettings.language && sanitizedSettings.currency,
+      );
+      const hasCompletionMarker = Object.prototype.hasOwnProperty.call(
+        persistedSettings,
+        ONBOARDING_COMPLETED_SETTING,
+      );
+      if (hasPersistedRequiredPreferences && !hasCompletionMarker) {
+        await requestAsPromise(settingsStore.put({
+          key: ONBOARDING_COMPLETED_SETTING,
+          value: 'true',
+        }));
+        persistedSettings[ONBOARDING_COMPLETED_SETTING] = 'true';
+      }
+      await requestAsPromise(metaStore.put({
+        key: ONBOARDING_GRANDFATHERING_KEY,
+        value: true,
+      }));
+    }
+
+    await completion;
+    return persistedSettings;
+  } catch (error) {
+    abortTransaction(transaction);
+    await completion.catch(() => undefined);
+    throw error;
+  }
+};
+
 const guestSettingsRepository = {
   async getAll() {
-    const records = await listStore(SETTINGS_STORE);
-    return records.reduce(
-      (settings, record) => ({ ...settings, [record.key]: record.value }),
-      { ...DEFAULT_GUEST_SETTINGS },
-    );
+    const persistedSettings = await readGuestSettingsWithOnboardingMigration();
+    return { ...DEFAULT_GUEST_SETTINGS, ...persistedSettings };
   },
   async set(key, value) {
     const normalizedKey = String(key || '').trim();
@@ -572,6 +622,7 @@ const guestMetaRepository = {
 
 const guestMigrationRepository = {
   async getOrCreateSnapshot() {
+    await readGuestSettingsWithOnboardingMigration();
     const database = await openGuestDatabase();
     const transaction = database.transaction(
       [ITEM_STORE, PLANNED_PURCHASE_STORE, SETTINGS_STORE, VALUE_EQUIVALENT_STORE, META_STORE],

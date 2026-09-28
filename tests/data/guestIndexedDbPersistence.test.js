@@ -189,6 +189,50 @@ afterAll(() => {
 });
 
 describe('guest IndexedDB persistence', () => {
+  test('grandfathers an existing guest with persisted required preferences', async () => {
+    vi.resetModules();
+    const existingInstallation = await import('../../src/data/persistenceRepositories.js');
+    await existingInstallation.clearGuestData();
+    await existingInstallation.guestRepositories.settings.set('language', 'id');
+    await existingInstallation.guestRepositories.settings.set('currency', 'IDR');
+
+    vi.resetModules();
+    const upgradedInstallation = await import('../../src/data/persistenceRepositories.js');
+    const migrationSnapshot = await upgradedInstallation.guestRepositories.migrations
+      .getOrCreateSnapshot();
+
+    expect(migrationSnapshot.settings).toEqual({
+      language: 'id',
+      currency: 'IDR',
+      onboardingCompleted: 'true',
+    });
+    await expect(upgradedInstallation.guestRepositories.settings.getAll()).resolves.toEqual({
+      language: 'id',
+      currency: 'IDR',
+      onboardingCompleted: 'true',
+    });
+  });
+
+  test('does not grandfather a fresh guest from virtual defaults', async () => {
+    vi.resetModules();
+    const persistence = await import('../../src/data/persistenceRepositories.js');
+    await persistence.clearGuestData();
+
+    await expect(persistence.guestRepositories.settings.getAll()).resolves.toEqual({
+      language: 'en',
+      currency: 'USD',
+    });
+
+    await persistence.guestRepositories.settings.set('language', 'id');
+    await persistence.guestRepositories.settings.set('currency', 'IDR');
+    vi.resetModules();
+    const afterCurrentVersionSetup = await import('../../src/data/persistenceRepositories.js');
+    await expect(afterCurrentVersionSetup.guestRepositories.settings.getAll()).resolves.toEqual({
+      language: 'id',
+      currency: 'IDR',
+    });
+  });
+
   test('keeps owned items, plans, and migration identity across a module reload', async () => {
     vi.resetModules();
     const firstLoad = await import('../../src/data/persistenceRepositories.js');
