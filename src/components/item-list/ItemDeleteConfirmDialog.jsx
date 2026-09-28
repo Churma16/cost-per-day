@@ -13,7 +13,7 @@ function ItemDeleteConfirmDialog({
 
   useEffect(() => {
     if (item) {
-      window.requestAnimationFrame(() => keepButtonRef.current?.focus());
+      keepButtonRef.current?.focus();
     }
   }, [item]);
 
