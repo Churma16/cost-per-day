@@ -18,7 +18,7 @@ vi.mock('../../src/services/api', () => ({
 }));
 
 const TestCurrencyConsumer = () => {
-  const { currencyCode, currencySymbol, changeCurrency, isLoading } = useCurrency();
+  const { currencyCode, currencySymbol, changeCurrency, isLoading, hasSettingsData } = useCurrency();
   if (isLoading) {
     return <div>Loading Currency</div>;
   }
@@ -26,6 +26,7 @@ const TestCurrencyConsumer = () => {
     <div>
       <span data-testid="currency-code">{currencyCode}</span>
       <span data-testid="currency-symbol">{currencySymbol}</span>
+      <span data-testid="currency-has-settings-data">{String(hasSettingsData)}</span>
       <button onClick={() => changeCurrency('IDR')}>Set IDR</button>
       <button onClick={() => changeCurrency('$')}>Set Legacy Dollar</button>
     </div>
@@ -116,6 +117,127 @@ describe('CurrencyContext', () => {
 
       expect(screen.getByTestId('currency-symbol')).toHaveTextContent('Rp');
       expect(updateSetting).not.toHaveBeenCalled();
+    });
+
+    test('marks USD fallback as unconfirmed when the initial settings request fails', async () => {
+      getAllSettings.mockRejectedValue(new Error('settings unavailable'));
+
+      render(
+        <CurrencyProvider>
+          <TestCurrencyConsumer />
+        </CurrencyProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
+      });
+
+      expect(screen.getByTestId('currency-symbol')).toHaveTextContent('
+      getAllSettings.mockResolvedValue({});
+
+      render(
+        <CurrencyProvider>
+          <TestCurrencyConsumer />
+        </CurrencyProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
+      });
+
+      expect(screen.getByTestId('currency-symbol')).toHaveTextContent('$');
+    });
+
+    test('updates currency and persists to storage when changeCurrency is called', async () => {
+      getAllSettings.mockResolvedValue({ currency: 'USD' });
+      updateSetting.mockResolvedValue(undefined);
+
+      render(
+        <CurrencyProvider>
+          <TestCurrencyConsumer />
+        </CurrencyProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
+      });
+
+      await act(async () => {
+        screen.getByText('Set IDR').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-code')).toHaveTextContent('IDR');
+        expect(screen.getByTestId('currency-symbol')).toHaveTextContent('Rp');
+      });
+      expect(updateSetting).toHaveBeenCalledWith('currency', 'IDR');
+    });
+
+    test('normalizes legacy symbol when passed to changeCurrency', async () => {
+      getAllSettings.mockResolvedValue({ currency: 'IDR' });
+      updateSetting.mockResolvedValue(undefined);
+
+      render(
+        <CurrencyProvider>
+          <TestCurrencyConsumer />
+        </CurrencyProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-code')).toHaveTextContent('IDR');
+      });
+
+      await act(async () => {
+        screen.getByText('Set Legacy Dollar').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
+        expect(screen.getByTestId('currency-symbol')).toHaveTextContent('$');
+      });
+      expect(updateSetting).toHaveBeenCalledWith('currency', 'USD');
+    });
+  });
+
+  describe('Helper functions', () => {
+    test('normalizeCurrencyCode handles codes, symbols, and fallbacks', () => {
+      expect(normalizeCurrencyCode('IDR')).toBe('IDR');
+      expect(normalizeCurrencyCode('idr')).toBe('IDR');
+      expect(normalizeCurrencyCode('USD')).toBe('USD');
+      expect(normalizeCurrencyCode('$')).toBe('USD');
+      expect(normalizeCurrencyCode('€')).toBe('EUR');
+      expect(normalizeCurrencyCode('¥')).toBe('CNY');
+      expect(normalizeCurrencyCode('Rp')).toBe('IDR');
+      expect(normalizeCurrencyCode('')).toBe('USD');
+      expect(normalizeCurrencyCode(null)).toBe('USD');
+      expect(normalizeCurrencyCode('UNKNOWN')).toBe('USD');
+    });
+
+    test('getCurrencySymbol returns proper symbols for all supported currencies', () => {
+      expect(getCurrencySymbol('IDR')).toBe('Rp');
+      expect(getCurrencySymbol('USD')).toBe('$');
+      expect(getCurrencySymbol('EUR')).toBe('€');
+      expect(getCurrencySymbol('CNY')).toBe('¥');
+    });
+
+    test('getCurrencyConfig returns full configuration', () => {
+      expect(getCurrencyConfig('IDR')).toEqual(expect.objectContaining({
+        code: 'IDR',
+        symbol: 'Rp',
+        locale: 'id-ID',
+        fractionDigits: 0,
+        nameKey: 'idr'
+      }));
+    });
+
+    test('getSupportedCurrencies returns all 4 supported currencies', () => {
+      const supportedCurrenciesList = getSupportedCurrencies();
+      expect(supportedCurrenciesList).toHaveLength(4);
+    });
+  });
+});
+);
+      expect(screen.getByTestId('currency-has-settings-data')).toHaveTextContent('false');
     });
 
     test('defaults to USD when no currency is saved', async () => {
