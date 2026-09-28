@@ -210,6 +210,7 @@ function OnboardingFlow({ onComplete }) {
   const [references, setReferences] = useState([]);
   const nextReferenceId = useRef(0);
   const savedReferenceIds = useRef(new Set());
+  const [, setSavedReferenceRevision] = useState(0);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const currencies = useMemo(() => getSupportedCurrencies().map((item) => ({
@@ -274,11 +275,20 @@ function OnboardingFlow({ onComplete }) {
   };
 
   const updateReference = (index, key, value) => {
-    setReferences((current) => current.map((reference, referenceIndex) => (
-      referenceIndex === index
-        ? { ...reference, [key]: value, ...(key === 'name' ? { kind: null } : {}) }
-        : reference
-    )));
+    setReferences((current) => current.map((reference, referenceIndex) => {
+      if (referenceIndex !== index || savedReferenceIds.current.has(reference.id)) {
+        return reference;
+      }
+      return { ...reference, [key]: value, ...(key === 'name' ? { kind: null } : {}) };
+    }));
+  };
+
+  const removeReference = (index) => {
+    setReferences((current) => {
+      const reference = current[index];
+      if (!reference || savedReferenceIds.current.has(reference.id)) return current;
+      return current.filter((_, itemIndex) => itemIndex !== index);
+    });
   };
 
   const finish = async ({ skipReferences = false } = {}) => {
@@ -306,6 +316,7 @@ function OnboardingFlow({ onComplete }) {
           currencyCode: currency,
         });
         savedReferenceIds.current.add(reference.id);
+        setSavedReferenceRevision((revision) => revision + 1);
       }
       await updateSetting.mutateAsync({ key: ONBOARDING_COMPLETED_SETTING, value: 'true' });
       onComplete();
@@ -451,7 +462,7 @@ function OnboardingFlow({ onComplete }) {
   return (
     <OnboardingShell step={step} direction={transitionDirection}>
       <div className="px-6 pb-7 pt-6 sm:px-8">
-        <button type="button" onClick={() => navigateToStep(2)} disabled={isSaving} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-50">
+        <button type="button" onClick={() => navigateToStep(2)} disabled={isSaving || savedReferenceIds.current.size > 0} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50">
           <IoArrowBack /> {t('back')}
         </button>
         <div className="flex items-start justify-between gap-4">
@@ -472,15 +483,23 @@ function OnboardingFlow({ onComplete }) {
         <p className="mt-3 text-xs text-gray-500">{t('onboardingReferencesNote')}</p>
 
         <div className="mt-4 space-y-3">
-          {references.map((reference, index) => (
-            <div key={reference.id} className="rounded-2xl border border-gray-200 bg-white p-3">
-              <div className="flex gap-2">
-                <input aria-label={t('equivalentName')} value={reference.name} onChange={(event) => updateReference(index, 'name', event.target.value)} placeholder={t('enterEquivalentName')} className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#2F7473] focus:outline-none" />
-                <button type="button" aria-label={t('removeReference')} onClick={() => setReferences((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"><IoClose /></button>
+          {references.map((reference, index) => {
+            const isSaved = savedReferenceIds.current.has(reference.id);
+            return (
+              <div key={reference.id} className={`rounded-2xl border border-gray-200 bg-white p-3 ${isSaved ? 'opacity-70' : ''}`}>
+                {isSaved && (
+                  <div className="mb-2 text-right text-[11px] font-semibold uppercase tracking-wide text-[#2F7473]">
+                    {t('saved')}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input disabled={isSaved} aria-label={t('equivalentName')} value={reference.name} onChange={(event) => updateReference(index, 'name', event.target.value)} placeholder={t('enterEquivalentName')} className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#2F7473] focus:outline-none disabled:cursor-not-allowed" />
+                  <button type="button" disabled={isSaved} aria-label={t('removeReference')} onClick={() => removeReference(index)} className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed"><IoClose /></button>
+                </div>
+                <CurrencyInput disabled={isSaved} aria-label={t('equivalentAmount')} value={reference.amount} onChange={(event) => updateReference(index, 'amount', event.target.value)} currencyCode={currency} placeholder={t('enterEquivalentAmount')} className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#2F7473] focus:outline-none disabled:cursor-not-allowed" />
               </div>
-              <CurrencyInput aria-label={t('equivalentAmount')} value={reference.amount} onChange={(event) => updateReference(index, 'amount', event.target.value)} currencyCode={currency} placeholder={t('enterEquivalentAmount')} className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#2F7473] focus:outline-none" />
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {error && <p role="alert" className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-medium text-red-700">{error}</p>}

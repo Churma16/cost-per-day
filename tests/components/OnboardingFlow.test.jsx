@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import i18n from '../../src/i18n';
@@ -147,6 +147,25 @@ describe('first-run onboarding flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enter Worthwhile' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('temporary save failure');
+
+    const nameInputs = screen.getAllByLabelText('Name');
+    const amountInputs = screen.getAllByLabelText('Price');
+    const removeButtons = screen.getAllByRole('button', { name: 'Remove reference' });
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(nameInputs[0]).toBeDisabled();
+    expect(amountInputs[0]).toBeDisabled();
+    expect(removeButtons[0]).toBeDisabled();
+    expect(within(screen.getByTestId('onboarding-step-3')).getByRole(
+      'button',
+      { name: 'Back' },
+    )).toBeDisabled();
+    expect(nameInputs[1]).not.toBeDisabled();
+    expect(amountInputs[1]).not.toBeDisabled();
+    fireEvent.change(nameInputs[0], { target: { value: 'Latte' } });
+    fireEvent.click(removeButtons[0]);
+    expect(nameInputs[0]).toHaveValue('Coffee');
+    expect(screen.getAllByLabelText('Name')).toHaveLength(3);
+
     fireEvent.click(screen.getByRole('button', { name: 'Enter Worthwhile' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
