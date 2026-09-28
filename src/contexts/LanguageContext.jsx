@@ -38,6 +38,7 @@ export const LanguageProvider = ({ children }) => {
       language,
       changeLanguage,
       isLoading,
+      hasSettingsData: settingsQuery.data !== undefined,
       error: settingsQuery.error,
       loadError: settingsQuery.error,
       updateError: updateSettingMutation.error,
