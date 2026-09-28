@@ -20,6 +20,7 @@ const SUGGESTED_REFERENCES = ['coffee', 'snack', 'lunch'];
 const emptyReference = (name = '') => ({ name, amount: '' });
 
 const CALM_EASE = [0.16, 1, 0.3, 1];
+const CALM_HEIGHT_EASE = [0.22, 1, 0.36, 1];
 
 const OnboardingShell = ({ step, direction, children }) => {
   const shouldReduceMotion = useReducedMotion();
@@ -92,10 +93,13 @@ const OnboardingShell = ({ step, direction, children }) => {
         </div>
         <motion.div
           data-testid="onboarding-step-viewport"
-          className="relative w-full overflow-hidden"
+          className="relative w-full overflow-hidden will-change-[height]"
           initial={false}
           animate={contentHeight ? { height: contentHeight } : undefined}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.32, ease: CALM_EASE }}
+          transition={{
+            duration: shouldReduceMotion ? 0 : 0.48,
+            ease: CALM_HEIGHT_EASE,
+          }}
         >
           <AnimatePresence mode="popLayout" initial={false} custom={direction}>
             <motion.div
