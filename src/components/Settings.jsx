@@ -168,7 +168,7 @@ function Settings() {
       }
     } catch (error) {
       console.error('Error signing out:', error);
-      setSignOutError(t('signOutError'));
+      setSignOutError(t('signOutErrorBody'));
     } finally {
       setIsSigningOut(false);
     }
@@ -307,7 +307,7 @@ function Settings() {
         localizedError.limit = saveError.limit;
         throw localizedError;
       }
-      throw new Error(t('errorSavingEquivalent'));
+      throw new Error(t('equivalentSaveErrorBody'));
     }
 
     setShowEquivalentModal(false);
@@ -357,9 +357,12 @@ function Settings() {
 
         {notification && (
           <div
-            className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg
-            ${notification.type === 'success' ? 'bg-green-600' : notification.type === 'warning' ? 'bg-yellow-600' : 'bg-red-600'} 
-            text-white font-medium text-sm`}
+            role="status"
+            className={`fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm ${
+              notification.type === 'success'
+                ? 'border-[#B8D7D1] bg-white text-[var(--accent-strong)]'
+                : 'border-[var(--border)] bg-white text-[var(--text-primary)]'
+            }`}
           >
             {notification.message}
           </div>
