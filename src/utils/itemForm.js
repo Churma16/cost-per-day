@@ -78,6 +78,7 @@ export const itemFormValuesToDraftData = (formValues) => ({
   targetValue: formValues.targetValue,
   targetMode: formValues.targetMode,
   selectedBenchmarkItemId: formValues.selectedBenchmarkItemId,
+  replacesItemId: formValues.replacesItemId ?? '',
 });
 
 const getTargetValidation = ({ targetType, targetValue }) => {
