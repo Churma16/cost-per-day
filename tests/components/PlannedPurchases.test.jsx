@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import PlannedPurchases from '../../src/components/PlannedPurchases';
@@ -34,9 +34,9 @@ vi.mock('react-i18next', () => ({
         yourPlans: 'Your Plans',
         addPlannedPurchase: 'Add Planned Purchase',
         editPlannedPurchase: 'Edit Planned Purchase',
-        newPlan: 'New Plan',
-        noPlannedPurchases: 'No planned purchases yet',
-        noPlannedPurchasesDescription: 'Frame large prospective purchases',
+        newPlan: 'New plan',
+        noPlannedPurchases: 'No plans yet',
+        noPlannedPurchasesDescription: 'Thinking about a purchase? See how price and time relate before you buy.',
         targetItemName: 'Target item name',
         enterTargetItemName: 'Enter name',
         itemPrice: 'Item price',
@@ -60,7 +60,7 @@ vi.mock('react-i18next', () => ({
         requiredContribution: 'Estimated contribution',
         statusPlanned: 'Planned Status',
         confirmDelete: 'Confirm Delete',
-        confirmDeletePlannedPurchase: 'Are you sure you want to delete this planned purchase?',
+        confirmDeletePlannedPurchase: "Delete this plan? Its saved timeline will be removed. This can't be undone.",
         cancel: 'Cancel',
         confirm: 'Confirm',
         save: 'Save',
@@ -82,11 +82,16 @@ vi.mock('react-i18next', () => ({
         planningLoadingTitle: 'Gathering your plans',
         planningLoadingDescription: 'Worthwhile is bringing your purchase timelines into view.',
         planningLoadErrorTitle: "Your plans didn't load",
-        planningLoadErrorDescription: 'Your saved plans are still yours. Try loading them again.',
-        planningRefreshError: "We couldn't refresh your plans. Your last saved plans are still shown.",
+        planningLoadErrorDescription: "Couldn't load your plans. Check your connection and try again.",
+        refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
         errorUpdatingPlannedPurchase: "We couldn't update this plan. Please try again.",
         addFirstPlan: 'Plan a purchase',
-        retry: 'Retry',
+        tryAgain: 'Try again',
+        stillLoadingPlans: 'Still loading your plans...',
+        planDeleteErrorTitle: 'Not deleted yet.',
+        planDeleteErrorBody: 'Your plan is still here. Nothing was lost.',
+        keepIt: 'Keep it',
+        delete: 'Delete',
       };
       return translations[key] || key;
     },
@@ -121,6 +126,10 @@ describe('PlannedPurchases Component', () => {
     });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const renderComponent = () => {
     return render(
       <MemoryRouter>
@@ -131,12 +140,24 @@ describe('PlannedPurchases Component', () => {
     );
   };
 
-  it('renders loading state initially', () => {
+  it('uses blank, skeleton, then slow-load feedback for initial loading', () => {
+    vi.useFakeTimers();
     plannedPurchaseService.fetchPlannedPurchases.mockReturnValue(new Promise(() => {}));
-    renderComponent();
+    const { container } = renderComponent();
 
-    expect(screen.getByRole('status')).toHaveTextContent('Gathering your plans');
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your plans...');
   });
 
   it('renders empty state when no planned purchases exist', async () => {
@@ -144,9 +165,9 @@ describe('PlannedPurchases Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('No planned purchases yet')).toBeInTheDocument();
+      expect(screen.getByText('No plans yet')).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: 'Plan a purchase' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New plan' })).toBeInTheDocument();
   });
 
   it('offers retry after an initial planning load failure', async () => {
@@ -156,15 +177,15 @@ describe('PlannedPurchases Component', () => {
 
     renderComponent();
 
-    const errorState = await screen.findByRole('alert', {}, { timeout: 3000 });
-    expect(errorState).toHaveTextContent("Your plans didn't load");
+    const errorState = await screen.findByRole('status', {}, { timeout: 3000 });
+    expect(errorState).toHaveTextContent("Couldn't load your plans. Check your connection and try again.");
     expect(errorState).not.toHaveTextContent('raw planning failure');
 
     plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
     await waitFor(() => {
-      expect(screen.getByText('No planned purchases yet')).toBeInTheDocument();
+      expect(screen.getByText('No plans yet')).toBeInTheDocument();
     });
   });
 
@@ -201,10 +222,10 @@ describe('PlannedPurchases Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('No planned purchases yet')).toBeInTheDocument();
+      expect(screen.getByText('No plans yet')).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole('button', { name: /new plan/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New plan' })).toBeInTheDocument();
     expect(screen.queryByLabelText(/target item name/i)).not.toBeInTheDocument();
   });
 
@@ -264,10 +285,11 @@ describe('PlannedPurchases Component', () => {
     const deleteButton = screen.getByLabelText('Delete Item');
     fireEvent.click(deleteButton);
 
-    expect(screen.getByText('Are you sure you want to delete this planned purchase?')).toBeInTheDocument();
+    expect(screen.getByText(/This can't be undone/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
 
     // Confirm deletion
-    const confirmButton = screen.getByRole('button', { name: 'Confirm' });
+    const confirmButton = screen.getByRole('button', { name: 'Delete' });
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
