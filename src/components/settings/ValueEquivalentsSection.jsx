@@ -56,6 +56,15 @@ function ValueEquivalentsSection({
       ) : null}
     >
 
+      {error && valueEquivalents.length > 0 && (
+        <NoticeCard
+          body={t('refreshShowingSavedData')}
+          actionLabel={t('tryAgain')}
+          onAction={onRetry}
+          className="mb-3"
+        />
+      )}
+
       {loadingState.phase !== 'idle' ? (
         <div aria-busy="true" className="min-h-[132px]">
           {loadingState.phase !== 'blank' && (
@@ -67,7 +76,7 @@ function ValueEquivalentsSection({
             </>
           )}
         </div>
-      ) : error ? (
+      ) : error && valueEquivalents.length === 0 ? (
         <NoticeCard
           body={t('equivalentsLoadErrorBody')}
           actionLabel={t('tryAgain')}
