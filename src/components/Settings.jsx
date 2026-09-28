@@ -64,6 +64,8 @@ function Settings() {
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [notification, setNotification] = useState(null);
   const [preferenceError, setPreferenceError] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [dataTransferError, setDataTransferError] = useState(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importData, setImportData] = useState(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -73,6 +75,7 @@ function Settings() {
   const [editingEquivalent, setEditingEquivalent] = useState(null);
   const [showDeleteEquivalentConfirm, setShowDeleteEquivalentConfirm] = useState(null);
   const [isDeletingEquivalent, setIsDeletingEquivalent] = useState(false);
+  const [deleteEquivalentError, setDeleteEquivalentError] = useState(null);
 
   const fileInputRef = useRef(null);
   const notificationTimeoutRef = useRef(null);
@@ -172,6 +175,8 @@ function Settings() {
   };
 
   const handleExportData = async () => {
+    setDataTransferError(null);
+    setIsExporting(true);
     try {
       const items = await queryClient.fetchQuery({
         queryKey: queryKeys.items,
@@ -202,14 +207,14 @@ function Settings() {
       });
     } catch (error) {
       console.error('Error exporting data:', error);
-      showNotification({
-        message: t('exportError'),
-        type: 'error'
-      });
+      setDataTransferError(t('exportErrorBody'));
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const handleImportData = () => {
+    setDataTransferError(null);
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -220,10 +225,7 @@ function Settings() {
     if (!file) return;
 
     if (!file.name.endsWith('.json')) {
-      showNotification({
-        message: t('invalidFileFormat'),
-        type: 'error'
-      });
+      setDataTransferError(t('importFileErrorBody'));
       event.target.value = '';
       return;
     }
@@ -235,10 +237,7 @@ function Settings() {
           const content = JSON.parse(loadEvent.target.result);
 
           if (!validateImportedItems(content)) {
-            showNotification({
-              message: t('invalidDataFormat'),
-              type: 'error'
-            });
+            setDataTransferError(t('importFileErrorBody'));
             return;
           }
 
@@ -247,25 +246,16 @@ function Settings() {
           setShowImportConfirm(true);
         } catch (error) {
           console.error('Error parsing JSON:', error);
-          showNotification({
-            message: t('invalidJsonFormat'),
-            type: 'error'
-          });
+          setDataTransferError(t('importFileErrorBody'));
         }
       };
       reader.onerror = () => {
-        showNotification({
-          message: t('errorReadingFile'),
-          type: 'error'
-        });
+        setDataTransferError(t('importFileErrorBody'));
       };
       reader.readAsText(file);
     } catch (error) {
       console.error('Error reading file:', error);
-      showNotification({
-        message: t('errorReadingFile'),
-        type: 'error'
-      });
+      setDataTransferError(t('importFileErrorBody'));
     }
 
     event.target.value = '';
@@ -274,6 +264,7 @@ function Settings() {
   const confirmImport = async () => {
     if (replaceItemsMutation.isPending || !importData) return;
 
+    setDataTransferError(null);
     try {
       await replaceItemsMutation.mutateAsync(importData);
       showNotification({
@@ -283,10 +274,8 @@ function Settings() {
       setShowImportConfirm(false);
     } catch (error) {
       console.error('Error importing data:', error);
-      showNotification({
-        message: t('importError'),
-        type: 'error'
-      });
+      setShowImportConfirm(false);
+      setDataTransferError(t('importErrorBody'));
     }
   };
 
@@ -329,12 +318,14 @@ function Settings() {
   };
 
   const handleOpenDeleteConfirm = (equivalentItem) => {
+    setDeleteEquivalentError(null);
     setActiveModal('delete');
     setShowDeleteEquivalentConfirm(equivalentItem);
   };
 
   const handleCloseDeleteConfirm = () => {
     if (isDeletingEquivalent) return;
+    setDeleteEquivalentError(null);
     setShowDeleteEquivalentConfirm(null);
   };
 
@@ -344,6 +335,7 @@ function Settings() {
     if (!targetToDelete) return;
 
     setIsDeletingEquivalent(true);
+    setDeleteEquivalentError(null);
     try {
       await removeEquivalent(targetToDelete.id);
       setShowDeleteEquivalentConfirm(null);
@@ -353,10 +345,7 @@ function Settings() {
       });
     } catch (deleteError) {
       console.error('Error deleting value equivalent:', deleteError);
-      showNotification({
-        message: t('errorDeletingEquivalent'),
-        type: 'error'
-      });
+      setDeleteEquivalentError(t('deleteEquivalentErrorBody'));
       setIsDeletingEquivalent(false);
     }
   };
@@ -417,6 +406,10 @@ function Settings() {
           onExport={handleExportData}
           onImport={handleImportData}
           onFileChange={handleFileChange}
+          isExporting={isExporting}
+          isImporting={replaceItemsMutation.isPending}
+          dataTransferError={dataTransferError}
+          onDismissDataTransferError={() => setDataTransferError(null)}
           isSigningOut={isSigningOut}
           signOutError={signOutError}
           authError={authError}
@@ -472,6 +465,7 @@ function Settings() {
         target={showDeleteEquivalentConfirm}
         isOpen={Boolean(showDeleteEquivalentConfirm)}
         isDeleting={isDeletingEquivalent}
+        errorMessage={deleteEquivalentError}
         onCancel={handleCloseDeleteConfirm}
         onConfirm={handleConfirmDeleteEquivalent}
         onExitComplete={() => {
