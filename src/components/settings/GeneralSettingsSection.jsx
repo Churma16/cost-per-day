@@ -12,7 +12,7 @@ import {
   SettingsRowIcon,
   SettingsSection,
 } from './SettingsList';
-import { InlineStateNotice } from '../ui/AsyncState';
+import { ErrorCard } from '../ui/AsyncState';
 
 function GeneralSettingsSection({
   language,
@@ -65,9 +65,9 @@ function GeneralSettingsSection({
         </button>
       </SettingsCard>
       {errorMessage && (
-        <InlineStateNotice
-          variant="error"
-          message={errorMessage}
+        <ErrorCard
+          title={t('preferenceUpdateErrorTitle')}
+          body={errorMessage}
         />
       )}
     </SettingsSection>
