@@ -41,6 +41,12 @@ vi.mock('react-i18next', () => ({
       if (key === 'daysBeyondTarget') {
         return `${options?.days} days beyond target`;
       }
+      if (key === 'ownershipJourneyCameBefore') {
+        return `${options?.name} came before this`;
+      }
+      if (key === 'ownershipJourneyCameAfter') {
+        return `${options?.name} came after this`;
+      }
       return {
         loading: 'Loading...',
         noItems: 'No items yet',
@@ -88,6 +94,11 @@ vi.mock('react-i18next', () => ({
         noItemsMatchFilter: 'No items match this filter',
         done: 'Done',
         close: 'Close',
+        ownershipJourney: 'Ownership journey',
+        ownershipJourneyBeforeAndAfter: 'See what came before and after',
+        ownershipJourneyAfterOnly: 'See what came after this',
+        ownershipJourneyDescription: "See how this item fits into what you've owned over time.",
+        ownershipJourneyThisItem: 'This item',
         ownedFor: 'Owned for',
         deleteItem: 'Delete',
         confirmDelete: 'Confirm Delete',
@@ -490,6 +501,72 @@ describe('ItemList lifecycle display', () => {
 
     expect(await screen.findByText('Tablet')).toBeInTheDocument();
     expect(screen.queryByText(/≈/)).not.toBeInTheDocument();
+  });
+
+  test('opens the ownership journey without collapsing the expanded item card', async () => {
+    getAllItems.mockResolvedValueOnce([
+      {
+        id: 'oldest',
+        name: 'Headphones Gen 1',
+        price: 100,
+        purchaseDate: '2024-01-01T12:00:00Z',
+        status: 'retired',
+        endedAt: '2024-12-01T12:00:00Z',
+        ownershipDays: 335,
+        grossCostPerDay: 0.3,
+      },
+      {
+        id: 'middle',
+        name: 'Headphones Gen 2',
+        price: 200,
+        purchaseDate: '2025-01-01T12:00:00Z',
+        status: 'retired',
+        endedAt: '2025-12-01T12:00:00Z',
+        ownershipDays: 334,
+        grossCostPerDay: 0.6,
+        replacesItemId: 'oldest',
+      },
+      {
+        id: 'current',
+        name: 'Headphones Gen 3',
+        price: 300,
+        purchaseDate: '2026-01-01T12:00:00Z',
+        status: 'active',
+        ownershipDays: 200,
+        grossCostPerDay: 1.5,
+        replacesItemId: 'middle',
+      },
+    ]);
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    const middleName = await screen.findByText('Headphones Gen 2');
+    fireEvent.click(middleName);
+
+    const journeyButton = screen.getByRole('button', {
+      name: 'Ownership journey: See what came before and after',
+    });
+    fireEvent.click(journeyButton);
+
+    const dialog = screen.getByRole('dialog', { name: 'Ownership journey' });
+    expect(within(dialog).getByText("See how this item fits into what you've owned over time."))
+      .toBeInTheDocument();
+    expect(within(dialog).getByText('Headphones Gen 1')).toBeInTheDocument();
+    expect(within(dialog).getByText('Headphones Gen 2')).toBeInTheDocument();
+    expect(within(dialog).getByText('Headphones Gen 3')).toBeInTheDocument();
+    expect(within(dialog).getByText('This item')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: 'Ownership journey' })).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    expect(document.getElementById('item-details-middle'))
+      .toHaveAttribute('aria-hidden', 'false');
+    expect(screen.getByRole('button', {
+      name: 'Ownership journey: See what came before and after',
+    })).toHaveFocus();
   });
 
   test('renders target progress percentage and remaining days using canonical backend field names', async () => {
