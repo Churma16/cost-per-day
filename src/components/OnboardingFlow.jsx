@@ -77,14 +77,18 @@ const OnboardingShell = ({ step, direction, children }) => {
     <motion.main
       initial={shouldReduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: shouldReduceMotion ? 0 : 0.22, ease: 'easeOut' }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.34, ease: CALM_EASE }}
       className="h-full overflow-y-auto bg-[#E9EAEC] px-3 py-5 sm:flex sm:items-center sm:justify-center sm:p-6"
     >
       <motion.section
         data-testid="onboarding-shell"
-        initial={shouldReduceMotion ? false : { opacity: 0, y: 12, scale: 0.992 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: shouldReduceMotion ? 0 : 0.4, ease: CALM_EASE }}
+        initial={shouldReduceMotion ? false : { opacity: 0, x: 16, scale: 0.994 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        transition={{
+          duration: shouldReduceMotion ? 0 : 0.46,
+          ease: CALM_EASE,
+          delay: shouldReduceMotion ? 0 : 0.04,
+        }}
         className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-[#F8F9FA] shadow-[0_20px_60px_-35px_rgba(27,54,61,0.55)]"
       >
         <div className="flex gap-1.5 px-6 pt-6" aria-label={`Step ${step} of 3`}>
