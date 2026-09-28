@@ -129,10 +129,15 @@ describe('CurrencyContext', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
-      });
+        expect(screen.getByTestId('currency-has-settings-data')).toHaveTextContent('false');
+        expect(screen.queryByText('Loading Currency')).not.toBeInTheDocument();
+      }, { timeout: 3000 });
 
-      expect(screen.getByTestId('currency-symbol')).toHaveTextContent('
+      expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
+      expect(screen.getByTestId('currency-symbol')).toHaveTextContent('$');
+    });
+
+    test('defaults to USD when no currency is saved', async () => {
       getAllSettings.mockResolvedValue({});
 
       render(
@@ -146,8 +151,8 @@ describe('CurrencyContext', () => {
       });
 
       expect(screen.getByTestId('currency-symbol')).toHaveTextContent('$');
+      expect(screen.getByTestId('currency-has-settings-data')).toHaveTextContent('true');
     });
-
     test('updates currency and persists to storage when changeCurrency is called', async () => {
       getAllSettings.mockResolvedValue({ currency: 'USD' });
       updateSetting.mockResolvedValue(undefined);
