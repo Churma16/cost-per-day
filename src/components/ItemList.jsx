@@ -10,6 +10,7 @@ import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 import ItemCard from './item-list/ItemCard';
 import ItemDeleteConfirmDialog from './item-list/ItemDeleteConfirmDialog';
 import ItemOrganizationDialog from './item-list/ItemOrganizationDialog';
+import { InlineStateNotice, StatePanel } from './ui/AsyncState';
 import { IoOptionsOutline } from 'react-icons/io5';
 
 const OWNERSHIP_STATE_LABEL_KEYS = {
@@ -43,7 +44,14 @@ function ItemListContent({ itemsQuery }) {
   const { currencyCode } = useCurrency();
   const { valueEquivalents = [] } = useValueEquivalents();
   const { isGuest = false } = useAuth() ?? {};
-  const { data: itemsData, isLoading, error: itemsError } = itemsQuery;
+  const {
+    data: itemsData,
+    isLoading,
+    isError,
+    isRefetchError,
+    error: itemsError,
+    refetch,
+  } = itemsQuery;
   const items = itemsData ?? [];
   const deleteItemMutation = useDeleteItem();
   const {
@@ -68,7 +76,7 @@ function ItemListContent({ itemsQuery }) {
       setItemToDelete(null);
     } catch (error) {
       console.error('Error deleting item:', error);
-      setErrorMessage(error.message || t('errorDeletingItem'));
+      setErrorMessage(t('errorDeletingItem'));
     }
   };
 
@@ -83,19 +91,44 @@ function ItemListContent({ itemsQuery }) {
   return (
     <div className="px-4 pt-3 pb-8 space-y-2.5 home-page-content max-w-lg mx-auto">
       {isLoading && itemsData === undefined ? (
-        <div className="text-center py-10 text-[#6F7782]">
-          <p>{t('loading')}</p>
-        </div>
-      ) : errorMessage || (itemsError && itemsData === undefined) ? (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {errorMessage || itemsError?.message || t('errorLoadingItems')}
-        </div>
+        <StatePanel
+          variant="loading"
+          title={t('homeLoadingTitle')}
+          description={t('homeLoadingDescription')}
+        />
+      ) : isError && itemsData === undefined ? (
+        <StatePanel
+          variant="error"
+          title={t('homeLoadErrorTitle')}
+          description={t('homeLoadErrorDescription')}
+          actionLabel={t('retry')}
+          onAction={() => refetch()}
+        />
       ) : items.length === 0 ? (
-        <div className="text-center py-10 text-[#6F7782]">
-          <p>{t('noItems')}</p>
-        </div>
+        <StatePanel
+          variant="empty"
+          title={t('homeEmptyTitle')}
+          description={t('homeEmptyDescription')}
+          actionLabel={t('addFirstOwnedItem')}
+          onAction={() => navigate('/add?type=item')}
+        />
       ) : (
         <>
+          {errorMessage && (
+            <InlineStateNotice
+              variant="error"
+              message={errorMessage}
+            />
+          )}
+
+          {itemsData !== undefined && (isRefetchError || isError) && (
+            <InlineStateNotice
+              variant="error"
+              message={t('homeRefreshError')}
+              actionLabel={t('retry')}
+              onAction={() => refetch()}
+            />
+          )}
           <div className="flex items-center justify-between gap-3 px-1 text-xs mb-1">
             <span className="font-bold text-[#20242A] text-sm">{t('yourItems')}</span>
             <button
@@ -110,9 +143,17 @@ function ItemListContent({ itemsQuery }) {
           </div>
 
           {visibleItemCount === 0 ? (
-            <div className="text-center py-10 text-[#6F7782]">
-              <p>{t('noItemsMatchFilter')}</p>
-            </div>
+            <StatePanel
+              variant="empty"
+              title={t('homeFilteredEmptyTitle')}
+              description={t('homeFilteredEmptyDescription')}
+              actionLabel={t('clearFilters')}
+              onAction={() => setOrganization({
+                ...organization,
+                stateFilters: [],
+              })}
+              className="mt-2"
+            />
           ) : organizedGroups.map((group) => (
             <section key={group.key} className="space-y-2.5" aria-labelledby={organization.groupBy === 'none' ? undefined : `item-group-${group.key}`}>
               {organization.groupBy !== 'none' && (
@@ -129,7 +170,10 @@ function ItemListContent({ itemsQuery }) {
                   isExpanded={expandedItem === item.id}
                   onToggle={toggleItem}
                   onEdit={handleEditItem}
-                  onDelete={setItemToDelete}
+                  onDelete={(item) => {
+                    setErrorMessage(null);
+                    setItemToDelete(item);
+                  }}
                   onBenchmark={setBenchmarkModalItem}
                   isGuest={isGuest}
                   currencyCode={currencyCode}
