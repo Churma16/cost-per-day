@@ -281,10 +281,8 @@ function AddItem({ showHeader = true, isVisible = true }) {
       setFieldErrors(nextFieldErrors);
       setErrorMessage(null);
       setErrorContext(null);
-      window.requestAnimationFrame(() => {
-        const firstFieldId = nextFieldErrors.name ? 'owned-item-name' : 'owned-item-price';
-        document.getElementById(firstFieldId)?.focus();
-      });
+      const firstFieldId = nextFieldErrors.name ? 'owned-item-name' : 'owned-item-price';
+      document.getElementById(firstFieldId)?.focus();
       return;
     }
 
@@ -411,7 +409,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
               />
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
           <div className="space-y-2.5">
             {showHeader && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" aria-label={t('ownedItemContext')}>
