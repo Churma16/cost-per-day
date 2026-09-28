@@ -1,10 +1,16 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import i18n from '../../src/i18n';
 import OnboardingFlow, { OnboardingGate } from '../../src/components/OnboardingFlow';
 
 let deviceLanguages = ['en-US'];
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return <div>Current route: {location.pathname}</div>;
+};
 
 const mocks = vi.hoisted(() => ({
   changeLanguage: vi.fn(),
@@ -155,13 +161,42 @@ describe('first-run onboarding flow', () => {
 
   test('gates the app until onboarding is completed', () => {
     const { rerender } = render(
-      <OnboardingGate><div>App content</div></OnboardingGate>,
+      <MemoryRouter>
+        <OnboardingGate><div>App content</div></OnboardingGate>
+      </MemoryRouter>,
     );
     expect(screen.getByText('Welcome to Worthwhile')).toBeInTheDocument();
     expect(screen.queryByText('App content')).not.toBeInTheDocument();
 
     mocks.settings = { onboardingCompleted: 'true' };
-    rerender(<OnboardingGate><div>App content</div></OnboardingGate>);
+    rerender(
+      <MemoryRouter>
+        <OnboardingGate><div>App content</div></OnboardingGate>
+      </MemoryRouter>,
+    );
     expect(screen.getByText('App content')).toBeInTheDocument();
+  });
+
+  test('returns to Home after completing onboarding', async () => {
+    mocks.updateSetting.mockImplementation(async () => {
+      mocks.settings = { onboardingCompleted: 'true' };
+      return 'true';
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/settings']}>
+        <OnboardingGate>
+          <LocationProbe />
+        </OnboardingGate>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));
+    await screen.findByTestId('onboarding-step-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByTestId('onboarding-step-3');
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+
+    expect(await screen.findByText('Current route: /')).toBeInTheDocument();
   });
 });

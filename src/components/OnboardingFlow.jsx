@@ -7,6 +7,7 @@ import React, {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { IoAdd, IoArrowBack, IoCheckmark, IoClose } from 'react-icons/io5';
 import {
   AnimatePresence,
@@ -486,6 +487,7 @@ function OnboardingFlow({ onComplete }) {
 
 export function OnboardingGate({ children }) {
   const settingsQuery = useSettings();
+  const navigate = useNavigate();
   const [, setCompletionRevision] = useState(0);
 
   if (settingsQuery.isLoading && !settingsQuery.data) {
@@ -495,7 +497,14 @@ export function OnboardingGate({ children }) {
     return <div role="alert" className="flex h-screen items-center justify-center p-6 text-center text-red-700">{settingsQuery.error.message}</div>;
   }
   if (!hasCompletedOnboarding(settingsQuery.data)) {
-    return <OnboardingFlow onComplete={() => setCompletionRevision((revision) => revision + 1)} />;
+    return (
+      <OnboardingFlow
+        onComplete={() => {
+          navigate('/', { replace: true });
+          setCompletionRevision((revision) => revision + 1);
+        }}
+      />
+    );
   }
   return children;
 }
