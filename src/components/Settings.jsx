@@ -127,7 +127,9 @@ function Settings() {
 
   useEffect(() => {
     const settingsError = languageError || currencyError;
-    setPreferenceError(settingsError ? t('errorLoadingSettings') : null);
+    if (settingsError) {
+      setPreferenceError(t('errorLoadingSettings'));
+    }
   }, [languageError, currencyError, t]);
 
   const handleLanguageChange = async (code) => {
