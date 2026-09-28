@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ActionLoadingContent } from '../ui/AsyncState';
 
 function ItemDeleteConfirmDialog({
   item,
@@ -8,6 +9,13 @@ function ItemDeleteConfirmDialog({
   onConfirm,
 }) {
   const { t } = useTranslation();
+  const keepButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (item) {
+      window.requestAnimationFrame(() => keepButtonRef.current?.focus());
+    }
+  }, [item]);
 
   if (!item) {
     return null;
@@ -20,29 +28,30 @@ function ItemDeleteConfirmDialog({
       aria-modal="true"
       aria-labelledby="item-delete-dialog-title"
     >
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-        <h3 id="item-delete-dialog-title" className="text-lg font-bold text-gray-900">
-          {t('confirmDelete')}
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+        <h3 id="item-delete-dialog-title" className="text-lg font-medium text-[var(--text-primary)]">
+          {t('deleteThisItem')}
         </h3>
-        <p className="mt-2 text-sm text-gray-600">
-          {t('deleteConfirmation')}
+        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+          {t('deleteItemIrreversible', { name: item.name })}
         </p>
-        <div className="mt-6 flex items-center justify-end gap-3">
+        <div className="mt-6 flex gap-3">
           <button
+            ref={keepButtonRef}
             type="button"
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            className="flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[#F6F7F8] disabled:opacity-50"
             onClick={onCancel}
             disabled={isDeleting}
           >
-            {t('cancel')}
+            {t('keepIt')}
           </button>
           <button
             type="button"
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 rounded-xl border-[1.5px] border-[var(--error-outline)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--error-text)] disabled:opacity-50"
             onClick={onConfirm}
             disabled={isDeleting}
           >
-            {isDeleting ? t('loading') : t('confirm')}
+            {isDeleting ? <ActionLoadingContent /> : t('delete')}
           </button>
         </div>
       </div>
