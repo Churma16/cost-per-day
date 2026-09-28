@@ -18,6 +18,7 @@ import {
   ActionLoadingContent,
   ErrorCard,
 } from '../ui/AsyncState';
+import { useSlowAction } from '../../hooks/useLoadingPhases';
 
 function DataManagementSection({
   fileInputRef,
@@ -38,6 +39,8 @@ function DataManagementSection({
   onRetryGuestMigration,
 }) {
   const { t } = useTranslation();
+  const isSlowExporting = useSlowAction(isExporting);
+  const isSlowImporting = useSlowAction(isImporting);
 
   return (
     <SettingsSection id="data-settings-heading" title={t('dataAndAccount')}>
@@ -124,6 +127,12 @@ function DataManagementSection({
           </span>
         </button>
       </SettingsCard>
+
+      {(isSlowExporting || isSlowImporting) && (
+        <p role="status" className="mt-2 text-center text-xs text-[var(--text-secondary)]">
+          {isSlowExporting ? t('exporting') : t('importing')}
+        </p>
+      )}
 
       {(signOutError || authError) && (
         <ErrorCard
