@@ -51,6 +51,10 @@
   animation: state-fade-in 160ms ease-out both;
 }
 
+.state-content-enter {
+  animation: state-fade-in 240ms ease-out both;
+}
+
 .home-reflection-surface {
   background:
     linear-gradient(160deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0) 38%),
@@ -59,6 +63,22 @@
 
 .home-insight-card {
   box-shadow: 0 12px 28px -22px rgba(27, 54, 61, 0.55);
+}
+
+.home-reflection-content {
+  padding: 1.25rem;
+}
+
+.home-reflection-content-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .home-reflection-content {
+    padding: 1.5rem 1.5rem 1.25rem;
+  }
+
 }
 
 .home-reflection-surface::after {
@@ -941,9 +961,11 @@ code {
 
   .auth-button,
   .auth-button *,
+  .home-reflection-content,
   .ownership-loader *,
   .state-skeleton,
-  .state-fade {
+  .state-fade,
+  .state-content-enter {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }

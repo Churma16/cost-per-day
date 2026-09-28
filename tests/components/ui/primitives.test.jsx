@@ -5,8 +5,18 @@ import { IoCashOutline, IoCreateOutline } from 'react-icons/io5';
 import CollapsibleCard from '../../../src/components/ui/CollapsibleCard';
 import InfoTile from '../../../src/components/ui/InfoTile';
 import ActionButton from '../../../src/components/ui/ActionButton';
+import { SlowLoadIndicator } from '../../../src/components/ui/AsyncState';
 
 describe('UI Primitives', () => {
+  describe('SlowLoadIndicator', () => {
+    it('uses one quiet text signal without adding a second loading spinner', () => {
+      const { container } = render(<SlowLoadIndicator message="Still loading your items..." />);
+
+      expect(screen.getByRole('status')).toHaveTextContent('Still loading your items...');
+      expect(container.querySelector('.ownership-loader')).not.toBeInTheDocument();
+    });
+  });
+
   describe('CollapsibleCard', () => {
     it('renders header and handles toggle click', () => {
       const handleToggle = vi.fn();

@@ -149,8 +149,24 @@ export function ErrorCard({
   );
 }
 
-export function HeroSkeleton({ paused = false }) {
+export function HeroSkeleton({ paused = false, compact = false }) {
   const skeletonClass = paused ? 'state-skeleton state-skeleton--paused' : 'state-skeleton';
+
+  if (compact) {
+    return (
+      <div
+        aria-hidden="true"
+        className="px-0.5 py-2"
+        data-hero-skeleton="base"
+      >
+        <div className={`${skeletonClass} h-2 w-[90px] rounded bg-[var(--skeleton-bar-hero)]`} />
+        <div className={`${skeletonClass} mt-4 h-4 w-3/5 rounded-md bg-white/30`} />
+        <div className={`${skeletonClass} mt-5 h-[9px] w-[85%] rounded bg-[var(--skeleton-bar-hero)]`} />
+        <div className={`${skeletonClass} mt-2.5 h-[9px] w-[70%] rounded bg-[var(--skeleton-bar-hero)]`} />
+      </div>
+    );
+  }
+
   return (
     <div aria-hidden="true" className="min-h-[178px] px-0.5 py-2">
       <div className={`${skeletonClass} h-2 w-[90px] rounded bg-[var(--skeleton-bar-hero)]`} />
@@ -170,17 +186,66 @@ export function CardListSkeleton({ count = 3, paused = false, className = '' }) 
       {Array.from({ length: count }, (_, index) => (
         <div
           key={index}
-          className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-white p-[13px] shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+          data-skeleton-variant="item"
+          className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
         >
-          <div className={`${skeletonClass} h-[34px] w-[34px] flex-none rounded-[9px] bg-[var(--skeleton-bar)]`} />
+          <div className={`${skeletonClass} h-10 w-10 flex-none rounded-xl bg-[var(--skeleton-bar)]`} />
           <div className="min-w-0 flex-1">
             <div
-              className={`${skeletonClass} h-[10px] rounded bg-[var(--skeleton-bar)]`}
+              className={`${skeletonClass} h-3 rounded bg-[var(--skeleton-bar)]`}
               style={{ width: SKELETON_TITLE_WIDTHS[index % SKELETON_TITLE_WIDTHS.length] }}
             />
             <div className={`${skeletonClass} mt-2 h-2 w-[35%] rounded bg-[var(--skeleton-bar)]`} />
           </div>
-          <div className={`${skeletonClass} h-[10px] w-11 flex-none rounded bg-[var(--skeleton-bar)]`} />
+          <div className="flex self-stretch flex-none flex-col items-end justify-between">
+            <div className={`${skeletonClass} h-3 w-14 rounded bg-[var(--skeleton-bar)]`} />
+            <div className={`${skeletonClass} h-4 w-4 rounded bg-[var(--skeleton-bar)]`} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const PLAN_SKELETON_TITLE_WIDTHS = ['58%', '48%', '64%'];
+
+export function PlannedPurchaseListSkeleton({ count = 3, paused = false, className = '' }) {
+  const skeletonClass = paused ? 'state-skeleton state-skeleton--paused' : 'state-skeleton';
+
+  return (
+    <div aria-hidden="true" className={`space-y-3 ${className}`.trim()}>
+      {Array.from({ length: count }, (_, index) => (
+        <div
+          key={index}
+          data-skeleton-variant="planned-purchase"
+          className="overflow-hidden rounded-2xl border border-[#E6E8EC] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+        >
+          <div className="min-h-[44px] px-3 py-2.5 sm:px-3.5 sm:py-3">
+            <div
+              data-skeleton-row="identity"
+              className="flex h-5 items-center justify-between gap-3 sm:h-6"
+            >
+              <div
+                className={`${skeletonClass} h-3 rounded bg-[var(--skeleton-bar)]`}
+                style={{ width: PLAN_SKELETON_TITLE_WIDTHS[index % PLAN_SKELETON_TITLE_WIDTHS.length] }}
+              />
+              <div className={`${skeletonClass} h-3 w-20 flex-none rounded bg-[var(--skeleton-bar)]`} />
+            </div>
+            <div
+              data-skeleton-row="context"
+              className="mt-0.5 flex items-center justify-between gap-3"
+            >
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <div className="flex h-4 items-center">
+                  <div className={`${skeletonClass} h-2 w-2/5 rounded bg-[var(--skeleton-bar)]`} />
+                </div>
+                <div className="flex h-4 items-center">
+                  <div className={`${skeletonClass} h-2 w-4/5 rounded bg-[var(--skeleton-bar)]`} />
+                </div>
+              </div>
+              <div className={`${skeletonClass} h-4 w-4 flex-none rounded bg-[var(--skeleton-bar)]`} />
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -208,10 +273,9 @@ export function SlowLoadIndicator({ message, className = '' }) {
       role="status"
       aria-live="polite"
       aria-busy="true"
-      className={`state-fade flex flex-col items-center justify-center py-5 text-center ${className}`.trim()}
+      className={`state-fade flex items-center justify-center px-4 py-4 text-center ${className}`.trim()}
     >
-      <OwnershipLoader active className="h-8 w-8" />
-      <p className="mt-3 text-[13px] text-[var(--text-secondary)]">{message}</p>
+      <p className="text-[13px] leading-5 text-[var(--text-secondary)]">{message}</p>
     </div>
   );
 }
