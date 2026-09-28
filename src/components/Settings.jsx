@@ -43,6 +43,7 @@ function Settings() {
     changeLanguage,
     loadError: languageLoadError,
     isLoading: isLoadingLanguage,
+    hasSettingsData: hasLanguageSettingsData = true,
     refetchSettings: refetchLanguageSettings,
   } = useLanguage();
   const {
@@ -50,6 +51,7 @@ function Settings() {
     changeCurrency,
     loadError: currencyLoadError,
     isLoading: isLoadingCurrency,
+    hasSettingsData: hasCurrencySettingsData = true,
     refetchSettings: refetchCurrencySettings,
   } = useCurrency();
   const {
@@ -141,6 +143,7 @@ function Settings() {
   }, [clearNotificationTimer]);
 
   const generalLoadError = languageLoadError || currencyLoadError;
+  const hasGeneralSettingsData = hasLanguageSettingsData && hasCurrencySettingsData;
   const handleRetryGeneralSettings = useCallback(() => {
     if (typeof refetchLanguageSettings === 'function') {
       refetchLanguageSettings();
@@ -396,6 +399,7 @@ function Settings() {
           languageName={getLanguageName(language)}
           selectedCurrencyOption={selectedCurrencyOption}
           isLoading={Boolean(isLoadingLanguage || isLoadingCurrency)}
+          hasSettingsData={hasGeneralSettingsData}
           loadError={generalLoadError ? t('errorLoadingSettings') : null}
           onRetry={handleRetryGeneralSettings}
           isInteractionBlocked={Boolean(activeModal)}
