@@ -125,6 +125,18 @@ test.each([
   expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument();
 });
 
+test('renders /about without waiting for an authenticated session', () => {
+  getCurrentUser.mockImplementation(() => new Promise(() => {}));
+  window.history.pushState({}, '', '/about');
+
+  render(<App />);
+
+  expect(screen.getByRole('heading', { name: "Understand a purchase's value over time", level: 1 })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'How Worthwhile sees a purchase', level: 2 })).toBeInTheDocument();
+  expect(screen.queryByText(/^Loading/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument();
+});
+
 test('transitions from the login surface to a legal page without delaying navigation', async () => {
   getCurrentUser.mockRejectedValue(new ApiError('authenticated user identity is required', 401));
   render(<App />);

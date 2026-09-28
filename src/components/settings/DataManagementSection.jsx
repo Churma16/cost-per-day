@@ -1,10 +1,19 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  IoChevronForward,
   IoCloudDownloadOutline,
   IoCloudUploadOutline,
+  IoLogOutOutline,
 } from 'react-icons/io5';
+import {
+  SETTINGS_ROW_CLASS,
+  SettingsCard,
+  SettingsChevron,
+  SettingsDivider,
+  SettingsRowIcon,
+  SettingsRowText,
+  SettingsSection,
+} from './SettingsList';
 
 function DataManagementSection({
   fileInputRef,
@@ -12,53 +21,56 @@ function DataManagementSection({
   onExport,
   onImport,
   onFileChange,
+  isSigningOut,
+  signOutError,
+  authError,
+  onSignOut,
+  guestMigrationError,
+  isMigratingGuestData,
+  onRetryGuestMigration,
 }) {
   const { t } = useTranslation();
 
   return (
-    <div>
-      <h2 className="text-xs font-medium text-gray-500 mb-1.5 px-1">
-        {t('data')}
-      </h2>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <SettingsSection id="data-settings-heading" title={t('dataAndAccount')}>
+      {guestMigrationError && (
+        <div role="alert" className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-800">
+          <p>{t('guestMigrationFailed')}</p>
+          <button
+            type="button"
+            onClick={onRetryGuestMigration}
+            disabled={isMigratingGuestData || isInteractionBlocked}
+            className="mt-2 font-semibold underline disabled:opacity-50"
+          >
+            {isMigratingGuestData ? t('loading') : t('retryGuestMigration')}
+          </button>
+        </div>
+      )}
+      <SettingsCard>
         <button
           type="button"
-          className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
+          className={`${SETTINGS_ROW_CLASS} hover:bg-slate-50/70`}
           onClick={() => {
             if (!isInteractionBlocked) onExport();
           }}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
-              <IoCloudDownloadOutline className="text-base" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-gray-900 leading-tight">{t('exportData')}</p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t('exportDataSubtitle')}</p>
-            </div>
-          </div>
-          <IoChevronForward className="text-gray-400 text-sm flex-shrink-0" />
+          <SettingsRowIcon><IoCloudDownloadOutline className="h-4 w-4" /></SettingsRowIcon>
+          <SettingsRowText title={t('exportData')} subtitle={t('exportDataSubtitle')} />
+          <SettingsChevron />
         </button>
 
-        <div className="border-b border-gray-100 mx-3.5" />
+        <SettingsDivider />
 
         <button
           type="button"
-          className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-slate-50/70 transition-colors text-left"
+          className={`${SETTINGS_ROW_CLASS} hover:bg-slate-50/70`}
           onClick={() => {
             if (!isInteractionBlocked) onImport();
           }}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-slate-100/80 flex items-center justify-center text-slate-600 flex-shrink-0">
-              <IoCloudUploadOutline className="text-base" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-gray-900 leading-tight">{t('importData')}</p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-tight">{t('importDataSubtitle')}</p>
-            </div>
-          </div>
-          <IoChevronForward className="text-gray-400 text-sm flex-shrink-0" />
+          <SettingsRowIcon><IoCloudUploadOutline className="h-4 w-4" /></SettingsRowIcon>
+          <SettingsRowText title={t('importData')} subtitle={t('importDataSubtitle')} />
+          <SettingsChevron />
         </button>
 
         <input
@@ -68,8 +80,37 @@ function DataManagementSection({
           accept=".json"
           onChange={onFileChange}
         />
-      </div>
-    </div>
+
+        <SettingsDivider />
+
+        <button
+          type="button"
+          className={`${SETTINGS_ROW_CLASS} hover:bg-red-50/60 disabled:opacity-50`}
+          onClick={() => {
+            if (!isInteractionBlocked) onSignOut();
+          }}
+          disabled={isSigningOut || isInteractionBlocked}
+          aria-label={t('signOut')}
+        >
+          <SettingsRowIcon tone="danger">
+            <IoLogOutOutline className="h-4 w-4" />
+          </SettingsRowIcon>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium leading-5 text-red-600">
+              {isSigningOut ? t('loading') : t('signOut')}
+            </span>
+            <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+              {t('signOutSubtitle')}
+            </span>
+          </span>
+        </button>
+      </SettingsCard>
+      {(signOutError || authError) && (
+        <p role="alert" className="mt-2 text-center text-xs text-red-600">
+          {signOutError || authError?.message || t('signOutError')}
+        </p>
+      )}
+    </SettingsSection>
   );
 }
 

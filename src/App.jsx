@@ -19,6 +19,7 @@ import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
 import LegalDocumentPage from './components/LegalDocumentPage';
 import { OnboardingGate } from './components/OnboardingFlow';
+import AboutPage from './components/AboutPage';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
@@ -229,10 +230,12 @@ function AuthGate() {
 function ApplicationRoutes() {
   const location = useLocation();
   const isLegalRoute = ['/privacy', '/terms'].includes(location.pathname);
-  const transitionKey = isLegalRoute
+  const isAboutRoute = location.pathname === '/about';
+  const isInformationalRoute = isAboutRoute || isLegalRoute;
+  const transitionKey = isInformationalRoute
     ? location.pathname
     : 'application';
-  const transition = isLegalRoute
+  const transition = isInformationalRoute
     ? legalRouteTransition
     : applicationRouteTransition;
 
@@ -241,10 +244,11 @@ function ApplicationRoutes() {
       <motion.div
         key={transitionKey}
         {...transition}
-        data-route-surface={isLegalRoute ? 'legal' : 'application'}
+        data-route-surface={isAboutRoute ? 'about' : isLegalRoute ? 'legal' : 'application'}
         className="h-full min-h-0 w-full"
       >
         <Routes location={location}>
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/privacy" element={<LegalDocumentPage documentKey="privacy" />} />
           <Route path="/terms" element={<LegalDocumentPage documentKey="terms" />} />
           <Route
