@@ -18,7 +18,7 @@ function DeleteEquivalentConfirmDialog({
 
   useEffect(() => {
     if (isOpen && target) {
-      window.requestAnimationFrame(() => keepButtonRef.current?.focus());
+      keepButtonRef.current?.focus();
     }
   }, [isOpen, target]);
 
