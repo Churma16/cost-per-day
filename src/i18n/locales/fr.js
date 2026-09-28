@@ -173,7 +173,7 @@ const translation = {
   "benchmarkSelectPrompt": "Sélectionnez un article terminé pour calculer la durée nécessaire.",
   "selectCompletedItem": "Sélectionner un article terminé...",
   "useBenchmarkAsTarget": "Appliquer à l'objectif",
-  "benchmarkUnmatchableZeroCost": "Cet article avait un coût net nul ou négatif. Un nouvel achat ne peut égaler une base de coût nul.",
+  "benchmarkUnmatchableZeroCost": "Cet article avait un coût net nul ou négatif. Un nouvel achat ne peut égaler une base de coût nul."
 };
 
 export default translation;
