@@ -18,6 +18,11 @@ const mocks = vi.hoisted(() => ({
   addEquivalent: vi.fn(),
   updateSetting: vi.fn(),
   settings: {},
+  settingsQuery: {
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  },
 }));
 
 vi.mock('../../src/contexts/LanguageContext', () => ({
@@ -38,7 +43,7 @@ vi.mock('../../src/contexts/ValueEquivalentsContext', () => ({
 }));
 
 vi.mock('../../src/hooks/useSettings', () => ({
-  useSettings: () => ({ data: mocks.settings }),
+  useSettings: () => ({ data: mocks.settings, ...mocks.settingsQuery }),
   useUpdateSetting: () => ({ mutateAsync: mocks.updateSetting }),
 }));
 
@@ -49,6 +54,11 @@ describe('first-run onboarding flow', () => {
     vi.spyOn(window.navigator, 'languages', 'get')
       .mockImplementation(() => deviceLanguages);
     mocks.settings = {};
+    mocks.settingsQuery = {
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    };
     mocks.changeLanguage.mockResolvedValue(undefined);
     mocks.changeCurrency.mockResolvedValue(undefined);
     mocks.addEquivalent.mockResolvedValue({ id: 'equivalent-1' });
@@ -146,7 +156,10 @@ describe('first-run onboarding flow', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Enter Worthwhile' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('temporary save failure');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't save your setup. Please try again."
+    );
+    expect(screen.queryByText('temporary save failure')).not.toBeInTheDocument();
 
     const nameInputs = screen.getAllByLabelText('Name');
     const amountInputs = screen.getAllByLabelText('Price');
@@ -214,6 +227,44 @@ describe('first-run onboarding flow', () => {
       amount: 25000,
       currencyCode: 'USD',
     }));
+  });
+
+  test('uses a designed loading state while onboarding settings bootstrap', () => {
+    mocks.settingsQuery = {
+      isLoading: true,
+      error: null,
+      refetch: vi.fn(),
+    };
+
+    render(
+      <MemoryRouter>
+        <OnboardingGate><div>App content</div></OnboardingGate>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Preparing your Worthwhile setup');
+    expect(screen.queryByText('App content')).not.toBeInTheDocument();
+  });
+
+  test('offers retry when onboarding settings bootstrap fails', () => {
+    const refetch = vi.fn();
+    mocks.settingsQuery = {
+      isLoading: false,
+      error: new Error('raw settings transport failure'),
+      refetch,
+    };
+
+    render(
+      <MemoryRouter>
+        <OnboardingGate><div>App content</div></OnboardingGate>
+      </MemoryRouter>,
+    );
+
+    const errorState = screen.getByRole('alert');
+    expect(errorState).toHaveTextContent("Your setup didn't load");
+    expect(errorState).not.toHaveTextContent('raw settings transport failure');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   test('gates the app until onboarding is completed', () => {
