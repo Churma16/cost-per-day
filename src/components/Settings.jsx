@@ -55,6 +55,7 @@ function Settings() {
     addEquivalent,
     editEquivalent,
     removeEquivalent,
+    refreshEquivalents,
     error: equivalentsError
   } = useValueEquivalents();
   const replaceItemsMutation = useReplaceItems();
@@ -127,7 +128,7 @@ function Settings() {
     const settingsError = languageError || currencyError;
     if (settingsError) {
       showNotification({
-        message: settingsError.message || t('errorLoadingSettings'),
+        message: t('errorLoadingSettings'),
         type: 'error'
       }, { autoDismiss: false });
     }
@@ -142,7 +143,7 @@ function Settings() {
     } catch (error) {
       console.error('Error updating language:', error);
       showNotification({
-        message: error.message || t('errorUpdatingLanguage'),
+        message: t('errorUpdatingLanguage'),
         type: 'error'
       }, { autoDismiss: false });
     }
@@ -157,7 +158,7 @@ function Settings() {
     } catch (error) {
       console.error('Error updating currency:', error);
       showNotification({
-        message: error.message || t('errorUpdatingCurrency'),
+        message: t('errorUpdatingCurrency'),
         type: 'error'
       }, { autoDismiss: false });
     }
@@ -414,6 +415,7 @@ function Settings() {
           onAdd={handleOpenAddEquivalent}
           onEdit={handleOpenEditEquivalent}
           onDelete={handleOpenDeleteConfirm}
+          onRetry={refreshEquivalents}
         />
 
         {!isGuest && <DataManagementSection
