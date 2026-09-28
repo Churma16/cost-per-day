@@ -39,6 +39,24 @@ export {
   formatOwnershipDuration,
 } from '../utils/itemLifecycle';
 
+function ItemListToolbar({ title, actionLabel, disabled = false, onOpen, triggerRef }) {
+  return (
+    <div className="mb-1 flex items-center justify-between gap-3 px-1 text-xs">
+      <span className="text-sm font-bold text-[#20242A]">{title}</span>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        onClick={onOpen}
+        className="inline-flex items-center gap-1.5 rounded-full border border-[#D5D8DF] bg-white px-3 py-1.5 font-medium text-[#3F4A54] shadow-sm transition-colors hover:border-teal-300 hover:text-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:border-[#E2E4E8] disabled:bg-[#F8F9FA] disabled:text-[#A0A6AE] disabled:shadow-none"
+      >
+        <IoOptionsOutline className="text-sm" aria-hidden="true" />
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
+
 function ItemListContent({ itemsQuery, loadingPhase = null }) {
   const { t, i18n } = useTranslation();
   const [expandedItem, setExpandedItem] = useState(null);
@@ -99,19 +117,28 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
   return (
     <div className="px-4 pt-3 pb-8 space-y-2.5 home-page-content max-w-lg mx-auto">
       {resolvedLoadingPhase !== 'idle' ? (
-        <div aria-busy="true" className="min-h-[196px]">
-          {resolvedLoadingPhase !== 'blank' && (
-            <>
-              <CardListSkeleton
-                count={3}
-                paused={resolvedLoadingPhase === 'slow'}
-              />
-              {resolvedLoadingPhase === 'slow' && (
-                <SlowLoadIndicator message={t('stillLoadingItems')} />
-              )}
-            </>
-          )}
-        </div>
+        <>
+          <ItemListToolbar
+            title={t('yourItems')}
+            actionLabel={t('organizeItems')}
+            disabled
+            onOpen={() => setIsOrganizationOpen(true)}
+            triggerRef={organizationTriggerRef}
+          />
+          <div aria-busy="true" className="min-h-[196px]">
+            {resolvedLoadingPhase !== 'blank' && (
+              <>
+                <CardListSkeleton
+                  count={3}
+                  paused={resolvedLoadingPhase === 'slow'}
+                />
+                {resolvedLoadingPhase === 'slow' && (
+                  <SlowLoadIndicator message={t('stillLoadingItems')} />
+                )}
+              </>
+            )}
+          </div>
+        </>
       ) : isError && itemsData === undefined ? (
         <NoticeCard
           body={t('homeLoadErrorDescription')}
@@ -119,12 +146,21 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
           onAction={() => refetch()}
         />
       ) : items.length === 0 ? (
-        <EmptyState
-          motif="home"
-          description={t('homeEmptyListDescription')}
-          actionLabel={t('addFirstOwnedItem')}
-          onAction={() => navigate('/add?type=item')}
-        />
+        <div className="space-y-2.5">
+          <ItemListToolbar
+            title={t('yourItems')}
+            actionLabel={t('organizeItems')}
+            disabled
+            onOpen={() => setIsOrganizationOpen(true)}
+            triggerRef={organizationTriggerRef}
+          />
+          <EmptyState
+            motif="home"
+            description={t('homeEmptyListDescription')}
+            actionLabel={t('addFirstOwnedItem')}
+            onAction={() => navigate('/add?type=item')}
+          />
+        </div>
       ) : (
         <>
           {errorMessage && (
@@ -142,18 +178,12 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
               onAction={() => refetch()}
             />
           )}
-          <div className="flex items-center justify-between gap-3 px-1 text-xs mb-1">
-            <span className="font-bold text-[#20242A] text-sm">{t('yourItems')}</span>
-            <button
-              ref={organizationTriggerRef}
-              type="button"
-              onClick={() => setIsOrganizationOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#D5D8DF] bg-white px-3 py-1.5 font-medium text-[#3F4A54] shadow-sm hover:border-teal-300 hover:text-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
-            >
-              <IoOptionsOutline className="text-sm" aria-hidden="true" />
-              {t('organizeItems')}
-            </button>
-          </div>
+          <ItemListToolbar
+            title={t('yourItems')}
+            actionLabel={t('organizeItems')}
+            onOpen={() => setIsOrganizationOpen(true)}
+            triggerRef={organizationTriggerRef}
+          />
 
           {visibleItemCount === 0 ? (
             <p className="px-1 py-8 text-center text-[13px] leading-[1.6] text-[var(--text-secondary)]">
@@ -200,6 +230,7 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
 
       <ItemDeleteConfirmDialog
         item={itemToDelete}
+        isGuest={isGuest}
         isDeleting={deleteItemMutation.isPending}
         onCancel={() => setItemToDelete(null)}
         onConfirm={confirmDeleteItem}

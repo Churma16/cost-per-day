@@ -86,8 +86,8 @@ vi.mock('react-i18next', () => ({
         sortPriceAscending: 'Price: low to high',
         uncategorized: 'Uncategorized',
         noItemsMatchFilter: 'No items match this filter',
-        homeLoadingTitle: 'Bringing your ownership story into view',
-        homeLoadingDescription: 'Worthwhile is gathering the items that make up your history.',
+        homeLoadingTitle: 'Loading your ownership overview',
+        homeLoadingDescription: "Bringing together the items and context you've saved.",
         homeLoadErrorTitle: "Your ownership history didn't load",
         homeLoadErrorDescription: "Couldn't load your items. Check your connection and try again.",
         homeRefreshError: "We couldn't refresh your items. Your last saved view is still here.",
@@ -99,14 +99,15 @@ vi.mock('react-i18next', () => ({
         tryAgain: 'Try again',
         refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
         itemDeleteErrorTitle: 'Not deleted yet.',
-        itemDeleteErrorBody: 'This item and its history are still here. Nothing was lost.',
+        itemDeleteErrorBody: 'This item and its history are still here.',
         retry: 'Retry',
         done: 'Done',
         close: 'Close',
         ownedFor: 'Owned for',
         deleteItem: 'Delete',
         deleteThisItem: 'Delete this item?',
-        deleteItemIrreversible: `${options?.name} and its history will be removed from this device. This can't be undone.`,
+        deleteItemIrreversibleAccount: `${options?.name} and its ownership history will be permanently removed from Worthwhile. This can't be undone.`,
+        deleteItemIrreversibleDevice: `${options?.name} and its ownership history will be permanently removed from this device. This can't be undone.`,
         keepIt: 'Keep it',
         delete: 'Delete'
       }[key] || key;
@@ -171,13 +172,18 @@ describe('ItemList lifecycle display', () => {
 
     const { container } = render(<MemoryRouter><ItemList /></MemoryRouter>);
 
+    expect(screen.getByText('Your Items')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeDisabled();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(200);
     });
-    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+    const itemSkeletons = container.querySelectorAll('[data-skeleton-variant="item"]');
+    expect(itemSkeletons).toHaveLength(3);
+    expect(itemSkeletons[0]).toHaveClass('rounded-2xl', 'p-3');
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeDisabled();
 
     act(() => {
       vi.advanceTimersByTime(1800);
@@ -203,6 +209,8 @@ describe('ItemList lifecycle display', () => {
     render(<MemoryRouter><ItemList /></MemoryRouter>);
 
     expect(await screen.findByText('Your items will appear here.')).toBeInTheDocument();
+    expect(screen.getByText('Your Items')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Add your first item' })).toBeInTheDocument();
   });
 
@@ -641,9 +649,9 @@ describe('ItemList lifecycle display', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Your Items')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeInTheDocument();
-    expect(screen.getByText('Jabra Elite 4')).toBeInTheDocument();
+    expect(await screen.findByText('Jabra Elite 4')).toBeInTheDocument();
+    expect(screen.getByText('Your Items')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeEnabled();
     expect(screen.queryByText('Current cost per day')).not.toBeInTheDocument();
   });
 
@@ -841,11 +849,11 @@ describe('ItemList lifecycle display', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(screen.getByRole('heading', { name: 'Delete this item?' })).toBeInTheDocument();
-    expect(screen.getByText(/Desk Lamp and its history will be removed from this device/)).toBeInTheDocument();
+    expect(screen.getByText(/Desk Lamp and its ownership history will be permanently removed from Worthwhile/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
 
     // Confirm deletion
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => {
       expect(deleteItem).toHaveBeenCalledWith('item-del-1');

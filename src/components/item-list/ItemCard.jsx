@@ -185,12 +185,13 @@ function ItemCard({
           )}
         </div>
 
-        <div className="flex items-center gap-2.5 flex-shrink-0 text-right">
-          <div className="flex flex-col items-end">
-            <p className="text-sm font-semibold text-[#20242A] tabular-nums">
-              {formatCurrency(itemCostPerDay, currencyCode)}
-            </p>
-          </div>
+        <div
+          data-item-card-value-stack
+          className="flex flex-shrink-0 self-stretch flex-col items-end justify-between text-right"
+        >
+          <p className="text-sm font-semibold text-[#20242A] tabular-nums">
+            {formatCurrency(itemCostPerDay, currencyCode)}
+          </p>
           <IoChevronDown
             aria-hidden="true"
             className={`transition-transform duration-300 ease-out motion-reduce:transition-none text-base ${

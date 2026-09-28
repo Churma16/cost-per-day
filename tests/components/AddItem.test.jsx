@@ -77,10 +77,10 @@ vi.mock('react-i18next', () => ({
         discardDraft: 'Discard draft',
         guestItemLimitReached: 'You\'ve reached the ' + options?.limit + '-item limit without an account.',
         itemSaveErrorTitle: 'Not saved yet.',
-        itemSaveErrorBody: 'Your entries are still here. Nothing was lost.',
+        itemSaveErrorBody: "Your entries are still here. Try again when you're ready.",
         itemDeleteErrorTitle: 'Not deleted yet.',
-        itemDeleteErrorBody: 'This item and its history are still here. Nothing was lost.',
-        editItemLoadingTitle: 'Bringing this item into view',
+        itemDeleteErrorBody: 'This item and its history are still here.',
+        editItemLoadingTitle: 'Loading this item',
         editItemLoadingDescription: 'Worthwhile is loading the ownership details you saved.',
         editItemLoadErrorTitle: "This item didn't load",
         editItemLoadErrorDescription: "Couldn't load this item. Check your connection and try again.",
@@ -96,7 +96,8 @@ vi.mock('react-i18next', () => ({
         notSavedYet: 'Not saved yet.',
         saving: 'Saving...',
         deleteThisItem: 'Delete this item?',
-        deleteItemIrreversible: `${options?.name} and its history will be removed from this device. This can't be undone.`,
+        deleteItemIrreversibleAccount: `${options?.name} and its ownership history will be permanently removed from Worthwhile. This can't be undone.`,
+        deleteItemIrreversibleDevice: `${options?.name} and its ownership history will be permanently removed from this device. This can't be undone.`,
         keepIt: 'Keep it',
         delete: 'Delete',
       };
@@ -262,7 +263,7 @@ describe('AddItem component date localization', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Your entries are still here. Nothing was lost.'
+        "Your entries are still here. Try again when you're ready."
       );
     });
     expect(screen.queryByText(/Unable to reach the server/i)).not.toBeInTheDocument();
@@ -453,7 +454,7 @@ describe('AddItem component date localization', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Your entries are still here. Nothing was lost.');
+      expect(screen.getByRole('alert')).toHaveTextContent("Your entries are still here. Try again when you're ready.");
     });
     expect(window.localStorage.getItem(storageKey)).not.toBeNull();
   });

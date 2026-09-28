@@ -6,6 +6,7 @@ import { ActionLoadingContent } from '../ui/AsyncState';
 function ItemDeleteConfirmModal({
   isOpen,
   itemName,
+  isGuest = false,
   isDeleting = false,
   onClose,
   onConfirm,
@@ -51,7 +52,10 @@ function ItemDeleteConfirmModal({
               {t('deleteThisItem')}
             </h2>
             <p className="text-sm leading-6 text-[var(--text-secondary)]">
-              {t('deleteItemIrreversible', { name: itemName })}
+              {t(
+                isGuest ? 'deleteItemIrreversibleDevice' : 'deleteItemIrreversibleAccount',
+                { name: itemName }
+              )}
             </p>
             <div className="flex gap-3 pt-2">
               <button

@@ -564,6 +564,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
       <ItemDeleteConfirmModal
         isOpen={showDeleteConfirm}
         itemName={name}
+        isGuest={isGuest}
         isDeleting={deleteItemMutation.isPending}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
