@@ -42,7 +42,6 @@ function EquivalentFormModal({
   const [isSaving, setIsSaving] = useState(false);
   const isSlowSaving = useSlowAction(isSaving);
   const nameInputRef = useRef(null);
-  const amountInputRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -76,7 +75,7 @@ function EquivalentFormModal({
       setActionError(null);
       window.requestAnimationFrame(() => {
         if (nextErrors.name) nameInputRef.current?.focus();
-        else amountInputRef.current?.focus();
+        else document.getElementById('equivalent-amount')?.focus();
       });
       return;
     }
@@ -163,7 +162,6 @@ function EquivalentFormModal({
                 {t('equivalentAmount')}
               </label>
               <CurrencyInput
-                ref={amountInputRef}
                 id="equivalent-amount"
                 value={formAmount}
                 onChange={(event) => {
