@@ -222,7 +222,7 @@ function PlannedPurchaseExploration({
               <ErrorCard
                 title={t('notSavedYet')}
                 body={t('planSaveErrorBody')}
-                onDismiss={() => setLocalError(null)}
+                onDismiss={localError ? () => setLocalError(null) : undefined}
               />
             )}
 
