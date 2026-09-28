@@ -82,13 +82,10 @@ vi.mock('react-i18next', () => ({
         importFileErrorBody: "Couldn't use this file. Choose a Worthwhile .json backup and try again.",
         exportErrorBody: "Not exported yet. Your data is unchanged. Try again when you're ready.",
         dataTransferErrorTitle: 'Not completed yet.',
-        equivalentsLoadingTitle: 'Loading your everyday references',
-        equivalentsLoadingDescription: 'Worthwhile is bringing your familiar comparisons into view.',
-        equivalentsLoadErrorTitle: "Your everyday references didn't load",
         equivalentsEmptyDescription: 'Add a familiar everyday amount to give daily ownership costs more personal context.',
         tryAgain: 'Try again',
         refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
-        stillLoadingEquivalents: 'Still loading your comparisons...',
+        stillLoadingEquivalents: 'Still loading your everyday references...',
         stillLoadingSettings: 'Still loading your preferences...',
         saving: 'Saving...',
         enterEquivalentNameToContinue: 'Enter a name to continue.',
@@ -764,7 +761,7 @@ describe('Settings component', () => {
     act(() => {
       vi.advanceTimersByTime(1800);
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Still loading your comparisons...');
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your everyday references...');
     expect(screen.queryByText('No everyday references yet.')).not.toBeInTheDocument();
 
     vi.useRealTimers();
