@@ -156,7 +156,7 @@ describe('DurabilityAnalytics Component', () => {
     expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
-  it('distinguishes a category filter with no matching history and can clear it', () => {
+  it('distinguishes a category filter with no matching history and can clear it', async () => {
     useDurabilityAnalytics.mockImplementation(({ category }) => ({
       data: category
         ? {
@@ -185,7 +185,7 @@ describe('DurabilityAnalytics Component', () => {
     render(<DurabilityAnalytics />);
     fireEvent.click(screen.getByRole('button', { name: 'Audio' }));
 
-    expect(screen.getByText('No history in this category yet')).toBeInTheDocument();
+    expect(await screen.findByText('No history in this category yet.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'View all history' }));
     expect(useDurabilityAnalytics).toHaveBeenLastCalledWith({ category: '' });
   });
