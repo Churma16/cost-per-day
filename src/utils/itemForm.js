@@ -39,6 +39,7 @@ export const createInitialItemFormValues = (draft = null, now = new Date()) => {
     targetValue: draft?.targetValue ?? '',
     targetMode: draft?.targetMode ?? 'manual',
     selectedBenchmarkItemId: draft?.selectedBenchmarkItemId ?? '',
+    replacesItemId: draft?.replacesItemId ?? '',
   };
 };
 
@@ -63,6 +64,7 @@ export const itemToFormValues = (item) => {
         : '',
     targetType: item?.targetType || 'none',
     targetValue: getTargetValue(item),
+    replacesItemId: item?.replacesItemId ?? '',
   };
 };
 
@@ -170,6 +172,10 @@ export const buildItemPayload = (formValues, { isEditMode = false } = {}) => {
     itemData.targetType = null;
     itemData.targetValue = null;
   }
+
+  itemData.replacesItemId = formValues.replacesItemId
+    ? String(formValues.replacesItemId)
+    : null;
 
   return itemData;
 };
