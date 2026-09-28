@@ -10,7 +10,14 @@ import ReplacementBenchmarkModal from './ReplacementBenchmarkModal';
 import ItemCard from './item-list/ItemCard';
 import ItemDeleteConfirmDialog from './item-list/ItemDeleteConfirmDialog';
 import ItemOrganizationDialog from './item-list/ItemOrganizationDialog';
-import { InlineStateNotice, StatePanel } from './ui/AsyncState';
+import {
+  CardListSkeleton,
+  EmptyState,
+  ErrorCard,
+  NoticeCard,
+  SlowLoadIndicator,
+} from './ui/AsyncState';
+import { useLoadingPhases } from '../hooks/useLoadingPhases';
 import { IoOptionsOutline } from 'react-icons/io5';
 
 const OWNERSHIP_STATE_LABEL_KEYS = {
@@ -32,7 +39,7 @@ export {
   formatOwnershipDuration,
 } from '../utils/itemLifecycle';
 
-function ItemListContent({ itemsQuery }) {
+function ItemListContent({ itemsQuery, loadingPhase = null }) {
   const { t, i18n } = useTranslation();
   const [expandedItem, setExpandedItem] = useState(null);
   const [benchmarkModalItem, setBenchmarkModalItem] = useState(null);
@@ -49,10 +56,11 @@ function ItemListContent({ itemsQuery }) {
     isLoading,
     isError,
     isRefetchError,
-    error: itemsError,
     refetch,
   } = itemsQuery;
   const items = itemsData ?? [];
+  const localLoadingState = useLoadingPhases(isLoading && itemsData === undefined);
+  const resolvedLoadingPhase = loadingPhase ?? localLoadingState.phase;
   const deleteItemMutation = useDeleteItem();
   const {
     organization,
@@ -90,42 +98,47 @@ function ItemListContent({ itemsQuery }) {
 
   return (
     <div className="px-4 pt-3 pb-8 space-y-2.5 home-page-content max-w-lg mx-auto">
-      {isLoading && itemsData === undefined ? (
-        <StatePanel
-          variant="loading"
-          title={t('homeLoadingTitle')}
-          description={t('homeLoadingDescription')}
-        />
+      {resolvedLoadingPhase !== 'idle' ? (
+        <div aria-busy="true" className="min-h-[196px]">
+          {resolvedLoadingPhase !== 'blank' && (
+            <>
+              <CardListSkeleton
+                count={3}
+                paused={resolvedLoadingPhase === 'slow'}
+              />
+              {resolvedLoadingPhase === 'slow' && (
+                <SlowLoadIndicator message={t('stillLoadingItems')} />
+              )}
+            </>
+          )}
+        </div>
       ) : isError && itemsData === undefined ? (
-        <StatePanel
-          variant="error"
-          title={t('homeLoadErrorTitle')}
-          description={t('homeLoadErrorDescription')}
-          actionLabel={t('retry')}
+        <NoticeCard
+          body={t('homeLoadErrorDescription')}
+          actionLabel={t('tryAgain')}
           onAction={() => refetch()}
         />
       ) : items.length === 0 ? (
-        <StatePanel
-          variant="empty"
-          title={t('homeEmptyTitle')}
-          description={t('homeEmptyDescription')}
+        <EmptyState
+          motif="home"
+          description={t('homeEmptyListDescription')}
           actionLabel={t('addFirstOwnedItem')}
           onAction={() => navigate('/add?type=item')}
         />
       ) : (
         <>
           {errorMessage && (
-            <InlineStateNotice
-              variant="error"
-              message={errorMessage}
+            <ErrorCard
+              title={t('itemDeleteErrorTitle')}
+              body={t('itemDeleteErrorBody')}
+              onDismiss={() => setErrorMessage(null)}
             />
           )}
 
           {itemsData !== undefined && (isRefetchError || isError) && (
-            <InlineStateNotice
-              variant="error"
-              message={t('homeRefreshError')}
-              actionLabel={t('retry')}
+            <NoticeCard
+              body={t('refreshShowingSavedData')}
+              actionLabel={t('tryAgain')}
               onAction={() => refetch()}
             />
           )}
@@ -143,17 +156,9 @@ function ItemListContent({ itemsQuery }) {
           </div>
 
           {visibleItemCount === 0 ? (
-            <StatePanel
-              variant="empty"
-              title={t('homeFilteredEmptyTitle')}
-              description={t('homeFilteredEmptyDescription')}
-              actionLabel={t('clearFilters')}
-              onAction={() => setOrganization({
-                ...organization,
-                stateFilters: [],
-              })}
-              className="mt-2"
-            />
+            <p className="px-1 py-8 text-center text-[13px] leading-[1.6] text-[var(--text-secondary)]">
+              {t('homeFilteredEmptyDescription')}
+            </p>
           ) : organizedGroups.map((group) => (
             <section key={group.key} className="space-y-2.5" aria-labelledby={organization.groupBy === 'none' ? undefined : `item-group-${group.key}`}>
               {organization.groupBy !== 'none' && (
