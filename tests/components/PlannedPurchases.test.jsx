@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import PlannedPurchases from '../../src/components/PlannedPurchases';
 import * as plannedPurchaseService from '../../src/services/plannedPurchaseService';
 import { queryKeys } from '../../src/query/queryConfig';
@@ -78,6 +79,14 @@ vi.mock('react-i18next', () => ({
         previewUnsaved: 'Preview, unsaved',
         reachedAround: 'Estimated completion',
         saved: 'Saved',
+        planningLoadingTitle: 'Gathering your plans',
+        planningLoadingDescription: 'Worthwhile is bringing your purchase timelines into view.',
+        planningLoadErrorTitle: "Your plans didn't load",
+        planningLoadErrorDescription: 'Your saved plans are still yours. Try loading them again.',
+        planningRefreshError: "We couldn't refresh your plans. Your last saved plans are still shown.",
+        errorUpdatingPlannedPurchase: "We couldn't update this plan. Please try again.",
+        addFirstPlan: 'Plan a purchase',
+        retry: 'Retry',
       };
       return translations[key] || key;
     },
@@ -114,9 +123,11 @@ describe('PlannedPurchases Component', () => {
 
   const renderComponent = () => {
     return render(
-      <QueryClientProvider client={queryClient}>
-        <PlannedPurchases />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <PlannedPurchases />
+        </QueryClientProvider>
+      </MemoryRouter>
     );
   };
 
@@ -124,12 +135,32 @@ describe('PlannedPurchases Component', () => {
     plannedPurchaseService.fetchPlannedPurchases.mockReturnValue(new Promise(() => {}));
     renderComponent();
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Gathering your plans');
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
 
   it('renders empty state when no planned purchases exist', async () => {
     plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
     renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByText('No planned purchases yet')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'Plan a purchase' })).toBeInTheDocument();
+  });
+
+  it('offers retry after an initial planning load failure', async () => {
+    plannedPurchaseService.fetchPlannedPurchases
+      .mockRejectedValueOnce(new Error('raw planning failure'))
+      .mockResolvedValueOnce([]);
+
+    renderComponent();
+
+    const errorState = await screen.findByRole('alert');
+    expect(errorState).toHaveTextContent("Your plans didn't load");
+    expect(errorState).not.toHaveTextContent('raw planning failure');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
     await waitFor(() => {
       expect(screen.getByText('No planned purchases yet')).toBeInTheDocument();
