@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoAdd, IoArrowBack, IoCheckmark, IoClose } from 'react-icons/io5';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -29,6 +29,12 @@ const OnboardingShell = ({ step, direction, children }) => {
     duration: shouldReduceMotion ? 0 : 0.24,
     ease: CALM_EASE,
   };
+  const registerContentNode = useCallback((node) => {
+    // During an overlapping exit, React clears the previous node's ref after
+    // the next step has mounted. Ignore that stale null so the new step stays
+    // connected to adaptive height measurement.
+    if (node) setContentNode(node);
+  }, []);
 
   useLayoutEffect(() => {
     if (!contentNode) return undefined;
@@ -91,12 +97,13 @@ const OnboardingShell = ({ step, direction, children }) => {
           animate={contentHeight ? { height: contentHeight } : undefined}
           transition={{ duration: shouldReduceMotion ? 0 : 0.32, ease: CALM_EASE }}
         >
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
+          <AnimatePresence mode="popLayout" initial={false} custom={direction}>
             <motion.div
               key={step}
-              ref={setContentNode}
+              ref={registerContentNode}
               custom={direction}
               data-testid={`onboarding-step-${step}`}
+              className="w-full"
               variants={{
                 enter: (travelDirection) => (
                   shouldReduceMotion
