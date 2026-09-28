@@ -355,9 +355,9 @@ function OnboardingFlow({ onComplete }) {
         <button type="button" onClick={() => navigateToStep(2)} disabled={isSaving} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-50">
           <IoArrowBack /> {t('back')}
         </button>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-start justify-between gap-4">
           <h1 className="text-xl font-bold tracking-[-0.02em] text-gray-950">{t('onboardingReferencesTitle')}</h1>
-          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('optional')}</span>
+          <span className="mt-0.5 shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{t('optional')}</span>
         </div>
         <p className="mt-2 text-sm leading-5 text-gray-600">{t('onboardingReferencesBody')}</p>
 
