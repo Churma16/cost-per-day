@@ -10,7 +10,15 @@ import PlannedPurchaseCard from './PlannedPurchaseCard';
 import PlannedPurchaseEditDialog from './planned-purchase/PlannedPurchaseEditDialog';
 import { PageHeader } from './ui/PageHeader';
 import { PageContainer } from './ui/PageContainer';
-import { InlineStateNotice, StatePanel } from './ui/AsyncState';
+import {
+  CardListSkeleton,
+  EmptyState,
+  ErrorCard,
+  NoticeCard,
+  SlowLoadIndicator,
+  ActionLoadingContent,
+} from './ui/AsyncState';
+import { useLoadingPhases } from '../hooks/useLoadingPhases';
 
 function PlannedPurchases() {
   const { t } = useTranslation();
@@ -23,6 +31,9 @@ function PlannedPurchases() {
     refetch,
   } = usePlannedPurchases();
   const plannedPurchases = plannedPurchasesData ?? [];
+  const loadingState = useLoadingPhases(
+    isLoading && plannedPurchasesData === undefined
+  );
 
   const updateMutation = useUpdatePlannedPurchase();
   const deleteMutation = useDeletePlannedPurchase();
@@ -133,36 +144,41 @@ function PlannedPurchases() {
       />
 
       {/* Loading, error, and empty states */}
-      {isLoading && plannedPurchasesData === undefined ? (
-        <StatePanel
-          variant="loading"
-          title={t('planningLoadingTitle')}
-          description={t('planningLoadingDescription')}
-        />
+      {loadingState.phase !== 'idle' ? (
+        <div aria-busy="true" className="min-h-[196px]">
+          {loadingState.phase !== 'blank' && (
+            <>
+              <CardListSkeleton
+                count={3}
+                paused={loadingState.showSlowIndicator}
+              />
+              {loadingState.showSlowIndicator && (
+                <SlowLoadIndicator message={t('stillLoadingPlans')} />
+              )}
+            </>
+          )}
+        </div>
       ) : isError && plannedPurchasesData === undefined ? (
-        <StatePanel
-          variant="error"
-          title={t('planningLoadErrorTitle')}
-          description={t('planningLoadErrorDescription')}
-          actionLabel={t('retry')}
+        <NoticeCard
+          body={t('planningLoadErrorDescription')}
+          actionLabel={t('tryAgain')}
           onAction={() => refetch()}
         />
       ) : plannedPurchases.length === 0 ? (
-        <StatePanel
-          variant="empty"
+        <EmptyState
+          motif="planning"
           title={t('noPlannedPurchases')}
           description={t('noPlannedPurchasesDescription')}
-          actionLabel={t('addFirstPlan')}
+          actionLabel={t('newPlan')}
           onAction={() => navigate('/add?type=planned')}
         />
       ) : (
         /* List of Cards */
         <div className="space-y-2.5">
           {plannedPurchasesData !== undefined && (isRefetchError || isError) && (
-            <InlineStateNotice
-              variant="error"
-              message={t('planningRefreshError')}
-              actionLabel={t('retry')}
+            <NoticeCard
+              body={t('refreshShowingSavedData')}
+              actionLabel={t('tryAgain')}
               onAction={() => refetch()}
             />
           )}
@@ -199,26 +215,28 @@ function PlannedPurchases() {
               {t('confirmDeletePlannedPurchase')}
             </p>
             {actionError && (
-              <InlineStateNotice
-                variant="error"
-                message={actionError}
+              <ErrorCard
+                title={t('planDeleteErrorTitle')}
+                body={t('planDeleteErrorBody')}
+                onDismiss={() => setActionError(null)}
               />
             )}
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
+                autoFocus
                 onClick={handleCloseDeleteModal}
-                className="px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[#F6F7F8]"
               >
-                {t('cancel')}
+                {t('keepIt')}
               </button>
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
                 disabled={isMutating}
-                className="px-3 py-1.5 rounded-lg bg-red-600 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                className="flex-1 rounded-xl border-[1.5px] border-[var(--error-outline)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--error-text)] disabled:opacity-50"
               >
-                {isMutating ? t('loading') : t('confirm')}
+                {isMutating ? <ActionLoadingContent /> : t('delete')}
               </button>
             </div>
           </div>
