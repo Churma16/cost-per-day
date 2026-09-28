@@ -4,6 +4,8 @@ import { IoChevronDown, IoEyeOutline, IoOptionsOutline } from 'react-icons/io5';
 import { getCurrencySymbol } from '../../utils/currencyConfig';
 import { calculateContributionProjection } from '../../utils/plannedPurchaseProjection';
 import CurrencyInput from '../common/CurrencyInput';
+import { ActionLoadingContent, ErrorCard } from '../ui/AsyncState';
+import { useSlowAction } from '../../hooks/useLoadingPhases';
 
 function PlannedPurchaseExploration({
   targetPrice,
@@ -42,6 +44,7 @@ function PlannedPurchaseExploration({
   );
   const [cadence, setCadence] = useState(initialCadence || 'daily');
   const [localError, setLocalError] = useState(null);
+  const isSlowApplying = useSlowAction(isApplying);
 
   useEffect(() => {
     setContributionAmount(
@@ -108,7 +111,8 @@ function PlannedPurchaseExploration({
         setIsOpen(false);
       }
     } catch (err) {
-      setLocalError(err.message || t('operationFailed'));
+      console.error('Error applying planned purchase scenario:', err);
+      setLocalError(t('planSaveErrorBody'));
     }
   };
 
@@ -215,9 +219,11 @@ function PlannedPurchaseExploration({
             )}
 
             {(localError || applyError) && (
-              <div role="alert" className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
-                {localError || applyError}
-              </div>
+              <ErrorCard
+                title={t('notSavedYet')}
+                body={t('planSaveErrorBody')}
+                onDismiss={() => setLocalError(null)}
+              />
             )}
 
             <div className="pt-1 flex items-center justify-end gap-2">
@@ -234,10 +240,11 @@ function PlannedPurchaseExploration({
                   <button
                     type="button"
                     disabled={!isValidAmount || isApplying}
+                    aria-busy={isApplying ? 'true' : undefined}
                     onClick={handleApply}
-                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-xs font-semibold text-white shadow-sm disabled:opacity-50 transition-colors"
+                    className="flex-1 rounded-xl bg-[var(--accent-strong)] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#146E65] disabled:opacity-50 sm:flex-none"
                   >
-                    {isApplying ? t('saving') : t('applyChanges')}
+                    {isApplying ? <ActionLoadingContent /> : t('applyChanges')}
                   </button>
                 </>
               ) : (
@@ -250,6 +257,11 @@ function PlannedPurchaseExploration({
                 </button>
               )}
             </div>
+            {isSlowApplying && (
+              <p role="status" className="text-center text-xs text-[var(--text-secondary)]">
+                {t('saving')}
+              </p>
+            )}
           </div>
         )}
         </div>
