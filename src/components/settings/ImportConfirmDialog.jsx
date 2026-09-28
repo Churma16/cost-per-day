@@ -17,7 +17,7 @@ function ImportConfirmDialog({
 
   useEffect(() => {
     if (isOpen) {
-      window.requestAnimationFrame(() => keepButtonRef.current?.focus());
+      keepButtonRef.current?.focus();
     }
   }, [isOpen]);
 
