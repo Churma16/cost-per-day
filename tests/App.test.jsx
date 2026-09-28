@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import App from '../src/App';
 import { ApiError, getCurrentUser } from '../src/services/api';
@@ -58,13 +58,28 @@ beforeEach(() => {
   window.history.pushState({}, '', '/');
 });
 
-test('renders authentication loading state while session bootstrap is pending', () => {
+test('delays auth loading feedback, then shows skeleton and slow-load status', () => {
+  vi.useFakeTimers();
   getCurrentUser.mockImplementation(() => new Promise(() => {}));
 
-  render(<App />);
+  const { container } = render(<App />);
 
-  expect(screen.getByRole('status')).toHaveTextContent('Opening your Worthwhile history');
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+  act(() => {
+    vi.advanceTimersByTime(200);
+  });
+  expect(container.querySelector('.state-skeleton')).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+  act(() => {
+    vi.advanceTimersByTime(1800);
+  });
+  expect(screen.getByRole('status')).toHaveTextContent('Still checking your session...');
   expect(screen.queryByText(/^Loading\.\.\.$/)).not.toBeInTheDocument();
+
+  vi.useRealTimers();
 });
 
 test('shows Google sign-in when there is no application session', async () => {
