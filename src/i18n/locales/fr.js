@@ -173,7 +173,22 @@ const translation = {
   "benchmarkSelectPrompt": "Sélectionnez un article terminé pour calculer la durée nécessaire.",
   "selectCompletedItem": "Sélectionner un article terminé...",
   "useBenchmarkAsTarget": "Appliquer à l'objectif",
-  "benchmarkUnmatchableZeroCost": "Cet article avait un coût net nul ou négatif. Un nouvel achat ne peut égaler une base de coût nul."
+  "benchmarkUnmatchableZeroCost": "Cet article avait un coût net nul ou négatif. Un nouvel achat ne peut égaler une base de coût nul.",
+
+  // Ownership Journey
+  "ownershipJourney": "Parcours de possession",
+  "ownershipJourneyOptional": "Parcours de possession (facultatif)",
+  "ownershipJourneyQuestion": "Qu'est-ce que cet article a remplacé ?",
+  "ownershipJourneyHelper": "Reliez cet article à quelque chose que vous possédiez auparavant.",
+  "ownershipJourneyNone": "Aucun lien",
+  "ownershipJourneyRemoveLink": "Supprimer le lien",
+  "ownershipJourneyNoCompletedItems": "Aucun article terminé n'est encore disponible à relier.",
+  "ownershipJourneyCameBefore": "{{name}} est venu avant celui-ci",
+  "ownershipJourneyCameAfter": "{{name}} est venu après celui-ci",
+  "ownershipJourneyBeforeAndAfter": "Voir ce qui est venu avant et après",
+  "ownershipJourneyAfterOnly": "Voir ce qui est venu après",
+  "ownershipJourneyDescription": "Voyez comment cet article s'inscrit dans ce que vous avez possédé au fil du temps.",
+  "ownershipJourneyThisItem": "Cet article"
 };
 
 export default translation;
