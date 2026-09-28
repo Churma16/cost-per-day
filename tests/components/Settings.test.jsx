@@ -757,34 +757,58 @@ describe('Settings component', () => {
     expect(screen.queryByText("Couldn't load these preferences. Your other settings are still available.")).not.toBeInTheDocument();
   });
 
-  test('renders retryable notice card when loading general preferences fails, and clears it on retry', () => {
+  test('does not present fallback preferences as saved when the initial settings load fails', () => {
     const mockRefetchLanguage = vi.fn();
+    const mockRefetchCurrency = vi.fn();
     useLanguage.mockReturnValue({
       language: 'en',
       changeLanguage: mockChangeLanguage,
       isLoading: false,
+      hasSettingsData: false,
       loadError: new Error('Network error loading language'),
       refetchSettings: mockRefetchLanguage,
+    });
+    useCurrency.mockReturnValue({
+      currencyCode: 'USD',
+      changeCurrency: mockChangeCurrency,
+      isLoading: false,
+      hasSettingsData: false,
+      loadError: new Error('Network error loading currency'),
+      refetchSettings: mockRefetchCurrency,
     });
 
     const { rerender } = render(<Settings />);
 
     expect(screen.getByText("Couldn't load these preferences. Your other settings are still available.")).toBeInTheDocument();
-    const tryAgainButton = screen.getByRole('button', { name: 'Try again' });
-    fireEvent.click(tryAgainButton);
+    expect(screen.queryByRole('button', { name: /language.*english/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /currency.*us dollar/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(mockRefetchLanguage).toHaveBeenCalledTimes(1);
+    expect(mockRefetchCurrency).toHaveBeenCalledTimes(1);
 
     useLanguage.mockReturnValue({
       language: 'en',
       changeLanguage: mockChangeLanguage,
       isLoading: false,
+      hasSettingsData: true,
       loadError: null,
       refetchSettings: mockRefetchLanguage,
+    });
+    useCurrency.mockReturnValue({
+      currencyCode: 'USD',
+      changeCurrency: mockChangeCurrency,
+      isLoading: false,
+      hasSettingsData: true,
+      loadError: null,
+      refetchSettings: mockRefetchCurrency,
     });
 
     rerender(<Settings />);
 
     expect(screen.queryByText("Couldn't load these preferences. Your other settings are still available.")).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /language.*english/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /currency.*us dollar/i })).toBeInTheDocument();
   });
 
   test('delays value-equivalent loading feedback before skeleton and slow status', () => {
