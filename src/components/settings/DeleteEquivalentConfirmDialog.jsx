@@ -1,13 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/formatters';
-import { ActionLoadingContent } from '../ui/AsyncState';
+import { ActionLoadingContent, ErrorCard } from '../ui/AsyncState';
 import SettingsModalTransition from './SettingsModalTransition';
 
 function DeleteEquivalentConfirmDialog({
   target,
   isOpen,
   isDeleting,
+  errorMessage,
   onCancel,
   onConfirm,
   onExitComplete,
@@ -42,6 +43,12 @@ function DeleteEquivalentConfirmDialog({
                 : '',
             })}
           </p>
+          {errorMessage && (
+            <ErrorCard
+              title={t('deleteEquivalentErrorTitle')}
+              body={errorMessage}
+            />
+          )}
           <div className="flex gap-3 pt-2">
             <button
               ref={keepButtonRef}
