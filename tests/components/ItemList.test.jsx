@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render as testingLibraryRender, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render as testingLibraryRender, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
@@ -89,23 +89,26 @@ vi.mock('react-i18next', () => ({
         homeLoadingTitle: 'Bringing your ownership story into view',
         homeLoadingDescription: 'Worthwhile is gathering the items that make up your history.',
         homeLoadErrorTitle: "Your ownership history didn't load",
-        homeLoadErrorDescription: 'Your saved history is still yours. Try loading it again.',
+        homeLoadErrorDescription: "Couldn't load your items. Check your connection and try again.",
         homeRefreshError: "We couldn't refresh your items. Your last saved view is still here.",
-        homeEmptyTitle: 'Your ownership story starts here',
-        homeEmptyDescription: 'Add an item you already own to see how its cost and context change over time.',
+        homeEmptyListDescription: 'Your items will appear here.',
+        stillLoadingItems: 'Still loading your items...',
         addFirstOwnedItem: 'Add your first item',
         homeFilteredEmptyTitle: 'No items in this view',
-        homeFilteredEmptyDescription: 'Your items are still here. Clear the ownership filter to see the broader history.',
-        clearFilters: 'Clear filters',
+        homeFilteredEmptyDescription: 'No items in this category yet.',
+        tryAgain: 'Try again',
+        refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
+        itemDeleteErrorTitle: 'Not deleted yet.',
+        itemDeleteErrorBody: 'This item and its history are still here. Nothing was lost.',
         retry: 'Retry',
         done: 'Done',
         close: 'Close',
         ownedFor: 'Owned for',
         deleteItem: 'Delete',
-        confirmDelete: 'Confirm Delete',
-        deleteConfirmation: 'Are you sure you want to delete this item? This action cannot be undone.',
-        cancel: 'Cancel',
-        confirm: 'Confirm'
+        deleteThisItem: 'Delete this item?',
+        deleteItemIrreversible: `${options?.name} and its history will be removed from this device. This can't be undone.`,
+        keepIt: 'Keep it',
+        delete: 'Delete'
       }[key] || key;
     }
   })
@@ -162,13 +165,25 @@ describe('ItemList lifecycle display', () => {
     useValueEquivalents.mockReturnValue({ valueEquivalents: [] });
   });
 
-  test('uses the shared ownership loader for the first load', () => {
+  test('uses blank, skeleton, then slow-load feedback for the first load', () => {
+    vi.useFakeTimers();
     getAllItems.mockReturnValue(new Promise(() => {}));
 
-    render(<MemoryRouter><ItemList /></MemoryRouter>);
+    const { container } = render(<MemoryRouter><ItemList /></MemoryRouter>);
 
-    expect(screen.getByRole('status')).toHaveTextContent('Bringing your ownership story into view');
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your items...');
+    vi.useRealTimers();
   });
 
   test('renders a recovery action for an initial item load failure', async () => {
@@ -176,10 +191,10 @@ describe('ItemList lifecycle display', () => {
 
     render(<MemoryRouter><ItemList /></MemoryRouter>);
 
-    const errorState = await screen.findByRole('alert', {}, { timeout: 3000 });
-    expect(errorState).toHaveTextContent("Your ownership history didn't load");
+    const errorState = await screen.findByRole('status', {}, { timeout: 3000 });
+    expect(errorState).toHaveTextContent("Couldn't load your items. Check your connection and try again.");
     expect(errorState).not.toHaveTextContent('raw item transport failure');
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
   test('turns a true empty collection into a first-item action', async () => {
@@ -187,7 +202,7 @@ describe('ItemList lifecycle display', () => {
 
     render(<MemoryRouter><ItemList /></MemoryRouter>);
 
-    expect(await screen.findByText('Your ownership story starts here')).toBeInTheDocument();
+    expect(await screen.findByText('Your items will appear here.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add your first item' })).toBeInTheDocument();
   });
 
@@ -741,7 +756,7 @@ describe('ItemList lifecycle display', () => {
     expect(screen.queryByText('Old Camera')).not.toBeInTheDocument();
   });
 
-  test('offers a clear-filter recovery when organization filters hide every item', async () => {
+  test('shows only a muted line when organization filters hide every item', async () => {
     getAllItems.mockResolvedValue([
       { id: 'active-filtered', name: 'Visible after clear', price: 10, purchaseDate: '2026-01-01T12:00:00Z', status: 'active', ownershipDays: 100, grossCostPerDay: 1 },
     ]);
@@ -753,9 +768,9 @@ describe('ItemList lifecycle display', () => {
 
     render(<MemoryRouter><ItemList /></MemoryRouter>);
 
-    expect(await screen.findByText('No items in this view')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(await screen.findByText('Visible after clear')).toBeInTheDocument();
+    expect(await screen.findByText('No items in this category yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /clear filters/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Visible after clear')).not.toBeInTheDocument();
   });
 
   test('normalizes deselecting the final state back to All states', async () => {
@@ -825,11 +840,12 @@ describe('ItemList lifecycle display', () => {
     // Click Delete to open confirmation
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
-    expect(screen.getByText(/Are you sure you want to delete this item\?/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete this item?' })).toBeInTheDocument();
+    expect(screen.getByText(/Desk Lamp and its history will be removed from this device/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
 
     // Confirm deletion
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => {
       expect(deleteItem).toHaveBeenCalledWith('item-del-1');
