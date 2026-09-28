@@ -77,7 +77,7 @@ function HomeHeader({
         <div className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[18px] bg-white ring-1 ring-black/[0.04]">
           <div className="home-reflection-surface relative isolate w-full min-w-0 text-white">
             <div className="relative z-[1] w-full min-w-0 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
-              {isBlank ? (
+              {isBlank || state === 'error' ? (
                 <div aria-hidden="true" className="min-h-[178px]" />
               ) : isLoadingSkeleton ? (
                 <HeroSkeleton paused={state === 'slow'} />
@@ -117,11 +117,14 @@ function Home() {
   const isTrueEmpty = itemsQuery.data !== undefined
     && !itemsQuery.isError
     && items.length === 0;
+  const isInitialItemsError = itemsQuery.isError && itemsQuery.data === undefined;
   const homeState = loadingState.phase !== 'idle'
     ? loadingState.phase
     : isTrueEmpty
       ? 'empty'
-      : 'content';
+      : isInitialItemsError
+        ? 'error'
+        : 'content';
   const dashboardTotal = dashboardData?.totalDailyCost;
   const hasDashboardTotal = dashboardTotal !== null
     && dashboardTotal !== undefined
