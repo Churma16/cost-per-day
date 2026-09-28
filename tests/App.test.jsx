@@ -63,7 +63,8 @@ test('renders authentication loading state while session bootstrap is pending', 
 
   render(<App />);
 
-  expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  expect(screen.getByRole('status')).toHaveTextContent('Opening your Worthwhile history');
+  expect(screen.queryByText(/^Loading\.\.\.$/)).not.toBeInTheDocument();
 });
 
 test('shows Google sign-in when there is no application session', async () => {
