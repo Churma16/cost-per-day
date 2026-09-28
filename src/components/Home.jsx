@@ -73,7 +73,7 @@ function HomeHeader({
   const isDashboardError = state === 'dashboard-error';
   const isCollapsed = isBlank || isLoadingSkeleton || state === 'error';
   const isBusy = isBlank || isLoadingSkeleton;
-  const showReflectionRow = isBusy || state === 'content' || isDashboardError;
+  const hasReflectionCopy = state === 'content' || isDashboardError;
 
   return (
     <>
@@ -146,22 +146,20 @@ function HomeHeader({
               </div>
             </div>
           </div>
-          {showReflectionRow && (
-            <p
-              data-home-reflection-row
-              aria-hidden={isBusy ? true : undefined}
-              className="min-h-[72px] max-w-md px-5 py-4 text-sm leading-5 text-[#66707A] sm:min-h-[52px] sm:px-6"
-            >
-              {isLoadingSkeleton ? (
-                <span
-                  aria-hidden="true"
-                  className={`block h-2.5 w-2/3 rounded bg-[var(--skeleton-bar)] ${state === 'slow' ? 'state-skeleton state-skeleton--paused' : 'state-skeleton'}`}
-                />
-              ) : isBusy ? null : t('dailyOwnershipReflection', {
-                amount: formatCurrency(totalDailyCost, resolvedCurrencyCode),
-              })}
-            </p>
-          )}
+          <p
+            data-home-reflection-row
+            aria-hidden={isBusy || !hasReflectionCopy ? true : undefined}
+            className="min-h-[72px] max-w-md px-5 py-4 text-sm leading-5 text-[#66707A] sm:min-h-[52px] sm:px-6"
+          >
+            {isLoadingSkeleton ? (
+              <span
+                aria-hidden="true"
+                className={`block h-2.5 w-2/3 rounded bg-[var(--skeleton-bar)] ${state === 'slow' ? 'state-skeleton state-skeleton--paused' : 'state-skeleton'}`}
+              />
+            ) : isBusy || !hasReflectionCopy ? null : t('dailyOwnershipReflection', {
+              amount: formatCurrency(totalDailyCost, resolvedCurrencyCode),
+            })}
+          </p>
         </div>
       </div>
     </>

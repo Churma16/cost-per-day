@@ -204,6 +204,34 @@ describe('HomeHeader', () => {
     expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$12.50');
   });
 
+  test.each(['empty', 'error'])('preserves hero card geometry when loading resolves to %s', (resolvedState) => {
+    const { container, rerender } = render(
+      <HomeHeader
+        totalDailyCost={0}
+        currencyCode="IDR"
+        state="skeleton"
+      />
+    );
+
+    const loadingReflectionRow = container.querySelector('[data-home-reflection-row]');
+    expect(loadingReflectionRow).toHaveClass('min-h-[72px]', 'sm:min-h-[52px]');
+
+    rerender(
+      <HomeHeader
+        totalDailyCost={0}
+        currencyCode="IDR"
+        state={resolvedState}
+      />
+    );
+
+    const resolvedReflectionRow = container.querySelector('[data-home-reflection-row]');
+    expect(resolvedReflectionRow).toBeInTheDocument();
+    expect(resolvedReflectionRow).toHaveClass('min-h-[72px]', 'sm:min-h-[52px]');
+    expect(resolvedReflectionRow).toHaveAttribute('aria-hidden', 'true');
+    expect(resolvedReflectionRow.querySelector('.state-skeleton')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Today, what you own is worth about/)).not.toBeInTheDocument();
+  });
+
   test('retains empty hero state when cached-empty items background refresh fails', () => {
     useDashboard.mockReturnValue({
       data: { totalDailyCost: 0, currencyCode: 'IDR' },
