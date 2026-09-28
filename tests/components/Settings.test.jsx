@@ -33,9 +33,9 @@ vi.mock('react-i18next', () => ({
         account: 'Account',
         signOut: 'Sign out',
         signOutSubtitle: 'Your data will stay with your account.',
-        signOutError: 'Not signed out yet. Your session is still active.',
+        signOutError: "Not signed out yet. You're still signed in.",
         signOutErrorTitle: 'Not signed out yet.',
-        signOutErrorBody: 'Your session is still active. Try again.',
+        signOutErrorBody: "You're still signed in. Try again.",
         signInWithGoogle: 'Sign in with Google',
         guestModeTitle: 'Using Worthwhile on this device',
         guestModeSettingsNotice: 'Your guest data stays only in this browser.',
@@ -54,53 +54,55 @@ vi.mock('react-i18next', () => ({
         eur: 'Euro (EUR)',
         cny: 'Chinese Yuan (CNY)',
         idr: 'Indonesian Rupiah (IDR)',
-        valueEquivalents: 'Personalized Value Equivalents',
+        valueEquivalents: 'Everyday References',
         valueEquivalentsDescription: 'Compare item cost per day to everyday goods',
         valueEquivalentsSubtitle: 'Translate daily costs into familiar everyday references.',
         add: 'Add',
-        addEquivalent: 'Add Equivalent',
-        editEquivalent: 'Edit Equivalent',
-        deleteEquivalent: 'Delete Equivalent',
+        addEquivalent: 'Add Reference',
+        editEquivalent: 'Edit Reference',
+        deleteEquivalent: 'Delete Reference',
         equivalentName: 'Benchmark Name',
         enterEquivalentName: 'e.g. Gorengan, Coffee',
         equivalentAmount: 'Benchmark Cost',
         enterEquivalentAmount: 'e.g. 2500',
-        noEquivalents: 'No personalized value equivalents added yet.',
-        confirmDeleteEquivalent: 'Are you sure you want to delete this value equivalent?',
-        errorLoadingEquivalents: 'Could not load value equivalents',
-        equivalentsLoadErrorBody: "Couldn't load your value equivalents. Check your connection and try again.",
+        noEquivalents: 'No everyday references yet.',
+        confirmDeleteEquivalent: 'Are you sure you want to delete this everyday reference?',
+        errorLoadingEquivalents: 'Could not load everyday references',
+        equivalentsLoadErrorBody: "Couldn't load your everyday references. Check your connection and try again.",
         errorLoadingSettings: "Couldn't load these preferences. Your other settings are still available.",
         preferenceUpdateErrorTitle: 'Not updated yet.',
         errorUpdatingLanguage: "Language wasn't updated. Your current setting is unchanged. Try again.",
         errorUpdatingCurrency: "Currency wasn't updated. Your current setting is unchanged. Try again.",
-        errorSavingEquivalent: 'Not saved yet. Your entries are still here. Nothing was lost.',
-        equivalentSaveErrorBody: 'Your entries are still here. Nothing was lost.',
+        errorSavingEquivalent: "Not saved yet. Your entries are still here. Try again when you're ready.",
+        equivalentSaveErrorBody: "Your entries are still here. Try again when you're ready.",
         notSavedYet: 'Not saved yet.',
         errorDeletingEquivalent: 'Failed to delete this comparison.',
         importError: 'Import not completed',
-        importErrorBody: 'Not imported yet. Your existing data is unchanged. Nothing was lost.',
+        importErrorBody: 'Not imported yet. Your existing data is unchanged.',
         importFileErrorBody: "Couldn't use this file. Choose a Worthwhile .json backup and try again.",
-        exportErrorBody: 'Not exported yet. Your data is still here. Nothing was lost.',
+        exportErrorBody: "Not exported yet. Your data is unchanged. Try again when you're ready.",
         dataTransferErrorTitle: 'Not completed yet.',
         equivalentsLoadingTitle: 'Loading your everyday references',
         equivalentsLoadingDescription: 'Worthwhile is bringing your familiar comparisons into view.',
-        equivalentsLoadErrorTitle: "Your value equivalents didn't load",
+        equivalentsLoadErrorTitle: "Your everyday references didn't load",
         equivalentsEmptyDescription: 'Add a familiar everyday amount to give daily ownership costs more personal context.',
         tryAgain: 'Try again',
         refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
         stillLoadingEquivalents: 'Still loading your comparisons...',
+        stillLoadingSettings: 'Still loading your preferences...',
         saving: 'Saving...',
         enterEquivalentNameToContinue: 'Enter a name to continue.',
         enterEquivalentAmountToContinue: 'Enter an amount to continue.',
-        deleteThisEquivalent: 'Delete this value equivalent?',
-        deleteEquivalentIrreversible: `${options?.name} (${options?.amount}) will be removed from Worthwhile. This can't be undone.`,
+        deleteThisEquivalent: 'Delete this everyday reference?',
+        deleteEquivalentIrreversibleAccount: `${options?.name} (${options?.amount}) will be permanently removed from Worthwhile. This can't be undone.`,
+        deleteEquivalentIrreversibleDevice: `${options?.name} (${options?.amount}) will be permanently removed from this device. This can't be undone.`,
         deleteEquivalentErrorTitle: 'Not deleted yet.',
-        deleteEquivalentErrorBody: 'This value equivalent is still here. Nothing was lost.',
+        deleteEquivalentErrorBody: 'This everyday reference is still here.',
         keepIt: 'Keep it',
         guestMigrationRetryBody: 'Your data is still on this device. Try again when you are ready.',
         guestValueEquivalentLimitReached: options?.limit
-          ? `You've used ${options.limit} value equivalents. Sign in to save more and use them across devices.`
-          : 'Value equivalent limit reached.',
+          ? `You've used ${options.limit} everyday references. Sign in to save more and use them across devices.`
+          : 'Everyday reference limit reached.',
         cancel: 'Cancel',
         save: 'Save',
         delete: 'Delete'
@@ -158,11 +160,13 @@ describe('Settings component', () => {
     replaceAllItems.mockResolvedValue([]);
     useLanguage.mockReturnValue({
       language: 'en',
-      changeLanguage: mockChangeLanguage
+      changeLanguage: mockChangeLanguage,
+      isLoading: false,
     });
     useCurrency.mockReturnValue({
       currencyCode: 'USD',
-      changeCurrency: mockChangeCurrency
+      changeCurrency: mockChangeCurrency,
+      isLoading: false,
     });
     useValueEquivalents.mockReturnValue({
       valueEquivalents: [],
@@ -182,12 +186,46 @@ describe('Settings component', () => {
     });
   });
 
+  test('keeps the Settings shell visible while preferences load', () => {
+    vi.useFakeTimers();
+    useLanguage.mockReturnValue({
+      language: 'en',
+      changeLanguage: mockChangeLanguage,
+      isLoading: true,
+    });
+    useCurrency.mockReturnValue({
+      currencyCode: 'USD',
+      changeCurrency: mockChangeCurrency,
+      isLoading: true,
+    });
+
+    const { container } = render(<Settings />);
+
+    expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeInTheDocument();
+    const generalHeading = screen.getByRole('heading', { name: 'General', level: 2 });
+    expect(generalHeading).toBeInTheDocument();
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(generalHeading.closest('section').querySelectorAll('.state-skeleton')).toHaveLength(8);
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your preferences...');
+
+    vi.useRealTimers();
+  });
+
   test('renders grouped intent-based sections with consequence subtext', () => {
     render(<Settings />);
 
     // Section headers
     expect(screen.getByRole('heading', { name: 'General', level: 2 })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Personalized Value Equivalents', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Everyday References', level: 2 })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Data & Account', level: 2 })).toBeInTheDocument();
 
     // Consequence subtexts
@@ -373,7 +411,7 @@ describe('Settings component', () => {
     ).toBeTruthy();
 
     expect(screen.getByRole('heading', { name: 'General', level: 2 })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Personalized Value Equivalents', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Everyday References', level: 2 })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Data & Account', level: 2 })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /language.*english/i }));
@@ -390,7 +428,7 @@ describe('Settings component', () => {
       expect(screen.queryByRole('dialog', { name: 'Select Currency' })).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Add Equivalent/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Add Reference/i }));
     expect(screen.getByPlaceholderText('e.g. Gorengan, Coffee')).toBeInTheDocument();
   });
 
@@ -424,7 +462,7 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Add Equivalent/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Add Reference/i }));
     fireEvent.change(screen.getByPlaceholderText('e.g. Gorengan, Coffee'), {
       target: { value: 'Snack' },
     });
@@ -434,7 +472,7 @@ describe('Settings component', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
 
     expect(await screen.findByText(
-      "You've used 3 value equivalents. Sign in to save more and use them across devices."
+      "You've used 3 everyday references. Sign in to save more and use them across devices."
     )).toBeInTheDocument();
   });
 
@@ -473,7 +511,7 @@ describe('Settings component', () => {
     const signOutButton = screen.getByRole('button', { name: 'Sign out' });
     fireEvent.click(signOutButton);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Your session is still active. Try again.');
+    expect(await screen.findByRole('alert')).toHaveTextContent("You're still signed in. Try again.");
     expect(screen.queryByText('Network error signing out')).not.toBeInTheDocument();
   });
 
@@ -497,7 +535,7 @@ describe('Settings component', () => {
     const confirmButton = await screen.findByRole('button', { name: 'Import Data' });
     fireEvent.click(confirmButton);
 
-    expect(await screen.findByText('Not imported yet. Your existing data is unchanged. Nothing was lost.')).toBeInTheDocument();
+    expect(await screen.findByText('Not imported yet. Your existing data is unchanged.')).toBeInTheDocument();
     expect(screen.queryByText(
       'Import failed atomically. Existing server data is unchanged.'
     )).not.toBeInTheDocument();
@@ -506,8 +544,8 @@ describe('Settings component', () => {
   test('renders empty state message when no value equivalents are saved', () => {
     render(<Settings />);
 
-    expect(screen.getByText('Personalized Value Equivalents')).toBeInTheDocument();
-    expect(screen.getByText('No personalized value equivalents added yet.')).toBeInTheDocument();
+    expect(screen.getByText('Everyday References')).toBeInTheDocument();
+    expect(screen.getByText('No everyday references yet.')).toBeInTheDocument();
   });
 
   test('renders list of value equivalents with their details', () => {
@@ -534,7 +572,7 @@ describe('Settings component', () => {
   test('shows accessible field errors without clearing equivalent inputs', () => {
     render(<Settings />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Add Equivalent/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Add Reference/i }));
     const nameInput = screen.getByPlaceholderText('e.g. Gorengan, Coffee');
     const amountInput = screen.getByPlaceholderText('e.g. 2500');
 
@@ -559,7 +597,7 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
-    const openAddModalButton = screen.getByRole('button', { name: /Add Equivalent/i });
+    const openAddModalButton = screen.getByRole('button', { name: /Add Reference/i });
     fireEvent.click(openAddModalButton);
 
     expect(screen.getByPlaceholderText('e.g. Gorengan, Coffee')).toBeInTheDocument();
@@ -603,7 +641,7 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
-    const editButtonElement = screen.getByLabelText('Edit Equivalent Gorengan');
+    const editButtonElement = screen.getByLabelText('Edit Reference Gorengan');
     fireEvent.click(editButtonElement);
 
     const nameInputElement = screen.getByPlaceholderText('e.g. Gorengan, Coffee');
@@ -643,11 +681,11 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
-    const deleteButtonElement = screen.getByLabelText('Delete Equivalent Gorengan');
+    const deleteButtonElement = screen.getByLabelText('Delete Reference Gorengan');
     fireEvent.click(deleteButtonElement);
 
-    expect(screen.getByRole('heading', { name: 'Delete this value equivalent?' })).toBeInTheDocument();
-    expect(screen.getByText(/Gorengan .* will be removed from Worthwhile/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete this everyday reference?' })).toBeInTheDocument();
+    expect(screen.getByText(/Gorengan .* will be permanently removed from Worthwhile/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
 
     const confirmDeleteButton = screen.getByRole('button', { name: /^Delete$/i });
@@ -672,11 +710,11 @@ describe('Settings component', () => {
     render(<Settings />);
 
     const errorState = screen.getByRole('status');
-    expect(errorState).toHaveTextContent("Couldn't load your value equivalents. Check your connection and try again.");
+    expect(errorState).toHaveTextContent("Couldn't load your everyday references. Check your connection and try again.");
     expect(errorState).not.toHaveTextContent('Network error loading equivalents');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(mockRefreshEquivalents).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
+    expect(screen.queryByText('No everyday references yet.')).not.toBeInTheDocument();
   });
 
   test('keeps cached value equivalents visible when refresh fails', () => {
@@ -727,7 +765,7 @@ describe('Settings component', () => {
       vi.advanceTimersByTime(1800);
     });
     expect(screen.getByRole('status')).toHaveTextContent('Still loading your comparisons...');
-    expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
+    expect(screen.queryByText('No everyday references yet.')).not.toBeInTheDocument();
 
     vi.useRealTimers();
   });
@@ -740,7 +778,7 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
-    const openAddModalButton = screen.getByRole('button', { name: /Add Equivalent/i });
+    const openAddModalButton = screen.getByRole('button', { name: /Add Reference/i });
     fireEvent.click(openAddModalButton);
 
     const nameInputElement = screen.getByPlaceholderText('e.g. Gorengan, Coffee');
@@ -787,7 +825,7 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
-    const deleteButtonElement = screen.getByLabelText('Delete Equivalent Gorengan');
+    const deleteButtonElement = screen.getByLabelText('Delete Reference Gorengan');
     fireEvent.click(deleteButtonElement);
 
     const confirmDeleteButton = screen.getByRole('button', { name: /^Delete$/i });
@@ -822,8 +860,9 @@ describe('Settings component', () => {
       error: null
     });
 
-    const { container } = render(<Settings />);
-    const equivalentBadge = container.querySelector('.bg-teal-50');
+    render(<Settings />);
+    const equivalentRow = screen.getByText('Gasoline').closest('div.flex');
+    const equivalentBadge = equivalentRow?.querySelector('span.rounded-lg');
     expect(equivalentBadge).toBeInTheDocument();
     expect(equivalentBadge.querySelector('svg')).toBeInTheDocument();
   });

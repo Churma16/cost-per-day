@@ -7,6 +7,7 @@ import SettingsModalTransition from './SettingsModalTransition';
 function DeleteEquivalentConfirmDialog({
   target,
   isOpen,
+  isGuest = false,
   isDeleting,
   errorMessage,
   onCancel,
@@ -36,12 +37,17 @@ function DeleteEquivalentConfirmDialog({
             {t('deleteThisEquivalent')}
           </h2>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
-            {t('deleteEquivalentIrreversible', {
-              name: target?.name,
-              amount: target
-                ? formatCurrency(Number(target.amount || 0), target.currencyCode)
-                : '',
-            })}
+            {t(
+              isGuest
+                ? 'deleteEquivalentIrreversibleDevice'
+                : 'deleteEquivalentIrreversibleAccount',
+              {
+                name: target?.name,
+                amount: target
+                  ? formatCurrency(Number(target.amount || 0), target.currencyCode)
+                  : '',
+              }
+            )}
           </p>
           {errorMessage && (
             <ErrorCard

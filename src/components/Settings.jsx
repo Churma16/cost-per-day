@@ -38,8 +38,18 @@ function Settings() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { repositories } = usePersistence();
-  const { language, changeLanguage, error: languageError } = useLanguage();
-  const { currencyCode, changeCurrency, error: currencyError } = useCurrency();
+  const {
+    language,
+    changeLanguage,
+    error: languageError,
+    isLoading: isLoadingLanguage,
+  } = useLanguage();
+  const {
+    currencyCode,
+    changeCurrency,
+    error: currencyError,
+    isLoading: isLoadingCurrency,
+  } = useCurrency();
   const {
     isGuest,
     signIn,
@@ -380,6 +390,7 @@ function Settings() {
           language={language}
           languageName={getLanguageName(language)}
           selectedCurrencyOption={selectedCurrencyOption}
+          isLoading={Boolean(isLoadingLanguage || isLoadingCurrency)}
           isInteractionBlocked={Boolean(activeModal)}
           onOpenLanguage={() => {
             setActiveModal('language');
@@ -467,6 +478,7 @@ function Settings() {
       <DeleteEquivalentConfirmDialog
         target={showDeleteEquivalentConfirm}
         isOpen={Boolean(showDeleteEquivalentConfirm)}
+        isGuest={isGuest}
         isDeleting={isDeletingEquivalent}
         errorMessage={deleteEquivalentError}
         onCancel={handleCloseDeleteConfirm}
