@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DayPicker } from 'react-day-picker';
-import { IoCalendarOutline } from 'react-icons/io5';
+import { IoCalendarOutline, IoInformationCircleOutline } from 'react-icons/io5';
 import { formatDisplayDate, getDateLocale } from '../../utils/formatters';
 import {
   currentUTCDateOnly,
@@ -22,6 +22,8 @@ function ItemRequiredFieldsCard({
   currencySymbol,
   currencyCode,
   language,
+  nameError = null,
+  priceError = null,
 }) {
   const { t } = useTranslation();
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -60,8 +62,16 @@ function ItemRequiredFieldsCard({
           onChange={(event) => onNameChange(event.target.value)}
           required
           placeholder={t('enterItemName')}
-          className={formControlClassName}
+          aria-invalid={nameError ? 'true' : undefined}
+          aria-describedby={nameError ? 'owned-item-name-error' : undefined}
+          className={`${formControlClassName} ${nameError ? 'border-[1.5px] border-[var(--error-outline)]' : ''}`}
         />
+        {nameError && (
+          <p id="owned-item-name-error" className="mt-2 flex items-center gap-1.5 text-xs text-[var(--error-text)]">
+            <IoInformationCircleOutline aria-hidden="true" className="h-3.5 w-3.5 flex-none" />
+            <span>{nameError}</span>
+          </p>
+        )}
       </FormField>
 
       {/* Price */}
@@ -75,8 +85,16 @@ function ItemRequiredFieldsCard({
             required
             currencyCode={currencyCode}
             placeholder={t('enterPrice')}
-            className={`${formControlClassName} ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'}`}
+            aria-invalid={priceError ? 'true' : undefined}
+            aria-describedby={priceError ? 'owned-item-price-error' : undefined}
+            className={`${formControlClassName} ${currencySymbol.length > 1 ? 'pl-9' : 'pl-7'} ${priceError ? 'border-[1.5px] border-[var(--error-outline)]' : ''}`}
           />
+          {priceError && (
+            <p id="owned-item-price-error" className="mt-2 flex items-center gap-1.5 text-xs text-[var(--error-text)]">
+              <IoInformationCircleOutline aria-hidden="true" className="h-3.5 w-3.5 flex-none" />
+              <span>{priceError}</span>
+            </p>
+          )}
         </div>
       </FormField>
 
