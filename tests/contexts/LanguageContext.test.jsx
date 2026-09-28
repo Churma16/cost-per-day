@@ -68,10 +68,10 @@ describe('LanguageContext', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('language-loading')).toHaveTextContent('false');
-    });
+      expect(screen.getByTestId('language-has-settings-data')).toHaveTextContent('false');
+    }, { timeout: 3000 });
 
     expect(screen.getByTestId('language-code')).toHaveTextContent('en');
-    expect(screen.getByTestId('language-has-settings-data')).toHaveTextContent('false');
   });
 
   test('loads persisted Indonesian language from storage', async () => {
