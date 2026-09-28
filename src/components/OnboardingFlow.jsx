@@ -39,6 +39,24 @@ const emptyReference = (name = '', kind = null) => ({ kind, name, amount: '' });
 const CALM_EASE = [0.16, 1, 0.3, 1];
 const CALM_HEIGHT_EASE = [0.22, 1, 0.36, 1];
 
+const LocalizedCopy = ({ language, reduceMotion, children, className = '' }) => (
+  <AnimatePresence mode="wait" initial={false}>
+    <motion.span
+      key={language}
+      initial={reduceMotion ? false : { opacity: 0, y: 1 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? undefined : {
+        opacity: 0,
+        transition: { duration: 0.14, ease: 'easeOut' },
+      }}
+      transition={{ duration: reduceMotion ? 0 : 0.28, ease: CALM_EASE }}
+      className={`inline-block ${className}`}
+    >
+      {children}
+    </motion.span>
+  </AnimatePresence>
+);
+
 const OnboardingShell = ({ step, direction, children }) => {
   const shouldReduceMotion = useReducedMotion();
   const [contentNode, setContentNode] = useState(null);
@@ -184,9 +202,6 @@ function OnboardingFlow({ onComplete }) {
   const initialLanguage = useRef(language);
   const [currency, setCurrency] = useState(() => suggestCurrency(getDeviceLocales()));
   const [references, setReferences] = useState([]);
-  const [pendingPreviewLanguage, setPendingPreviewLanguage] = useState(null);
-  const [isLanguagePreviewDimmed, setIsLanguagePreviewDimmed] = useState(false);
-  const isApplyingPreviewLanguage = useRef(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const currencies = useMemo(() => getSupportedCurrencies().map((item) => ({
@@ -221,35 +236,8 @@ function OnboardingFlow({ onComplete }) {
     if (code === language) return;
 
     setLanguage(code);
-    if (shouldReduceMotion) {
-      localizeSuggestedReferences(code);
-      void i18n.changeLanguage(code);
-      return;
-    }
-
-    setPendingPreviewLanguage(code);
-    setIsLanguagePreviewDimmed(true);
-  };
-
-  const finishLanguagePreviewTransition = () => {
-    if (
-      !isLanguagePreviewDimmed
-      || !pendingPreviewLanguage
-      || isApplyingPreviewLanguage.current
-    ) return;
-
-    isApplyingPreviewLanguage.current = true;
-    const nextLanguage = pendingPreviewLanguage;
-    void i18n.changeLanguage(nextLanguage)
-      .then(() => localizeSuggestedReferences(nextLanguage))
-      .catch((previewError) => {
-        console.error('Error previewing onboarding language:', previewError);
-      })
-      .finally(() => {
-        setPendingPreviewLanguage(null);
-        setIsLanguagePreviewDimmed(false);
-        isApplyingPreviewLanguage.current = false;
-      });
+    localizeSuggestedReferences(code);
+    void i18n.changeLanguage(code);
   };
 
   const addSuggestedReference = (kind) => {
@@ -333,24 +321,30 @@ function OnboardingFlow({ onComplete }) {
   if (step === 2) {
     return (
       <OnboardingShell step={step} direction={transitionDirection}>
-        <motion.div
-          initial={false}
-          animate={{ opacity: isLanguagePreviewDimmed ? 0.34 : 1 }}
-          transition={{
-            duration: shouldReduceMotion ? 0 : isLanguagePreviewDimmed ? 0.18 : 0.34,
-            ease: CALM_EASE,
-          }}
-          onAnimationComplete={finishLanguagePreviewTransition}
-          className="px-6 pb-7 pt-6 sm:px-8"
-        >
+        <div className="px-6 pb-7 pt-6 sm:px-8">
           <button type="button" onClick={() => navigateToStep(1)} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800">
-            <IoArrowBack /> {t('back')}
+            <IoArrowBack />
+            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
+              {t('back')}
+            </LocalizedCopy>
           </button>
-          <h1 className="text-xl font-bold tracking-[-0.02em] text-gray-950">{t('onboardingPreferencesTitle')}</h1>
-          <p className="mt-2 text-sm leading-5 text-gray-600">{t('onboardingPreferencesBody')}</p>
+          <h1 className="text-xl font-bold tracking-[-0.02em] text-gray-950">
+            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
+              {t('onboardingPreferencesTitle')}
+            </LocalizedCopy>
+          </h1>
+          <p className="mt-2 text-sm leading-5 text-gray-600">
+            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
+              {t('onboardingPreferencesBody')}
+            </LocalizedCopy>
+          </p>
 
           <fieldset className="mt-6">
-            <legend className="text-xs font-semibold uppercase tracking-wider text-gray-500">{t('language')}</legend>
+            <legend className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
+                {t('language')}
+              </LocalizedCopy>
+            </legend>
             <div className="mt-2 flex flex-wrap gap-2" data-testid="language-options">
               {SUPPORTED_LANGUAGES.map((code) => {
                 const isSelected = language === code;
@@ -389,14 +383,26 @@ function OnboardingFlow({ onComplete }) {
             </div>
           </fieldset>
 
-          <label className="mt-6 block text-xs font-semibold uppercase tracking-wider text-gray-500" htmlFor="onboarding-currency">{t('currency')}</label>
+          <label className="mt-6 block text-xs font-semibold uppercase tracking-wider text-gray-500" htmlFor="onboarding-currency">
+            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
+              {t('currency')}
+            </LocalizedCopy>
+          </label>
           <select id="onboarding-currency" value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#2F7473] focus:outline-none focus:ring-2 focus:ring-[#2F7473]/20">
             {currencies.map((option) => <option key={option.code} value={option.code}>{option.symbol} {option.name}</option>)}
           </select>
-          <p className="mt-2 text-xs leading-5 text-gray-500">{t('onboardingCurrencyHelp')}</p>
+          <p className="mt-2 text-xs leading-5 text-gray-500">
+            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
+              {t('onboardingCurrencyHelp')}
+            </LocalizedCopy>
+          </p>
 
-          <button type="button" onClick={() => navigateToStep(3)} className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]">{t('continue')}</button>
-        </motion.div>
+          <button type="button" onClick={() => navigateToStep(3)} className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]">
+            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
+              {t('continue')}
+            </LocalizedCopy>
+          </button>
+        </div>
       </OnboardingShell>
     );
   }
