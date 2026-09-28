@@ -86,6 +86,18 @@ vi.mock('react-i18next', () => ({
         sortPriceAscending: 'Price: low to high',
         uncategorized: 'Uncategorized',
         noItemsMatchFilter: 'No items match this filter',
+        homeLoadingTitle: 'Bringing your ownership story into view',
+        homeLoadingDescription: 'Worthwhile is gathering the items that make up your history.',
+        homeLoadErrorTitle: "Your ownership history didn't load",
+        homeLoadErrorDescription: 'Your saved history is still yours. Try loading it again.',
+        homeRefreshError: "We couldn't refresh your items. Your last saved view is still here.",
+        homeEmptyTitle: 'Your ownership story starts here',
+        homeEmptyDescription: 'Add an item you already own to see how its cost and context change over time.',
+        addFirstOwnedItem: 'Add your first item',
+        homeFilteredEmptyTitle: 'No items in this view',
+        homeFilteredEmptyDescription: 'Your items are still here. Clear the ownership filter to see the broader history.',
+        clearFilters: 'Clear filters',
+        retry: 'Retry',
         done: 'Done',
         close: 'Close',
         ownedFor: 'Owned for',
@@ -148,6 +160,35 @@ describe('ItemList lifecycle display', () => {
     vi.stubGlobal('localStorage', createMemoryStorage());
     useCurrency.mockReturnValue({ currencyCode: 'USD' });
     useValueEquivalents.mockReturnValue({ valueEquivalents: [] });
+  });
+
+  test('uses the shared ownership loader for the first load', () => {
+    getAllItems.mockReturnValue(new Promise(() => {}));
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Bringing your ownership story into view');
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  test('renders a recovery action for an initial item load failure', async () => {
+    getAllItems.mockRejectedValue(new Error('raw item transport failure'));
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    const errorState = await screen.findByRole('alert', {}, { timeout: 3000 });
+    expect(errorState).toHaveTextContent("Your ownership history didn't load");
+    expect(errorState).not.toHaveTextContent('raw item transport failure');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
+  test('turns a true empty collection into a first-item action', async () => {
+    getAllItems.mockResolvedValue([]);
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    expect(await screen.findByText('Your ownership story starts here')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add your first item' })).toBeInTheDocument();
   });
 
   test('uses backend-derived final and net costs for sold history', async () => {
@@ -698,6 +739,23 @@ describe('ItemList lifecycle display', () => {
     expect(await screen.findByText('Sold Camera')).toBeInTheDocument();
     expect(screen.getByText('New Camera')).toBeInTheDocument();
     expect(screen.queryByText('Old Camera')).not.toBeInTheDocument();
+  });
+
+  test('offers a clear-filter recovery when organization filters hide every item', async () => {
+    getAllItems.mockResolvedValue([
+      { id: 'active-filtered', name: 'Visible after clear', price: 10, purchaseDate: '2026-01-01T12:00:00Z', status: 'active', ownershipDays: 100, grossCostPerDay: 1 },
+    ]);
+    window.localStorage.setItem('worthwhile.homeOrganization.v1', JSON.stringify({
+      stateFilters: ['lost'],
+      groupBy: 'ownershipState',
+      sortBy: 'recentlyAcquired',
+    }));
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    expect(await screen.findByText('No items in this view')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    expect(await screen.findByText('Visible after clear')).toBeInTheDocument();
   });
 
   test('normalizes deselecting the final state back to All states', async () => {
