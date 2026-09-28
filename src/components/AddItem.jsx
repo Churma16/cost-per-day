@@ -32,6 +32,7 @@ import ItemOptionalDetailsCard from './item-form/ItemOptionalDetailsCard';
 import ItemStatusCard from './item-form/ItemStatusCard';
 import ItemOwnershipTargetCard from './item-form/ItemOwnershipTargetCard';
 import ItemDeleteConfirmModal from './item-form/ItemDeleteConfirmModal';
+import { InlineStateNotice, StatePanel } from './ui/AsyncState';
 
 const createTargetDraftValues = ({ targetType, targetValue }) => ({
   cost_per_day: targetType === 'cost_per_day' ? targetValue : '',
@@ -84,9 +85,13 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const [hydratedEditId, setHydratedEditId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [loadFailed, setLoadFailed] = useState(false);
   const { currencyCode, currencySymbol } = useCurrency();
-  const { data: itemsData, isLoading: itemsLoading, error: itemsError } = useItems();
+  const {
+    data: itemsData,
+    isLoading: itemsLoading,
+    error: itemsError,
+    refetch: refetchItems,
+  } = useItems();
   const items = itemsData ?? [];
   const completedItems = items.filter(
     (candidate) => candidate.status && candidate.status !== 'active'
@@ -95,6 +100,21 @@ function AddItem({ showHeader = true, isVisible = true }) {
     isEditMode &&
     editId !== null &&
     String(hydratedEditId) === String(editId);
+  const editItem = isEditMode && editId
+    ? items.find((item) => String(item.id) === String(editId))
+    : null;
+  const isEditLoadError = isEditMode && itemsData === undefined && Boolean(itemsError);
+  const isEditItemMissing = isEditMode
+    && Boolean(editId)
+    && !itemsLoading
+    && !isEditLoadError
+    && itemsData !== undefined
+    && !editItem;
+  const isEditHydrating = isEditMode
+    && Boolean(editId)
+    && !isEditLoadError
+    && !isEditItemMissing
+    && !itemLoaded;
   const createItemMutation = useCreateItem();
   const updateItemMutation = useUpdateItem();
   const deleteItemMutation = useDeleteItem();
@@ -143,24 +163,14 @@ function AddItem({ showHeader = true, isVisible = true }) {
     }
 
     if (itemsError && itemsData === undefined) {
-      setErrorMessage(itemsError.message || t('errorLoadingItem'));
-      setLoadFailed(true);
       return;
     }
 
-    const itemToEdit = items.find(
-      (item) => String(item.id) === String(editId)
-    );
-
-    if (!itemToEdit) {
-      console.error('Item not found for editing');
-      setErrorMessage(t('itemNotFound'));
-      setLoadFailed(true);
-      setHydratedEditId(null);
+    if (!editItem) {
       return;
     }
 
-    const hydratedValues = itemToFormValues(itemToEdit);
+    const hydratedValues = itemToFormValues(editItem);
     setName(hydratedValues.name);
     setPrice(hydratedValues.price);
     setCategory(hydratedValues.category);
@@ -172,17 +182,15 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setTargetType(hydratedValues.targetType);
     setTargetDraftValues(createTargetDraftValues(hydratedValues));
     setHydratedEditId(String(editId));
-    setLoadFailed(false);
     setErrorMessage(null);
   }, [
     editId,
     isEditMode,
     itemLoaded,
-    items,
+    editItem,
     itemsData,
     itemsError,
     itemsLoading,
-    t,
   ]);
 
   const {
@@ -264,7 +272,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
       setErrorMessage(
         error?.code === 'guest_item_limit'
           ? t('guestItemLimitReached', { limit: error.limit })
-          : error.message || t('errorSavingItem')
+          : t('errorSavingItem')
       );
     }
   };
@@ -282,7 +290,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     } catch (error) {
       console.error('Error deleting item:', error);
       setShowDeleteConfirm(false);
-      setErrorMessage(error.message || t('errorDeletingItem'));
+      setErrorMessage(t('errorDeletingItem'));
     }
   };
 
@@ -309,13 +317,38 @@ function AddItem({ showHeader = true, isVisible = true }) {
 
       {/* Form - main content */}
       <div className="px-3.5 py-1.5 space-y-2.5 form-page-content pb-8">
-        {errorMessage && (
-          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {errorMessage}
-          </div>
-        )}
+        {isEditHydrating ? (
+          <StatePanel
+            variant="loading"
+            title={t('editItemLoadingTitle')}
+            description={t('editItemLoadingDescription')}
+          />
+        ) : isEditLoadError ? (
+          <StatePanel
+            variant="error"
+            title={t('editItemLoadErrorTitle')}
+            description={t('editItemLoadErrorDescription')}
+            actionLabel={t('retry')}
+            onAction={() => refetchItems()}
+          />
+        ) : isEditItemMissing ? (
+          <StatePanel
+            variant="empty"
+            title={t('itemNotFoundTitle')}
+            description={t('itemNotFound')}
+            actionLabel={t('backToWorthwhile')}
+            onAction={() => navigate('/')}
+          />
+        ) : (
+          <>
+            {errorMessage && (
+              <InlineStateNotice
+                variant="error"
+                message={errorMessage}
+              />
+            )}
 
-        <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
           <div className="space-y-2.5">
             {showHeader && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" aria-label={t('ownedItemContext')}>
@@ -416,7 +449,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
                   !isFormValid
                   || createItemMutation.isPending
                   || updateItemMutation.isPending
-                  || (isEditMode && (loadFailed || !itemLoaded))
+                  || (isEditMode && !itemLoaded)
                 }
               >
                 {t('save')}
@@ -447,7 +480,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
               )}
             </div>
           </div>
-        </form>
+            </form>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
