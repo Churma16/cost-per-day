@@ -139,6 +139,17 @@ func (repositoryInstance *MemoryItemRepository) Delete(_ context.Context, userID
 	}
 
 	delete(userItems, itemID)
+
+	currentTimestamp := time.Now().UTC()
+	for storedItemID, storedItem := range userItems {
+		if storedItem.ReplacesItemID == nil || strings.TrimSpace(*storedItem.ReplacesItemID) != itemID {
+			continue
+		}
+		storedItem.ReplacesItemID = nil
+		storedItem.UpdatedAt = currentTimestamp
+		userItems[storedItemID] = storedItem
+	}
+
 	return nil
 }
 
