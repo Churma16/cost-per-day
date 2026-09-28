@@ -15,7 +15,13 @@ import {
   SettingsRowText,
   SettingsSection,
 } from './SettingsList';
-import { StatePanel } from '../ui/AsyncState';
+import {
+  CardListSkeleton,
+  EmptyState,
+  NoticeCard,
+  SlowLoadIndicator,
+} from '../ui/AsyncState';
+import { useLoadingPhases } from '../../hooks/useLoadingPhases';
 
 function ValueEquivalentsSection({
   valueEquivalents,
@@ -28,6 +34,7 @@ function ValueEquivalentsSection({
   onRetry,
 }) {
   const { t } = useTranslation();
+  const loadingState = useLoadingPhases(isLoading);
 
   return (
     <SettingsSection
@@ -49,25 +56,26 @@ function ValueEquivalentsSection({
       ) : null}
     >
 
-      {isLoading ? (
-        <StatePanel
-          variant="loading"
-          title={t('equivalentsLoadingTitle')}
-          description={t('equivalentsLoadingDescription')}
-          className="py-6"
-        />
+      {loadingState.phase !== 'idle' ? (
+        <div aria-busy="true" className="min-h-[132px]">
+          {loadingState.phase !== 'blank' && (
+            <>
+              <CardListSkeleton count={2} paused={loadingState.showSlowIndicator} />
+              {loadingState.showSlowIndicator && (
+                <SlowLoadIndicator message={t('stillLoadingEquivalents')} />
+              )}
+            </>
+          )}
+        </div>
       ) : error ? (
-        <StatePanel
-          variant="error"
-          title={t('equivalentsLoadErrorTitle')}
-          description={t('errorLoadingEquivalents')}
-          actionLabel={t('retry')}
+        <NoticeCard
+          body={t('equivalentsLoadErrorBody')}
+          actionLabel={t('tryAgain')}
           onAction={onRetry}
-          className="py-6"
         />
       ) : valueEquivalents.length === 0 ? (
-        <StatePanel
-          variant="empty"
+        <EmptyState
+          motif="home"
           title={t('noEquivalents')}
           description={t('equivalentsEmptyDescription')}
           actionLabel={t('addEquivalent')}
@@ -103,7 +111,7 @@ function ValueEquivalentsSection({
                   <button
                     type="button"
                     aria-label={`${t('deleteEquivalent')} ${equivalentItem.name}`}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--error-text)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--error-outline)]"
                     onClick={() => {
                       if (!isInteractionBlocked) onDelete(equivalentItem);
                     }}
