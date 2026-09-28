@@ -7,6 +7,8 @@ import { formatCurrency } from '../utils/formatters';
 import HeroCarousel from './HeroCarousel';
 import { ItemListContent } from './ItemList';
 import WorthwhileBrandLockup from './WorthwhileBrandLockup';
+import { HeroSkeleton } from './ui/AsyncState';
+import { useLoadingPhases } from '../hooks/useLoadingPhases';
 
 export const calculateActiveItemsDailyCost = (items = []) => items.reduce((total, item) => {
   const status = item?.status || 'active';
@@ -55,26 +57,51 @@ function HomeBrandHeader() {
   );
 }
 
-function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode }) {
+function HomeHeader({
+  totalDailyCost = 0,
+  currencyCode: dashboardCurrencyCode,
+  state = 'content',
+}) {
   const { t } = useTranslation();
   const { currencyCode } = useCurrency();
   const resolvedCurrencyCode = dashboardCurrencyCode || currencyCode;
+
+  const isBlank = state === 'blank';
+  const isLoadingSkeleton = state === 'skeleton' || state === 'slow';
+  const isEmpty = state === 'empty';
 
   return (
     <>
       <HomeBrandHeader />
       <div className="w-full min-w-0 flex-shrink-0 px-4">
-        <div className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[1.25rem] bg-white ring-1 ring-black/[0.04]">
+        <div className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[18px] bg-white ring-1 ring-black/[0.04]">
           <div className="home-reflection-surface relative isolate w-full min-w-0 text-white">
             <div className="relative z-[1] w-full min-w-0 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
-              <HeroCarousel />
+              {isBlank ? (
+                <div aria-hidden="true" className="min-h-[178px]" />
+              ) : isLoadingSkeleton ? (
+                <HeroSkeleton paused={state === 'slow'} />
+              ) : isEmpty ? (
+                <div className="flex min-h-[178px] flex-col items-start justify-center px-0.5 py-2 text-left">
+                  <h2 className="text-[1.55rem] font-semibold leading-[1.12] tracking-[-0.025em] text-white sm:text-[1.75rem]">
+                    {t('homeEmptyHeroTitle')}
+                  </h2>
+                  <p className="mt-3 max-w-sm text-sm leading-5 text-white/80">
+                    {t('homeEmptyHeroBody')}
+                  </p>
+                </div>
+              ) : (
+                <HeroCarousel />
+              )}
             </div>
           </div>
-          <p className="max-w-md px-5 py-4 text-sm leading-5 text-[#66707A] sm:px-6">
-            {t('dailyOwnershipReflection', {
-              amount: formatCurrency(totalDailyCost, resolvedCurrencyCode),
-            })}
-          </p>
+          {state === 'content' && (
+            <p className="max-w-md px-5 py-4 text-sm leading-5 text-[#66707A] sm:px-6">
+              {t('dailyOwnershipReflection', {
+                amount: formatCurrency(totalDailyCost, resolvedCurrencyCode),
+              })}
+            </p>
+          )}
         </div>
       </div>
     </>
@@ -84,6 +111,17 @@ function HomeHeader({ totalDailyCost = 0, currencyCode: dashboardCurrencyCode })
 function Home() {
   const { data: dashboardData, isError: isDashboardError, isRefetchError } = useDashboard();
   const itemsQuery = useItems();
+  const initialItemsLoading = itemsQuery.isLoading && itemsQuery.data === undefined;
+  const loadingState = useLoadingPhases(initialItemsLoading);
+  const items = itemsQuery.data ?? [];
+  const isTrueEmpty = itemsQuery.data !== undefined
+    && !itemsQuery.isError
+    && items.length === 0;
+  const homeState = loadingState.phase !== 'idle'
+    ? loadingState.phase
+    : isTrueEmpty
+      ? 'empty'
+      : 'content';
   const dashboardTotal = dashboardData?.totalDailyCost;
   const hasDashboardTotal = dashboardTotal !== null
     && dashboardTotal !== undefined
@@ -100,8 +138,12 @@ function Home() {
       <HomeHeader
         totalDailyCost={totalDailyCost}
         currencyCode={dashboardData?.currencyCode}
+        state={homeState}
       />
-      <ItemListContent itemsQuery={itemsQuery} />
+      <ItemListContent
+        itemsQuery={itemsQuery}
+        loadingPhase={loadingState.phase}
+      />
     </div>
   );
 }
