@@ -35,8 +35,8 @@ vi.mock('react-i18next', () => ({
         addPlannedPurchase: 'Add Planned Purchase',
         editPlannedPurchase: 'Edit Planned Purchase',
         newPlan: 'New plan',
-        noPlannedPurchases: 'No plans yet',
-        noPlannedPurchasesDescription: 'Thinking about a purchase? See how price and time relate before you buy.',
+        noPlannedPurchases: 'No purchase plans yet',
+        noPlannedPurchasesDescription: "Plan something you're considering to see how its price relates to time.",
         targetItemName: 'Target item name',
         enterTargetItemName: 'Enter name',
         itemPrice: 'Item price',
@@ -60,7 +60,8 @@ vi.mock('react-i18next', () => ({
         requiredContribution: 'Estimated contribution',
         statusPlanned: 'Planned Status',
         confirmDelete: 'Confirm Delete',
-        confirmDeletePlannedPurchase: "Delete this plan? Its saved timeline will be removed. This can't be undone.",
+        confirmDeletePlannedPurchaseAccount: "Delete this plan? Its saved timeline will be permanently removed from Worthwhile. This can't be undone.",
+        confirmDeletePlannedPurchaseDevice: "Delete this plan? Its saved timeline will be permanently removed from this device. This can't be undone.",
         cancel: 'Cancel',
         confirm: 'Confirm',
         save: 'Save',
@@ -79,8 +80,8 @@ vi.mock('react-i18next', () => ({
         previewUnsaved: 'Preview, unsaved',
         reachedAround: 'Estimated completion',
         saved: 'Saved',
-        planningLoadingTitle: 'Gathering your plans',
-        planningLoadingDescription: 'Worthwhile is bringing your purchase timelines into view.',
+        planningLoadingTitle: 'Loading your purchase plans',
+        planningLoadingDescription: 'Loading the price-and-time context for your plans.',
         planningLoadErrorTitle: "Your plans didn't load",
         planningLoadErrorDescription: "Couldn't load your plans. Check your connection and try again.",
         refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
@@ -89,7 +90,7 @@ vi.mock('react-i18next', () => ({
         tryAgain: 'Try again',
         stillLoadingPlans: 'Still loading your plans...',
         planDeleteErrorTitle: 'Not deleted yet.',
-        planDeleteErrorBody: 'Your plan is still here. Nothing was lost.',
+        planDeleteErrorBody: 'Your plan is still here.',
         keepIt: 'Keep it',
         delete: 'Delete',
       };
@@ -145,13 +146,20 @@ describe('PlannedPurchases Component', () => {
     plannedPurchaseService.fetchPlannedPurchases.mockReturnValue(new Promise(() => {}));
     const { container } = renderComponent();
 
+    expect(screen.getByText('Your Plans')).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(200);
     });
-    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+    const planSkeletons = container.querySelectorAll('[data-skeleton-variant="planned-purchase"]');
+    expect(planSkeletons).toHaveLength(3);
+    expect(planSkeletons[0]).toHaveClass('rounded-2xl', 'border-[#E6E8EC]');
+    expect(planSkeletons[0].firstElementChild).toHaveClass('min-h-[44px]', 'px-3', 'py-2.5');
+    expect(planSkeletons[0].querySelector('[data-skeleton-row="identity"]')).toHaveClass('h-5', 'sm:h-6');
+    expect(planSkeletons[0].querySelector('[data-skeleton-row="context"]')).toHaveClass('mt-0.5');
+    expect(planSkeletons[0].querySelectorAll('.state-skeleton')).toHaveLength(5);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
 
     act(() => {
@@ -165,8 +173,9 @@ describe('PlannedPurchases Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('No plans yet')).toBeInTheDocument();
+      expect(screen.getByText('No purchase plans yet')).toBeInTheDocument();
     });
+    expect(screen.getByText('Your Plans')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'New plan' })).toBeInTheDocument();
   });
 
@@ -178,6 +187,7 @@ describe('PlannedPurchases Component', () => {
     renderComponent();
 
     const errorState = await screen.findByRole('status', {}, { timeout: 3000 });
+    expect(screen.getByText('Your Plans')).toBeInTheDocument();
     expect(errorState).toHaveTextContent("Couldn't load your plans. Check your connection and try again.");
     expect(errorState).not.toHaveTextContent('raw planning failure');
 
@@ -185,7 +195,7 @@ describe('PlannedPurchases Component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
 
     await waitFor(() => {
-      expect(screen.getByText('No plans yet')).toBeInTheDocument();
+      expect(screen.getByText('No purchase plans yet')).toBeInTheDocument();
     });
   });
 
@@ -222,7 +232,7 @@ describe('PlannedPurchases Component', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(screen.getByText('No plans yet')).toBeInTheDocument();
+      expect(screen.getByText('No purchase plans yet')).toBeInTheDocument();
     });
 
     expect(screen.getByRole('button', { name: 'New plan' })).toBeInTheDocument();
@@ -251,6 +261,9 @@ describe('PlannedPurchases Component', () => {
       expect(screen.getByText('Winter Jacket')).toBeInTheDocument();
     });
 
+    const loadedPlans = document.querySelector('[data-plans-state="loaded"]');
+    expect(loadedPlans).toHaveClass('state-content-enter');
+    expect(loadedPlans).not.toContainElement(screen.getByText('Your Plans'));
     // Displays clean integer days without decimal leakage like 85.71428571428571
     expect(screen.getByText(/About 86 days/i)).toBeInTheDocument();
     expect(screen.queryByText(/85\.71/)).not.toBeInTheDocument();

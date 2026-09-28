@@ -11,17 +11,27 @@ import PlannedPurchaseEditDialog from './planned-purchase/PlannedPurchaseEditDia
 import { PageHeader } from './ui/PageHeader';
 import { PageContainer } from './ui/PageContainer';
 import {
-  CardListSkeleton,
   EmptyState,
   ErrorCard,
   NoticeCard,
+  PlannedPurchaseListSkeleton,
   SlowLoadIndicator,
   ActionLoadingContent,
 } from './ui/AsyncState';
 import { useLoadingPhases } from '../hooks/useLoadingPhases';
+import { useAuth } from '../contexts/AuthContext';
+
+function PlansListHeader({ title }) {
+  return (
+    <div className="flex items-center justify-between px-1">
+      <span className="text-sm font-bold text-[#20242A]">{title}</span>
+    </div>
+  );
+}
 
 function PlannedPurchases() {
   const { t } = useTranslation();
+  const { isGuest = false } = useAuth() ?? {};
   const navigate = useNavigate();
   const {
     data: plannedPurchasesData,
@@ -143,68 +153,65 @@ function PlannedPurchases() {
         errorMessage={actionError}
       />
 
-      {/* Loading, error, and empty states */}
-      {loadingState.phase !== 'idle' ? (
-        <div aria-busy="true" className="min-h-[196px]">
-          {loadingState.phase !== 'blank' && (
-            <>
-              <CardListSkeleton
-                count={3}
-                paused={loadingState.showSlowIndicator}
-              />
-              {loadingState.showSlowIndicator && (
-                <SlowLoadIndicator message={t('stillLoadingPlans')} />
-              )}
-            </>
-          )}
-        </div>
-      ) : isError && plannedPurchasesData === undefined ? (
-        <NoticeCard
-          body={t('planningLoadErrorDescription')}
-          actionLabel={t('tryAgain')}
-          onAction={() => refetch()}
-        />
-      ) : plannedPurchases.length === 0 ? (
-        <EmptyState
-          motif="planning"
-          title={t('noPlannedPurchases')}
-          description={t('noPlannedPurchasesDescription')}
-          actionLabel={t('newPlan')}
-          onAction={() => navigate('/add?type=planned')}
-        />
-      ) : (
-        /* List of Cards */
-        <div className="space-y-2.5">
-          {plannedPurchasesData !== undefined && (isRefetchError || isError) && (
-            <NoticeCard
-              body={t('refreshShowingSavedData')}
-              actionLabel={t('tryAgain')}
-              onAction={() => refetch()}
-            />
-          )}
-          <div className="flex items-center justify-between px-1">
-            <span className="font-bold text-[#20242A] text-sm">
-              {t('yourPlans')}
-            </span>
+      {/* Stable section label with state-specific content below it. */}
+      <div className="space-y-2.5">
+        <PlansListHeader title={t('yourPlans')} />
+        {loadingState.phase !== 'idle' ? (
+          <div aria-busy="true" className="min-h-[196px]">
+            {loadingState.phase !== 'blank' && (
+              <>
+                <PlannedPurchaseListSkeleton
+                  count={3}
+                  paused={loadingState.showSlowIndicator}
+                />
+                {loadingState.showSlowIndicator && (
+                  <SlowLoadIndicator message={t('stillLoadingPlans')} />
+                )}
+              </>
+            )}
           </div>
-
-          <div className="space-y-3">
-            {plannedPurchases.map((plannedPurchase) => (
-              <PlannedPurchaseCard
-                key={plannedPurchase.id}
-                plannedPurchase={plannedPurchase}
-                isExpanded={expandedPurchaseId === plannedPurchase.id}
-                onToggle={handleToggleExpand}
-                onEdit={handleOpenEdit}
-                onDelete={handleDeleteRequest}
-                onApplyScenario={handleApplyScenario}
-                isUpdating={updatingScenarioId === plannedPurchase.id && updateMutation.isPending}
-                updateError={updatingScenarioId === plannedPurchase.id ? actionError : null}
+        ) : isError && plannedPurchasesData === undefined ? (
+          <NoticeCard
+            body={t('planningLoadErrorDescription')}
+            actionLabel={t('tryAgain')}
+            onAction={() => refetch()}
+          />
+        ) : plannedPurchases.length === 0 ? (
+          <EmptyState
+            motif="planning"
+            title={t('noPlannedPurchases')}
+            description={t('noPlannedPurchasesDescription')}
+            actionLabel={t('newPlan')}
+            onAction={() => navigate('/add?type=planned')}
+          />
+        ) : (
+          /* List of Cards */
+          <div className="state-content-enter space-y-2.5" data-plans-state="loaded">
+            {plannedPurchasesData !== undefined && (isRefetchError || isError) && (
+              <NoticeCard
+                body={t('refreshShowingSavedData')}
+                actionLabel={t('tryAgain')}
+                onAction={() => refetch()}
               />
-            ))}
+            )}
+            <div className="space-y-3">
+              {plannedPurchases.map((plannedPurchase) => (
+                <PlannedPurchaseCard
+                  key={plannedPurchase.id}
+                  plannedPurchase={plannedPurchase}
+                  isExpanded={expandedPurchaseId === plannedPurchase.id}
+                  onToggle={handleToggleExpand}
+                  onEdit={handleOpenEdit}
+                  onDelete={handleDeleteRequest}
+                  onApplyScenario={handleApplyScenario}
+                  isUpdating={updatingScenarioId === plannedPurchase.id && updateMutation.isPending}
+                  updateError={updatingScenarioId === plannedPurchase.id ? actionError : null}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Delete Confirmation Modal */}
       {deletingId && (
@@ -212,7 +219,9 @@ function PlannedPurchases() {
           <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-5 space-y-4 border border-gray-200">
             <h4 className="font-bold text-gray-900 text-base">{t('confirmDelete')}</h4>
             <p className="text-xs text-gray-600 leading-relaxed">
-              {t('confirmDeletePlannedPurchase')}
+              {t(isGuest
+                ? 'confirmDeletePlannedPurchaseDevice'
+                : 'confirmDeletePlannedPurchaseAccount')}
             </p>
             {actionError && (
               <ErrorCard
