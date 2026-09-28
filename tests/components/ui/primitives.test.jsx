@@ -90,7 +90,9 @@ describe('UI Primitives', () => {
       );
 
       const button = screen.getByRole('button', { name: 'Delete' });
-      expect(button).toHaveClass('text-red-600');
+      expect(button).toHaveClass('bg-white');
+      expect(button).toHaveClass('border-[var(--error-outline)]');
+      expect(button).toHaveClass('text-[var(--error-text)]');
     });
   });
 
