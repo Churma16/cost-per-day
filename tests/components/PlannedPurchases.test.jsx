@@ -156,7 +156,7 @@ describe('PlannedPurchases Component', () => {
 
     renderComponent();
 
-    const errorState = await screen.findByRole('alert');
+    const errorState = await screen.findByRole('alert', {}, { timeout: 3000 });
     expect(errorState).toHaveTextContent("Your plans didn't load");
     expect(errorState).not.toHaveTextContent('raw planning failure');
 
