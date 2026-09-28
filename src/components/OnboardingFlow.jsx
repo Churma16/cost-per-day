@@ -64,8 +64,19 @@ const OnboardingShell = ({ step, direction, children }) => {
   }, [contentNode]);
 
   return (
-    <main className="h-full overflow-y-auto bg-[#E9EAEC] px-3 py-5 sm:flex sm:items-center sm:justify-center sm:p-6">
-      <section className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-[#F8F9FA] shadow-[0_20px_60px_-35px_rgba(27,54,61,0.55)]">
+    <motion.main
+      initial={shouldReduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: shouldReduceMotion ? 0 : 0.22, ease: 'easeOut' }}
+      className="h-full overflow-y-auto bg-[#E9EAEC] px-3 py-5 sm:flex sm:items-center sm:justify-center sm:p-6"
+    >
+      <motion.section
+        data-testid="onboarding-shell"
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 12, scale: 0.992 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.4, ease: CALM_EASE }}
+        className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-[#F8F9FA] shadow-[0_20px_60px_-35px_rgba(27,54,61,0.55)]"
+      >
         <div className="flex gap-1.5 px-6 pt-6" aria-label={`Step ${step} of 3`}>
           {[1, 2, 3].map((number) => {
             const isActive = number <= step;
@@ -79,12 +90,16 @@ const OnboardingShell = ({ step, direction, children }) => {
                 <motion.span
                   aria-hidden="true"
                   className="absolute inset-0 origin-left rounded-full bg-[#2F7473]"
-                  initial={false}
+                  initial={shouldReduceMotion ? false : { scaleX: 0 }}
                   animate={{ scaleX: isActive ? 1 : 0 }}
                   transition={{
                     duration: shouldReduceMotion ? 0 : 0.36,
                     ease: CALM_EASE,
-                    delay: shouldReduceMotion ? 0 : Math.max(0, number - step) * 0.035,
+                    delay: shouldReduceMotion
+                      ? 0
+                      : step === 1 && number === 1
+                        ? 0.14
+                        : Math.max(0, number - step) * 0.035,
                   }}
                 />
               </span>
@@ -130,8 +145,8 @@ const OnboardingShell = ({ step, direction, children }) => {
             </motion.div>
           </AnimatePresence>
         </motion.div>
-      </section>
-    </main>
+      </motion.section>
+    </motion.main>
   );
 };
 

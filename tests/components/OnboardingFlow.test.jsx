@@ -46,6 +46,7 @@ describe('first-run onboarding flow', () => {
     const onComplete = vi.fn();
     render(<OnboardingFlow onComplete={onComplete} />);
 
+    expect(screen.getByTestId('onboarding-shell')).toBeInTheDocument();
     expect(screen.getByTestId('onboarding-step-1')).toBeInTheDocument();
     expect(screen.getByTestId('onboarding-step-viewport')).toHaveClass('overflow-hidden');
     expect(screen.getByTestId('onboarding-progress-1')).toHaveAttribute('data-active', 'true');
