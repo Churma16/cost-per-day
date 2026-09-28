@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { useSettings, useUpdateSetting } from '../hooks/useSettings';
 import i18n from '../i18n';
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from '../constants/preferences';
 
-export const SUPPORTED_LANGUAGES = ['en', 'id'];
-export const DEFAULT_LANGUAGE = 'en';
+export { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES };
 
 export const sanitizeLanguage = (languageCode) => {
   if (languageCode && typeof languageCode === 'string') {

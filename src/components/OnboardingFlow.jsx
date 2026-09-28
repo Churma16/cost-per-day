@@ -40,7 +40,7 @@ const getDeviceLocales = () => (
 const getReferenceTranslationKey = (kind) => (
   `onboardingReference${kind[0].toUpperCase()}${kind.slice(1)}`
 );
-const emptyReference = (name = '', kind = null) => ({ kind, name, amount: '' });
+const emptyReference = (id, name = '', kind = null) => ({ id, kind, name, amount: '' });
 
 const CALM_EASE = [0.16, 1, 0.3, 1];
 const CALM_HEIGHT_EASE = [0.22, 1, 0.36, 1];
@@ -208,6 +208,8 @@ function OnboardingFlow({ onComplete }) {
   const initialLanguage = useRef(language);
   const [currency, setCurrency] = useState(() => suggestCurrency(getDeviceLocales()));
   const [references, setReferences] = useState([]);
+  const nextReferenceId = useRef(0);
+  const savedReferenceIds = useRef(new Set());
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const currencies = useMemo(() => getSupportedCurrencies().map((item) => ({
@@ -254,16 +256,20 @@ function OnboardingFlow({ onComplete }) {
 
   const addSuggestedReference = (kind) => {
     const name = t(getReferenceTranslationKey(kind));
+    const reference = emptyReference(++nextReferenceId.current, name, kind);
     setReferences((current) => (
       current.length >= 3 || current.some((item) => item.kind === kind)
         ? current
-        : [...current, emptyReference(name, kind)]
+        : [...current, reference]
     ));
   };
 
   const addCustomReference = () => {
+    const reference = emptyReference(++nextReferenceId.current);
     setReferences((current) => (
-      current.length >= 3 ? current : [...current, emptyReference()]
+      current.length >= 3
+        ? current
+        : [...current, reference]
     ));
   };
 
@@ -277,7 +283,9 @@ function OnboardingFlow({ onComplete }) {
 
   const finish = async ({ skipReferences = false } = {}) => {
     if (isSaving) return;
-    const referencesToSave = skipReferences ? [] : references;
+    const referencesToSave = skipReferences
+      ? []
+      : references.filter((reference) => !savedReferenceIds.current.has(reference.id));
     const invalidReference = referencesToSave.some((reference) => (
       !reference.name.trim() || !Number.isFinite(Number(reference.amount)) || Number(reference.amount) <= 0
     ));
@@ -297,6 +305,7 @@ function OnboardingFlow({ onComplete }) {
           amount: Number(reference.amount),
           currencyCode: currency,
         });
+        savedReferenceIds.current.add(reference.id);
       }
       await updateSetting.mutateAsync({ key: ONBOARDING_COMPLETED_SETTING, value: 'true' });
       onComplete();
@@ -464,7 +473,7 @@ function OnboardingFlow({ onComplete }) {
 
         <div className="mt-4 space-y-3">
           {references.map((reference, index) => (
-            <div key={index} className="rounded-2xl border border-gray-200 bg-white p-3">
+            <div key={reference.id} className="rounded-2xl border border-gray-200 bg-white p-3">
               <div className="flex gap-2">
                 <input aria-label={t('equivalentName')} value={reference.name} onChange={(event) => updateReference(index, 'name', event.target.value)} placeholder={t('enterEquivalentName')} className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#2F7473] focus:outline-none" />
                 <button type="button" aria-label={t('removeReference')} onClick={() => setReferences((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"><IoClose /></button>

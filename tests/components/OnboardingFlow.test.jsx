@@ -124,6 +124,44 @@ describe('first-run onboarding flow', () => {
     }));
   });
 
+  test('retries only references that were not already saved', async () => {
+    const onComplete = vi.fn();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    mocks.addEquivalent
+      .mockResolvedValueOnce({ id: 'coffee' })
+      .mockRejectedValueOnce(new Error('temporary save failure'))
+      .mockResolvedValueOnce({ id: 'snack' })
+      .mockResolvedValueOnce({ id: 'lunch' });
+
+    render(<OnboardingFlow onComplete={onComplete} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));
+    await screen.findByTestId('onboarding-step-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByTestId('onboarding-step-3');
+    fireEvent.click(screen.getByRole('button', { name: '+ Coffee' }));
+    fireEvent.click(screen.getByRole('button', { name: '+ Snack' }));
+    fireEvent.click(screen.getByRole('button', { name: '+ Lunch' }));
+    screen.getAllByLabelText('Price').forEach((input, index) => {
+      fireEvent.change(input, { target: { value: String((index + 1) * 5) } });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enter Worthwhile' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('temporary save failure');
+    fireEvent.click(screen.getByRole('button', { name: 'Enter Worthwhile' }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(mocks.addEquivalent.mock.calls.map(([reference]) => reference.name)).toEqual([
+      'Coffee',
+      'Snack',
+      'Snack',
+      'Lunch',
+    ]);
+    expect(mocks.updateSetting).toHaveBeenCalledWith({
+      key: 'onboardingCompleted',
+      value: 'true',
+    });
+  });
+
   test('uses device suggestions instead of injected guest defaults', async () => {
     deviceLanguages = ['id-ID'];
     mocks.settings = { language: 'en', currency: 'USD' };

@@ -1,4 +1,4 @@
-import { SUPPORTED_LANGUAGES } from '../contexts/LanguageContext';
+import { SUPPORTED_LANGUAGES } from '../constants/preferences';
 import { CURRENCY_CONFIGURATIONS } from './currencyConfig';
 
 export const ONBOARDING_COMPLETED_SETTING = 'onboardingCompleted';

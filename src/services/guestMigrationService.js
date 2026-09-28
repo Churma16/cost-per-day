@@ -2,17 +2,7 @@ import { apiRequest } from './httpClient';
 import {
   guestRepositories,
 } from '../data/persistenceRepositories';
-
-const supportedLanguages = new Set(['en', 'id']);
-const supportedCurrencies = new Set(['USD', 'EUR', 'CNY', 'IDR']);
-
-const transferableSettings = (settings = {}) => ({
-  ...(supportedLanguages.has(settings.language) ? { language: settings.language } : {}),
-  ...(supportedCurrencies.has(settings.currency) ? { currency: settings.currency } : {}),
-  ...(String(settings.onboardingCompleted).toLowerCase() === 'true'
-    ? { onboardingCompleted: 'true' }
-    : {}),
-});
+import { sanitizeOnboardingSettings } from '../utils/onboarding';
 
 const toMigrationItem = (item) => ({
   name: item.name,
@@ -78,7 +68,7 @@ export const createGuestMigrationService = ({
         throw error;
       }
 
-      const guestSettings = transferableSettings(snapshot.settings);
+      const guestSettings = sanitizeOnboardingSettings(snapshot.settings);
       if (guestSettings.onboardingCompleted === 'true') {
         const accountSettings = await getAccountSettings();
         if (String(accountSettings?.onboardingCompleted).toLowerCase() !== 'true') {
