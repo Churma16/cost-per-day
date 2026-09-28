@@ -47,6 +47,7 @@ describe('first-run onboarding flow', () => {
     render(<OnboardingFlow onComplete={onComplete} />);
 
     expect(screen.getByTestId('onboarding-step-1')).toBeInTheDocument();
+    expect(screen.getByTestId('onboarding-step-viewport')).toHaveClass('overflow-hidden');
     expect(screen.getByTestId('onboarding-progress-1')).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('onboarding-progress-2')).toHaveAttribute('data-active', 'false');
     fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));

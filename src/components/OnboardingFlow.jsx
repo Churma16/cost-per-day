@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoAdd, IoArrowBack, IoCheckmark, IoClose } from 'react-icons/io5';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -21,20 +21,44 @@ const emptyReference = (name = '') => ({ name, amount: '' });
 
 const CALM_EASE = [0.16, 1, 0.3, 1];
 
-const OnboardingShell = ({ step, children }) => {
+const OnboardingShell = ({ step, direction, children }) => {
   const shouldReduceMotion = useReducedMotion();
+  const [contentNode, setContentNode] = useState(null);
+  const [contentHeight, setContentHeight] = useState(null);
   const pageTransition = {
     duration: shouldReduceMotion ? 0 : 0.24,
     ease: CALM_EASE,
   };
 
+  useLayoutEffect(() => {
+    if (!contentNode) return undefined;
+
+    const measureContent = () => {
+      const nextHeight = contentNode.getBoundingClientRect().height || contentNode.scrollHeight;
+      if (nextHeight > 0) {
+        setContentHeight((currentHeight) => (
+          currentHeight === nextHeight ? currentHeight : nextHeight
+        ));
+      }
+    };
+
+    measureContent();
+    const frameId = window.requestAnimationFrame(measureContent);
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    const observer = new ResizeObserver(measureContent);
+    observer.observe(contentNode);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
+  }, [contentNode]);
+
   return (
     <main className="h-full overflow-y-auto bg-[#E9EAEC] px-3 py-5 sm:flex sm:items-center sm:justify-center sm:p-6">
-      <motion.section
-        layout={!shouldReduceMotion}
-        transition={{ layout: { duration: shouldReduceMotion ? 0 : 0.32, ease: CALM_EASE } }}
-        className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-[#F8F9FA] shadow-[0_20px_60px_-35px_rgba(27,54,61,0.55)]"
-      >
+      <section className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-[#F8F9FA] shadow-[0_20px_60px_-35px_rgba(27,54,61,0.55)]">
         <div className="flex gap-1.5 px-6 pt-6" aria-label={`Step ${step} of 3`}>
           {[1, 2, 3].map((number) => {
             const isActive = number <= step;
@@ -60,19 +84,42 @@ const OnboardingShell = ({ step, children }) => {
             );
           })}
         </div>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={step}
-            data-testid={`onboarding-step-${step}`}
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
-            transition={pageTransition}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
-      </motion.section>
+        <motion.div
+          data-testid="onboarding-step-viewport"
+          className="relative w-full overflow-hidden"
+          initial={false}
+          animate={contentHeight ? { height: contentHeight } : undefined}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.32, ease: CALM_EASE }}
+        >
+          <AnimatePresence mode="wait" initial={false} custom={direction}>
+            <motion.div
+              key={step}
+              ref={setContentNode}
+              custom={direction}
+              data-testid={`onboarding-step-${step}`}
+              variants={{
+                enter: (travelDirection) => (
+                  shouldReduceMotion
+                    ? { opacity: 1, x: 0 }
+                    : { opacity: 0, x: travelDirection * 14 }
+                ),
+                center: { opacity: 1, x: 0 },
+                exit: (travelDirection) => (
+                  shouldReduceMotion
+                    ? { opacity: 1, x: 0 }
+                    : { opacity: 0, x: travelDirection * -10 }
+                ),
+              }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={pageTransition}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </section>
     </main>
   );
 };
@@ -87,6 +134,7 @@ function OnboardingFlow({ onComplete }) {
   const { addEquivalent } = useValueEquivalents();
   const locales = globalThis.navigator?.languages || [globalThis.navigator?.language];
   const [step, setStep] = useState(1);
+  const [transitionDirection, setTransitionDirection] = useState(1);
   const [language, setLanguage] = useState(
     settingsQuery.data?.language || suggestLanguage(locales),
   );
@@ -103,6 +151,12 @@ function OnboardingFlow({ onComplete }) {
   const calmSelectionTransition = {
     duration: shouldReduceMotion ? 0 : 0.28,
     ease: CALM_EASE,
+  };
+
+  const navigateToStep = (nextStep) => {
+    if (nextStep === step) return;
+    setTransitionDirection(nextStep > step ? 1 : -1);
+    setStep(nextStep);
   };
 
   const addSuggestedReference = (kind) => {
@@ -160,7 +214,7 @@ function OnboardingFlow({ onComplete }) {
 
   if (step === 1) {
     return (
-      <OnboardingShell step={step}>
+      <OnboardingShell step={step} direction={transitionDirection}>
         <div className="px-7 pb-8 pt-9 text-center sm:px-10">
           <img src="/logo192.png" alt="" className="mx-auto h-20 w-20" />
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-[#2F7473]">
@@ -172,7 +226,7 @@ function OnboardingFlow({ onComplete }) {
           <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-gray-600">
             {t('onboardingWelcomeBody')}
           </p>
-          <button type="button" onClick={() => setStep(2)} className="mt-8 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] focus-visible:ring-offset-2">
+          <button type="button" onClick={() => navigateToStep(2)} className="mt-8 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] focus-visible:ring-offset-2">
             {t('onboardingStart')}
           </button>
           <p className="mt-3 text-xs text-gray-400">{t('onboardingTimeNote')}</p>
@@ -183,9 +237,9 @@ function OnboardingFlow({ onComplete }) {
 
   if (step === 2) {
     return (
-      <OnboardingShell step={step}>
+      <OnboardingShell step={step} direction={transitionDirection}>
         <div className="px-6 pb-7 pt-6 sm:px-8">
-          <button type="button" onClick={() => setStep(1)} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800">
+          <button type="button" onClick={() => navigateToStep(1)} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800">
             <IoArrowBack /> {t('back')}
           </button>
           <h1 className="text-xl font-bold tracking-[-0.02em] text-gray-950">{t('onboardingPreferencesTitle')}</h1>
@@ -237,16 +291,16 @@ function OnboardingFlow({ onComplete }) {
           </select>
           <p className="mt-2 text-xs leading-5 text-gray-500">{t('onboardingCurrencyHelp')}</p>
 
-          <button type="button" onClick={() => setStep(3)} className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]">{t('continue')}</button>
+          <button type="button" onClick={() => navigateToStep(3)} className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]">{t('continue')}</button>
         </div>
       </OnboardingShell>
     );
   }
 
   return (
-    <OnboardingShell step={step}>
+    <OnboardingShell step={step} direction={transitionDirection}>
       <div className="px-6 pb-7 pt-6 sm:px-8">
-        <button type="button" onClick={() => setStep(2)} disabled={isSaving} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-50">
+        <button type="button" onClick={() => navigateToStep(2)} disabled={isSaving} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800 disabled:opacity-50">
           <IoArrowBack /> {t('back')}
         </button>
         <div className="flex items-start justify-between gap-4">
