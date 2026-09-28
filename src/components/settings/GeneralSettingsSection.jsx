@@ -12,6 +12,7 @@ import {
   SettingsRowIcon,
   SettingsSection,
 } from './SettingsList';
+import { InlineStateNotice } from '../ui/AsyncState';
 
 function GeneralSettingsSection({
   language,
@@ -20,6 +21,7 @@ function GeneralSettingsSection({
   isInteractionBlocked,
   onOpenLanguage,
   onOpenCurrency,
+  errorMessage,
 }) {
   const { t } = useTranslation();
 
@@ -62,6 +64,12 @@ function GeneralSettingsSection({
           </span>
         </button>
       </SettingsCard>
+      {errorMessage && (
+        <InlineStateNotice
+          variant="error"
+          message={errorMessage}
+        />
+      )}
     </SettingsSection>
   );
 }
