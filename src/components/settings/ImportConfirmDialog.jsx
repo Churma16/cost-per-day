@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionLoadingContent } from '../ui/AsyncState';
+import { useSlowAction } from '../../hooks/useLoadingPhases';
 import SettingsModalTransition from './SettingsModalTransition';
 
 function ImportConfirmDialog({
@@ -12,6 +13,7 @@ function ImportConfirmDialog({
 }) {
   const { t } = useTranslation();
   const keepButtonRef = useRef(null);
+  const isSlowImporting = useSlowAction(isImporting);
 
   useEffect(() => {
     if (isOpen) {
@@ -33,6 +35,11 @@ function ImportConfirmDialog({
             {t('importWarning')}
           </h2>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">{t('importConfirmation')}</p>
+          {isSlowImporting && (
+            <p role="status" className="text-center text-xs text-[var(--text-secondary)]">
+              {t('importing')}
+            </p>
+          )}
           <div className="flex gap-3 pt-2">
             <button
               ref={keepButtonRef}
