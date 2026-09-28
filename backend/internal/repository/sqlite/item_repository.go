@@ -57,6 +57,7 @@ func (repositoryInstance *ItemRepository) List(ctx context.Context, userID strin
 			categories.name,
 			items.brand_id,
 			brands.name,
+			items.replaces_item_id,
 			items.created_at,
 			items.updated_at
 		FROM items
@@ -109,6 +110,7 @@ func (repositoryInstance *ItemRepository) GetByID(ctx context.Context, userID st
 			categories.name,
 			items.brand_id,
 			brands.name,
+			items.replaces_item_id,
 			items.created_at,
 			items.updated_at
 		FROM items
@@ -175,10 +177,11 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 			target_value,
 			category_id,
 			brand_id,
+			replaces_item_id,
 			created_at,
 			updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id
 	`,
 		normalizedUserID,
@@ -192,6 +195,7 @@ func (repositoryInstance *ItemRepository) Create(ctx context.Context, userID str
 		nullableFloat64(itemToCreate.TargetValue),
 		nullableInt64(itemToCreate.CategoryID),
 		nullableInt64(itemToCreate.BrandID),
+		nullableString(itemToCreate.ReplacesItemID),
 		itemToCreate.CreatedAt.Format(time.RFC3339Nano),
 		itemToCreate.UpdatedAt.Format(time.RFC3339Nano),
 	).Row().Scan(&itemIdentifier)
@@ -246,6 +250,7 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID str
 			target_value = ?,
 			category_id = ?,
 			brand_id = ?,
+			replaces_item_id = ?,
 			updated_at = ?
 		WHERE user_id = ? AND id = ?
 		RETURNING created_at
@@ -260,6 +265,7 @@ func (repositoryInstance *ItemRepository) Update(ctx context.Context, userID str
 		nullableFloat64(itemToUpdate.TargetValue),
 		nullableInt64(itemToUpdate.CategoryID),
 		nullableInt64(itemToUpdate.BrandID),
+		nullableString(itemToUpdate.ReplacesItemID),
 		itemToUpdate.UpdatedAt.Format(time.RFC3339Nano),
 		normalizedUserID,
 		itemToUpdate.ID,
@@ -315,6 +321,7 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 		categoryNameText sql.NullString
 		brandIDNum       sql.NullInt64
 		brandNameText    sql.NullString
+		replacesItemID   sql.NullInt64
 		createdAtText    string
 		updatedAtText    string
 		item             domain.Item
@@ -335,6 +342,7 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 		&categoryNameText,
 		&brandIDNum,
 		&brandNameText,
+		&replacesItemID,
 		&createdAtText,
 		&updatedAtText,
 	)
@@ -388,6 +396,10 @@ func scanItem(scanner itemScanner) (domain.Item, error) {
 	if brandNameText.Valid && strings.TrimSpace(brandNameText.String) != "" {
 		brandName := brandNameText.String
 		item.Brand = &brandName
+	}
+	if replacesItemID.Valid {
+		replacementID := strconv.FormatInt(replacesItemID.Int64, 10)
+		item.ReplacesItemID = &replacementID
 	}
 	item.CreatedAt = createdAt.UTC()
 	item.UpdatedAt = updatedAt.UTC()
