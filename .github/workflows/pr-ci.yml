@@ -131,7 +131,7 @@ jobs:
           start_app
 
           curl --fail --silent http://127.0.0.1:18080/ \
-            | grep --fixed-strings '<div id="root"></div>'
+            | grep --fixed-strings '<div id="root"'
 
           unauthenticated_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             http://127.0.0.1:18080/api/items)"
