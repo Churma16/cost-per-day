@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act, render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DurabilityAnalytics from '../../src/components/DurabilityAnalytics';
 import { useDurabilityAnalytics, useCategories } from '../../src/hooks/useDurabilityAnalytics';
 import { useCurrency } from '../../src/contexts/CurrencyContext';
@@ -28,7 +28,7 @@ vi.mock('react-i18next', () => ({
         viewEvidence: 'View item history',
         hideEvidence: 'Hide item history',
         noDurabilityDataTitle: 'No durability history yet',
-        noDurabilityDataDescription: 'Retire or mark items as sold to see insights.',
+        noDurabilityDataDescription: 'Retire or mark items as sold, with a category and brand, to see how long things last.',
         totalSpentOnBrand: `Total spent: ${options?.amount}`,
         evidence: 'Evidence',
         daysShort: 'days',
@@ -37,12 +37,14 @@ vi.mock('react-i18next', () => ({
         analyticsLoadingTitle: 'Reading your ownership history',
         analyticsLoadingDescription: 'Worthwhile is looking for patterns across completed ownership.',
         analyticsLoadErrorTitle: "Your history insights didn't load",
-        analyticsLoadErrorDescription: 'Try loading your ownership history again.',
-        analyticsRefreshError: "We couldn't refresh these insights. The last available history is still shown.",
+        analyticsLoadErrorDescription: "Couldn't load your history. Check your connection and try again.",
+        refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
         analyticsFilteredEmptyTitle: 'No history in this category yet',
-        analyticsFilteredEmptyDescription: 'Your broader ownership history is still available. Clear this filter to see it.',
+        analyticsFilteredEmptyDescription: 'No history in this category yet.',
         clearCategoryFilter: 'View all history',
-        retry: 'Retry',
+        tryAgain: 'Try again',
+        stillLoadingHistory: 'Still loading your history...',
+        replacementNeedsMoreData: 'Not enough data yet. Needs at least 2 replacements in one category.',
       };
       return dictionary[key] || key;
     },
@@ -70,16 +72,32 @@ describe('DurabilityAnalytics Component', () => {
     });
   });
 
-  it('renders loading state when query is loading', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('uses blank, skeleton, then slow-load feedback while history loads', () => {
     useDurabilityAnalytics.mockReturnValue({
       data: null,
       isLoading: true,
       isError: false,
     });
 
-    render(<DurabilityAnalytics />);
-    expect(screen.getByRole('status')).toHaveTextContent('Reading your ownership history');
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    vi.useFakeTimers();
+    const { container } = render(<DurabilityAnalytics />);
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your history...');
   });
 
   it('renders a recoverable initial load error without raw transport copy', () => {
@@ -94,10 +112,10 @@ describe('DurabilityAnalytics Component', () => {
 
     render(<DurabilityAnalytics />);
 
-    const errorState = screen.getByRole('alert');
-    expect(errorState).toHaveTextContent("Your history insights didn't load");
+    const errorState = screen.getByRole('status');
+    expect(errorState).toHaveTextContent("Couldn't load your history. Check your connection and try again.");
     expect(errorState).not.toHaveTextContent('raw analytics failure');
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
@@ -115,7 +133,7 @@ describe('DurabilityAnalytics Component', () => {
 
     render(<DurabilityAnalytics />);
     expect(screen.getByText('No durability history yet')).toBeInTheDocument();
-    expect(screen.getByText('Retire or mark items as sold to see insights.')).toBeInTheDocument();
+    expect(screen.getByText('Retire or mark items as sold, with a category and brand, to see how long things last.')).toBeInTheDocument();
   });
 
   it('keeps cached analytics visible when a background refresh fails', () => {
@@ -134,7 +152,7 @@ describe('DurabilityAnalytics Component', () => {
     render(<DurabilityAnalytics />);
 
     expect(screen.getByText('No durability history yet')).toBeInTheDocument();
-    expect(screen.getByText("We couldn't refresh these insights. The last available history is still shown.")).toBeInTheDocument();
+    expect(screen.getByText("Couldn't refresh right now. Showing your last saved data.")).toBeInTheDocument();
     expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
