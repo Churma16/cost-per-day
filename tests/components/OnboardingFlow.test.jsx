@@ -1,14 +1,17 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-import '../../src/i18n';
-import OnboardingFlow from '../../src/components/OnboardingFlow';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import i18n from '../../src/i18n';
+import OnboardingFlow, { OnboardingGate } from '../../src/components/OnboardingFlow';
+
+let deviceLanguages = ['en-US'];
 
 const mocks = vi.hoisted(() => ({
   changeLanguage: vi.fn(),
   changeCurrency: vi.fn(),
   addEquivalent: vi.fn(),
   updateSetting: vi.fn(),
+  settings: {},
 }));
 
 vi.mock('../../src/contexts/LanguageContext', () => ({
@@ -29,17 +32,26 @@ vi.mock('../../src/contexts/ValueEquivalentsContext', () => ({
 }));
 
 vi.mock('../../src/hooks/useSettings', () => ({
-  useSettings: () => ({ data: {} }),
+  useSettings: () => ({ data: mocks.settings }),
   useUpdateSetting: () => ({ mutateAsync: mocks.updateSetting }),
 }));
 
 describe('first-run onboarding flow', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    deviceLanguages = ['en-US'];
+    vi.spyOn(window.navigator, 'languages', 'get')
+      .mockImplementation(() => deviceLanguages);
+    mocks.settings = {};
     mocks.changeLanguage.mockResolvedValue(undefined);
     mocks.changeCurrency.mockResolvedValue(undefined);
     mocks.addEquivalent.mockResolvedValue({ id: 'equivalent-1' });
     mocks.updateSetting.mockResolvedValue('true');
+    await i18n.changeLanguage('en');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   test('can finish without optional references and persists required preferences', async () => {
@@ -68,13 +80,14 @@ describe('first-run onboarding flow', () => {
     expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(screen.getByRole('button', { name: 'Bahasa Indonesia' }));
+    await screen.findByText('Buat Worthwhile terasa familiar');
     expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'IDR' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.change(screen.getByLabelText('Mata Uang'), { target: { value: 'IDR' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
     await screen.findByTestId('onboarding-step-3');
     expect(screen.getByTestId('onboarding-progress-3')).toHaveAttribute('data-active', 'true');
-    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lewati dulu' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
     expect(mocks.changeLanguage).toHaveBeenCalledWith('id');
@@ -103,5 +116,52 @@ describe('first-run onboarding flow', () => {
       amount: 25000,
       currencyCode: 'IDR',
     }));
+  });
+
+  test('uses device suggestions instead of injected guest defaults', async () => {
+    deviceLanguages = ['id-ID'];
+    mocks.settings = { language: 'en', currency: 'USD' };
+
+    render(<OnboardingFlow onComplete={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Atur Worthwhile' }));
+    await screen.findByText('Buat Worthwhile terasa familiar');
+
+    expect(screen.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByLabelText('Mata Uang')).toHaveValue('IDR');
+  });
+
+  test('previews Indonesian immediately and saves its localized reference name', async () => {
+    render(<OnboardingFlow onComplete={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));
+    await screen.findByTestId('onboarding-step-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Bahasa Indonesia' }));
+    await screen.findByText('Buat Worthwhile terasa familiar');
+    fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }));
+    await screen.findByTestId('onboarding-step-3');
+    fireEvent.click(screen.getByRole('button', { name: '+ Kopi' }));
+    fireEvent.change(screen.getByLabelText('Harga'), { target: { value: '25000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Masuk ke Worthwhile' }));
+
+    await waitFor(() => expect(mocks.addEquivalent).toHaveBeenCalledWith({
+      name: 'Kopi',
+      amount: 25000,
+      currencyCode: 'USD',
+    }));
+  });
+
+  test('gates the app until onboarding is completed', () => {
+    const { rerender } = render(
+      <OnboardingGate><div>App content</div></OnboardingGate>,
+    );
+    expect(screen.getByText('Welcome to Worthwhile')).toBeInTheDocument();
+    expect(screen.queryByText('App content')).not.toBeInTheDocument();
+
+    mocks.settings = { onboardingCompleted: 'true' };
+    rerender(<OnboardingGate><div>App content</div></OnboardingGate>);
+    expect(screen.getByText('App content')).toBeInTheDocument();
   });
 });

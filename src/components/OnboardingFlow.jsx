@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoAdd, IoArrowBack, IoCheckmark, IoClose } from 'react-icons/io5';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -16,8 +16,18 @@ import {
 } from '../utils/onboarding';
 
 const SUGGESTED_REFERENCES = ['coffee', 'snack', 'lunch'];
+const LANGUAGE_LABELS = {
+  en: 'English',
+  id: 'Bahasa Indonesia',
+};
 
-const emptyReference = (name = '') => ({ name, amount: '' });
+const getDeviceLocales = () => (
+  globalThis.navigator?.languages || [globalThis.navigator?.language]
+);
+const getReferenceTranslationKey = (kind) => (
+  `onboardingReference${kind[0].toUpperCase()}${kind.slice(1)}`
+);
+const emptyReference = (name = '', kind = null) => ({ kind, name, amount: '' });
 
 const CALM_EASE = [0.16, 1, 0.3, 1];
 const CALM_HEIGHT_EASE = [0.22, 1, 0.36, 1];
@@ -153,20 +163,14 @@ const OnboardingShell = ({ step, direction, children }) => {
 function OnboardingFlow({ onComplete }) {
   const { t, i18n } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
-  const settingsQuery = useSettings();
   const updateSetting = useUpdateSetting();
   const { changeLanguage } = useLanguage();
   const { changeCurrency } = useCurrency();
   const { addEquivalent } = useValueEquivalents();
-  const locales = globalThis.navigator?.languages || [globalThis.navigator?.language];
   const [step, setStep] = useState(1);
   const [transitionDirection, setTransitionDirection] = useState(1);
-  const [language, setLanguage] = useState(
-    settingsQuery.data?.language || suggestLanguage(locales),
-  );
-  const [currency, setCurrency] = useState(
-    settingsQuery.data?.currency || suggestCurrency(locales),
-  );
+  const [language, setLanguage] = useState(() => suggestLanguage(getDeviceLocales()));
+  const [currency, setCurrency] = useState(() => suggestCurrency(getDeviceLocales()));
   const [references, setReferences] = useState([]);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -179,18 +183,34 @@ function OnboardingFlow({ onComplete }) {
     ease: CALM_EASE,
   };
 
+  useEffect(() => {
+    void i18n.changeLanguage(language);
+  }, [i18n, language]);
+
   const navigateToStep = (nextStep) => {
     if (nextStep === step) return;
     setTransitionDirection(nextStep > step ? 1 : -1);
     setStep(nextStep);
   };
 
+  const selectLanguage = (code) => {
+    if (code === language) return;
+
+    const translateToLanguage = i18n.getFixedT(code);
+    setLanguage(code);
+    setReferences((current) => current.map((reference) => (
+      reference.kind
+        ? { ...reference, name: translateToLanguage(getReferenceTranslationKey(reference.kind)) }
+        : reference
+    )));
+  };
+
   const addSuggestedReference = (kind) => {
-    const name = t(`onboardingReference${kind[0].toUpperCase()}${kind.slice(1)}`);
+    const name = t(getReferenceTranslationKey(kind));
     setReferences((current) => (
-      current.length >= 3 || current.some((item) => item.name === name)
+      current.length >= 3 || current.some((item) => item.kind === kind)
         ? current
-        : [...current, emptyReference(name)]
+        : [...current, emptyReference(name, kind)]
     ));
   };
 
@@ -202,7 +222,9 @@ function OnboardingFlow({ onComplete }) {
 
   const updateReference = (index, key, value) => {
     setReferences((current) => current.map((reference, referenceIndex) => (
-      referenceIndex === index ? { ...reference, [key]: value } : reference
+      referenceIndex === index
+        ? { ...reference, [key]: value, ...(key === 'name' ? { kind: null } : {}) }
+        : reference
     )));
   };
 
@@ -287,10 +309,10 @@ function OnboardingFlow({ onComplete }) {
                     transition={calmSelectionTransition}
                     type="button"
                     aria-pressed={isSelected}
-                    onClick={() => setLanguage(code)}
+                    onClick={() => selectLanguage(code)}
                     className={`relative flex min-w-[10rem] flex-1 items-center justify-center whitespace-nowrap rounded-xl border px-3 py-3 text-sm font-medium transition-[border-color,background-color,color,box-shadow] duration-300 ${isSelected ? 'border-[#2F7473] bg-teal-50 text-[#245c5b] shadow-sm' : 'border-gray-200 bg-white text-gray-700'}`}
                   >
-                    {code === 'id' ? 'Bahasa Indonesia' : 'English'}
+                    {LANGUAGE_LABELS[code] ?? code}
                     <AnimatePresence initial={false}>
                       {isSelected && (
                         <motion.span
@@ -340,7 +362,7 @@ function OnboardingFlow({ onComplete }) {
         <div className="mt-5 flex flex-wrap gap-2">
           {SUGGESTED_REFERENCES.map((kind) => (
             <button key={kind} type="button" disabled={references.length >= 3} onClick={() => addSuggestedReference(kind)} className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:border-[#83AAA7] disabled:opacity-40">
-              + {t(`onboardingReference${kind[0].toUpperCase()}${kind.slice(1)}`)}
+              + {t(getReferenceTranslationKey(kind))}
             </button>
           ))}
           <button type="button" disabled={references.length >= 3} onClick={addCustomReference} className="flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:border-[#83AAA7] disabled:opacity-40"><IoAdd /> {t('onboardingCustomReference')}</button>
