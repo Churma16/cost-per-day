@@ -15,6 +15,7 @@ import {
   SettingsRowText,
   SettingsSection,
 } from './SettingsList';
+import { StatePanel } from '../ui/AsyncState';
 
 function ValueEquivalentsSection({
   valueEquivalents,
@@ -24,6 +25,7 @@ function ValueEquivalentsSection({
   onAdd,
   onEdit,
   onDelete,
+  onRetry,
 }) {
   const { t } = useTranslation();
 
@@ -48,17 +50,32 @@ function ValueEquivalentsSection({
     >
 
       {isLoading ? (
-        <div className="text-center py-6 text-gray-400 text-sm">
-          <p>{t('loading')}</p>
-        </div>
+        <StatePanel
+          variant="loading"
+          title={t('equivalentsLoadingTitle')}
+          description={t('equivalentsLoadingDescription')}
+          className="py-6"
+        />
       ) : error ? (
-        <div role="alert" className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-100">
-          {error.message || t('errorLoadingEquivalents')}
-        </div>
+        <StatePanel
+          variant="error"
+          title={t('equivalentsLoadErrorTitle')}
+          description={t('errorLoadingEquivalents')}
+          actionLabel={t('retry')}
+          onAction={onRetry}
+          className="py-6"
+        />
       ) : valueEquivalents.length === 0 ? (
-        <SettingsCard className="p-5 text-center">
-          <p className="text-sm text-gray-400">{t('noEquivalents')}</p>
-        </SettingsCard>
+        <StatePanel
+          variant="empty"
+          title={t('noEquivalents')}
+          description={t('equivalentsEmptyDescription')}
+          actionLabel={t('addEquivalent')}
+          onAction={() => {
+            if (!isInteractionBlocked) onAdd();
+          }}
+          className="py-6"
+        />
       ) : (
         <SettingsCard>
           {valueEquivalents.map((equivalentItem, index) => (
