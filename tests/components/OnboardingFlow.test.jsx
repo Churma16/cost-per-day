@@ -47,6 +47,17 @@ describe('first-run onboarding flow', () => {
     render(<OnboardingFlow onComplete={onComplete} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Set up Worthwhile' }));
+    expect(screen.getByTestId('language-options')).toHaveClass('flex', 'flex-wrap');
+    expect(screen.getByRole('button', { name: 'English' })).toHaveClass(
+      'min-w-[10rem]',
+      'flex-1',
+      'whitespace-nowrap',
+    );
+    expect(screen.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveClass(
+      'min-w-[10rem]',
+      'flex-1',
+      'whitespace-nowrap',
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Bahasa Indonesia' }));
     fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'IDR' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));

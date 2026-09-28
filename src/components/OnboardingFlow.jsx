@@ -145,11 +145,11 @@ function OnboardingFlow({ onComplete }) {
 
           <fieldset className="mt-6">
             <legend className="text-xs font-semibold uppercase tracking-wider text-gray-500">{t('language')}</legend>
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="mt-2 flex flex-wrap gap-2" data-testid="language-options">
               {SUPPORTED_LANGUAGES.map((code) => (
-                <button key={code} type="button" aria-pressed={language === code} onClick={() => setLanguage(code)} className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium ${language === code ? 'border-[#2F7473] bg-teal-50 text-[#245c5b]' : 'border-gray-200 bg-white text-gray-700'}`}>
+                <button key={code} type="button" aria-pressed={language === code} onClick={() => setLanguage(code)} className={`relative flex min-w-[10rem] flex-1 items-center justify-center whitespace-nowrap rounded-xl border px-3 py-3 text-sm font-medium ${language === code ? 'border-[#2F7473] bg-teal-50 text-[#245c5b]' : 'border-gray-200 bg-white text-gray-700'}`}>
                   {code === 'id' ? 'Bahasa Indonesia' : 'English'}
-                  {language === code && <IoCheckmark aria-hidden="true" />}
+                  {language === code && <IoCheckmark aria-hidden="true" className="absolute right-3" />}
                 </button>
               ))}
             </div>
