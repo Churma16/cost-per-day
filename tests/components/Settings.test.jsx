@@ -33,11 +33,14 @@ vi.mock('react-i18next', () => ({
         account: 'Account',
         signOut: 'Sign out',
         signOutSubtitle: 'Your data will stay with your account.',
-        signOutError: 'Sign out failed. Please try again.',
+        signOutError: 'Not signed out yet. Your session is still active.',
+        signOutErrorTitle: 'Not signed out yet.',
+        signOutErrorBody: 'Your session is still active. Try again.',
         signInWithGoogle: 'Sign in with Google',
         guestModeTitle: 'Using Worthwhile on this device',
         guestModeSettingsNotice: 'Your guest data stays only in this browser.',
         authSessionError: 'Your session could not be checked.',
+        authSignInErrorBody: "Couldn't sign in. Try again, or continue without an account.",
         aboutAndLegal: 'About & Legal',
         aboutWorthwhile: 'About Worthwhile',
         aboutWorthwhileSubtitle: 'Why ownership over time matters',
@@ -64,18 +67,36 @@ vi.mock('react-i18next', () => ({
         enterEquivalentAmount: 'e.g. 2500',
         noEquivalents: 'No personalized value equivalents added yet.',
         confirmDeleteEquivalent: 'Are you sure you want to delete this value equivalent?',
-        errorLoadingEquivalents: 'Failed to load value equivalents',
-        errorLoadingSettings: 'Failed to load shared settings.',
-        errorUpdatingLanguage: 'Failed to update the language setting.',
-        errorUpdatingCurrency: 'Failed to update the currency setting.',
-        errorSavingEquivalent: 'Failed to save this comparison.',
+        errorLoadingEquivalents: 'Could not load value equivalents',
+        equivalentsLoadErrorBody: "Couldn't load your value equivalents. Check your connection and try again.",
+        errorLoadingSettings: "Couldn't load these preferences. Your other settings are still available.",
+        preferenceUpdateErrorTitle: 'Not updated yet.',
+        errorUpdatingLanguage: "Language wasn't updated. Your current setting is unchanged. Try again.",
+        errorUpdatingCurrency: "Currency wasn't updated. Your current setting is unchanged. Try again.",
+        errorSavingEquivalent: 'Not saved yet. Your entries are still here. Nothing was lost.',
+        equivalentSaveErrorBody: 'Your entries are still here. Nothing was lost.',
+        notSavedYet: 'Not saved yet.',
         errorDeletingEquivalent: 'Failed to delete this comparison.',
-        importError: 'Failed to import data',
+        importError: 'Import not completed',
+        importErrorBody: 'Not imported yet. Your existing data is unchanged. Nothing was lost.',
+        importFileErrorBody: "Couldn't use this file. Choose a Worthwhile .json backup and try again.",
+        exportErrorBody: 'Not exported yet. Your data is still here. Nothing was lost.',
+        dataTransferErrorTitle: 'Not completed yet.',
         equivalentsLoadingTitle: 'Loading your everyday references',
         equivalentsLoadingDescription: 'Worthwhile is bringing your familiar comparisons into view.',
         equivalentsLoadErrorTitle: "Your value equivalents didn't load",
         equivalentsEmptyDescription: 'Add a familiar everyday amount to give daily ownership costs more personal context.',
-        retry: 'Retry',
+        tryAgain: 'Try again',
+        stillLoadingEquivalents: 'Still loading your comparisons...',
+        saving: 'Saving...',
+        enterEquivalentNameToContinue: 'Enter a name to continue.',
+        enterEquivalentAmountToContinue: 'Enter an amount to continue.',
+        deleteThisEquivalent: 'Delete this value equivalent?',
+        deleteEquivalentIrreversible: `${options?.name} (${options?.amount}) will be removed from Worthwhile. This can't be undone.`,
+        deleteEquivalentErrorTitle: 'Not deleted yet.',
+        deleteEquivalentErrorBody: 'This value equivalent is still here. Nothing was lost.',
+        keepIt: 'Keep it',
+        guestMigrationRetryBody: 'Your data is still on this device. Try again when you are ready.',
         guestValueEquivalentLimitReached: options?.limit
           ? `You've used ${options.limit} value equivalents. Sign in to save more and use them across devices.`
           : 'Value equivalent limit reached.',
@@ -302,7 +323,7 @@ describe('Settings component', () => {
       name: /Rp Indonesian Rupiah \(IDR\)/i
     }));
 
-    expect(await screen.findByText('Failed to update the currency setting.')).toBeInTheDocument();
+    expect(await screen.findByText("Currency wasn't updated. Your current setting is unchanged. Try again.")).toBeInTheDocument();
     expect(screen.queryByText('Failed to save currency.')).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -315,7 +336,7 @@ describe('Settings component', () => {
     }));
 
     await waitFor(() => {
-      expect(screen.queryByText('Failed to update the currency setting.')).not.toBeInTheDocument();
+      expect(screen.queryByText("Currency wasn't updated. Your current setting is unchanged. Try again.")).not.toBeInTheDocument();
     });
   });
 
@@ -451,7 +472,7 @@ describe('Settings component', () => {
     const signOutButton = screen.getByRole('button', { name: 'Sign out' });
     fireEvent.click(signOutButton);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Sign out failed. Please try again.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your session is still active. Try again.');
     expect(screen.queryByText('Network error signing out')).not.toBeInTheDocument();
   });
 
@@ -472,10 +493,10 @@ describe('Settings component', () => {
 
     fireEvent.change(fileInput, { target: { files: [importFile] } });
 
-    const confirmButton = await screen.findByRole('button', { name: /confirm/i });
+    const confirmButton = await screen.findByRole('button', { name: 'Import Data' });
     fireEvent.click(confirmButton);
 
-    expect(await screen.findByText('Failed to import data')).toBeInTheDocument();
+    expect(await screen.findByText('Not imported yet. Your existing data is unchanged. Nothing was lost.')).toBeInTheDocument();
     expect(screen.queryByText(
       'Import failed atomically. Existing server data is unchanged.'
     )).not.toBeInTheDocument();
@@ -507,6 +528,24 @@ describe('Settings component', () => {
     expect(screen.getByText('Coffee')).toBeInTheDocument();
     expect(screen.getByText(/2.500/)).toBeInTheDocument();
     expect(screen.getByText(/15.000/)).toBeInTheDocument();
+  });
+
+  test('shows accessible field errors without clearing equivalent inputs', () => {
+    render(<Settings />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Add Equivalent/i }));
+    const nameInput = screen.getByPlaceholderText('e.g. Gorengan, Coffee');
+    const amountInput = screen.getByPlaceholderText('e.g. 2500');
+
+    fireEvent.change(nameInput, { target: { value: 'Coffee' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+
+    expect(amountInput).toHaveAttribute('aria-invalid', 'true');
+    expect(amountInput).toHaveAttribute('aria-describedby', 'equivalent-amount-error');
+    expect(screen.getByText('Enter an amount to continue.')).toBeInTheDocument();
+    expect(nameInput).toHaveValue('Coffee');
+    expect(amountInput).toHaveFocus();
+    expect(mockAddEquivalent).not.toHaveBeenCalled();
   });
 
   test('opens add modal and calls addEquivalent with form data on submit', async () => {
@@ -606,7 +645,9 @@ describe('Settings component', () => {
     const deleteButtonElement = screen.getByLabelText('Delete Equivalent Gorengan');
     fireEvent.click(deleteButtonElement);
 
-    expect(screen.getByText('Are you sure you want to delete this value equivalent?')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete this value equivalent?' })).toBeInTheDocument();
+    expect(screen.getByText(/Gorengan .* will be removed from Worthwhile/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
 
     const confirmDeleteButton = screen.getByRole('button', { name: /^Delete$/i });
     fireEvent.click(confirmDeleteButton);
@@ -629,16 +670,16 @@ describe('Settings component', () => {
 
     render(<Settings />);
 
-    const errorState = screen.getByRole('alert');
-    expect(errorState).toHaveTextContent("Your value equivalents didn't load");
-    expect(errorState).toHaveTextContent('Failed to load value equivalents');
+    const errorState = screen.getByRole('status');
+    expect(errorState).toHaveTextContent("Couldn't load your value equivalents. Check your connection and try again.");
     expect(errorState).not.toHaveTextContent('Network error loading equivalents');
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(mockRefreshEquivalents).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
   });
 
-  test('renders loading indicator while value equivalents are loading instead of empty state', () => {
+  test('delays value-equivalent loading feedback before skeleton and slow status', () => {
+    vi.useFakeTimers();
     useValueEquivalents.mockReturnValue({
       valueEquivalents: [],
       isLoading: true,
@@ -649,11 +690,23 @@ describe('Settings component', () => {
       refreshEquivalents: mockRefreshEquivalents
     });
 
-    render(<Settings />);
+    const { container } = render(<Settings />);
 
-    expect(screen.getByRole('status')).toHaveTextContent('Loading your everyday references');
-    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your comparisons...');
     expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
+
+    vi.useRealTimers();
   });
 
   test('guards against duplicate equivalent saves while the Motion exit completes', async () => {
