@@ -31,6 +31,8 @@ describe('Cold-start and bootstrap launch state localization', () => {
     expect(indexHtml).not.toContain('Worth knowing');
     expect(indexHtml).not.toContain('Cost per day gradually settles');
     expect(indexHtml).not.toContain('Loading Worthwhile');
+    expect(indexHtml).toContain('class="pre-react-launch__content" aria-hidden="true"');
+    expect(indexHtml).not.toContain('class="pre-react-launch__content" role="status"');
     expect(indexHtml).toContain('class="pre-react-launch__mark"');
     expect(indexHtml).toContain('class="pre-react-launch__brand">Worthwhile</p>');
   });
