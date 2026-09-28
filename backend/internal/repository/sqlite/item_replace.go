@@ -29,6 +29,7 @@ func (repositoryInstance *ItemRepository) ReplaceAll(ctx context.Context, userID
 
 	createdItems := make([]domain.Item, 0, len(items))
 	for _, itemToCreate := range items {
+		itemToCreate.ReplacesItemID = nil
 		priceMicros, conversionError := convertPriceToMicros(itemToCreate.Price)
 		if conversionError != nil {
 			return nil, conversionError
