@@ -132,6 +132,18 @@ var (
 	// ErrBenchmarkItemNotCompleted indicates that benchmark was attempted on an active item.
 	ErrBenchmarkItemNotCompleted = errors.New("replacement benchmark requires a completed historical item")
 
+	// ErrReplacementItemNotCompleted indicates that a replacement target is still active.
+	ErrReplacementItemNotCompleted = errors.New("replacement relationship requires a completed historical item")
+
+	// ErrReplacementSelfReference indicates that an item was linked as its own predecessor.
+	ErrReplacementSelfReference = errors.New("item cannot replace itself")
+
+	// ErrReplacementCycle indicates that a replacement relationship would create a lineage cycle.
+	ErrReplacementCycle = errors.New("replacement relationship cannot create a cycle")
+
+	// ErrReplacementTargetStillReferenced indicates that a historical item is still used as a replacement predecessor.
+	ErrReplacementTargetStillReferenced = errors.New("item cannot be reactivated while referenced by replacement lineage")
+
 	// ErrInvalidGuestMigrationID indicates that a guest migration retry key is missing or malformed.
 	ErrInvalidGuestMigrationID = errors.New("guest migration identifier is invalid")
 )
