@@ -48,6 +48,7 @@ export const CurrencyProvider = ({ children }) => {
       currency: currencySymbol,
       changeCurrency,
       isLoading: settingsQuery.isLoading && !settingsQuery.data,
+      hasSettingsData: settingsQuery.data !== undefined,
       error: settingsQuery.error,
       loadError: settingsQuery.error,
       updateError: updateSettingMutation.error,
