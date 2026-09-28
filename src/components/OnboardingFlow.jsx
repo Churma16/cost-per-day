@@ -290,7 +290,13 @@ function OnboardingFlow({ onComplete }) {
   if (step === 2) {
     return (
       <OnboardingShell step={step} direction={transitionDirection}>
-        <div className="px-6 pb-7 pt-6 sm:px-8">
+        <motion.div
+          key={i18n.resolvedLanguage || language}
+          initial={shouldReduceMotion ? false : { opacity: 0.45, y: 3 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.24, ease: CALM_EASE }}
+          className="px-6 pb-7 pt-6 sm:px-8"
+        >
           <button type="button" onClick={() => navigateToStep(1)} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800">
             <IoArrowBack /> {t('back')}
           </button>
@@ -344,7 +350,7 @@ function OnboardingFlow({ onComplete }) {
           <p className="mt-2 text-xs leading-5 text-gray-500">{t('onboardingCurrencyHelp')}</p>
 
           <button type="button" onClick={() => navigateToStep(3)} className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]">{t('continue')}</button>
-        </div>
+        </motion.div>
       </OnboardingShell>
     );
   }
