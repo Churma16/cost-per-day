@@ -21,6 +21,7 @@ import { getSupportedCurrencies, useCurrency } from '../contexts/CurrencyContext
 import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { useSettings, useUpdateSetting } from '../hooks/useSettings';
 import CurrencyInput from './common/CurrencyInput';
+import { InlineStateNotice, StatePanel } from './ui/AsyncState';
 import {
   hasCompletedOnboarding,
   ONBOARDING_COMPLETED_SETTING,
@@ -322,7 +323,7 @@ function OnboardingFlow({ onComplete }) {
       onComplete();
     } catch (saveError) {
       console.error('Error completing onboarding:', saveError);
-      setError(saveError.message || t('onboardingSaveError'));
+      setError(t('onboardingSaveError'));
       setIsSaving(false);
     }
   };
@@ -502,7 +503,13 @@ function OnboardingFlow({ onComplete }) {
           })}
         </div>
 
-        {error && <p role="alert" className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-medium text-red-700">{error}</p>}
+        {error && (
+          <InlineStateNotice
+            variant="error"
+            message={error}
+            className="mt-4"
+          />
+        )}
 
         <div className="mt-6 flex gap-3">
           <button type="button" disabled={isSaving} onClick={() => finish({ skipReferences: true })} className="flex-1 rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50">{t('skipForNow')}</button>
@@ -514,15 +521,38 @@ function OnboardingFlow({ onComplete }) {
 }
 
 export function OnboardingGate({ children }) {
+  const { t } = useTranslation();
   const settingsQuery = useSettings();
   const navigate = useNavigate();
   const [, setCompletionRevision] = useState(0);
 
   if (settingsQuery.isLoading && !settingsQuery.data) {
-    return <div className="flex h-screen items-center justify-center text-[#2F7473]">Loading...</div>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-4">
+        <div className="w-full max-w-sm">
+          <StatePanel
+            variant="loading"
+            title={t('onboardingLoadingTitle')}
+            description={t('onboardingLoadingDescription')}
+          />
+        </div>
+      </main>
+    );
   }
   if (settingsQuery.error && !settingsQuery.data) {
-    return <div role="alert" className="flex h-screen items-center justify-center p-6 text-center text-red-700">{settingsQuery.error.message}</div>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-4">
+        <div className="w-full max-w-sm">
+          <StatePanel
+            variant="error"
+            title={t('onboardingLoadErrorTitle')}
+            description={t('onboardingLoadErrorDescription')}
+            actionLabel={t('retry')}
+            onAction={() => settingsQuery.refetch()}
+          />
+        </div>
+      </main>
+    );
   }
   if (!hasCompletedOnboarding(settingsQuery.data)) {
     return (
