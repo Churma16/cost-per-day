@@ -73,10 +73,8 @@ function EquivalentFormModal({
     if (Object.keys(nextErrors).length > 0) {
       setFieldErrors(nextErrors);
       setActionError(null);
-      window.requestAnimationFrame(() => {
-        if (nextErrors.name) nameInputRef.current?.focus();
-        else document.getElementById('equivalent-amount')?.focus();
-      });
+      if (nextErrors.name) nameInputRef.current?.focus();
+      else document.getElementById('equivalent-amount')?.focus();
       return;
     }
 
