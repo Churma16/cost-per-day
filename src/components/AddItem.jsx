@@ -175,6 +175,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setTargetType(hydratedValues.targetType);
     setTargetDraftValues(createTargetDraftValues(hydratedValues));
     setReplacesItemId(hydratedValues.replacesItemId);
+    setSelectedBenchmarkItemId((currentItemId) => (
+      currentItemId || hydratedValues.replacesItemId || ''
+    ));
     setHydratedEditId(String(editId));
     setLoadFailed(false);
     setErrorMessage(null);
@@ -220,6 +223,13 @@ function AddItem({ showHeader = true, isVisible = true }) {
         duration: String(benchmarkResult.daysToMatchPrevious),
       }));
       setTargetMode('manual');
+    }
+  };
+
+  const handleReplacesItemIdChange = (nextItemId) => {
+    setReplacesItemId(nextItemId);
+    if (nextItemId) {
+      setSelectedBenchmarkItemId((currentItemId) => currentItemId || nextItemId);
     }
   };
 
@@ -415,7 +425,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
                 completedItems={completedItems}
                 currentItemId={editId}
                 replacesItemId={replacesItemId}
-                onReplacesItemIdChange={setReplacesItemId}
+                onReplacesItemIdChange={handleReplacesItemIdChange}
               />
             )}
 
