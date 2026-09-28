@@ -76,16 +76,29 @@ vi.mock('react-i18next', () => ({
         back: 'Back',
         discardDraft: 'Discard draft',
         guestItemLimitReached: 'You\'ve reached the ' + options?.limit + '-item limit without an account.',
-        errorSavingItem: 'Failed to save the item. Please try again.',
-        errorDeletingItem: 'Failed to delete this item.',
+        itemSaveErrorTitle: 'Not saved yet.',
+        itemSaveErrorBody: 'Your entries are still here. Nothing was lost.',
+        itemDeleteErrorTitle: 'Not deleted yet.',
+        itemDeleteErrorBody: 'This item and its history are still here. Nothing was lost.',
         editItemLoadingTitle: 'Bringing this item into view',
         editItemLoadingDescription: 'Worthwhile is loading the ownership details you saved.',
         editItemLoadErrorTitle: "This item didn't load",
-        editItemLoadErrorDescription: "Your saved item hasn't been changed. Try loading it again.",
+        editItemLoadErrorDescription: "Couldn't load this item. Check your connection and try again.",
         itemNotFoundTitle: 'This item is no longer here',
         itemNotFound: 'Item not found. It may have been deleted.',
         backToWorthwhile: 'Back to Worthwhile',
-        retry: 'Retry',
+        tryAgain: 'Try again',
+        stillLoadingItem: 'Still loading this item...',
+        enterItemNameToContinue: 'Enter an item name to continue.',
+        enterPriceToContinue: 'Enter a price to continue.',
+        checkItemDetails: 'Check these details.',
+        itemValidationErrorBody: 'Review the ownership details before saving.',
+        notSavedYet: 'Not saved yet.',
+        saving: 'Saving...',
+        deleteThisItem: 'Delete this item?',
+        deleteItemIrreversible: `${options?.name} and its history will be removed from this device. This can't be undone.`,
+        keepIt: 'Keep it',
+        delete: 'Delete',
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -205,6 +218,28 @@ describe('AddItem component date localization', () => {
     expect(januaryMonthOption).toBeInTheDocument();
   });
 
+  test('validates required name and price on submit without clearing user input', () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    const nameInput = screen.getByPlaceholderText('Enter item name');
+    const priceInput = screen.getByPlaceholderText('Enter price');
+    fireEvent.change(nameInput, { target: { value: 'Keep this draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(priceInput).toHaveAttribute('aria-invalid', 'true');
+    expect(priceInput).toHaveAttribute('aria-describedby', 'owned-item-price-error');
+    expect(screen.getByText('Enter a price to continue.')).toBeInTheDocument();
+    expect(nameInput).toHaveValue('Keep this draft');
+    expect(priceInput).toHaveFocus();
+    expect(addItem).not.toHaveBeenCalled();
+  });
+
   test('shows a user-facing API error when saving fails', async () => {
     useLanguage.mockReturnValue({
       language: 'en'
@@ -227,7 +262,7 @@ describe('AddItem component date localization', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to save the item. Please try again.'
+        'Your entries are still here. Nothing was lost.'
       );
     });
     expect(screen.queryByText(/Unable to reach the server/i)).not.toBeInTheDocument();
@@ -418,7 +453,7 @@ describe('AddItem component date localization', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Failed to save the item. Please try again.');
+      expect(screen.getByRole('alert')).toHaveTextContent('Your entries are still here. Nothing was lost.');
     });
     expect(window.localStorage.getItem(storageKey)).not.toBeNull();
   });
@@ -563,18 +598,32 @@ describe('AddItem component date localization', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
-  test('shows a dedicated loading state before edit data is hydrated', () => {
+  test('delays edit loading feedback, then shows skeleton and slow-load status', () => {
+    vi.useFakeTimers();
     useLanguage.mockReturnValue({ language: 'en' });
     getAllItems.mockReturnValue(new Promise(() => {}));
 
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={['/edit?id=42']}>
         <AddItem />
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('status')).toHaveTextContent('Bringing this item into view');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading this item...');
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+
+    vi.useRealTimers();
   });
 
   test('shows a dedicated item-not-found state instead of an empty edit form', async () => {
@@ -604,10 +653,10 @@ describe('AddItem component date localization', () => {
       </MemoryRouter>
     );
 
-    const errorState = await screen.findByRole('alert', {}, { timeout: 3000 });
-    expect(errorState).toHaveTextContent("This item didn't load");
+    const errorState = await screen.findByRole('status', {}, { timeout: 3000 });
+    expect(errorState).toHaveTextContent("Couldn't load this item. Check your connection and try again.");
     expect(errorState).not.toHaveTextContent('Unable to load item.');
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete Item' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
