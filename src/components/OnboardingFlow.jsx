@@ -8,7 +8,12 @@ import React, {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoAdd, IoArrowBack, IoCheckmark, IoClose } from 'react-icons/io5';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  useReducedMotion,
+} from 'motion/react';
 import { PRODUCT_NAME } from '../constants/branding';
 import { useLanguage, SUPPORTED_LANGUAGES } from '../contexts/LanguageContext';
 import { getSupportedCurrencies, useCurrency } from '../contexts/CurrencyContext';
@@ -334,22 +339,25 @@ function OnboardingFlow({ onComplete }) {
               {t('back')}
             </LocalizedCopy>
           </button>
-          <h1 className="text-xl font-bold tracking-[-0.02em] text-gray-950">
-            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
-              {t('onboardingPreferencesTitle')}
-            </LocalizedCopy>
-          </h1>
-          <p className="mt-2 text-sm leading-5 text-gray-600">
-            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
-              {t('onboardingPreferencesBody')}
-            </LocalizedCopy>
-          </p>
+          <LayoutGroup id="onboarding-language-layout">
+            <motion.div layout transition={calmLanguageLayoutTransition}>
+              <h1 className="text-xl font-bold tracking-[-0.02em] text-gray-950">
+                <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
+                  {t('onboardingPreferencesTitle')}
+                </LocalizedCopy>
+              </h1>
+              <p className="mt-2 text-sm leading-5 text-gray-600">
+                <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
+                  {t('onboardingPreferencesBody')}
+                </LocalizedCopy>
+              </p>
+            </motion.div>
 
-          <motion.fieldset
-            layout="position"
-            transition={calmLanguageLayoutTransition}
-            className="mt-6"
-          >
+            <motion.fieldset
+              layout="position"
+              transition={calmLanguageLayoutTransition}
+              className="mt-6"
+            >
             <legend className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
                 {t('language')}
@@ -391,13 +399,13 @@ function OnboardingFlow({ onComplete }) {
                 );
               })}
             </div>
-          </motion.fieldset>
+            </motion.fieldset>
 
-          <motion.div
-            layout="position"
-            transition={calmLanguageLayoutTransition}
-            className="mt-6"
-          >
+            <motion.div
+              layout="position"
+              transition={calmLanguageLayoutTransition}
+              className="mt-6"
+            >
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500" htmlFor="onboarding-currency">
               <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
                 {t('currency')}
@@ -411,19 +419,20 @@ function OnboardingFlow({ onComplete }) {
                 {t('onboardingCurrencyHelp')}
               </LocalizedCopy>
             </p>
-          </motion.div>
+            </motion.div>
 
-          <motion.button
-            layout="position"
-            transition={calmLanguageLayoutTransition}
-            type="button"
-            onClick={() => navigateToStep(3)}
-            className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]"
-          >
-            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
-              {t('continue')}
-            </LocalizedCopy>
-          </motion.button>
+            <motion.button
+              layout="position"
+              transition={calmLanguageLayoutTransition}
+              type="button"
+              onClick={() => navigateToStep(3)}
+              className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]"
+            >
+              <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
+                {t('continue')}
+              </LocalizedCopy>
+            </motion.button>
+          </LayoutGroup>
         </div>
       </OnboardingShell>
     );
