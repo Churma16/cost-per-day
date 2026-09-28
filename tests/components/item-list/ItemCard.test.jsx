@@ -22,6 +22,12 @@ vi.mock('react-i18next', () => ({
       if (key === 'equivalentPerMonth') {
         return `${options?.count} ${options?.name}/month`;
       }
+      if (key === 'ownershipJourneyCameBefore') {
+        return `${options?.name} came before this`;
+      }
+      if (key === 'ownershipJourneyCameAfter') {
+        return `${options?.name} came after this`;
+      }
       return {
         statusActiveEarly: 'Just Joined You',
         statusActive: 'Still With You',
@@ -46,6 +52,9 @@ vi.mock('react-i18next', () => ({
         targetStateReached: 'Target reached',
         targetStateNew: 'New',
         benchmarkReplacement: 'Benchmark replacement',
+        ownershipJourney: 'Ownership journey',
+        ownershipJourneyBeforeAndAfter: 'See what came before and after',
+        ownershipJourneyAfterOnly: 'See what came after this',
         edit: 'Edit',
         deleteItem: 'Delete',
       }[key] || key;
@@ -189,6 +198,105 @@ describe('ItemCard', () => {
     );
 
     expect(screen.getByText('≈ 2 Coffee/day')).toBeInTheDocument();
+  });
+
+  test('keeps ownership journey out of the collapsed summary and opens it from expanded details', () => {
+    const onOpenOwnershipJourney = vi.fn();
+    const item = {
+      id: 'headphones-new',
+      name: 'New Headphones',
+      price: 300,
+      purchaseDate: '2026-09-01T00:00:00Z',
+      ownershipDays: 20,
+      grossCostPerDay: 15,
+      status: 'active',
+    };
+    const previousItem = {
+      id: 'headphones-old',
+      name: 'Old Headphones',
+      status: 'retired',
+    };
+
+    const { rerender } = render(
+      <ItemCard
+        item={item}
+        isExpanded={false}
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onBenchmark={vi.fn()}
+        ownershipJourney={{
+          previousItem,
+          nextItems: [],
+          hasJourney: true,
+        }}
+        onOpenOwnershipJourney={onOpenOwnershipJourney}
+        currencyCode="USD"
+        valueEquivalents={[]}
+      />
+    );
+
+    expect(screen.queryByRole('button', {
+      name: 'Ownership journey: Old Headphones came before this',
+    })).not.toBeInTheDocument();
+
+    rerender(
+      <ItemCard
+        item={item}
+        isExpanded
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onBenchmark={vi.fn()}
+        ownershipJourney={{
+          previousItem,
+          nextItems: [],
+          hasJourney: true,
+        }}
+        onOpenOwnershipJourney={onOpenOwnershipJourney}
+        currencyCode="USD"
+        valueEquivalents={[]}
+      />
+    );
+
+    const journeyButton = screen.getByRole('button', {
+      name: 'Ownership journey: Old Headphones came before this',
+    });
+    expect(journeyButton).toBeInTheDocument();
+
+    fireEvent.click(journeyButton);
+    expect(onOpenOwnershipJourney).toHaveBeenCalledWith(item);
+  });
+
+  test('does not render an empty ownership journey entry', () => {
+    render(
+      <ItemCard
+        item={{
+          id: 'standalone',
+          name: 'Standalone',
+          price: 100,
+          purchaseDate: '2026-09-01T00:00:00Z',
+          ownershipDays: 20,
+          grossCostPerDay: 5,
+          status: 'active',
+        }}
+        isExpanded
+        onToggle={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onBenchmark={vi.fn()}
+        ownershipJourney={{
+          previousItem: null,
+          nextItems: [],
+          hasJourney: false,
+        }}
+        onOpenOwnershipJourney={vi.fn()}
+        currencyCode="USD"
+        valueEquivalents={[]}
+      />
+    );
+
+    expect(screen.queryByText('Ownership journey')).not.toBeInTheDocument();
   });
 
   test('does not expose the API-only replacement benchmark to guests', () => {
