@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoAdd, IoArrowBack, IoCheckmark, IoClose } from 'react-icons/io5';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { PRODUCT_NAME } from '../constants/branding';
 import { useLanguage, SUPPORTED_LANGUAGES } from '../contexts/LanguageContext';
 import { getSupportedCurrencies, useCurrency } from '../contexts/CurrencyContext';
@@ -36,6 +37,7 @@ const OnboardingShell = ({ step, children }) => (
 
 function OnboardingFlow({ onComplete }) {
   const { t, i18n } = useTranslation();
+  const shouldReduceMotion = useReducedMotion();
   const settingsQuery = useSettings();
   const updateSetting = useUpdateSetting();
   const { changeLanguage } = useLanguage();
@@ -56,6 +58,10 @@ function OnboardingFlow({ onComplete }) {
     ...item,
     name: t(item.nameKey),
   })), [t, i18n.resolvedLanguage]);
+  const calmSelectionTransition = {
+    duration: shouldReduceMotion ? 0 : 0.28,
+    ease: [0.16, 1, 0.3, 1],
+  };
 
   const addSuggestedReference = (kind) => {
     const name = t(`onboardingReference${kind[0].toUpperCase()}${kind.slice(1)}`);
@@ -146,12 +152,40 @@ function OnboardingFlow({ onComplete }) {
           <fieldset className="mt-6">
             <legend className="text-xs font-semibold uppercase tracking-wider text-gray-500">{t('language')}</legend>
             <div className="mt-2 flex flex-wrap gap-2" data-testid="language-options">
-              {SUPPORTED_LANGUAGES.map((code) => (
-                <button key={code} type="button" aria-pressed={language === code} onClick={() => setLanguage(code)} className={`relative flex min-w-[10rem] flex-1 items-center justify-center whitespace-nowrap rounded-xl border px-3 py-3 text-sm font-medium ${language === code ? 'border-[#2F7473] bg-teal-50 text-[#245c5b]' : 'border-gray-200 bg-white text-gray-700'}`}>
-                  {code === 'id' ? 'Bahasa Indonesia' : 'English'}
-                  {language === code && <IoCheckmark aria-hidden="true" className="absolute right-3" />}
-                </button>
-              ))}
+              {SUPPORTED_LANGUAGES.map((code) => {
+                const isSelected = language === code;
+                return (
+                  <motion.button
+                    key={code}
+                    layout={!shouldReduceMotion}
+                    initial={false}
+                    animate={{ opacity: isSelected ? 1 : 0.76, scale: isSelected ? 1 : 0.985 }}
+                    whileHover={shouldReduceMotion ? undefined : { opacity: 0.9, scale: 1 }}
+                    whileTap={shouldReduceMotion ? undefined : { scale: 0.975 }}
+                    transition={calmSelectionTransition}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setLanguage(code)}
+                    className={`relative flex min-w-[10rem] flex-1 items-center justify-center whitespace-nowrap rounded-xl border px-3 py-3 text-sm font-medium transition-[border-color,background-color,color,box-shadow] duration-300 ${isSelected ? 'border-[#2F7473] bg-teal-50 text-[#245c5b] shadow-sm' : 'border-gray-200 bg-white text-gray-700'}`}
+                  >
+                    {code === 'id' ? 'Bahasa Indonesia' : 'English'}
+                    <AnimatePresence initial={false}>
+                      {isSelected && (
+                        <motion.span
+                          key="selected"
+                          initial={{ opacity: 0, scale: 0.7 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.7 }}
+                          transition={calmSelectionTransition}
+                          className="absolute right-3 flex"
+                        >
+                          <IoCheckmark aria-hidden="true" />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                );
+              })}
             </div>
           </fieldset>
 
