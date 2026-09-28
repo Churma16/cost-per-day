@@ -407,6 +407,21 @@ const translation = {
   "benchmarkMissingPriceHint": "Enter the item price in the main form first to calculate this baseline.",
   "benchmarkUnmatchableZeroCost": "This item had a zero or negative net ownership cost (sold at or above purchase price). A new purchase cannot match a zero-cost baseline.",
 
+  // Ownership Journey
+  "ownershipJourney": "Ownership journey",
+  "ownershipJourneyOptional": "Ownership journey (optional)",
+  "ownershipJourneyQuestion": "What did this replace?",
+  "ownershipJourneyHelper": "Link this item to something you owned before.",
+  "ownershipJourneyNone": "Nothing linked",
+  "ownershipJourneyRemoveLink": "Remove link",
+  "ownershipJourneyNoCompletedItems": "No completed items are available to link yet.",
+  "ownershipJourneyCameBefore": "{{name}} came before this",
+  "ownershipJourneyCameAfter": "{{name}} came after this",
+  "ownershipJourneyBeforeAndAfter": "See what came before and after",
+  "ownershipJourneyAfterOnly": "See what came after this",
+  "ownershipJourneyDescription": "See how this item fits into what you've owned over time.",
+  "ownershipJourneyThisItem": "This item",
+
   // Taxonomy (Category & Brand)
   "category": "Category",
   "categoryOptional": "Category (Optional)",
