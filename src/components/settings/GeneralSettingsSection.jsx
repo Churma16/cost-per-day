@@ -44,6 +44,7 @@ function GeneralSettingsSection({
   languageName,
   selectedCurrencyOption,
   isLoading,
+  hasSettingsData = true,
   loadError,
   onRetry,
   isInteractionBlocked,
@@ -55,18 +56,17 @@ function GeneralSettingsSection({
   const { t } = useTranslation();
   const loadingState = useLoadingPhases(isLoading);
   const showLoadingState = loadingState.phase !== 'idle';
+  const showInitialLoadError = Boolean(loadError && !hasSettingsData);
 
   return (
     <SettingsSection id="general-settings-heading" title={t('general')}>
-      {loadError && (
+      {showInitialLoadError ? (
         <NoticeCard
           body={loadError}
           actionLabel={t('tryAgain')}
           onAction={onRetry}
-          className="mb-3"
         />
-      )}
-      {showLoadingState ? (
+      ) : showLoadingState ? (
         <div aria-busy="true">
           {loadingState.phase === 'blank' ? (
             <SettingsCard className="min-h-[121px]" />
@@ -78,7 +78,16 @@ function GeneralSettingsSection({
           )}
         </div>
       ) : (
-        <SettingsCard className="state-content-enter">
+        <>
+          {loadError && (
+            <NoticeCard
+              body={loadError}
+              actionLabel={t('tryAgain')}
+              onAction={onRetry}
+              className="mb-3"
+            />
+          )}
+          <SettingsCard className="state-content-enter">
           <button
             type="button"
             className={`${SETTINGS_ROW_CLASS} hover:bg-slate-50/70`}
@@ -114,7 +123,8 @@ function GeneralSettingsSection({
               <SettingsChevron />
             </span>
           </button>
-        </SettingsCard>
+          </SettingsCard>
+        </>
       )}
       {errorMessage && (
         <ErrorCard
