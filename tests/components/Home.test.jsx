@@ -12,8 +12,12 @@ vi.mock('react-i18next', () => ({
       totalDailyCost: 'Daily Ownership Cost',
       perDay: '/day',
       dailyOwnershipReflection: `Today, what you own is worth about ${options?.amount} per day.`,
-      homeEmptyHeroTitle: 'Nothing counted yet',
-      homeEmptyHeroBody: 'Start with one thing you already own, and see what it costs you over time.',
+      homeEmptyHeroTitle: 'Your ownership history starts here',
+      homeEmptyHeroBody: 'Add something you already own to see how its cost changes over time.',
+      homeDashboardErrorTitle: "Insights aren't available yet",
+      homeDashboardErrorBody: 'Your items are still here. Check your connection and try again.',
+      insights: 'Insights',
+      tryAgain: 'Try again',
     }[key] || key),
   }),
 }));
@@ -140,16 +144,16 @@ describe('HomeHeader', () => {
 
     const { container } = render(<Home />);
 
-    expect(screen.getByText('Nothing counted yet')).toBeInTheDocument();
-    expect(screen.getByText('Start with one thing you already own, and see what it costs you over time.')).toBeInTheDocument();
+    expect(screen.getByText('Your ownership history starts here')).toBeInTheDocument();
+    expect(screen.getByText('Add something you already own to see how its cost changes over time.')).toBeInTheDocument();
     expect(screen.queryByText(/Today, what you own is worth about/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Rp\s*0/)).not.toBeInTheDocument();
     expect(screen.queryByText('Insight carousel')).not.toBeInTheDocument();
     expect(container.querySelector('.home-insight-card')).toBeInTheDocument();
   });
 
-  test('uses the canonical hero skeleton without replacing the hero frame', () => {
-    const { container } = render(
+  test('keeps a minimal base skeleton collapsed, then expands when ready', () => {
+    const { container, rerender } = render(
       <HomeHeader
         totalDailyCost={0}
         currencyCode="IDR"
@@ -157,9 +161,57 @@ describe('HomeHeader', () => {
       />
     );
 
-    expect(container.querySelector('.home-insight-card')).toBeInTheDocument();
-    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+    const heroCard = container.querySelector('.home-insight-card');
+    const heroContent = container.querySelector('.home-reflection-content');
+    const loadingPanel = container.querySelector('[data-home-hero-loading-panel]');
+    const contentPanel = container.querySelector('[data-home-hero-content-panel]');
+
+    expect(heroCard).toHaveAttribute('data-hero-state', 'collapsed');
+    expect(heroCard).toHaveAttribute('aria-busy', 'true');
+    expect(heroContent).toHaveClass('home-reflection-content--collapsed');
+    expect(loadingPanel).toHaveClass('grid-rows-[1fr]', 'duration-300', 'ease-out');
+    expect(contentPanel).toHaveClass('grid-rows-[0fr]', 'duration-300', 'ease-out');
+    expect(container.querySelector('[data-hero-skeleton="base"]')).toBeInTheDocument();
+    expect(container.querySelectorAll('.state-skeleton')).toHaveLength(4);
+    expect(screen.queryByText('Insight carousel')).not.toBeInTheDocument();
     expect(screen.queryByText(/Today, what you own is worth about/)).not.toBeInTheDocument();
+
+    rerender(
+      <HomeHeader
+        totalDailyCost={12.5}
+        currencyCode="USD"
+        state="content"
+      />
+    );
+
+    expect(heroCard).toHaveAttribute('data-hero-state', 'expanded');
+    expect(heroCard).toHaveAttribute('aria-busy', 'false');
+    expect(heroContent).not.toHaveClass('home-reflection-content--collapsed');
+    expect(loadingPanel).toHaveClass('grid-rows-[0fr]', 'opacity-0', 'invisible');
+    expect(loadingPanel).toHaveAttribute('aria-hidden', 'true');
+    expect(contentPanel).toHaveClass('grid-rows-[1fr]', 'opacity-100', 'visible');
+    expect(screen.getByText('Insight carousel')).toBeInTheDocument();
+    expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$12.50');
+  });
+
+  test('waits for initial dashboard insights without putting the loaded item list back into loading', () => {
+    useDashboard.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+    });
+    useItems.mockReturnValue({
+      data: [{ id: '1', status: 'active', grossCostPerDay: 12.5 }],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    const { container } = render(<Home />);
+
+    expect(container.querySelector('.home-insight-card')).toHaveAttribute('data-hero-state', 'collapsed');
+    expect(container.querySelector('[data-home-hero-loading-panel]')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByText('Item list: 1')).toBeInTheDocument();
   });
 
   test('uses dashboard data as the canonical Home daily cost when available', () => {
@@ -230,5 +282,33 @@ describe('HomeHeader', () => {
     expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$5.50');
     expect(screen.getByText('Item list: 3')).toBeInTheDocument();
     expect(useItems).toHaveBeenCalledTimes(1);
+  });
+
+  test('shows a retryable hero error when initial dashboard insights fail without cache', () => {
+    const refetchDashboard = vi.fn();
+    useDashboard.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      refetch: refetchDashboard,
+    });
+    useItems.mockReturnValue({
+      data: [{ id: 'active-1', status: 'active', grossCostPerDay: 12.5 }],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    const { container } = render(<Home />);
+
+    expect(container.querySelector('.home-insight-card')).toHaveAttribute('data-hero-state', 'expanded');
+    expect(screen.getByRole('alert')).toHaveTextContent("Insights aren't available yet");
+    expect(screen.getByRole('alert')).toHaveTextContent('Your items are still here.');
+    expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$12.50');
+    expect(screen.getByText('Item list: 1')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(refetchDashboard).toHaveBeenCalledTimes(1);
   });
 });

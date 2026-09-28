@@ -61,6 +61,7 @@ function HomeHeader({
   totalDailyCost = 0,
   currencyCode: dashboardCurrencyCode,
   state = 'content',
+  onRetryDashboard,
 }) {
   const { t } = useTranslation();
   const { currencyCode } = useCurrency();
@@ -69,33 +70,82 @@ function HomeHeader({
   const isBlank = state === 'blank';
   const isLoadingSkeleton = state === 'skeleton' || state === 'slow';
   const isEmpty = state === 'empty';
+  const isDashboardError = state === 'dashboard-error';
+  const isCollapsed = isBlank || isLoadingSkeleton || state === 'error';
+  const isBusy = isBlank || isLoadingSkeleton;
 
   return (
     <>
       <HomeBrandHeader />
       <div className="w-full min-w-0 flex-shrink-0 px-4">
-        <div className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[18px] bg-white ring-1 ring-black/[0.04]">
+        <div
+          className="home-insight-card mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-[1.25rem] bg-white ring-1 ring-black/[0.04]"
+          data-hero-state={isCollapsed ? 'collapsed' : 'expanded'}
+          aria-busy={isBusy}
+        >
           <div className="home-reflection-surface relative isolate w-full min-w-0 text-white">
-            <div className="relative z-[1] w-full min-w-0 px-5 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
-              {isBlank || state === 'error' ? (
-                <div aria-hidden="true" className="min-h-[178px]" />
-              ) : isLoadingSkeleton ? (
-                <HeroSkeleton paused={state === 'slow'} />
-              ) : isEmpty ? (
-                <div className="flex min-h-[178px] flex-col items-start justify-center px-0.5 py-2 text-left">
-                  <h2 className="text-[1.55rem] font-semibold leading-[1.12] tracking-[-0.025em] text-white sm:text-[1.75rem]">
-                    {t('homeEmptyHeroTitle')}
-                  </h2>
-                  <p className="mt-3 max-w-sm text-sm leading-5 text-white/80">
-                    {t('homeEmptyHeroBody')}
-                  </p>
+            <div className={`home-reflection-content relative z-[1] w-full min-w-0 ${isCollapsed ? 'home-reflection-content--collapsed' : ''}`}>
+              <div
+                aria-hidden={!isLoadingSkeleton}
+                data-home-hero-loading-panel
+                className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none ${
+                  isLoadingSkeleton
+                    ? 'grid-rows-[1fr] opacity-100 visible'
+                    : 'grid-rows-[0fr] opacity-0 pointer-events-none invisible'
+                }`}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <HeroSkeleton compact paused={state === 'slow'} />
                 </div>
-              ) : (
-                <HeroCarousel />
-              )}
+              </div>
+              <div
+                aria-hidden={isCollapsed}
+                data-home-hero-content-panel
+                className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none ${
+                  isCollapsed
+                    ? 'grid-rows-[0fr] opacity-0 pointer-events-none invisible'
+                    : 'grid-rows-[1fr] opacity-100 visible'
+                }`}
+              >
+                <div className="home-reflection-content-inner">
+                  {!isCollapsed && (isDashboardError ? (
+                    <div role="alert" className="flex min-h-[178px] flex-col items-start justify-center px-0.5 py-2 text-left">
+                      <p className="mb-3 text-[11px] font-semibold uppercase leading-4 tracking-[0.16em] text-white/70">
+                        {t('insights')}
+                      </p>
+                      <h2 className="text-[1.25rem] font-semibold leading-[1.2] tracking-[-0.02em] text-white sm:text-[1.4rem]">
+                        {t('homeDashboardErrorTitle')}
+                      </h2>
+                      <p className="mt-2 max-w-sm text-sm leading-5 text-white/80">
+                        {t('homeDashboardErrorBody')}
+                      </p>
+                      {typeof onRetryDashboard === 'function' && (
+                        <button
+                          type="button"
+                          onClick={onRetryDashboard}
+                          className="mt-4 inline-flex min-h-9 items-center justify-center rounded-xl border border-white/35 bg-white/10 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#32636A]"
+                        >
+                          {t('tryAgain')}
+                        </button>
+                      )}
+                    </div>
+                  ) : isEmpty ? (
+                    <div className="flex min-h-[178px] flex-col items-start justify-center px-0.5 py-2 text-left">
+                      <h2 className="text-[1.55rem] font-semibold leading-[1.12] tracking-[-0.025em] text-white sm:text-[1.75rem]">
+                        {t('homeEmptyHeroTitle')}
+                      </h2>
+                      <p className="mt-3 max-w-sm text-sm leading-5 text-white/80">
+                        {t('homeEmptyHeroBody')}
+                      </p>
+                    </div>
+                  ) : (
+                    <HeroCarousel />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-          {state === 'content' && (
+          {(state === 'content' || isDashboardError) && (
             <p className="max-w-md px-5 py-4 text-sm leading-5 text-[#66707A] sm:px-6">
               {t('dailyOwnershipReflection', {
                 amount: formatCurrency(totalDailyCost, resolvedCurrencyCode),
@@ -109,22 +159,39 @@ function HomeHeader({
 }
 
 function Home() {
-  const { data: dashboardData, isError: isDashboardError, isRefetchError } = useDashboard();
+  const {
+    data: dashboardData,
+    isLoading: isDashboardLoading,
+    isFetching: isDashboardFetching,
+    isError: isDashboardError,
+    isRefetchError,
+    refetch: refetchDashboard,
+  } = useDashboard();
   const itemsQuery = useItems();
   const initialItemsLoading = itemsQuery.isLoading && itemsQuery.data === undefined;
-  const loadingState = useLoadingPhases(initialItemsLoading);
   const items = itemsQuery.data ?? [];
+  const itemLoadingState = useLoadingPhases(initialItemsLoading);
+  const initialDashboardLoading = (isDashboardLoading || isDashboardFetching)
+    && dashboardData == null;
+  const heroLoadingState = useLoadingPhases(
+    initialItemsLoading || (items.length > 0 && initialDashboardLoading)
+  );
   const isTrueEmpty = itemsQuery.data !== undefined
     && !itemsQuery.isError
     && items.length === 0;
   const isInitialItemsError = itemsQuery.isError && itemsQuery.data === undefined;
-  const homeState = loadingState.phase !== 'idle'
-    ? loadingState.phase
+  const isInitialDashboardError = isDashboardError
+    && dashboardData == null
+    && items.length > 0;
+  const homeState = heroLoadingState.phase !== 'idle'
+    ? heroLoadingState.phase
     : isTrueEmpty
       ? 'empty'
       : isInitialItemsError
         ? 'error'
-        : 'content';
+        : isInitialDashboardError
+          ? 'dashboard-error'
+          : 'content';
   const dashboardTotal = dashboardData?.totalDailyCost;
   const hasDashboardTotal = dashboardTotal !== null
     && dashboardTotal !== undefined
@@ -142,10 +209,11 @@ function Home() {
         totalDailyCost={totalDailyCost}
         currencyCode={dashboardData?.currencyCode}
         state={homeState}
+        onRetryDashboard={refetchDashboard}
       />
       <ItemListContent
         itemsQuery={itemsQuery}
-        loadingPhase={loadingState.phase}
+        loadingPhase={itemLoadingState.phase}
       />
     </div>
   );

@@ -223,11 +223,11 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
   };
 
   if (dashboardLoadingState.phase === 'blank') {
-    return <div aria-hidden="true" className="min-h-[178px]" />;
+    return null;
   }
 
   if (dashboardLoadingState.showSkeleton) {
-    return <HeroSkeleton paused={dashboardLoadingState.showSlowIndicator} />;
+    return <HeroSkeleton compact paused={dashboardLoadingState.showSlowIndicator} />;
   }
 
   if (isError && dashboardData == null && !insightsOverride) {
