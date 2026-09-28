@@ -63,6 +63,7 @@ function Settings() {
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [preferenceError, setPreferenceError] = useState(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importData, setImportData] = useState(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -126,41 +127,30 @@ function Settings() {
 
   useEffect(() => {
     const settingsError = languageError || currencyError;
-    if (settingsError) {
-      showNotification({
-        message: t('errorLoadingSettings'),
-        type: 'error'
-      }, { autoDismiss: false });
-    }
-  }, [languageError, currencyError, showNotification, t]);
+    setPreferenceError(settingsError ? t('errorLoadingSettings') : null);
+  }, [languageError, currencyError, t]);
 
   const handleLanguageChange = async (code) => {
     setShowLanguageDropdown(false);
-    clearNotification();
+    setPreferenceError(null);
     try {
       await changeLanguage(code);
-      clearNotification();
+      setPreferenceError(null);
     } catch (error) {
       console.error('Error updating language:', error);
-      showNotification({
-        message: t('errorUpdatingLanguage'),
-        type: 'error'
-      }, { autoDismiss: false });
+      setPreferenceError(t('errorUpdatingLanguage'));
     }
   };
 
   const handleCurrencyChange = async (selectedCurrencyCode) => {
     setShowCurrencyDropdown(false);
-    clearNotification();
+    setPreferenceError(null);
     try {
       await changeCurrency(selectedCurrencyCode);
-      clearNotification();
+      setPreferenceError(null);
     } catch (error) {
       console.error('Error updating currency:', error);
-      showNotification({
-        message: t('errorUpdatingCurrency'),
-        type: 'error'
-      }, { autoDismiss: false });
+      setPreferenceError(t('errorUpdatingCurrency'));
     }
   };
 
@@ -173,7 +163,7 @@ function Settings() {
       }
     } catch (error) {
       console.error('Error signing out:', error);
-      setSignOutError(error.message || t('signOutError'));
+      setSignOutError(t('signOutError'));
     } finally {
       setIsSigningOut(false);
     }
@@ -292,7 +282,7 @@ function Settings() {
     } catch (error) {
       console.error('Error importing data:', error);
       showNotification({
-        message: error.message || t('importError'),
+        message: t('importError'),
         type: 'error'
       });
     }
@@ -326,7 +316,7 @@ function Settings() {
         localizedError.limit = saveError.limit;
         throw localizedError;
       }
-      throw saveError;
+      throw new Error(t('errorSavingEquivalent'));
     }
 
     setShowEquivalentModal(false);
@@ -362,7 +352,7 @@ function Settings() {
     } catch (deleteError) {
       console.error('Error deleting value equivalent:', deleteError);
       showNotification({
-        message: deleteError.message || t('errorDeletingEquivalent'),
+        message: t('errorDeletingEquivalent'),
         type: 'error'
       });
       setIsDeletingEquivalent(false);
@@ -405,6 +395,7 @@ function Settings() {
             setActiveModal('currency');
             setShowCurrencyDropdown(true);
           }}
+          errorMessage={preferenceError}
         />
 
         <ValueEquivalentsSection
