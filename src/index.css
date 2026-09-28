@@ -3,14 +3,52 @@
 @tailwind utilities;
 
 :root {
-  --color-interaction-accent: #2F7473;
+  --page-bg: #F6F7F8;
+  --card-bg: #FFFFFF;
+  --border: #E6E8EC;
+  --text-primary: #20242A;
+  --text-secondary: #6F7782;
+  --skeleton-bar: #E6E8EC;
+  --skeleton-bar-hero: rgba(255, 255, 255, 0.25);
+  --neutral-ring: #D7DADF;
+  --neutral-detail: #9AA0A8;
+  --accent: #1B8A7E;
+  --accent-strong: #177A6F;
+  --error-text: #A84A46;
+  --error-outline: #C07A75;
+
+  --color-interaction-accent: var(--accent);
   --icon-accent: var(--color-interaction-accent);
   --loader-accent: var(--icon-accent);
-  --loader-track: #E6E8EC;
+  --loader-track: var(--border);
   --color-interaction-accent-subtle: #83AAA7;
   --color-interaction-accent-lighter: #CFE1DF;
   --color-navigation-inactive: #7B8490;
   --color-navigation-ring: #B9C0C8;
+}
+
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes state-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.state-skeleton {
+  animation: skeleton-pulse 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+.state-skeleton--paused {
+  animation-play-state: paused;
+  opacity: 1;
+}
+
+.state-fade {
+  animation: state-fade-in 160ms ease-out both;
 }
 
 .home-reflection-surface {
@@ -708,13 +746,13 @@ code {
 }
 
 .settings-auth-button {
-  border-color: var(--color-interaction-accent);
-  background: var(--color-interaction-accent);
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
   color: #FFFFFF;
 }
 
 .settings-auth-button:hover:not(:disabled) {
-  background: #286664;
+  background: #146E65;
 }
 
 .settings-auth-button.collapsing {
@@ -903,9 +941,15 @@ code {
 
   .auth-button,
   .auth-button *,
-  .ownership-loader * {
+  .ownership-loader *,
+  .state-skeleton,
+  .state-fade {
     animation: none !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .state-skeleton {
+    opacity: 0.8;
   }
 }
 
