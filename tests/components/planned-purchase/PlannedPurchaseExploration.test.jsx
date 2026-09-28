@@ -31,6 +31,8 @@ vi.mock('react-i18next', () => ({
         cancel: 'Cancel',
         saving: 'Saving...',
         operationFailed: 'Operation failed',
+        notSavedYet: 'Not saved yet.',
+        planSaveErrorBody: 'Your plan details are still here. Nothing was lost.',
       }[key] || key;
     },
   }),
@@ -145,7 +147,8 @@ describe('PlannedPurchaseExploration', () => {
     fireEvent.click(applyButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Network error on save')).toBeInTheDocument();
+      expect(screen.getByText('Your plan details are still here. Nothing was lost.')).toBeInTheDocument();
+      expect(screen.queryByText('Network error on save')).not.toBeInTheDocument();
     });
 
     expect(screen.getByPlaceholderText('Enter contribution amount')).toHaveValue('200');
