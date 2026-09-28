@@ -199,7 +199,7 @@ const translation = {
   "onboardingReferenceLunch": "Lunch",
   "onboardingCustomReference": "Custom",
   "onboardingReferenceError": "Give every reference a name and an amount greater than zero.",
-  "onboardingSaveError": "Not saved yet. Your setup choices are still here. Nothing was lost.",
+  "onboardingSaveError": "Your setup choices are still here. Nothing was lost.",
   "onboardingEnter": "Enter Worthwhile",
   "removeReference": "Remove reference",
   "continue": "Continue",
