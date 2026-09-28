@@ -17,10 +17,8 @@ import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
-import {
-  ErrorCard,
-  SlowLoadIndicator,
-} from './components/ui/AsyncState';
+import AppLaunchLoader from './components/ui/AppLaunchLoader';
+import { ErrorCard } from './components/ui/AsyncState';
 import LegalDocumentPage from './components/LegalDocumentPage';
 import { OnboardingGate } from './components/OnboardingFlow';
 import AboutPage from './components/AboutPage';
@@ -152,30 +150,11 @@ function AuthGate() {
   }, [t]);
 
   if (loadingState.phase !== 'idle') {
-    const showSkeleton = loadingState.phase !== 'blank';
-
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] p-4">
-        <section
-          aria-busy="true"
-          className="min-h-[420px] w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white px-6 py-7"
-        >
-          {showSkeleton && (
-            <>
-              <div aria-hidden="true" className="flex flex-col items-center">
-                <div className={`state-skeleton h-20 w-20 rounded-full bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
-                <div className={`state-skeleton mt-5 h-5 w-32 rounded bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
-                <div className={`state-skeleton mt-3 h-2.5 w-4/5 rounded bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
-                <div className={`state-skeleton mt-8 h-12 w-full rounded-xl bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
-                <div className={`state-skeleton mt-5 h-12 w-full rounded-xl bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
-              </div>
-              {loadingState.showSlowIndicator && (
-                <SlowLoadIndicator message={t('authStillLoading')} />
-              )}
-            </>
-          )}
-        </section>
-      </main>
+      <AppLaunchLoader
+        showContent={loadingState.phase !== 'blank'}
+        showTip={loadingState.showSlowIndicator}
+      />
     );
   }
 

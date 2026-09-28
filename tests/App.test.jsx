@@ -58,7 +58,7 @@ beforeEach(() => {
   window.history.pushState({}, '', '/');
 });
 
-test('delays auth loading feedback, then shows skeleton and slow-load status', () => {
+test('uses the neutral launch loader while checking the session', () => {
   vi.useFakeTimers();
   getCurrentUser.mockImplementation(() => new Promise(() => {}));
 
@@ -70,14 +70,17 @@ test('delays auth loading feedback, then shows skeleton and slow-load status', (
   act(() => {
     vi.advanceTimersByTime(200);
   });
-  expect(container.querySelector('.state-skeleton')).toBeInTheDocument();
-  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+  expect(screen.getByTestId('application-launch-loader')).toBeInTheDocument();
+  expect(screen.getByRole('status', { name: 'Getting your items ready...' })).toBeInTheDocument();
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
 
   act(() => {
     vi.advanceTimersByTime(1800);
   });
-  expect(screen.getByRole('status')).toHaveTextContent('Still checking your session...');
-  expect(screen.queryByText(/^Loading\.\.\.$/)).not.toBeInTheDocument();
+  expect(screen.getByRole('note')).toHaveTextContent(
+    'Cost per day gradually settles as the days of ownership add up.'
+  );
 
   vi.useRealTimers();
 });
