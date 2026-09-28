@@ -212,6 +212,12 @@ function OnboardingFlow({ onComplete }) {
     duration: shouldReduceMotion ? 0 : 0.28,
     ease: CALM_EASE,
   };
+  const calmLanguageLayoutTransition = {
+    layout: {
+      duration: shouldReduceMotion ? 0 : 0.36,
+      ease: CALM_HEIGHT_EASE,
+    },
+  };
 
   useEffect(() => {
     void i18n.changeLanguage(initialLanguage.current);
@@ -339,7 +345,11 @@ function OnboardingFlow({ onComplete }) {
             </LocalizedCopy>
           </p>
 
-          <fieldset className="mt-6">
+          <motion.fieldset
+            layout="position"
+            transition={calmLanguageLayoutTransition}
+            className="mt-6"
+          >
             <legend className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
                 {t('language')}
@@ -381,27 +391,39 @@ function OnboardingFlow({ onComplete }) {
                 );
               })}
             </div>
-          </fieldset>
+          </motion.fieldset>
 
-          <label className="mt-6 block text-xs font-semibold uppercase tracking-wider text-gray-500" htmlFor="onboarding-currency">
-            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
-              {t('currency')}
-            </LocalizedCopy>
-          </label>
-          <select id="onboarding-currency" value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#2F7473] focus:outline-none focus:ring-2 focus:ring-[#2F7473]/20">
-            {currencies.map((option) => <option key={option.code} value={option.code}>{option.symbol} {option.name}</option>)}
-          </select>
-          <p className="mt-2 text-xs leading-5 text-gray-500">
-            <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
-              {t('onboardingCurrencyHelp')}
-            </LocalizedCopy>
-          </p>
+          <motion.div
+            layout="position"
+            transition={calmLanguageLayoutTransition}
+            className="mt-6"
+          >
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500" htmlFor="onboarding-currency">
+              <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
+                {t('currency')}
+              </LocalizedCopy>
+            </label>
+            <select id="onboarding-currency" value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#2F7473] focus:outline-none focus:ring-2 focus:ring-[#2F7473]/20">
+              {currencies.map((option) => <option key={option.code} value={option.code}>{option.symbol} {option.name}</option>)}
+            </select>
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion} className="block">
+                {t('onboardingCurrencyHelp')}
+              </LocalizedCopy>
+            </p>
+          </motion.div>
 
-          <button type="button" onClick={() => navigateToStep(3)} className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]">
+          <motion.button
+            layout="position"
+            transition={calmLanguageLayoutTransition}
+            type="button"
+            onClick={() => navigateToStep(3)}
+            className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]"
+          >
             <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
               {t('continue')}
             </LocalizedCopy>
-          </button>
+          </motion.button>
         </div>
       </OnboardingShell>
     );
