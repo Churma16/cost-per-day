@@ -65,6 +65,17 @@ vi.mock('react-i18next', () => ({
         noEquivalents: 'No personalized value equivalents added yet.',
         confirmDeleteEquivalent: 'Are you sure you want to delete this value equivalent?',
         errorLoadingEquivalents: 'Failed to load value equivalents',
+        errorLoadingSettings: 'Failed to load shared settings.',
+        errorUpdatingLanguage: 'Failed to update the language setting.',
+        errorUpdatingCurrency: 'Failed to update the currency setting.',
+        errorSavingEquivalent: 'Failed to save this comparison.',
+        errorDeletingEquivalent: 'Failed to delete this comparison.',
+        importError: 'Failed to import data',
+        equivalentsLoadingTitle: 'Loading your everyday references',
+        equivalentsLoadingDescription: 'Worthwhile is bringing your familiar comparisons into view.',
+        equivalentsLoadErrorTitle: "Your value equivalents didn't load",
+        equivalentsEmptyDescription: 'Add a familiar everyday amount to give daily ownership costs more personal context.',
+        retry: 'Retry',
         guestValueEquivalentLimitReached: options?.limit
           ? `You've used ${options.limit} value equivalents. Sign in to save more and use them across devices.`
           : 'Value equivalent limit reached.',
@@ -117,6 +128,7 @@ describe('Settings component', () => {
   const mockRemoveEquivalent = vi.fn();
   const mockSignOut = vi.fn();
   const mockSignIn = vi.fn();
+  const mockRefreshEquivalents = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -135,6 +147,7 @@ describe('Settings component', () => {
       addEquivalent: mockAddEquivalent,
       editEquivalent: mockEditEquivalent,
       removeEquivalent: mockRemoveEquivalent,
+      refreshEquivalents: mockRefreshEquivalents,
       isLoading: false,
       error: null
     });
@@ -289,7 +302,8 @@ describe('Settings component', () => {
       name: /Rp Indonesian Rupiah \(IDR\)/i
     }));
 
-    expect(await screen.findByText('Failed to save currency.')).toBeInTheDocument();
+    expect(await screen.findByText('Failed to update the currency setting.')).toBeInTheDocument();
+    expect(screen.queryByText('Failed to save currency.')).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.queryByText('Select Currency')).not.toBeInTheDocument();
@@ -301,7 +315,7 @@ describe('Settings component', () => {
     }));
 
     await waitFor(() => {
-      expect(screen.queryByText('Failed to save currency.')).not.toBeInTheDocument();
+      expect(screen.queryByText('Failed to update the currency setting.')).not.toBeInTheDocument();
     });
   });
 
@@ -437,7 +451,8 @@ describe('Settings component', () => {
     const signOutButton = screen.getByRole('button', { name: 'Sign out' });
     fireEvent.click(signOutButton);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Network error signing out');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sign out failed. Please try again.');
+    expect(screen.queryByText('Network error signing out')).not.toBeInTheDocument();
   });
 
   test('surfaces the backend import error message', async () => {
@@ -460,9 +475,10 @@ describe('Settings component', () => {
     const confirmButton = await screen.findByRole('button', { name: /confirm/i });
     fireEvent.click(confirmButton);
 
-    expect(await screen.findByText(
+    expect(await screen.findByText('Failed to import data')).toBeInTheDocument();
+    expect(screen.queryByText(
       'Import failed atomically. Existing server data is unchanged.'
-    )).toBeInTheDocument();
+    )).not.toBeInTheDocument();
   });
 
   test('renders empty state message when no value equivalents are saved', () => {
@@ -607,12 +623,18 @@ describe('Settings component', () => {
       error: new Error('Network error loading equivalents'),
       addEquivalent: mockAddEquivalent,
       editEquivalent: mockEditEquivalent,
-      removeEquivalent: mockRemoveEquivalent
+      removeEquivalent: mockRemoveEquivalent,
+      refreshEquivalents: mockRefreshEquivalents
     });
 
     render(<Settings />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Network error loading equivalents');
+    const errorState = screen.getByRole('alert');
+    expect(errorState).toHaveTextContent("Your value equivalents didn't load");
+    expect(errorState).toHaveTextContent('Failed to load value equivalents');
+    expect(errorState).not.toHaveTextContent('Network error loading equivalents');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(mockRefreshEquivalents).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
   });
 
@@ -623,12 +645,14 @@ describe('Settings component', () => {
       error: null,
       addEquivalent: mockAddEquivalent,
       editEquivalent: mockEditEquivalent,
-      removeEquivalent: mockRemoveEquivalent
+      removeEquivalent: mockRemoveEquivalent,
+      refreshEquivalents: mockRefreshEquivalents
     });
 
     render(<Settings />);
 
-    expect(screen.getAllByText('Loading...').length).toBeGreaterThan(0);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading your everyday references');
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     expect(screen.queryByText('No personalized value equivalents added yet.')).not.toBeInTheDocument();
   });
 
