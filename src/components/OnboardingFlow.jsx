@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoAdd, IoArrowBack, IoCheckmark, IoClose } from 'react-icons/io5';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -174,8 +181,12 @@ function OnboardingFlow({ onComplete }) {
   const [step, setStep] = useState(1);
   const [transitionDirection, setTransitionDirection] = useState(1);
   const [language, setLanguage] = useState(() => suggestLanguage(getDeviceLocales()));
+  const initialLanguage = useRef(language);
   const [currency, setCurrency] = useState(() => suggestCurrency(getDeviceLocales()));
   const [references, setReferences] = useState([]);
+  const [pendingPreviewLanguage, setPendingPreviewLanguage] = useState(null);
+  const [isLanguagePreviewDimmed, setIsLanguagePreviewDimmed] = useState(false);
+  const isApplyingPreviewLanguage = useRef(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const currencies = useMemo(() => getSupportedCurrencies().map((item) => ({
@@ -188,8 +199,8 @@ function OnboardingFlow({ onComplete }) {
   };
 
   useEffect(() => {
-    void i18n.changeLanguage(language);
-  }, [i18n, language]);
+    void i18n.changeLanguage(initialLanguage.current);
+  }, [i18n]);
 
   const navigateToStep = (nextStep) => {
     if (nextStep === step) return;
@@ -197,16 +208,48 @@ function OnboardingFlow({ onComplete }) {
     setStep(nextStep);
   };
 
-  const selectLanguage = (code) => {
-    if (code === language) return;
-
+  const localizeSuggestedReferences = (code) => {
     const translateToLanguage = i18n.getFixedT(code);
-    setLanguage(code);
     setReferences((current) => current.map((reference) => (
       reference.kind
         ? { ...reference, name: translateToLanguage(getReferenceTranslationKey(reference.kind)) }
         : reference
     )));
+  };
+
+  const selectLanguage = (code) => {
+    if (code === language) return;
+
+    setLanguage(code);
+    if (shouldReduceMotion) {
+      localizeSuggestedReferences(code);
+      void i18n.changeLanguage(code);
+      return;
+    }
+
+    setPendingPreviewLanguage(code);
+    setIsLanguagePreviewDimmed(true);
+  };
+
+  const finishLanguagePreviewTransition = () => {
+    if (
+      !isLanguagePreviewDimmed
+      || !pendingPreviewLanguage
+      || isApplyingPreviewLanguage.current
+    ) return;
+
+    isApplyingPreviewLanguage.current = true;
+    const nextLanguage = pendingPreviewLanguage;
+    void i18n.changeLanguage(nextLanguage)
+      .then(() => localizeSuggestedReferences(nextLanguage))
+      .catch((previewError) => {
+        console.error('Error previewing onboarding language:', previewError);
+      })
+      .finally(() => {
+        setPendingPreviewLanguage(null);
+        setIsLanguagePreviewDimmed(false);
+        isApplyingPreviewLanguage.current = false;
+      });
   };
 
   const addSuggestedReference = (kind) => {
@@ -291,10 +334,13 @@ function OnboardingFlow({ onComplete }) {
     return (
       <OnboardingShell step={step} direction={transitionDirection}>
         <motion.div
-          key={i18n.resolvedLanguage || language}
-          initial={shouldReduceMotion ? false : { opacity: 0.45, y: 3 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.24, ease: CALM_EASE }}
+          initial={false}
+          animate={{ opacity: isLanguagePreviewDimmed ? 0.34 : 1 }}
+          transition={{
+            duration: shouldReduceMotion ? 0 : isLanguagePreviewDimmed ? 0.18 : 0.34,
+            ease: CALM_EASE,
+          }}
+          onAnimationComplete={finishLanguagePreviewTransition}
           className="px-6 pb-7 pt-6 sm:px-8"
         >
           <button type="button" onClick={() => navigateToStep(1)} className="mb-4 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-800">
