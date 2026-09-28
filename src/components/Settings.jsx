@@ -38,8 +38,22 @@ function Settings() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { repositories } = usePersistence();
-  const { language, changeLanguage, error: languageError } = useLanguage();
-  const { currencyCode, changeCurrency, error: currencyError } = useCurrency();
+  const {
+    language,
+    changeLanguage,
+    loadError: languageLoadError,
+    isLoading: isLoadingLanguage,
+    hasSettingsData: hasLanguageSettingsData = true,
+    refetchSettings: refetchLanguageSettings,
+  } = useLanguage();
+  const {
+    currencyCode,
+    changeCurrency,
+    loadError: currencyLoadError,
+    isLoading: isLoadingCurrency,
+    hasSettingsData: hasCurrencySettingsData = true,
+    refetchSettings: refetchCurrencySettings,
+  } = useCurrency();
   const {
     isGuest,
     signIn,
@@ -55,6 +69,7 @@ function Settings() {
     addEquivalent,
     editEquivalent,
     removeEquivalent,
+    refreshEquivalents,
     error: equivalentsError
   } = useValueEquivalents();
   const replaceItemsMutation = useReplaceItems();
@@ -62,6 +77,9 @@ function Settings() {
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [preferenceError, setPreferenceError] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [dataTransferError, setDataTransferError] = useState(null);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importData, setImportData] = useState(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -71,6 +89,7 @@ function Settings() {
   const [editingEquivalent, setEditingEquivalent] = useState(null);
   const [showDeleteEquivalentConfirm, setShowDeleteEquivalentConfirm] = useState(null);
   const [isDeletingEquivalent, setIsDeletingEquivalent] = useState(false);
+  const [deleteEquivalentError, setDeleteEquivalentError] = useState(null);
 
   const fileInputRef = useRef(null);
   const notificationTimeoutRef = useRef(null);
@@ -123,43 +142,38 @@ function Settings() {
     clearNotificationTimer();
   }, [clearNotificationTimer]);
 
-  useEffect(() => {
-    const settingsError = languageError || currencyError;
-    if (settingsError) {
-      showNotification({
-        message: settingsError.message || t('errorLoadingSettings'),
-        type: 'error'
-      }, { autoDismiss: false });
+  const generalLoadError = languageLoadError || currencyLoadError;
+  const hasGeneralSettingsData = hasLanguageSettingsData && hasCurrencySettingsData;
+  const handleRetryGeneralSettings = useCallback(() => {
+    if (typeof refetchLanguageSettings === 'function') {
+      refetchLanguageSettings();
     }
-  }, [languageError, currencyError, showNotification, t]);
+    if (typeof refetchCurrencySettings === 'function') {
+      refetchCurrencySettings();
+    }
+  }, [refetchLanguageSettings, refetchCurrencySettings]);
 
   const handleLanguageChange = async (code) => {
     setShowLanguageDropdown(false);
-    clearNotification();
+    setPreferenceError(null);
     try {
       await changeLanguage(code);
-      clearNotification();
+      setPreferenceError(null);
     } catch (error) {
       console.error('Error updating language:', error);
-      showNotification({
-        message: error.message || t('errorUpdatingLanguage'),
-        type: 'error'
-      }, { autoDismiss: false });
+      setPreferenceError(t('errorUpdatingLanguage'));
     }
   };
 
   const handleCurrencyChange = async (selectedCurrencyCode) => {
     setShowCurrencyDropdown(false);
-    clearNotification();
+    setPreferenceError(null);
     try {
       await changeCurrency(selectedCurrencyCode);
-      clearNotification();
+      setPreferenceError(null);
     } catch (error) {
       console.error('Error updating currency:', error);
-      showNotification({
-        message: error.message || t('errorUpdatingCurrency'),
-        type: 'error'
-      }, { autoDismiss: false });
+      setPreferenceError(t('errorUpdatingCurrency'));
     }
   };
 
@@ -172,13 +186,15 @@ function Settings() {
       }
     } catch (error) {
       console.error('Error signing out:', error);
-      setSignOutError(error.message || t('signOutError'));
+      setSignOutError(t('signOutErrorBody'));
     } finally {
       setIsSigningOut(false);
     }
   };
 
   const handleExportData = async () => {
+    setDataTransferError(null);
+    setIsExporting(true);
     try {
       const items = await queryClient.fetchQuery({
         queryKey: queryKeys.items,
@@ -209,14 +225,14 @@ function Settings() {
       });
     } catch (error) {
       console.error('Error exporting data:', error);
-      showNotification({
-        message: t('exportError'),
-        type: 'error'
-      });
+      setDataTransferError(t('exportErrorBody'));
+    } finally {
+      setIsExporting(false);
     }
   };
 
   const handleImportData = () => {
+    setDataTransferError(null);
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -227,10 +243,7 @@ function Settings() {
     if (!file) return;
 
     if (!file.name.endsWith('.json')) {
-      showNotification({
-        message: t('invalidFileFormat'),
-        type: 'error'
-      });
+      setDataTransferError(t('importFileErrorBody'));
       event.target.value = '';
       return;
     }
@@ -242,10 +255,7 @@ function Settings() {
           const content = JSON.parse(loadEvent.target.result);
 
           if (!validateImportedItems(content)) {
-            showNotification({
-              message: t('invalidDataFormat'),
-              type: 'error'
-            });
+            setDataTransferError(t('importFileErrorBody'));
             return;
           }
 
@@ -254,25 +264,16 @@ function Settings() {
           setShowImportConfirm(true);
         } catch (error) {
           console.error('Error parsing JSON:', error);
-          showNotification({
-            message: t('invalidJsonFormat'),
-            type: 'error'
-          });
+          setDataTransferError(t('importFileErrorBody'));
         }
       };
       reader.onerror = () => {
-        showNotification({
-          message: t('errorReadingFile'),
-          type: 'error'
-        });
+        setDataTransferError(t('importFileErrorBody'));
       };
       reader.readAsText(file);
     } catch (error) {
       console.error('Error reading file:', error);
-      showNotification({
-        message: t('errorReadingFile'),
-        type: 'error'
-      });
+      setDataTransferError(t('importFileErrorBody'));
     }
 
     event.target.value = '';
@@ -281,6 +282,7 @@ function Settings() {
   const confirmImport = async () => {
     if (replaceItemsMutation.isPending || !importData) return;
 
+    setDataTransferError(null);
     try {
       await replaceItemsMutation.mutateAsync(importData);
       showNotification({
@@ -290,10 +292,8 @@ function Settings() {
       setShowImportConfirm(false);
     } catch (error) {
       console.error('Error importing data:', error);
-      showNotification({
-        message: error.message || t('importError'),
-        type: 'error'
-      });
+      setShowImportConfirm(false);
+      setDataTransferError(t('importErrorBody'));
     }
   };
 
@@ -325,7 +325,7 @@ function Settings() {
         localizedError.limit = saveError.limit;
         throw localizedError;
       }
-      throw saveError;
+      throw new Error(t('equivalentSaveErrorBody'));
     }
 
     setShowEquivalentModal(false);
@@ -336,12 +336,14 @@ function Settings() {
   };
 
   const handleOpenDeleteConfirm = (equivalentItem) => {
+    setDeleteEquivalentError(null);
     setActiveModal('delete');
     setShowDeleteEquivalentConfirm(equivalentItem);
   };
 
   const handleCloseDeleteConfirm = () => {
     if (isDeletingEquivalent) return;
+    setDeleteEquivalentError(null);
     setShowDeleteEquivalentConfirm(null);
   };
 
@@ -351,6 +353,7 @@ function Settings() {
     if (!targetToDelete) return;
 
     setIsDeletingEquivalent(true);
+    setDeleteEquivalentError(null);
     try {
       await removeEquivalent(targetToDelete.id);
       setShowDeleteEquivalentConfirm(null);
@@ -360,10 +363,7 @@ function Settings() {
       });
     } catch (deleteError) {
       console.error('Error deleting value equivalent:', deleteError);
-      showNotification({
-        message: deleteError.message || t('errorDeletingEquivalent'),
-        type: 'error'
-      });
+      setDeleteEquivalentError(t('deleteEquivalentErrorBody'));
       setIsDeletingEquivalent(false);
     }
   };
@@ -375,9 +375,12 @@ function Settings() {
 
         {notification && (
           <div
-            className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg
-            ${notification.type === 'success' ? 'bg-green-600' : notification.type === 'warning' ? 'bg-yellow-600' : 'bg-red-600'} 
-            text-white font-medium text-sm`}
+            role="status"
+            className={`fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-xl border px-4 py-2 text-sm font-medium shadow-sm ${
+              notification.type === 'success'
+                ? 'border-[#B8D7D1] bg-white text-[var(--accent-strong)]'
+                : 'border-[var(--border)] bg-white text-[var(--text-primary)]'
+            }`}
           >
             {notification.message}
           </div>
@@ -395,6 +398,10 @@ function Settings() {
           language={language}
           languageName={getLanguageName(language)}
           selectedCurrencyOption={selectedCurrencyOption}
+          isLoading={Boolean(isLoadingLanguage || isLoadingCurrency)}
+          hasSettingsData={hasGeneralSettingsData}
+          loadError={generalLoadError ? t('errorLoadingSettings') : null}
+          onRetry={handleRetryGeneralSettings}
           isInteractionBlocked={Boolean(activeModal)}
           onOpenLanguage={() => {
             setActiveModal('language');
@@ -404,6 +411,8 @@ function Settings() {
             setActiveModal('currency');
             setShowCurrencyDropdown(true);
           }}
+          errorMessage={preferenceError}
+          onDismissError={() => setPreferenceError(null)}
         />
 
         <ValueEquivalentsSection
@@ -414,6 +423,7 @@ function Settings() {
           onAdd={handleOpenAddEquivalent}
           onEdit={handleOpenEditEquivalent}
           onDelete={handleOpenDeleteConfirm}
+          onRetry={refreshEquivalents}
         />
 
         {!isGuest && <DataManagementSection
@@ -422,6 +432,10 @@ function Settings() {
           onExport={handleExportData}
           onImport={handleImportData}
           onFileChange={handleFileChange}
+          isExporting={isExporting}
+          isImporting={replaceItemsMutation.isPending}
+          dataTransferError={dataTransferError}
+          onDismissDataTransferError={() => setDataTransferError(null)}
           isSigningOut={isSigningOut}
           signOutError={signOutError}
           authError={authError}
@@ -476,7 +490,9 @@ function Settings() {
       <DeleteEquivalentConfirmDialog
         target={showDeleteEquivalentConfirm}
         isOpen={Boolean(showDeleteEquivalentConfirm)}
+        isGuest={isGuest}
         isDeleting={isDeletingEquivalent}
+        errorMessage={deleteEquivalentError}
         onCancel={handleCloseDeleteConfirm}
         onConfirm={handleConfirmDeleteEquivalent}
         onExitComplete={() => {

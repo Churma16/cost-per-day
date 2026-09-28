@@ -15,6 +15,13 @@ import {
   SettingsRowText,
   SettingsSection,
 } from './SettingsList';
+import {
+  CardListSkeleton,
+  EmptyState,
+  NoticeCard,
+  SlowLoadIndicator,
+} from '../ui/AsyncState';
+import { useLoadingPhases } from '../../hooks/useLoadingPhases';
 
 function ValueEquivalentsSection({
   valueEquivalents,
@@ -24,15 +31,17 @@ function ValueEquivalentsSection({
   onAdd,
   onEdit,
   onDelete,
+  onRetry,
 }) {
   const { t } = useTranslation();
+  const loadingState = useLoadingPhases(isLoading);
 
   return (
     <SettingsSection
       id="value-equivalents-heading"
       title={t('valueEquivalents')}
       description={t('valueEquivalentsSubtitle')}
-      action={(
+      action={!isLoading && valueEquivalents.length > 0 ? (
         <button
           type="button"
           className="flex min-h-9 flex-none items-center gap-1 rounded-lg px-2 text-xs font-semibold text-[#2F7473] transition-colors hover:bg-teal-50/60 hover:text-[#265e5d]"
@@ -44,21 +53,46 @@ function ValueEquivalentsSection({
           <IoAdd className="text-sm" />
           <span>{t('add')}</span>
         </button>
-      )}
+      ) : null}
     >
 
-      {isLoading ? (
-        <div className="text-center py-6 text-gray-400 text-sm">
-          <p>{t('loading')}</p>
+      {error && valueEquivalents.length > 0 && (
+        <NoticeCard
+          body={t('refreshShowingSavedData')}
+          actionLabel={t('tryAgain')}
+          onAction={onRetry}
+          className="mb-3"
+        />
+      )}
+
+      {loadingState.phase !== 'idle' ? (
+        <div aria-busy="true" className="min-h-[132px]">
+          {loadingState.phase !== 'blank' && (
+            <>
+              <CardListSkeleton count={2} paused={loadingState.showSlowIndicator} />
+              {loadingState.showSlowIndicator && (
+                <SlowLoadIndicator message={t('stillLoadingEquivalents')} />
+              )}
+            </>
+          )}
         </div>
-      ) : error ? (
-        <div role="alert" className="p-3 rounded-xl bg-red-50 text-red-700 text-xs font-medium border border-red-100">
-          {error.message || t('errorLoadingEquivalents')}
-        </div>
+      ) : error && valueEquivalents.length === 0 ? (
+        <NoticeCard
+          body={t('equivalentsLoadErrorBody')}
+          actionLabel={t('tryAgain')}
+          onAction={onRetry}
+        />
       ) : valueEquivalents.length === 0 ? (
-        <SettingsCard className="p-5 text-center">
-          <p className="text-sm text-gray-400">{t('noEquivalents')}</p>
-        </SettingsCard>
+        <EmptyState
+          motif="home"
+          title={t('noEquivalents')}
+          description={t('equivalentsEmptyDescription')}
+          actionLabel={t('addEquivalent')}
+          onAction={() => {
+            if (!isInteractionBlocked) onAdd();
+          }}
+          className="py-6"
+        />
       ) : (
         <SettingsCard>
           {valueEquivalents.map((equivalentItem, index) => (
@@ -86,7 +120,7 @@ function ValueEquivalentsSection({
                   <button
                     type="button"
                     aria-label={`${t('deleteEquivalent')} ${equivalentItem.name}`}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--error-text)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--error-outline)]"
                     onClick={() => {
                       if (!isInteractionBlocked) onDelete(equivalentItem);
                     }}

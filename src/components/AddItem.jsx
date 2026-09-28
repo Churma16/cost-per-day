@@ -32,6 +32,15 @@ import ItemOptionalDetailsCard from './item-form/ItemOptionalDetailsCard';
 import ItemStatusCard from './item-form/ItemStatusCard';
 import ItemOwnershipTargetCard from './item-form/ItemOwnershipTargetCard';
 import ItemDeleteConfirmModal from './item-form/ItemDeleteConfirmModal';
+import {
+  ActionLoadingContent,
+  EmptyState,
+  ErrorCard,
+  FormSkeleton,
+  NoticeCard,
+  SlowLoadIndicator,
+} from './ui/AsyncState';
+import { useLoadingPhases, useSlowAction } from '../hooks/useLoadingPhases';
 
 const createTargetDraftValues = ({ targetType, targetValue }) => ({
   cost_per_day: targetType === 'cost_per_day' ? targetValue : '',
@@ -84,9 +93,16 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const [hydratedEditId, setHydratedEditId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const [errorContext, setErrorContext] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const { currencyCode, currencySymbol } = useCurrency();
-  const { data: itemsData, isLoading: itemsLoading, error: itemsError } = useItems();
+  const {
+    data: itemsData,
+    isLoading: itemsLoading,
+    error: itemsError,
+    isRefetchError: itemsRefetchError,
+    refetch: refetchItems,
+  } = useItems();
   const items = itemsData ?? [];
   const completedItems = items.filter(
     (candidate) => candidate.status && candidate.status !== 'active'
@@ -95,9 +111,27 @@ function AddItem({ showHeader = true, isVisible = true }) {
     isEditMode &&
     editId !== null &&
     String(hydratedEditId) === String(editId);
+  const editItem = isEditMode && editId
+    ? items.find((item) => String(item.id) === String(editId))
+    : null;
+  const isEditLoadError = isEditMode && itemsData === undefined && Boolean(itemsError);
+  const isEditItemMissing = isEditMode
+    && Boolean(editId)
+    && !itemsLoading
+    && !isEditLoadError
+    && itemsData !== undefined
+    && !editItem;
+  const isEditHydrating = isEditMode
+    && Boolean(editId)
+    && !isEditLoadError
+    && !isEditItemMissing
+    && !itemLoaded;
   const createItemMutation = useCreateItem();
   const updateItemMutation = useUpdateItem();
   const deleteItemMutation = useDeleteItem();
+  const editLoadingState = useLoadingPhases(isEditHydrating);
+  const isSaving = createItemMutation.isPending || updateItemMutation.isPending;
+  const isSlowSaving = useSlowAction(isSaving);
   const { data: availableCategories = [] } = useCategories();
   const { data: availableBrands = [] } = useBrands();
 
@@ -143,24 +177,14 @@ function AddItem({ showHeader = true, isVisible = true }) {
     }
 
     if (itemsError && itemsData === undefined) {
-      setErrorMessage(itemsError.message || t('errorLoadingItem'));
-      setLoadFailed(true);
       return;
     }
 
-    const itemToEdit = items.find(
-      (item) => String(item.id) === String(editId)
-    );
-
-    if (!itemToEdit) {
-      console.error('Item not found for editing');
-      setErrorMessage(t('itemNotFound'));
-      setLoadFailed(true);
-      setHydratedEditId(null);
+    if (!editItem) {
       return;
     }
 
-    const hydratedValues = itemToFormValues(itemToEdit);
+    const hydratedValues = itemToFormValues(editItem);
     setName(hydratedValues.name);
     setPrice(hydratedValues.price);
     setCategory(hydratedValues.category);
@@ -172,21 +196,22 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setTargetType(hydratedValues.targetType);
     setTargetDraftValues(createTargetDraftValues(hydratedValues));
     setHydratedEditId(String(editId));
-    setLoadFailed(false);
     setErrorMessage(null);
+    setErrorContext(null);
   }, [
     editId,
     isEditMode,
     itemLoaded,
-    items,
+    editItem,
     itemsData,
     itemsError,
     itemsLoading,
-    t,
   ]);
 
   const {
     isValid: isFormValid,
+    lifecycleFormValid,
+    targetFormValid,
     numericPrice,
     numericTargetValue,
     purchaseDateValue,
@@ -239,13 +264,39 @@ function AddItem({ showHeader = true, isVisible = true }) {
     setBenchmarkModalOpen(false);
     setBenchmarkSourceItem(null);
     setErrorMessage(null);
+    setErrorContext(null);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const nextFieldErrors = {};
+    if (!name.trim()) {
+      nextFieldErrors.name = t('enterItemNameToContinue');
+    }
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+      nextFieldErrors.price = t('enterPriceToContinue');
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setErrorMessage(null);
+      setErrorContext(null);
+      const firstFieldId = nextFieldErrors.name ? 'owned-item-name' : 'owned-item-price';
+      document.getElementById(firstFieldId)?.focus();
+      return;
+    }
+
+    if (!isFormValid) {
+      setErrorContext('validation');
+      setErrorMessage(t('itemValidationErrorBody'));
+      return;
+    }
+
+    setFieldErrors({});
     const itemData = buildItemPayload(formValues, { isEditMode });
     setErrorMessage(null);
+    setErrorContext(null);
 
     try {
       if (isEditMode) {
@@ -261,11 +312,13 @@ function AddItem({ showHeader = true, isVisible = true }) {
       navigate('/');
     } catch (error) {
       console.error('Error saving item:', error);
-      setErrorMessage(
-        error?.code === 'guest_item_limit'
-          ? t('guestItemLimitReached', { limit: error.limit })
-          : error.message || t('errorSavingItem')
-      );
+      if (error?.code === 'guest_item_limit') {
+        setErrorContext('guest');
+        setErrorMessage(t('guestItemLimitReached', { limit: error.limit }));
+      } else {
+        setErrorContext('save');
+        setErrorMessage(t('itemSaveErrorBody'));
+      }
     }
   };
 
@@ -275,6 +328,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     }
 
     setErrorMessage(null);
+    setErrorContext(null);
 
     try {
       await deleteItemMutation.mutateAsync(editId);
@@ -282,7 +336,8 @@ function AddItem({ showHeader = true, isVisible = true }) {
     } catch (error) {
       console.error('Error deleting item:', error);
       setShowDeleteConfirm(false);
-      setErrorMessage(error.message || t('errorDeletingItem'));
+      setErrorContext('delete');
+      setErrorMessage(t('itemDeleteErrorBody'));
     }
   };
 
@@ -309,13 +364,61 @@ function AddItem({ showHeader = true, isVisible = true }) {
 
       {/* Form - main content */}
       <div className="px-3.5 py-1.5 space-y-2.5 form-page-content pb-8">
-        {errorMessage && (
-          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {errorMessage}
+        {editLoadingState.phase !== 'idle' ? (
+          <div aria-busy="true" className="min-h-[280px]">
+            {editLoadingState.phase !== 'blank' && (
+              <>
+                <FormSkeleton paused={editLoadingState.showSlowIndicator} />
+                {editLoadingState.showSlowIndicator && (
+                  <SlowLoadIndicator message={t('stillLoadingItem')} />
+                )}
+              </>
+            )}
           </div>
-        )}
+        ) : isEditLoadError ? (
+          <NoticeCard
+            body={t('editItemLoadErrorDescription')}
+            actionLabel={t('tryAgain')}
+            onAction={() => refetchItems()}
+          />
+        ) : isEditItemMissing ? (
+          <EmptyState
+            motif="home"
+            title={t('itemNotFoundTitle')}
+            description={t('itemNotFound')}
+            actionLabel={t('backToWorthwhile')}
+            onAction={() => navigate('/')}
+          />
+        ) : (
+          <>
+            {isEditMode && itemsData !== undefined && (itemsRefetchError || Boolean(itemsError)) && (
+              <NoticeCard
+                body={t('refreshShowingSavedData')}
+                actionLabel={t('tryAgain')}
+                onAction={() => refetchItems()}
+                className="mb-3"
+              />
+            )}
+            {errorMessage && (
+              <ErrorCard
+                title={
+                  errorContext === 'save'
+                    ? t('itemSaveErrorTitle')
+                    : errorContext === 'delete'
+                      ? t('itemDeleteErrorTitle')
+                      : errorContext === 'validation'
+                        ? t('checkItemDetails')
+                        : undefined
+                }
+                body={errorMessage}
+                onDismiss={() => {
+                  setErrorMessage(null);
+                  setErrorContext(null);
+                }}
+              />
+            )}
 
-        <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
           <div className="space-y-2.5">
             {showHeader && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5" aria-label={t('ownedItemContext')}>
@@ -327,14 +430,26 @@ function AddItem({ showHeader = true, isVisible = true }) {
             {/* Required Section Card */}
             <ItemRequiredFieldsCard
               name={name}
-              onNameChange={setName}
+              onNameChange={(nextName) => {
+                setName(nextName);
+                if (fieldErrors.name) {
+                  setFieldErrors((current) => ({ ...current, name: null }));
+                }
+              }}
               price={price}
-              onPriceChange={setPrice}
+              onPriceChange={(nextPrice) => {
+                setPrice(nextPrice);
+                if (fieldErrors.price) {
+                  setFieldErrors((current) => ({ ...current, price: null }));
+                }
+              }}
               purchaseDate={purchaseDate}
               onPurchaseDateChange={setPurchaseDate}
               currencySymbol={currencySymbol}
               currencyCode={currencyCode}
               language={language}
+              nameError={fieldErrors.name}
+              priceError={fieldErrors.price}
             />
 
             {/* Optional Details Card */}
@@ -407,20 +522,24 @@ function AddItem({ showHeader = true, isVisible = true }) {
 
             {/* Form CTA Buttons */}
             <div className="space-y-2 pt-1">
-              <button 
-                type="submit" 
-                className="w-full py-2.5 bg-teal-600 text-white rounded-xl font-medium
-                hover:bg-teal-700 transition-all duration-200 shadow-sm hover:shadow
-                disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
+              <button
+                type="submit"
+                aria-busy={isSaving ? 'true' : undefined}
+                className="w-full rounded-xl bg-[var(--accent-strong)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#146E65] disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={
-                  !isFormValid
-                  || createItemMutation.isPending
-                  || updateItemMutation.isPending
-                  || (isEditMode && (loadFailed || !itemLoaded))
+                  isSaving
+                  || !lifecycleFormValid
+                  || !targetFormValid
+                  || (isEditMode && !itemLoaded)
                 }
               >
-                {t('save')}
+                {isSaving ? <ActionLoadingContent label={t('saving')} /> : t('save')}
               </button>
+              {isSlowSaving && (
+                <p role="status" className="text-center text-xs text-[var(--text-secondary)]">
+                  {t('saving')}
+                </p>
+              )}
 
               {!isEditMode && (
                 <button
@@ -434,11 +553,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
               )}
 
               {isEditMode && itemLoaded && (
-                <button 
-                  type="button" 
-                  className="w-full py-2 bg-white text-red-600 rounded-xl font-medium border border-red-200
-                  hover:bg-red-50 transition-all duration-200 text-sm
-                  flex items-center justify-center gap-1.5"
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-[var(--error-outline)] bg-white py-2 text-sm font-medium text-[var(--error-text)] transition-colors"
                   onClick={() => setShowDeleteConfirm(true)}
                 >
                   <IoTrashOutline className="text-lg" />
@@ -447,12 +564,17 @@ function AddItem({ showHeader = true, isVisible = true }) {
               )}
             </div>
           </div>
-        </form>
+            </form>
+          </>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
       <ItemDeleteConfirmModal
         isOpen={showDeleteConfirm}
+        itemName={name}
+        isGuest={isGuest}
+        isDeleting={deleteItemMutation.isPending}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
       />

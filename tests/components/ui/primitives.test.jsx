@@ -5,8 +5,22 @@ import { IoCashOutline, IoCreateOutline } from 'react-icons/io5';
 import CollapsibleCard from '../../../src/components/ui/CollapsibleCard';
 import InfoTile from '../../../src/components/ui/InfoTile';
 import ActionButton from '../../../src/components/ui/ActionButton';
+import {
+  ActionLoadingContent,
+  ErrorCard,
+  SlowLoadIndicator,
+} from '../../../src/components/ui/AsyncState';
 
 describe('UI Primitives', () => {
+  describe('SlowLoadIndicator', () => {
+    it('uses one quiet text signal without adding a second loading spinner', () => {
+      const { container } = render(<SlowLoadIndicator message="Still loading your items..." />);
+
+      expect(screen.getByRole('status')).toHaveTextContent('Still loading your items...');
+      expect(container.querySelector('.ownership-loader')).not.toBeInTheDocument();
+    });
+  });
+
   describe('CollapsibleCard', () => {
     it('renders header and handles toggle click', () => {
       const handleToggle = vi.fn();
@@ -90,7 +104,9 @@ describe('UI Primitives', () => {
       );
 
       const button = screen.getByRole('button', { name: 'Delete' });
-      expect(button).toHaveClass('text-red-600');
+      expect(button).toHaveClass('bg-white');
+      expect(button).toHaveClass('border-[var(--error-outline)]');
+      expect(button).toHaveClass('text-[var(--error-text)]');
     });
   });
 
@@ -151,5 +167,60 @@ describe('UI Primitives', () => {
       expect(mainElement).toHaveClass('max-w-4xl');
     });
   });
-});
+  describe('ErrorCard', () => {
+    it('renders dismiss button with default accessible name and calls onDismiss', () => {
+      const handleDismiss = vi.fn();
+      render(
+        <ErrorCard
+          title="Something went wrong"
+          body="Please try again later."
+          onDismiss={handleDismiss}
+        />
+      );
 
+      const dismissButton = screen.getByRole('button', { name: 'Dismiss' });
+      expect(dismissButton).toBeInTheDocument();
+      fireEvent.click(dismissButton);
+      expect(handleDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it('supports custom localized dismissLabel', () => {
+      const handleDismiss = vi.fn();
+      render(
+        <ErrorCard
+          title="Ada masalah"
+          body="Silakan coba lagi."
+          dismissLabel="Tutup"
+          onDismiss={handleDismiss}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Tutup' })).toBeInTheDocument();
+    });
+  });
+
+  describe('ActionLoadingContent', () => {
+    it('preserves button accessible name when pending with a label', () => {
+      render(
+        <button type="button" disabled>
+          <ActionLoadingContent label="Saving..." />
+        </button>
+      );
+
+      const button = screen.getByRole('button', { name: 'Saving...' });
+      expect(button).toBeInTheDocument();
+      expect(button).toBeDisabled();
+    });
+
+    it('falls back to default loading text when no label is provided', () => {
+      render(
+        <button type="button" disabled>
+          <ActionLoadingContent />
+        </button>
+      );
+
+      const button = screen.getByRole('button', { name: /loading/i });
+      expect(button).toBeInTheDocument();
+    });
+  });
+});

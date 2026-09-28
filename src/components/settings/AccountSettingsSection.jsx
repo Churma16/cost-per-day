@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoLogInOutline } from 'react-icons/io5';
 import OwnershipLoader from '../ui/OwnershipLoader';
+import { ErrorCard } from '../ui/AsyncState';
 
 function AccountSettingsSection({
   isInteractionBlocked,
@@ -39,7 +40,7 @@ function AccountSettingsSection({
       <div className="mt-4 flex w-full justify-center">
         <button
           type="button"
-          className={`auth-button settings-auth-button text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] focus-visible:ring-offset-2 disabled:cursor-wait ${
+          className={`auth-button settings-auth-button text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-wait ${
             isSignInPending ? 'collapsing' : ''
           }`}
           onClick={handleSignIn}
@@ -59,9 +60,10 @@ function AccountSettingsSection({
         </button>
       </div>
       {authError && (
-        <p role="alert" className="mt-2 text-center text-xs text-red-600">
-          {authError.message || t('authSessionError')}
-        </p>
+        <ErrorCard
+          body={t('authSignInErrorBody')}
+          className="mt-2"
+        />
       )}
     </div>
   );

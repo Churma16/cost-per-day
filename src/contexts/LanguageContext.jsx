@@ -18,7 +18,10 @@ const LanguageContext = createContext();
 export const LanguageProvider = ({ children }) => {
   const settingsQuery = useSettings();
   const updateSettingMutation = useUpdateSetting();
-  const language = sanitizeLanguage(settingsQuery.data?.language);
+  const isLoading = settingsQuery.isLoading && !settingsQuery.data;
+  const language = settingsQuery.data
+    ? sanitizeLanguage(settingsQuery.data.language)
+    : sanitizeLanguage(i18n.resolvedLanguage || i18n.language);
 
   useEffect(() => {
     if (!settingsQuery.isLoading) i18n.changeLanguage(language);
@@ -30,17 +33,16 @@ export const LanguageProvider = ({ children }) => {
     await i18n.changeLanguage(nextLanguage);
   };
 
-  if (settingsQuery.isLoading && !settingsQuery.data) {
-    return <div className="flex items-center justify-center h-screen">
-      <div className="text-purple-600">Loading...</div>
-    </div>;
-  }
-
   return (
     <LanguageContext.Provider value={{
       language,
       changeLanguage,
-      error: settingsQuery.error || updateSettingMutation.error
+      isLoading,
+      hasSettingsData: settingsQuery.data !== undefined,
+      error: settingsQuery.error,
+      loadError: settingsQuery.error,
+      updateError: updateSettingMutation.error,
+      refetchSettings: settingsQuery.refetch
     }}>
       {children}
     </LanguageContext.Provider>

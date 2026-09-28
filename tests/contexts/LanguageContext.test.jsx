@@ -18,11 +18,13 @@ vi.mock('../../src/i18n', () => ({
 }));
 
 const TestLanguageConsumer = () => {
-  const { language, changeLanguage } = useLanguage();
+  const { language, changeLanguage, isLoading, hasSettingsData } = useLanguage();
 
   return (
     <div>
       <span data-testid="language-code">{language}</span>
+      <span data-testid="language-loading">{String(isLoading)}</span>
+      <span data-testid="language-has-settings-data">{String(hasSettingsData)}</span>
       <button onClick={() => changeLanguage('id')}>Set Indonesian</button>
     </div>
   );
@@ -39,6 +41,37 @@ describe('LanguageContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     i18n.changeLanguage.mockResolvedValue(undefined);
+  });
+
+  test('keeps descendants mounted while persisted language is loading', () => {
+    getAllSettings.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <LanguageProvider>
+        <TestLanguageConsumer />
+      </LanguageProvider>
+    );
+
+    expect(screen.getByTestId('language-code')).toHaveTextContent('en');
+    expect(screen.getByTestId('language-loading')).toHaveTextContent('true');
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+  });
+
+  test('marks fallback language as unconfirmed when the initial settings request fails', async () => {
+    getAllSettings.mockRejectedValue(new Error('settings unavailable'));
+
+    render(
+      <LanguageProvider>
+        <TestLanguageConsumer />
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('language-loading')).toHaveTextContent('false');
+      expect(screen.getByTestId('language-has-settings-data')).toHaveTextContent('false');
+    }, { timeout: 3000 });
+
+    expect(screen.getByTestId('language-code')).toHaveTextContent('en');
   });
 
   test('loads persisted Indonesian language from storage', async () => {
@@ -118,7 +151,9 @@ describe('LanguageContext', () => {
       expect(screen.getByTestId('language-code')).toHaveTextContent('en');
     });
 
-    expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
+    await waitFor(() => {
+      expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
+    });
     frRender.unmount();
 
     // Persisted as 'zh'
@@ -134,7 +169,9 @@ describe('LanguageContext', () => {
       expect(screen.getByTestId('language-code')).toHaveTextContent('en');
     });
 
-    expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
+    await waitFor(() => {
+      expect(i18n.changeLanguage).toHaveBeenCalledWith('en');
+    });
     zhRender.unmount();
   });
 });

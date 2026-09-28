@@ -86,7 +86,7 @@ function PlannedPurchaseCreateForm({ isVisible = true } = {}) {
       setErrorMessage(
         error?.code === 'guest_planned_purchase_limit'
           ? t('guestPlannedPurchaseLimitReached', { limit: error.limit })
-          : error.message || t('operationFailed')
+          : t('planSaveErrorBody')
       );
     }
   };

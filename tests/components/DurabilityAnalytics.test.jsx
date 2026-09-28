@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act, render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DurabilityAnalytics from '../../src/components/DurabilityAnalytics';
 import { useDurabilityAnalytics, useCategories } from '../../src/hooks/useDurabilityAnalytics';
 import { useCurrency } from '../../src/contexts/CurrencyContext';
@@ -28,12 +28,19 @@ vi.mock('react-i18next', () => ({
         viewEvidence: 'View item history',
         hideEvidence: 'Hide item history',
         noDurabilityDataTitle: 'No durability history yet',
-        noDurabilityDataDescription: 'Retire or mark items as sold to see insights.',
+        noDurabilityDataDescription: 'Retire or mark items as sold, with a category and brand, to see how long things last.',
         totalSpentOnBrand: `Total spent: ${options?.amount}`,
         evidence: 'Evidence',
         daysShort: 'days',
         loading: 'Loading...',
         perDay: '/day',
+        analyticsLoadErrorDescription: "Couldn't load your history. Check your connection and try again.",
+        refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
+        analyticsFilteredEmptyDescription: 'Try another category or view all of your history.',
+        clearCategoryFilter: 'View all history',
+        tryAgain: 'Try again',
+        stillLoadingHistory: 'Still loading your history...',
+        replacementNeedsMoreData: 'Not enough history yet. Add at least 2 completed items in the same category to see a replacement pattern.',
       };
       return dictionary[key] || key;
     },
@@ -61,15 +68,51 @@ describe('DurabilityAnalytics Component', () => {
     });
   });
 
-  it('renders loading state when query is loading', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('uses blank, skeleton, then slow-load feedback while history loads', () => {
     useDurabilityAnalytics.mockReturnValue({
       data: null,
       isLoading: true,
       isError: false,
     });
 
+    vi.useFakeTimers();
+    const { container } = render(<DurabilityAnalytics />);
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your history...');
+  });
+
+  it('renders a recoverable initial load error without raw transport copy', () => {
+    const refetch = vi.fn();
+    useDurabilityAnalytics.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isError: true,
+      error: new Error('raw analytics failure'),
+      refetch,
+    });
+
     render(<DurabilityAnalytics />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+
+    const errorState = screen.getByRole('status');
+    expect(errorState).toHaveTextContent("Couldn't load your history. Check your connection and try again.");
+    expect(errorState).not.toHaveTextContent('raw analytics failure');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders empty state when there are no completed items', () => {
@@ -86,7 +129,7 @@ describe('DurabilityAnalytics Component', () => {
 
     render(<DurabilityAnalytics />);
     expect(screen.getByText('No durability history yet')).toBeInTheDocument();
-    expect(screen.getByText('Retire or mark items as sold to see insights.')).toBeInTheDocument();
+    expect(screen.getByText('Retire or mark items as sold, with a category and brand, to see how long things last.')).toBeInTheDocument();
   });
 
   it('keeps cached analytics visible when a background refresh fails', () => {
@@ -105,7 +148,42 @@ describe('DurabilityAnalytics Component', () => {
     render(<DurabilityAnalytics />);
 
     expect(screen.getByText('No durability history yet')).toBeInTheDocument();
+    expect(screen.getByText("Couldn't refresh right now. Showing your last saved data.")).toBeInTheDocument();
     expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
+  });
+
+  it('distinguishes a category filter with no matching history and can clear it', async () => {
+    useDurabilityAnalytics.mockImplementation(({ category }) => ({
+      data: category
+        ? {
+            totalCompletedItems: 3,
+            totalCategorizedCompletedItems: 3,
+            mostFrequentlyReplacedCategory: null,
+            categories: [],
+          }
+        : {
+            totalCompletedItems: 3,
+            totalCategorizedCompletedItems: 3,
+            mostFrequentlyReplacedCategory: null,
+            categories: [{
+              category: 'Footwear',
+              completedCount: 1,
+              averageLifetimeDays: 180,
+              medianLifetimeDays: 180,
+              averageFinalCostPerDay: 1,
+              brands: [],
+            }],
+          },
+      isLoading: false,
+      isError: false,
+    }));
+
+    render(<DurabilityAnalytics />);
+    fireEvent.click(screen.getByRole('button', { name: 'Audio' }));
+
+    expect(await screen.findByText('Try another category or view all of your history.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'View all history' }));
+    expect(useDurabilityAnalytics).toHaveBeenLastCalledWith({ category: '' });
   });
 
   it('renders category and brand durability analytics with pattern and observation badges', () => {

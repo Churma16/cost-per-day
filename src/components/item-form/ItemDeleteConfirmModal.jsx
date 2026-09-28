@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { ActionLoadingContent } from '../ui/AsyncState';
 
 function ItemDeleteConfirmModal({
   isOpen,
+  itemName,
+  isGuest = false,
+  isDeleting = false,
   onClose,
   onConfirm,
 }) {
   const { t } = useTranslation();
   const shouldReduceMotion = useReducedMotion();
+  const keepButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      keepButtonRef.current?.focus();
+    }
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
@@ -18,10 +29,10 @@ function ItemDeleteConfirmModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.16, ease: 'easeOut' }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-16 p-4 z-50"
           onClick={(event) => {
-            if (event.target === event.currentTarget) {
+            if (event.target === event.currentTarget && !isDeleting) {
               onClose();
             }
           }}
@@ -30,30 +41,39 @@ function ItemDeleteConfirmModal({
             key="delete-modal-dialog"
             role="dialog"
             aria-modal="true"
-            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16, scale: shouldReduceMotion ? 1 : 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 12, scale: shouldReduceMotion ? 1 : 0.97 }}
-            transition={{ duration: shouldReduceMotion ? 0 : 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="bg-white w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl"
+            aria-labelledby="item-delete-confirm-title"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.16, ease: 'easeOut' }}
+            className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-xl"
           >
-            <h2 className="text-xl font-semibold text-gray-800">{t('confirmDelete')}</h2>
-            <p className="text-gray-600">{t('deleteConfirmation')}</p>
+            <h2 id="item-delete-confirm-title" className="text-lg font-medium text-[var(--text-primary)]">
+              {t('deleteThisItem')}
+            </h2>
+            <p className="text-sm leading-6 text-[var(--text-secondary)]">
+              {t(
+                isGuest ? 'deleteItemIrreversibleDevice' : 'deleteItemIrreversibleAccount',
+                { name: itemName }
+              )}
+            </p>
             <div className="flex gap-3 pt-2">
-              <button 
+              <button
+                ref={keepButtonRef}
                 type="button"
-                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium
-                hover:bg-gray-200 transition-colors duration-200"
+                disabled={isDeleting}
+                className="flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[#F6F7F8] disabled:opacity-50"
                 onClick={onClose}
               >
-                {t('cancel')}
+                {t('keepIt')}
               </button>
-              <button 
+              <button
                 type="button"
-                className="flex-1 py-3 px-4 rounded-xl bg-red-600 
-                text-white font-medium hover:bg-red-700 transition-all duration-200 text-sm shadow-sm"
+                disabled={isDeleting}
+                className="flex-1 rounded-xl border-[1.5px] border-[var(--error-outline)] bg-white px-4 py-3 text-sm font-medium text-[var(--error-text)] disabled:opacity-50"
                 onClick={onConfirm}
               >
-                {t('confirm')}
+                {isDeleting ? <ActionLoadingContent label={t('deleting')} /> : t('delete')}
               </button>
             </div>
           </motion.div>

@@ -19,9 +19,9 @@ export function ActionButton({
   let variantStyles = 'bg-[#F6F7F8] hover:bg-[#EEF0F3] border border-[#E6E8EC] text-[#20242A] focus-visible:ring-teal-500';
 
   if (variant === 'danger') {
-    variantStyles = 'bg-white hover:bg-red-50 border border-red-200 text-red-600 focus-visible:ring-red-500';
+    variantStyles = 'bg-white border-[1.5px] border-[var(--error-outline)] text-[var(--error-text)] focus-visible:ring-[var(--error-outline)]';
   } else if (variant === 'primary') {
-    variantStyles = 'bg-teal-600 hover:bg-teal-700 border border-teal-600 text-white focus-visible:ring-teal-500';
+    variantStyles = 'bg-[var(--accent-strong)] hover:bg-[#146E65] border border-[var(--accent-strong)] text-white focus-visible:ring-[var(--accent)]';
   }
 
   return (

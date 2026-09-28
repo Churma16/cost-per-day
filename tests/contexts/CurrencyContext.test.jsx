@@ -18,7 +18,7 @@ vi.mock('../../src/services/api', () => ({
 }));
 
 const TestCurrencyConsumer = () => {
-  const { currencyCode, currencySymbol, changeCurrency, isLoading } = useCurrency();
+  const { currencyCode, currencySymbol, changeCurrency, isLoading, hasSettingsData } = useCurrency();
   if (isLoading) {
     return <div>Loading Currency</div>;
   }
@@ -26,6 +26,7 @@ const TestCurrencyConsumer = () => {
     <div>
       <span data-testid="currency-code">{currencyCode}</span>
       <span data-testid="currency-symbol">{currencySymbol}</span>
+      <span data-testid="currency-has-settings-data">{String(hasSettingsData)}</span>
       <button onClick={() => changeCurrency('IDR')}>Set IDR</button>
       <button onClick={() => changeCurrency('$')}>Set Legacy Dollar</button>
     </div>
@@ -118,6 +119,24 @@ describe('CurrencyContext', () => {
       expect(updateSetting).not.toHaveBeenCalled();
     });
 
+    test('marks USD fallback as unconfirmed when the initial settings request fails', async () => {
+      getAllSettings.mockRejectedValue(new Error('settings unavailable'));
+
+      render(
+        <CurrencyProvider>
+          <TestCurrencyConsumer />
+        </CurrencyProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('currency-has-settings-data')).toHaveTextContent('false');
+        expect(screen.queryByText('Loading Currency')).not.toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      expect(screen.getByTestId('currency-code')).toHaveTextContent('USD');
+      expect(screen.getByTestId('currency-symbol')).toHaveTextContent('$');
+    });
+
     test('defaults to USD when no currency is saved', async () => {
       getAllSettings.mockResolvedValue({});
 
@@ -132,8 +151,8 @@ describe('CurrencyContext', () => {
       });
 
       expect(screen.getByTestId('currency-symbol')).toHaveTextContent('$');
+      expect(screen.getByTestId('currency-has-settings-data')).toHaveTextContent('true');
     });
-
     test('updates currency and persists to storage when changeCurrency is called', async () => {
       getAllSettings.mockResolvedValue({ currency: 'USD' });
       updateSetting.mockResolvedValue(undefined);

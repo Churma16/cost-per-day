@@ -22,6 +22,13 @@ import { useValueEquivalents } from '../contexts/ValueEquivalentsContext';
 import { useSettings, useUpdateSetting } from '../hooks/useSettings';
 import CurrencyInput from './common/CurrencyInput';
 import {
+  ActionLoadingContent,
+  ErrorCard,
+  NoticeCard,
+} from './ui/AsyncState';
+import AppLaunchLoader from './ui/AppLaunchLoader';
+import { useLoadingPhases, useSlowAction } from '../hooks/useLoadingPhases';
+import {
   hasCompletedOnboarding,
   ONBOARDING_COMPLETED_SETTING,
   suggestCurrency,
@@ -109,7 +116,7 @@ const OnboardingShell = ({ step, direction, children }) => {
       initial={shouldReduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: shouldReduceMotion ? 0 : 0.34, ease: CALM_EASE }}
-      className="h-full overflow-y-auto bg-[#E9EAEC] px-3 py-5 sm:flex sm:items-center sm:justify-center sm:p-6"
+      className="h-full overflow-y-auto bg-[var(--page-bg)] px-3 py-5 sm:flex sm:items-center sm:justify-center sm:p-6"
     >
       <motion.section
         data-testid="onboarding-shell"
@@ -120,7 +127,7 @@ const OnboardingShell = ({ step, direction, children }) => {
           ease: CALM_EASE,
           delay: shouldReduceMotion ? 0 : 0.04,
         }}
-        className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl bg-[#F8F9FA] shadow-[0_20px_60px_-35px_rgba(27,54,61,0.55)]"
+        className="mx-auto w-full max-w-lg overflow-hidden rounded-3xl border border-[var(--border)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
       >
         <div className="flex gap-1.5 px-6 pt-6" aria-label={`Step ${step} of 3`}>
           {[1, 2, 3].map((number) => {
@@ -134,7 +141,7 @@ const OnboardingShell = ({ step, direction, children }) => {
               >
                 <motion.span
                   aria-hidden="true"
-                  className="absolute inset-0 origin-left rounded-full bg-[#2F7473]"
+                  className="absolute inset-0 origin-left rounded-full bg-[var(--accent-strong)]"
                   initial={shouldReduceMotion ? false : { scaleX: 0 }}
                   animate={{ scaleX: isActive ? 1 : 0 }}
                   transition={{
@@ -213,6 +220,7 @@ function OnboardingFlow({ onComplete }) {
   const [, setSavedReferenceRevision] = useState(0);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const isSlowSaving = useSlowAction(isSaving);
   const currencies = useMemo(() => getSupportedCurrencies().map((item) => ({
     ...item,
     name: t(item.nameKey),
@@ -322,7 +330,7 @@ function OnboardingFlow({ onComplete }) {
       onComplete();
     } catch (saveError) {
       console.error('Error completing onboarding:', saveError);
-      setError(saveError.message || t('onboardingSaveError'));
+      setError(t('onboardingSaveError'));
       setIsSaving(false);
     }
   };
@@ -341,7 +349,7 @@ function OnboardingFlow({ onComplete }) {
           <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-gray-600">
             {t('onboardingWelcomeBody')}
           </p>
-          <button type="button" onClick={() => navigateToStep(2)} className="mt-8 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2F7473] focus-visible:ring-offset-2">
+          <button type="button" onClick={() => navigateToStep(2)} className="mt-8 w-full rounded-xl bg-[var(--accent-strong)] px-5 py-3 text-sm font-semibold text-white hover:bg-[#146E65] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
             {t('onboardingStart')}
           </button>
           <p className="mt-3 text-xs text-gray-400">{t('onboardingTimeNote')}</p>
@@ -447,7 +455,7 @@ function OnboardingFlow({ onComplete }) {
               transition={calmLanguageLayoutTransition}
               type="button"
               onClick={() => navigateToStep(3)}
-              className="mt-7 w-full rounded-xl bg-[#2F7473] px-5 py-3 text-sm font-semibold text-white hover:bg-[#265e5d]"
+              className="mt-7 w-full rounded-xl bg-[var(--accent-strong)] px-5 py-3 text-sm font-semibold text-white hover:bg-[#146E65]"
             >
               <LocalizedCopy language={i18n.resolvedLanguage} reduceMotion={shouldReduceMotion}>
                 {t('continue')}
@@ -502,27 +510,66 @@ function OnboardingFlow({ onComplete }) {
           })}
         </div>
 
-        {error && <p role="alert" className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-medium text-red-700">{error}</p>}
+        {error && (
+          <ErrorCard
+            title={t('notSavedYet')}
+            body={error}
+            onDismiss={() => setError(null)}
+            className="mt-4"
+          />
+        )}
 
         <div className="mt-6 flex gap-3">
           <button type="button" disabled={isSaving} onClick={() => finish({ skipReferences: true })} className="flex-1 rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50">{t('skipForNow')}</button>
-          <button type="button" disabled={isSaving} onClick={() => finish()} className="flex-1 rounded-xl bg-[#2F7473] px-4 py-3 text-sm font-semibold text-white hover:bg-[#265e5d] disabled:opacity-50">{isSaving ? t('saving') : t('onboardingEnter')}</button>
+          <button
+            type="button"
+            disabled={isSaving}
+            aria-busy={isSaving ? 'true' : undefined}
+            onClick={() => finish()}
+            className="flex-1 rounded-xl bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white hover:bg-[#146E65] disabled:opacity-50"
+          >
+            {isSaving ? <ActionLoadingContent label={t('saving')} /> : t('onboardingEnter')}
+          </button>
         </div>
+        {isSlowSaving && (
+          <p role="status" className="mt-2 text-center text-xs text-[var(--text-secondary)]">
+            {t('saving')}
+          </p>
+        )}
       </div>
     </OnboardingShell>
   );
 }
 
 export function OnboardingGate({ children }) {
+  const { t } = useTranslation();
   const settingsQuery = useSettings();
   const navigate = useNavigate();
   const [, setCompletionRevision] = useState(0);
+  const loadingState = useLoadingPhases(
+    settingsQuery.isLoading && !settingsQuery.data
+  );
 
-  if (settingsQuery.isLoading && !settingsQuery.data) {
-    return <div className="flex h-screen items-center justify-center text-[#2F7473]">Loading...</div>;
+  if (loadingState.phase !== 'idle') {
+    return (
+      <AppLaunchLoader
+        showContent={loadingState.phase !== 'blank'}
+        showTip={loadingState.showSlowIndicator}
+      />
+    );
   }
   if (settingsQuery.error && !settingsQuery.data) {
-    return <div role="alert" className="flex h-screen items-center justify-center p-6 text-center text-red-700">{settingsQuery.error.message}</div>;
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] p-4">
+        <div className="w-full max-w-lg">
+          <NoticeCard
+            body={t('onboardingLoadErrorDescription')}
+            actionLabel={t('tryAgain')}
+            onAction={() => settingsQuery.refetch()}
+          />
+        </div>
+      </main>
+    );
   }
   if (!hasCompletedOnboarding(settingsQuery.data)) {
     return (

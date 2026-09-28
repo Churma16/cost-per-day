@@ -16,16 +16,159 @@
     />
     <link rel="apple-touch-icon" href="/worthwhile-icon-192-v2.png" />
     <link rel="manifest" href="/manifest-v2.json" />
+    <link rel="preload" href="/logo192.png" as="image" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+      html,
+      body,
+      #root {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: #f6f7f8;
+      }
+
+      .pre-react-launch {
+        box-sizing: border-box;
+        display: flex;
+        min-height: 100vh;
+        min-height: 100dvh;
+        align-items: center;
+        justify-content: center;
+        padding: 2.5rem 1.5rem;
+        color: #20242a;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .pre-react-launch__content {
+        display: flex;
+        width: 100%;
+        max-width: 20rem;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        animation: pre-react-fade 160ms ease-out both;
+      }
+
+      .pre-react-launch__mark {
+        width: 4rem;
+        height: 4rem;
+        border-radius: 1rem;
+        object-fit: contain;
+      }
+
+      .pre-react-launch__brand {
+        margin: 0.75rem 0 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .pre-react-launch__status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .pre-react-launch__loader {
+        flex: none;
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+
+      .ownership-loader__spin,
+      .ownership-loader__dot {
+        transform-box: view-box;
+        transform-origin: 13px 13px;
+      }
+
+      .ownership-loader--active .ownership-loader__spin {
+        animation: ownership-loader-rotate 2.4s linear infinite;
+      }
+
+      .ownership-loader--active .ownership-loader__arc {
+        animation: ownership-loader-arc-breathe 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+      }
+
+      .ownership-loader--active .ownership-loader__dot {
+        animation: ownership-loader-dot-breathe 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+      }
+
+
+      @keyframes ownership-loader-rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes ownership-loader-arc-breathe {
+        0% { stroke-dasharray: 6 53; stroke-dashoffset: 0; }
+        50% { stroke-dasharray: 40 53; stroke-dashoffset: -18; }
+        100% { stroke-dasharray: 6 53; stroke-dashoffset: -59; }
+      }
+
+      @keyframes ownership-loader-dot-breathe {
+        0%, 100% { opacity: 0.9; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.18); }
+      }
+
+      @keyframes pre-react-fade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .pre-react-launch__content,
+        .ownership-loader__spin,
+        .ownership-loader__arc,
+        .ownership-loader__dot {
+          animation: none;
+        }
+
+      }
+    </style>
     <title>Worthwhile</title>
   </head>
   <body>
     <noscript>
       You need to enable JavaScript to run this app.
     </noscript>
-    <div id="root"></div>
+    <div id="root">
+      <main class="pre-react-launch">
+        <section class="pre-react-launch__content" aria-hidden="true">
+          <img
+            class="pre-react-launch__mark"
+            src="/logo192.png"
+            alt=""
+            width="64"
+            height="64"
+            aria-hidden="true"
+          />
+          <p class="pre-react-launch__brand">Worthwhile</p>
+          <div class="pre-react-launch__status">
+            <svg class="pre-react-launch__loader ownership-loader ownership-loader--active" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+              <circle cx="13" cy="13" r="9.5" stroke="#e6e8ec" stroke-width="2.2" />
+              <g class="ownership-loader__spin">
+                <circle
+                  class="ownership-loader__arc"
+                  cx="13"
+                  cy="13"
+                  r="9.5"
+                  stroke="#1b8a7e"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                />
+              </g>
+              <circle class="ownership-loader__dot" cx="13" cy="13" r="2.2" fill="#1b8a7e" />
+            </svg>
+          </div>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/index.jsx"></script>
   </body>
 </html>

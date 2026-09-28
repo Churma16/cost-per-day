@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render as testingLibraryRender, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render as testingLibraryRender, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
@@ -86,14 +86,25 @@ vi.mock('react-i18next', () => ({
         sortPriceAscending: 'Price: low to high',
         uncategorized: 'Uncategorized',
         noItemsMatchFilter: 'No items match this filter',
+        homeLoadErrorDescription: "Couldn't load your items. Check your connection and try again.",
+        homeEmptyListDescription: 'Your items will appear here.',
+        stillLoadingItems: 'Still loading your items...',
+        addFirstOwnedItem: 'Add your first item',
+        homeFilteredEmptyDescription: 'No items in this category yet.',
+        tryAgain: 'Try again',
+        refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
+        itemDeleteErrorTitle: 'Not deleted yet.',
+        itemDeleteErrorBody: 'This item and its history are still here.',
+        retry: 'Retry',
         done: 'Done',
         close: 'Close',
         ownedFor: 'Owned for',
         deleteItem: 'Delete',
-        confirmDelete: 'Confirm Delete',
-        deleteConfirmation: 'Are you sure you want to delete this item? This action cannot be undone.',
-        cancel: 'Cancel',
-        confirm: 'Confirm'
+        deleteThisItem: 'Delete this item?',
+        deleteItemIrreversibleAccount: `${options?.name} and its ownership history will be permanently removed from Worthwhile. This can't be undone.`,
+        deleteItemIrreversibleDevice: `${options?.name} and its ownership history will be permanently removed from this device. This can't be undone.`,
+        keepIt: 'Keep it',
+        delete: 'Delete'
       }[key] || key;
     }
   })
@@ -148,6 +159,72 @@ describe('ItemList lifecycle display', () => {
     vi.stubGlobal('localStorage', createMemoryStorage());
     useCurrency.mockReturnValue({ currencyCode: 'USD' });
     useValueEquivalents.mockReturnValue({ valueEquivalents: [] });
+  });
+
+  test('uses blank, skeleton, then slow-load feedback for the first load', () => {
+    vi.useFakeTimers();
+    getAllItems.mockReturnValue(new Promise(() => {}));
+
+    const { container } = render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    expect(screen.getByText('Your Items')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeDisabled();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    const itemSkeletons = container.querySelectorAll('[data-skeleton-variant="item"]');
+    expect(itemSkeletons).toHaveLength(3);
+    expect(itemSkeletons[0]).toHaveClass('rounded-2xl', 'p-3');
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeDisabled();
+
+    act(() => {
+      vi.advanceTimersByTime(1800);
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Still loading your items...');
+    vi.useRealTimers();
+  });
+
+  test('renders a recovery action for an initial item load failure', async () => {
+    getAllItems.mockRejectedValue(new Error('raw item transport failure'));
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    const errorState = await screen.findByRole('status', {}, { timeout: 3000 });
+    expect(errorState).toHaveTextContent("Couldn't load your items. Check your connection and try again.");
+    expect(errorState).not.toHaveTextContent('raw item transport failure');
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  test('turns a true empty collection into a first-item action', async () => {
+    getAllItems.mockResolvedValue([]);
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    expect(await screen.findByText('Your items will appear here.')).toBeInTheDocument();
+    expect(screen.getByText('Your Items')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add your first item' })).toBeInTheDocument();
+  });
+
+  test('surfaces retryable notice when cached-empty items background refresh fails', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, [], { updatedAt: 1 });
+    getAllItems.mockRejectedValue(new Error('Network error on refetch'));
+
+    testingLibraryRender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ItemList />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByText('Your items will appear here.')).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't refresh right now. Showing your last saved data.", {}, { timeout: 3500 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
   test('uses backend-derived final and net costs for sold history', async () => {
@@ -585,9 +662,9 @@ describe('ItemList lifecycle display', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('Your Items')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeInTheDocument();
-    expect(screen.getByText('Jabra Elite 4')).toBeInTheDocument();
+    expect(await screen.findByText('Jabra Elite 4')).toBeInTheDocument();
+    expect(screen.getByText('Your Items')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sort & group' })).toBeEnabled();
     expect(screen.queryByText('Current cost per day')).not.toBeInTheDocument();
   });
 
@@ -700,6 +777,23 @@ describe('ItemList lifecycle display', () => {
     expect(screen.queryByText('Old Camera')).not.toBeInTheDocument();
   });
 
+  test('shows only a muted line when organization filters hide every item', async () => {
+    getAllItems.mockResolvedValue([
+      { id: 'active-filtered', name: 'Visible after clear', price: 10, purchaseDate: '2026-01-01T12:00:00Z', status: 'active', ownershipDays: 100, grossCostPerDay: 1 },
+    ]);
+    window.localStorage.setItem('worthwhile.homeOrganization.v1', JSON.stringify({
+      stateFilters: ['lost'],
+      groupBy: 'ownershipState',
+      sortBy: 'recentlyAcquired',
+    }));
+
+    render(<MemoryRouter><ItemList /></MemoryRouter>);
+
+    expect(await screen.findByText('No items in this category yet.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /clear filters/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Visible after clear')).not.toBeInTheDocument();
+  });
+
   test('normalizes deselecting the final state back to All states', async () => {
     getAllItems.mockResolvedValue([
       { id: 'active', name: 'Active Item', price: 10, purchaseDate: '2026-01-01T12:00:00Z', status: 'active', ownershipDays: 100, grossCostPerDay: 1 },
@@ -767,11 +861,12 @@ describe('ItemList lifecycle display', () => {
     // Click Delete to open confirmation
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
-    expect(screen.getByText(/Are you sure you want to delete this item\?/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete this item?' })).toBeInTheDocument();
+    expect(screen.getByText(/Desk Lamp and its ownership history will be permanently removed from Worthwhile/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Keep it' })).toHaveFocus();
 
     // Confirm deletion
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => {
       expect(deleteItem).toHaveBeenCalledWith('item-del-1');

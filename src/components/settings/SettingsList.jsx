@@ -32,7 +32,7 @@ export function SettingsSection({
 
 export function SettingsCard({ children, className = '' }) {
   return (
-    <div className={`overflow-hidden rounded-2xl border border-gray-200/90 bg-white shadow-sm ${className}`.trim()}>
+    <div className={`overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card-bg)] shadow-sm ${className}`.trim()}>
       {children}
     </div>
   );
@@ -40,8 +40,8 @@ export function SettingsCard({ children, className = '' }) {
 
 export function SettingsRowIcon({ children, tone = 'neutral' }) {
   const toneClass = {
-    brand: 'border border-teal-100/60 bg-teal-50 text-[#2F7473]',
-    danger: 'border border-red-100 bg-red-50 text-red-600',
+    brand: 'border border-[var(--border)] bg-white text-[var(--accent)]',
+    danger: 'border-[1.5px] border-[var(--error-outline)] bg-white text-[var(--error-text)]',
     neutral: 'bg-slate-100/80 text-slate-600',
   }[tone] || 'bg-slate-100/80 text-slate-600';
 

@@ -17,6 +17,8 @@ import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
+import AppLaunchLoader from './components/ui/AppLaunchLoader';
+import { ErrorCard } from './components/ui/AsyncState';
 import LegalDocumentPage from './components/LegalDocumentPage';
 import { OnboardingGate } from './components/OnboardingFlow';
 import AboutPage from './components/AboutPage';
@@ -24,6 +26,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
 import { useVersionCheck } from './hooks/useVersionCheck';
+import { useLoadingPhases } from './hooks/useLoadingPhases';
 
 const applicationQueryClient = new QueryClient({
   defaultOptions: {
@@ -133,6 +136,7 @@ function AuthGate() {
   const { t } = useTranslation();
   const { user, isGuest, isLoading, error, signIn, continueAsGuest } = useAuth();
   const [pendingAction, setPendingAction] = React.useState(null);
+  const loadingState = useLoadingPhases(isLoading);
 
   const startAuthAction = (action, callback) => {
     if (pendingAction) return;
@@ -145,11 +149,12 @@ function AuthGate() {
     document.title = t('appTitle');
   }, [t]);
 
-  if (isLoading) {
+  if (loadingState.phase !== 'idle') {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-purple-600">{t('loading')}</div>
-      </div>
+      <AppLaunchLoader
+        showContent={loadingState.phase !== 'blank'}
+        showTip={loadingState.showSlowIndicator}
+      />
     );
   }
 
@@ -160,9 +165,9 @@ function AuthGate() {
           key="authentication"
           exit={{ opacity: 0, x: -14, scale: 0.994 }}
           transition={authFlowTransition}
-          className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-1.5 sm:p-6"
+          className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] p-1.5 sm:p-6"
         >
-          <section className="w-full max-w-sm rounded-2xl bg-[#F8F9FA] px-6 py-7 text-center sm:px-7">
+          <section className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white px-6 py-7 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)] sm:px-7">
           <img
             src="/logo192.png"
             alt="Worthwhile"
@@ -173,9 +178,10 @@ function AuthGate() {
             {t('authDescription')}
           </p>
           {error && (
-            <p role="alert" className="mt-4 text-sm text-red-600">
-              {t('authSessionError')}
-            </p>
+            <ErrorCard
+              body={t('authSignInErrorBody')}
+              className="mt-4 text-left"
+            />
           )}
           <div className="mt-7 flex flex-col items-center gap-3">
             <button

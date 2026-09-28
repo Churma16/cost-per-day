@@ -80,6 +80,9 @@ describe('ItemCard', () => {
 
     const trigger = screen.getByRole('button', { name: /Sold Phone/i });
     const details = document.getElementById('item-details-3');
+    const valueStack = trigger.querySelector('[data-item-card-value-stack]');
+    expect(valueStack).toHaveClass('flex-col', 'items-end', 'self-stretch', 'justify-between');
+    expect(valueStack.lastElementChild.tagName.toLowerCase()).toBe('svg');
     expect(within(trigger).queryByText('Changed Hands')).not.toBeInTheDocument();
     expect(within(trigger).queryByText('Final gross cost per day')).not.toBeInTheDocument();
     expect(within(details).getByText('Changed Hands')).toBeInTheDocument();

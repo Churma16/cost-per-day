@@ -7,6 +7,13 @@ import {
 import { useCurrency } from '../contexts/CurrencyContext';
 import { formatCurrency } from '../utils/formatters';
 import {
+  CardListSkeleton,
+  EmptyState,
+  NoticeCard,
+  SlowLoadIndicator,
+} from './ui/AsyncState';
+import { useLoadingPhases } from '../hooks/useLoadingPhases';
+import {
   IoShieldCheckmarkOutline,
   IoStatsChartOutline,
   IoTimeOutline,
@@ -15,7 +22,6 @@ import {
   IoChevronUpOutline,
   IoFilterOutline,
   IoInformationCircleOutline,
-  IoRefreshOutline,
   IoCashOutline,
   IoCalendarOutline,
   IoConstructOutline,
@@ -31,11 +37,16 @@ function DurabilityAnalytics() {
     data: analyticsData,
     isLoading,
     isError,
-    error,
+    isRefetchError,
     refetch,
   } = useDurabilityAnalytics({ category: selectedCategory });
 
   const { data: availableCategories = [] } = useCategories();
+  const loadingState = useLoadingPhases(isLoading && analyticsData == null);
+  const hasAnalyticsCategories = Boolean(analyticsData?.categories?.length);
+  const isFilteredEmpty = Boolean(selectedCategory)
+    && Number(analyticsData?.totalCategorizedCompletedItems || 0) > 0
+    && !hasAnalyticsCategories;
 
   const toggleBrandEvidence = (brandKey) => {
     setExpandedBrandKeys((previousState) => ({
@@ -103,29 +114,64 @@ function DurabilityAnalytics() {
       </div>
 
       {/* Loading & Error States */}
-      {isLoading && analyticsData == null && (
-        <div className="text-center py-12 text-gray-500 text-sm">
-          {t('loading')}
+      {loadingState.phase !== 'idle' && (
+        <div aria-busy="true" className="min-h-[196px]">
+          {loadingState.phase !== 'blank' && (
+            <>
+              <CardListSkeleton
+                count={3}
+                paused={loadingState.showSlowIndicator}
+              />
+              {loadingState.showSlowIndicator && (
+                <SlowLoadIndicator message={t('stillLoadingHistory')} />
+              )}
+            </>
+          )}
         </div>
       )}
 
-      {isError && analyticsData == null && (
-        <div className="rounded-xl bg-red-50 p-4 border border-red-200 flex items-center justify-between">
-          <div className="text-sm text-red-700">
-            {error?.message || t('errorLoadingDurability')}
-          </div>
+      {loadingState.phase === 'idle' && isError && analyticsData == null && (
+        <NoticeCard
+          body={t('analyticsLoadErrorDescription')}
+          actionLabel={t('tryAgain')}
+          onAction={() => refetch()}
+        />
+      )}
+
+      {analyticsData != null && (isRefetchError || isError) && (
+        <NoticeCard
+          body={t('refreshShowingSavedData')}
+          actionLabel={t('tryAgain')}
+          onAction={() => refetch()}
+        />
+      )}
+
+      {/* Analytics Content */}
+      {analyticsData && !hasAnalyticsCategories && !isFilteredEmpty && (
+        <EmptyState
+          motif="durability"
+          title={t('noDurabilityDataTitle')}
+          description={t('noDurabilityDataDescription')}
+        />
+      )}
+
+      {analyticsData && isFilteredEmpty && (
+        <div className="py-8 text-center">
+          <p className="text-[13px] leading-[1.6] text-[var(--text-secondary)]">
+            {t('analyticsFilteredEmptyDescription')}
+          </p>
           <button
             type="button"
-            onClick={() => refetch()}
-            className="flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-800"
+            onClick={() => setSelectedCategory('')}
+            className="mt-3 rounded-xl border border-[var(--border)] bg-white px-3.5 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[#F6F7F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
-            <IoRefreshOutline /> {t('retry')}
+            {t('clearCategoryFilter')}
           </button>
         </div>
       )}
 
       {/* Analytics Content */}
-      {analyticsData && (
+      {analyticsData && hasAnalyticsCategories && (
         <>
           {/* Summary KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -168,27 +214,12 @@ function DurabilityAnalytics() {
                   )}
                 </div>
               ) : (
-                <div className="text-sm text-gray-400 italic">
-                  Not enough historical replacements yet
+                <div className="text-sm text-[var(--text-secondary)]">
+                  {t('replacementNeedsMoreData')}
                 </div>
               )}
             </div>
           </div>
-
-          {/* Empty State */}
-          {(!analyticsData.categories || analyticsData.categories.length === 0) && (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-10 text-center space-y-3">
-              <div className="mx-auto w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-                <IoShieldCheckmarkOutline className="text-2xl" />
-              </div>
-              <h3 className="text-base font-semibold text-gray-900">
-                {t('noDurabilityDataTitle')}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
-                {t('noDurabilityDataDescription')}
-              </p>
-            </div>
-          )}
 
           {/* Categories & Brand Insights Breakdown */}
           {analyticsData.categories && analyticsData.categories.length > 0 && (

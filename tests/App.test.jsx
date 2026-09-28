@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import App from '../src/App';
 import { ApiError, getCurrentUser } from '../src/services/api';
@@ -58,12 +58,31 @@ beforeEach(() => {
   window.history.pushState({}, '', '/');
 });
 
-test('renders authentication loading state while session bootstrap is pending', () => {
+test('uses the neutral launch loader while checking the session', () => {
+  vi.useFakeTimers();
   getCurrentUser.mockImplementation(() => new Promise(() => {}));
 
-  render(<App />);
+  const { container } = render(<App />);
 
-  expect(screen.getByText(/loading/i)).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+
+  act(() => {
+    vi.advanceTimersByTime(200);
+  });
+  expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
+  expect(screen.getByTestId('application-launch-loader')).toBeInTheDocument();
+  expect(screen.getByRole('status', { name: 'Getting your items ready...' })).toBeInTheDocument();
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
+
+  act(() => {
+    vi.advanceTimersByTime(1800);
+  });
+  expect(screen.getByRole('note')).toHaveTextContent(
+    'Cost per day gradually settles as the days of ownership add up.'
+  );
+
+  vi.useRealTimers();
 });
 
 test('shows Google sign-in when there is no application session', async () => {

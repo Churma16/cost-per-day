@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IoWarningOutline } from 'react-icons/io5';
+import { ActionLoadingContent } from '../ui/AsyncState';
+import { useSlowAction } from '../../hooks/useLoadingPhases';
 import SettingsModalTransition from './SettingsModalTransition';
 
 function ImportConfirmDialog({
@@ -11,6 +12,14 @@ function ImportConfirmDialog({
   onExitComplete,
 }) {
   const { t } = useTranslation();
+  const keepButtonRef = useRef(null);
+  const isSlowImporting = useSlowAction(isImporting);
+
+  useEffect(() => {
+    if (isOpen) {
+      keepButtonRef.current?.focus();
+    }
+  }, [isOpen]);
 
   return (
     <SettingsModalTransition
@@ -22,31 +31,35 @@ function ImportConfirmDialog({
     >
       {({ isExiting }) => (
         <>
-        <div className="flex items-center gap-3 text-amber-500">
-          <IoWarningOutline className="text-2xl" />
-          <h2 id="import-confirm-title" className="text-xl font-semibold text-gray-800">
+          <h2 id="import-confirm-title" className="text-lg font-medium text-[var(--text-primary)]">
             {t('importWarning')}
           </h2>
-        </div>
-        <p className="text-gray-600 text-sm">{t('importConfirmation')}</p>
-        <div className="flex gap-3 pt-2">
-          <button
-            type="button"
-            disabled={isImporting || isExiting}
-            className="flex-1 py-3 px-4 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 transition-colors duration-200 text-sm"
-            onClick={onCancel}
-          >
-            {t('cancel')}
-          </button>
-          <button
-            type="button"
-            disabled={isImporting || isExiting}
-            className="flex-1 py-3 px-4 rounded-xl bg-amber-600 text-white font-medium hover:bg-amber-700 disabled:opacity-50 transition-all duration-200 text-sm shadow-sm"
-            onClick={onConfirm}
-          >
-            {isImporting ? t('loading') : t('confirm')}
-          </button>
-        </div>
+          <p className="text-sm leading-6 text-[var(--text-secondary)]">{t('importConfirmation')}</p>
+          {isSlowImporting && (
+            <p role="status" className="text-center text-xs text-[var(--text-secondary)]">
+              {t('importing')}
+            </p>
+          )}
+          <div className="flex gap-3 pt-2">
+            <button
+              ref={keepButtonRef}
+              type="button"
+              disabled={isImporting || isExiting}
+              className="flex-1 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[#F6F7F8] disabled:opacity-50"
+              onClick={onCancel}
+            >
+              {t('keepIt')}
+            </button>
+            <button
+              type="button"
+              disabled={isImporting || isExiting}
+              aria-busy={isImporting ? 'true' : undefined}
+              className="flex-1 rounded-xl border-[1.5px] border-[var(--error-outline)] bg-white px-4 py-3 text-sm font-medium text-[var(--error-text)] disabled:opacity-50"
+              onClick={onConfirm}
+            >
+              {isImporting ? <ActionLoadingContent label={t('importing')} /> : t('importData')}
+            </button>
+          </div>
         </>
       )}
     </SettingsModalTransition>
