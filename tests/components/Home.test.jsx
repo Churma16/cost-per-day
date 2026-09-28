@@ -166,6 +166,7 @@ describe('HomeHeader', () => {
     const heroContent = container.querySelector('.home-reflection-content');
     const loadingPanel = container.querySelector('[data-home-hero-loading-panel]');
     const contentPanel = container.querySelector('[data-home-hero-content-panel]');
+    const reflectionRow = container.querySelector('[data-home-reflection-row]');
 
     expect(heroCard).toHaveAttribute('data-hero-state', 'collapsed');
     expect(heroCard).toHaveAttribute('aria-busy', 'true');
@@ -174,7 +175,10 @@ describe('HomeHeader', () => {
     expect(loadingPanel).toHaveClass('grid-rows-[1fr]', 'duration-300', 'ease-out');
     expect(contentPanel).toHaveClass('grid-rows-[0fr]', 'duration-300', 'ease-out');
     expect(container.querySelector('[data-hero-skeleton="base"]')).toBeInTheDocument();
-    expect(container.querySelectorAll('.state-skeleton')).toHaveLength(4);
+    expect(reflectionRow).toHaveClass('min-h-[72px]', 'sm:min-h-[52px]');
+    expect(reflectionRow).toHaveAttribute('aria-hidden', 'true');
+    expect(reflectionRow.querySelector('.state-skeleton')).toBeInTheDocument();
+    expect(container.querySelectorAll('.state-skeleton')).toHaveLength(5);
     expect(screen.queryByText('Insight carousel')).not.toBeInTheDocument();
     expect(screen.queryByText(/Today, what you own is worth about/)).not.toBeInTheDocument();
 
@@ -192,6 +196,10 @@ describe('HomeHeader', () => {
     expect(loadingPanel).toHaveClass('grid-rows-[0fr]', 'opacity-0', 'invisible');
     expect(loadingPanel).toHaveAttribute('aria-hidden', 'true');
     expect(contentPanel).toHaveClass('grid-rows-[1fr]', 'opacity-100', 'visible');
+    const loadedReflectionRow = container.querySelector('[data-home-reflection-row]');
+    expect(loadedReflectionRow).toHaveClass('min-h-[72px]', 'sm:min-h-[52px]');
+    expect(loadedReflectionRow).not.toHaveAttribute('aria-hidden');
+    expect(loadedReflectionRow.querySelector('.state-skeleton')).not.toBeInTheDocument();
     expect(screen.getByText('Insight carousel')).toBeInTheDocument();
     expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$12.50');
   });
