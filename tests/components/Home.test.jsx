@@ -12,6 +12,8 @@ vi.mock('react-i18next', () => ({
       totalDailyCost: 'Daily Ownership Cost',
       perDay: '/day',
       dailyOwnershipReflection: `Today, what you own is worth about ${options?.amount} per day.`,
+      homeEmptyHeroTitle: 'Nothing counted yet',
+      homeEmptyHeroBody: 'Start with one thing you already own, and see what it costs you over time.',
     }[key] || key),
   }),
 }));
@@ -120,6 +122,44 @@ describe('HomeHeader', () => {
     expect(wordmark).toHaveClass('text-base', 'leading-5');
     expect(brandLockup.firstElementChild).toHaveClass('h-6', 'w-6');
     expect(container.querySelectorAll('header')).toHaveLength(1);
+  });
+
+  test('keeps the hero frame but removes zero-value metrics on first-run empty', () => {
+    useDashboard.mockReturnValue({
+      data: {
+        totalDailyCost: 0,
+        currencyCode: 'IDR',
+      },
+    });
+    useItems.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    const { container } = render(<Home />);
+
+    expect(screen.getByText('Nothing counted yet')).toBeInTheDocument();
+    expect(screen.getByText('Start with one thing you already own, and see what it costs you over time.')).toBeInTheDocument();
+    expect(screen.queryByText(/Today, what you own is worth about/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Rp\s*0/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Insight carousel')).not.toBeInTheDocument();
+    expect(container.querySelector('.home-insight-card')).toBeInTheDocument();
+  });
+
+  test('uses the canonical hero skeleton without replacing the hero frame', () => {
+    const { container } = render(
+      <HomeHeader
+        totalDailyCost={0}
+        currencyCode="IDR"
+        state="skeleton"
+      />
+    );
+
+    expect(container.querySelector('.home-insight-card')).toBeInTheDocument();
+    expect(container.querySelectorAll('.state-skeleton').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Today, what you own is worth about/)).not.toBeInTheDocument();
   });
 
   test('uses dashboard data as the canonical Home daily cost when available', () => {
