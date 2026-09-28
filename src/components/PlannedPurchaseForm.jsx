@@ -8,6 +8,8 @@ import ContributionPlanningSection from './planned-purchase/ContributionPlanning
 import TargetDatePlanningSection from './planned-purchase/TargetDatePlanningSection';
 import AnimatedPlanningModePanels from './planned-purchase/AnimatedPlanningModePanels';
 import FormSectionCard from './common/FormSectionCard';
+import { ActionLoadingContent, ErrorCard } from './ui/AsyncState';
+import { useSlowAction } from '../hooks/useLoadingPhases';
 
 function PlannedPurchaseForm({
   initialData = null,
@@ -22,6 +24,7 @@ function PlannedPurchaseForm({
 }) {
   const { t } = useTranslation();
   const { currencyCode: activeCurrencyCode } = useCurrency();
+  const isSlowSaving = useSlowAction(isSubmitting);
 
   const [name, setName] = useState(initialData?.name || '');
   const [targetPrice, setTargetPrice] = useState(
@@ -158,10 +161,19 @@ function PlannedPurchaseForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-2.5">
-      {(errorMessage || validationError) && (
-        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {validationError || errorMessage}
-        </div>
+      {validationError && (
+        <ErrorCard
+          title={t('checkPlanDetails')}
+          body={validationError}
+          onDismiss={() => setValidationError(null)}
+        />
+      )}
+
+      {errorMessage && (
+        <ErrorCard
+          title={t('notSavedYet')}
+          body={errorMessage}
+        />
       )}
 
       {showContext && (
@@ -221,12 +233,16 @@ function PlannedPurchaseForm({
         <button
           type="submit"
           disabled={!isFormValid || isSubmitting}
-          className="w-full py-2.5 bg-teal-600 text-white rounded-xl font-medium
-            hover:bg-teal-700 transition-all duration-200 shadow-sm hover:shadow
-            disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-sm"
+          aria-busy={isSubmitting ? 'true' : undefined}
+          className="w-full rounded-xl bg-[var(--accent-strong)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#146E65] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSubmitting ? t('loading') : t('save')}
+          {isSubmitting ? <ActionLoadingContent /> : t('save')}
         </button>
+        {isSlowSaving && (
+          <p role="status" className="text-center text-xs text-[var(--text-secondary)]">
+            {t('saving')}
+          </p>
+        )}
         <button
           type="button"
           onClick={onDiscard ? handleDiscard : onCancel}
