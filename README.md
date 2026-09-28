@@ -100,6 +100,8 @@ See [docs/production.md](./docs/production.md) for the supported single-VPS topo
 
 See [docs/color-branding.md](./docs/color-branding.md) for the canonical color palette, semantic roles, interaction rules, accessibility requirements, and implementation guidance.
 
+See [docs/motion-guidelines.md](./docs/motion-guidelines.md) for the canonical calm-motion rules, timing and easing guidance, directional transitions, adaptive-height behavior, localization reflow, reduced-motion requirements, and review checklist.
+
 ## How to Use
 
 ### Adding Items

@@ -2,6 +2,7 @@ import { apiRequest } from './httpClient';
 import {
   guestRepositories,
 } from '../data/persistenceRepositories';
+import { sanitizeOnboardingSettings } from '../utils/onboarding';
 
 const toMigrationItem = (item) => ({
   name: item.name,
@@ -38,6 +39,11 @@ export const createGuestMigrationService = ({
     json: payload,
     networkErrorMessage: 'Unable to migrate local guest data.',
   }),
+  getAccountSettings = () => apiRequest('/api/settings'),
+  updateAccountSetting = (key, value) => apiRequest(
+    `/api/settings/${encodeURIComponent(key)}`,
+    { method: 'PUT', json: { value } },
+  ),
 } = {}) => ({
   async migrate() {
     let lastResult = null;
@@ -60,6 +66,16 @@ export const createGuestMigrationService = ({
           await guestStorage.migrations.releaseSnapshot(snapshot);
         }
         throw error;
+      }
+
+      const guestSettings = sanitizeOnboardingSettings(snapshot.settings);
+      if (guestSettings.onboardingCompleted === 'true') {
+        const accountSettings = await getAccountSettings();
+        if (String(accountSettings?.onboardingCompleted).toLowerCase() !== 'true') {
+          for (const [key, value] of Object.entries(guestSettings)) {
+            await updateAccountSetting(key, value);
+          }
+        }
       }
 
       await guestStorage.migrations.completeSnapshot(snapshot);

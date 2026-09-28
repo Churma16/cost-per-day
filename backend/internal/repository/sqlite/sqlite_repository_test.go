@@ -71,8 +71,8 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	if scanError := databaseConnection.QueryRowContext(ctx, "PRAGMA user_version").Scan(&schemaVersion); scanError != nil {
 		t.Fatalf("failed to read schema version: %v", scanError)
 	}
-	if schemaVersion != 10 {
-		t.Fatalf("expected schema version 10, got %d", schemaVersion)
+	if schemaVersion != 11 {
+		t.Fatalf("expected schema version 11, got %d", schemaVersion)
 	}
 
 	if migrationError := sqliterepository.ApplyMigrations(ctx, databaseConnection); migrationError != nil {
@@ -101,6 +101,18 @@ func TestOpenConfiguresSQLiteAndRunsMigrations(t *testing.T) {
 	}
 	if equivalentTableCount != 1 {
 		t.Fatalf("expected value_equivalents table to exist exactly once, got %d", equivalentTableCount)
+	}
+
+	var onboardingCompleted string
+	if scanError := databaseConnection.QueryRowContext(ctx, `
+		SELECT value
+		FROM settings
+		WHERE user_id = ? AND key = 'onboardingCompleted'
+	`, domain.LegacyUserID).Scan(&onboardingCompleted); scanError != nil {
+		t.Fatalf("failed to read migrated onboarding state: %v", scanError)
+	}
+	if onboardingCompleted != "true" {
+		t.Fatalf("expected existing user onboarding to be complete, got %q", onboardingCompleted)
 	}
 }
 

@@ -1,5 +1,9 @@
 import * as itemApi from '../services/api';
 import * as plannedPurchaseApi from '../services/plannedPurchaseService';
+import {
+  ONBOARDING_COMPLETED_SETTING,
+  sanitizeOnboardingSettings,
+} from '../utils/onboarding';
 
 export const GUEST_ITEM_LIMIT = 10;
 export const GUEST_PLANNED_PURCHASE_LIMIT = 5;
@@ -18,6 +22,7 @@ const DEFAULT_GUEST_SETTINGS = {
 };
 const MIGRATION_ID_KEY = 'migrationId';
 const MIGRATION_SNAPSHOT_KEY = 'migrationSnapshot';
+const ONBOARDING_GRANDFATHERING_KEY = 'onboardingGrandfatheringV1';
 
 export class GuestLimitError extends Error {
   constructor(kind, limit) {
@@ -497,13 +502,58 @@ const guestPlannedPurchaseRepository = {
   },
 };
 
+const readGuestSettingsWithOnboardingMigration = async () => {
+  const database = await openGuestDatabase();
+  const transaction = database.transaction([SETTINGS_STORE, META_STORE], 'readwrite');
+  const completion = transactionAsPromise(transaction);
+  const settingsStore = transaction.objectStore(SETTINGS_STORE);
+  const metaStore = transaction.objectStore(META_STORE);
+
+  try {
+    const [records, grandfatheringRecord] = await Promise.all([
+      requestAsPromise(settingsStore.getAll()),
+      requestAsPromise(metaStore.get(ONBOARDING_GRANDFATHERING_KEY)),
+    ]);
+    const persistedSettings = records.reduce(
+      (settings, record) => ({ ...settings, [record.key]: record.value }),
+      {},
+    );
+
+    if (!grandfatheringRecord) {
+      const sanitizedSettings = sanitizeOnboardingSettings(persistedSettings);
+      const hasPersistedRequiredPreferences = Boolean(
+        sanitizedSettings.language && sanitizedSettings.currency,
+      );
+      const hasCompletionMarker = Object.prototype.hasOwnProperty.call(
+        persistedSettings,
+        ONBOARDING_COMPLETED_SETTING,
+      );
+      if (hasPersistedRequiredPreferences && !hasCompletionMarker) {
+        await requestAsPromise(settingsStore.put({
+          key: ONBOARDING_COMPLETED_SETTING,
+          value: 'true',
+        }));
+        persistedSettings[ONBOARDING_COMPLETED_SETTING] = 'true';
+      }
+      await requestAsPromise(metaStore.put({
+        key: ONBOARDING_GRANDFATHERING_KEY,
+        value: true,
+      }));
+    }
+
+    await completion;
+    return persistedSettings;
+  } catch (error) {
+    abortTransaction(transaction);
+    await completion.catch(() => undefined);
+    throw error;
+  }
+};
+
 const guestSettingsRepository = {
   async getAll() {
-    const records = await listStore(SETTINGS_STORE);
-    return records.reduce(
-      (settings, record) => ({ ...settings, [record.key]: record.value }),
-      { ...DEFAULT_GUEST_SETTINGS },
-    );
+    const persistedSettings = await readGuestSettingsWithOnboardingMigration();
+    return { ...DEFAULT_GUEST_SETTINGS, ...persistedSettings };
   },
   async set(key, value) {
     const normalizedKey = String(key || '').trim();
@@ -572,14 +622,16 @@ const guestMetaRepository = {
 
 const guestMigrationRepository = {
   async getOrCreateSnapshot() {
+    await readGuestSettingsWithOnboardingMigration();
     const database = await openGuestDatabase();
     const transaction = database.transaction(
-      [ITEM_STORE, PLANNED_PURCHASE_STORE, VALUE_EQUIVALENT_STORE, META_STORE],
+      [ITEM_STORE, PLANNED_PURCHASE_STORE, SETTINGS_STORE, VALUE_EQUIVALENT_STORE, META_STORE],
       'readwrite',
     );
     const completion = transactionAsPromise(transaction);
     const itemStore = transaction.objectStore(ITEM_STORE);
     const plannedPurchaseStore = transaction.objectStore(PLANNED_PURCHASE_STORE);
+    const settingsStore = transaction.objectStore(SETTINGS_STORE);
     const valueEquivalentStore = transaction.objectStore(VALUE_EQUIVALENT_STORE);
     const metaStore = transaction.objectStore(META_STORE);
 
@@ -589,12 +641,14 @@ const guestMigrationRepository = {
         existingMigrationIDRecord,
         items,
         plannedPurchases,
+        settings,
         valueEquivalents,
       ] = await Promise.all([
         requestAsPromise(metaStore.get(MIGRATION_SNAPSHOT_KEY)),
         requestAsPromise(metaStore.get(MIGRATION_ID_KEY)),
         requestAsPromise(itemStore.getAll()),
         requestAsPromise(plannedPurchaseStore.getAll()),
+        requestAsPromise(settingsStore.getAll()),
         requestAsPromise(valueEquivalentStore.getAll()),
       ]);
 
@@ -602,7 +656,7 @@ const guestMigrationRepository = {
         await completion;
         return existingSnapshotRecord.value;
       }
-      if (items.length === 0 && plannedPurchases.length === 0 && valueEquivalents.length === 0) {
+      if (items.length === 0 && plannedPurchases.length === 0 && settings.length === 0 && valueEquivalents.length === 0) {
         await completion;
         return null;
       }
@@ -612,6 +666,10 @@ const guestMigrationRepository = {
         migrationId,
         items,
         plannedPurchases,
+        settings: settings.reduce(
+          (values, setting) => ({ ...values, [setting.key]: setting.value }),
+          {},
+        ),
         valueEquivalents,
         createdAt: new Date().toISOString(),
       };
@@ -632,12 +690,13 @@ const guestMigrationRepository = {
   async completeSnapshot(snapshot) {
     const database = await openGuestDatabase();
     const transaction = database.transaction(
-      [ITEM_STORE, PLANNED_PURCHASE_STORE, VALUE_EQUIVALENT_STORE, META_STORE],
+      [ITEM_STORE, PLANNED_PURCHASE_STORE, SETTINGS_STORE, VALUE_EQUIVALENT_STORE, META_STORE],
       'readwrite',
     );
     const completion = transactionAsPromise(transaction);
     const itemStore = transaction.objectStore(ITEM_STORE);
     const plannedPurchaseStore = transaction.objectStore(PLANNED_PURCHASE_STORE);
+    const settingsStore = transaction.objectStore(SETTINGS_STORE);
     const valueEquivalentStore = transaction.objectStore(VALUE_EQUIVALENT_STORE);
     const metaStore = transaction.objectStore(META_STORE);
 
@@ -648,9 +707,10 @@ const guestMigrationRepository = {
         return { completed: false };
       }
 
-      const [currentItems, currentPlannedPurchases, currentValueEquivalents] = await Promise.all([
+      const [currentItems, currentPlannedPurchases, currentSettings, currentValueEquivalents] = await Promise.all([
         requestAsPromise(itemStore.getAll()),
         requestAsPromise(plannedPurchaseStore.getAll()),
+        requestAsPromise(settingsStore.getAll()),
         requestAsPromise(valueEquivalentStore.getAll()),
       ]);
       const currentItemsByID = new Map(currentItems.map((item) => [String(item.id), item]));
@@ -672,6 +732,11 @@ const guestMigrationRepository = {
           .map((purchase) => requestAsPromise(plannedPurchaseStore.delete(purchase.id))),
         ...matchingSnapshotRecords(snapshot.valueEquivalents || [], currentEquivalentsByID)
           .map((equivalent) => requestAsPromise(valueEquivalentStore.delete(equivalent.id))),
+        ...Object.entries(snapshot.settings || {})
+          .filter(([key, value]) => currentSettings.some(
+            (setting) => setting.key === key && setting.value === value,
+          ))
+          .map(([key]) => requestAsPromise(settingsStore.delete(key))),
         requestAsPromise(metaStore.delete(MIGRATION_SNAPSHOT_KEY)),
         requestAsPromise(metaStore.delete(MIGRATION_ID_KEY)),
       ]);

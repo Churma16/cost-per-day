@@ -53,12 +53,24 @@ const createStorage = () => {
 describe('guest migration orchestration', () => {
   test('imports a sanitized immutable snapshot and completes it only after confirmation', async () => {
     const guestStorage = createStorage();
+    guestStorage.snapshot.settings = {
+      language: 'id',
+      currency: 'IDR',
+      onboardingCompleted: 'true',
+    };
     const importGuestData = vi.fn().mockResolvedValue({
       importedItems: 1,
       importedPlannedPurchases: 1,
       importedValueEquivalents: 1,
     });
-    const service = createGuestMigrationService({ guestStorage, importGuestData });
+    const getAccountSettings = vi.fn().mockResolvedValue({});
+    const updateAccountSetting = vi.fn().mockResolvedValue(undefined);
+    const service = createGuestMigrationService({
+      guestStorage,
+      importGuestData,
+      getAccountSettings,
+      updateAccountSetting,
+    });
 
     await service.migrate();
 
@@ -91,6 +103,59 @@ describe('guest migration orchestration', () => {
       }],
     });
     expect(guestStorage.migrations.completeSnapshot).toHaveBeenCalledWith(guestStorage.snapshot);
+    expect(updateAccountSetting.mock.calls).toEqual([
+      ['language', 'id'],
+      ['currency', 'IDR'],
+      ['onboardingCompleted', 'true'],
+    ]);
+  });
+
+  test('does not overwrite preferences for an account that already completed onboarding', async () => {
+    const guestStorage = createStorage();
+    guestStorage.snapshot.settings = {
+      language: 'id',
+      currency: 'IDR',
+      onboardingCompleted: 'true',
+    };
+    const importGuestData = vi.fn().mockResolvedValue({ alreadyImported: false });
+    const getAccountSettings = vi.fn().mockResolvedValue({
+      language: 'en',
+      currency: 'USD',
+      onboardingCompleted: 'true',
+    });
+    const updateAccountSetting = vi.fn();
+    const service = createGuestMigrationService({
+      guestStorage,
+      importGuestData,
+      getAccountSettings,
+      updateAccountSetting,
+    });
+
+    await service.migrate();
+
+    expect(updateAccountSetting).not.toHaveBeenCalled();
+    expect(guestStorage.migrations.completeSnapshot).toHaveBeenCalled();
+  });
+
+  test('keeps the snapshot when preference transfer fails after the data import', async () => {
+    const guestStorage = createStorage();
+    guestStorage.snapshot.settings = {
+      language: 'id',
+      currency: 'IDR',
+      onboardingCompleted: 'true',
+    };
+    const preferenceError = Object.assign(new Error('preference rejected'), { status: 400 });
+    const service = createGuestMigrationService({
+      guestStorage,
+      importGuestData: vi.fn().mockResolvedValue({ alreadyImported: false }),
+      getAccountSettings: vi.fn().mockResolvedValue({}),
+      updateAccountSetting: vi.fn().mockRejectedValue(preferenceError),
+    });
+
+    await expect(service.migrate()).rejects.toBe(preferenceError);
+
+    expect(guestStorage.migrations.releaseSnapshot).not.toHaveBeenCalled();
+    expect(guestStorage.migrations.completeSnapshot).not.toHaveBeenCalled();
   });
 
   test('preserves the same snapshot after a failed import so retry is safe', async () => {

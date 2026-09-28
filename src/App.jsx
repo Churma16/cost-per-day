@@ -18,6 +18,7 @@ import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
 import LegalDocumentPage from './components/LegalDocumentPage';
+import { OnboardingGate } from './components/OnboardingFlow';
 import AboutPage from './components/AboutPage';
 import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
@@ -49,6 +50,11 @@ const legalRouteTransition = {
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -4 },
   transition: { duration: 0.18, ease: 'easeOut' },
+};
+
+const authFlowTransition = {
+  duration: 0.34,
+  ease: [0.16, 1, 0.3, 1],
 };
 
 const GoogleLogo = () => (
@@ -110,11 +116,13 @@ function AuthenticatedApp() {
     <LanguageProvider>
       <CurrencyProvider>
         <ValueEquivalentsProvider>
-          <PageMetadata />
-          <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
-            <MainContent />
-            <Footer />
-          </div>
+          <OnboardingGate>
+            <PageMetadata />
+            <div className="mx-auto max-w-[1024px] sm:border-x sm:border-[#E6E8EC] h-full bg-[#F6F7F8] flex flex-col">
+              <MainContent />
+              <Footer />
+            </div>
+          </OnboardingGate>
         </ValueEquivalentsProvider>
       </CurrencyProvider>
     </LanguageProvider>
@@ -147,8 +155,14 @@ function AuthGate() {
 
   if (!user && !isGuest) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-1.5 sm:p-6">
-        <section className="w-full max-w-sm rounded-2xl bg-[#F8F9FA] px-6 py-7 text-center sm:px-7">
+      <AnimatePresence mode="wait">
+        <motion.main
+          key="authentication"
+          exit={{ opacity: 0, x: -14, scale: 0.994 }}
+          transition={authFlowTransition}
+          className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-1.5 sm:p-6"
+        >
+          <section className="w-full max-w-sm rounded-2xl bg-[#F8F9FA] px-6 py-7 text-center sm:px-7">
           <img
             src="/logo192.png"
             alt="Worthwhile"
@@ -216,12 +230,25 @@ function AuthGate() {
               {t('termsOfService')}
             </MotionLink>
           </nav>
-        </section>
-      </main>
+          </section>
+        </motion.main>
+      </AnimatePresence>
     );
   }
 
-  return <AuthenticatedApp />;
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key="authenticated"
+        initial={{ opacity: 0, x: 18, scale: 0.994 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        transition={{ ...authFlowTransition, delay: 0.04 }}
+        className="h-full w-full"
+      >
+        <AuthenticatedApp />
+      </motion.div>
+    </AnimatePresence>
+  );
 }
 
 function ApplicationRoutes() {
