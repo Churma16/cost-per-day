@@ -91,7 +91,11 @@ function EquivalentFormModal({
       });
     } catch (saveError) {
       console.error('Error saving value equivalent:', saveError);
-      setActionError(saveError.message || t('equivalentSaveErrorBody'));
+      setActionError(
+        saveError?.code === 'guest_value_equivalent_limit'
+          ? t('guestValueEquivalentLimitReached', { limit: saveError.limit })
+          : t('equivalentSaveErrorBody')
+      );
       setIsSaving(false);
     }
   };
