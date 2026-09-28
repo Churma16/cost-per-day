@@ -158,7 +158,7 @@ describe('first-run onboarding flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enter Worthwhile' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your setup choices are still here. Nothing was lost.'
+      "Your setup choices are still here. Try again when you're ready."
     );
     expect(screen.queryByText('temporary save failure')).not.toBeInTheDocument();
 
@@ -230,7 +230,7 @@ describe('first-run onboarding flow', () => {
     }));
   });
 
-  test('delays onboarding bootstrap feedback until the canonical loading thresholds', () => {
+  test('shows a neutral launch loader while onboarding status loads', () => {
     vi.useFakeTimers();
     mocks.settingsQuery = {
       data: undefined,
@@ -245,19 +245,48 @@ describe('first-run onboarding flow', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.queryByText('App content')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(container.querySelector('.state-skeleton')).not.toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(200);
     });
-    expect(container.querySelector('.state-skeleton')).toBeInTheDocument();
+
+    expect(screen.getByTestId('application-launch-loader')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Getting your items ready...' })).toBeInTheDocument();
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(1800);
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Still loading your setup...');
-    expect(screen.queryByText('App content')).not.toBeInTheDocument();
+
+    expect(screen.getByRole('note')).toHaveTextContent('Cost per day gradually settles as the days of ownership add up.');
+    expect(screen.queryByText('Welcome to Worthwhile')).not.toBeInTheDocument();
+  });
+
+  test('keeps the neutral launch loader consistent on Settings during bootstrap', () => {
+    vi.useFakeTimers();
+    mocks.settingsQuery = {
+      data: undefined,
+      isLoading: true,
+      error: null,
+      refetch: vi.fn(),
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/settings']}>
+        <OnboardingGate><div>Settings content</div></OnboardingGate>
+      </MemoryRouter>,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.queryByText('Settings content')).not.toBeInTheDocument();
+    expect(screen.getByTestId('application-launch-loader')).toBeInTheDocument();
+    expect(screen.queryByText('Welcome to Worthwhile')).not.toBeInTheDocument();
   });
 
   test('offers retry when onboarding settings bootstrap fails', () => {

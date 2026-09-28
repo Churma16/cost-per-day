@@ -24,10 +24,9 @@ import CurrencyInput from './common/CurrencyInput';
 import {
   ActionLoadingContent,
   ErrorCard,
-  FormSkeleton,
   NoticeCard,
-  SlowLoadIndicator,
 } from './ui/AsyncState';
+import AppLaunchLoader from './ui/AppLaunchLoader';
 import { useLoadingPhases, useSlowAction } from '../hooks/useLoadingPhases';
 import {
   hasCompletedOnboarding,
@@ -553,21 +552,10 @@ export function OnboardingGate({ children }) {
 
   if (loadingState.phase !== 'idle') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] p-4">
-        <section
-          aria-busy="true"
-          className="min-h-[360px] w-full max-w-lg rounded-3xl border border-[var(--border)] bg-white p-6"
-        >
-          {loadingState.phase !== 'blank' && (
-            <>
-              <FormSkeleton paused={loadingState.showSlowIndicator} />
-              {loadingState.showSlowIndicator && (
-                <SlowLoadIndicator message={t('stillLoadingSetup')} />
-              )}
-            </>
-          )}
-        </section>
-      </main>
+      <AppLaunchLoader
+        showContent={loadingState.phase !== 'blank'}
+        showTip={loadingState.showSlowIndicator}
+      />
     );
   }
   if (settingsQuery.error && !settingsQuery.data) {

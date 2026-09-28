@@ -34,17 +34,17 @@ vi.mock('react-i18next', () => ({
         daysShort: 'days',
         loading: 'Loading...',
         perDay: '/day',
-        analyticsLoadingTitle: 'Reading your ownership history',
+        analyticsLoadingTitle: 'Looking for patterns in your ownership history',
         analyticsLoadingDescription: 'Worthwhile is looking for patterns across completed ownership.',
-        analyticsLoadErrorTitle: "Your history insights didn't load",
+        analyticsLoadErrorTitle: "Your ownership insights didn't load",
         analyticsLoadErrorDescription: "Couldn't load your history. Check your connection and try again.",
         refreshShowingSavedData: "Couldn't refresh right now. Showing your last saved data.",
         analyticsFilteredEmptyTitle: 'No history in this category yet',
-        analyticsFilteredEmptyDescription: 'No history in this category yet.',
+        analyticsFilteredEmptyDescription: 'Try another category or view all of your history.',
         clearCategoryFilter: 'View all history',
         tryAgain: 'Try again',
         stillLoadingHistory: 'Still loading your history...',
-        replacementNeedsMoreData: 'Not enough data yet. Needs at least 2 replacements in one category.',
+        replacementNeedsMoreData: 'Not enough history yet. Add at least 2 completed items in the same category to see a replacement pattern.',
       };
       return dictionary[key] || key;
     },
@@ -185,7 +185,7 @@ describe('DurabilityAnalytics Component', () => {
     render(<DurabilityAnalytics />);
     fireEvent.click(screen.getByRole('button', { name: 'Audio' }));
 
-    expect(await screen.findByText('No history in this category yet.')).toBeInTheDocument();
+    expect(await screen.findByText('Try another category or view all of your history.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'View all history' }));
     expect(useDurabilityAnalytics).toHaveBeenLastCalledWith({ category: '' });
   });
