@@ -150,9 +150,9 @@ describe('PlannedPurchases Component', () => {
   });
 
   it('offers retry after an initial planning load failure', async () => {
-    plannedPurchaseService.fetchPlannedPurchases
-      .mockRejectedValueOnce(new Error('raw planning failure'))
-      .mockResolvedValueOnce([]);
+    plannedPurchaseService.fetchPlannedPurchases.mockRejectedValue(
+      new Error('raw planning failure')
+    );
 
     renderComponent();
 
@@ -160,6 +160,7 @@ describe('PlannedPurchases Component', () => {
     expect(errorState).toHaveTextContent("Your plans didn't load");
     expect(errorState).not.toHaveTextContent('raw planning failure');
 
+    plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
     await waitFor(() => {
