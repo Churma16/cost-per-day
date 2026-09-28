@@ -173,7 +173,22 @@ const translation = {
   "benchmarkSelectPrompt": "选择已结束的物品以计算新物品需使用多久才能达到或超越其价值。",
   "selectCompletedItem": "选择已完结物品...",
   "useBenchmarkAsTarget": "应用为目标",
-  "benchmarkUnmatchableZeroCost": "该物品最终持有净成本为零或负数（转售价格高于或等于购买价格），新购物品无法对标零成本。"
+  "benchmarkUnmatchableZeroCost": "该物品最终持有净成本为零或负数（转售价格高于或等于购买价格），新购物品无法对标零成本。",
+
+  // Ownership Journey
+  "ownershipJourney": "持有历程",
+  "ownershipJourneyOptional": "持有历程（可选）",
+  "ownershipJourneyQuestion": "这件物品替代了什么？",
+  "ownershipJourneyHelper": "将这件物品与您之前拥有的物品关联起来。",
+  "ownershipJourneyNone": "未关联",
+  "ownershipJourneyRemoveLink": "移除关联",
+  "ownershipJourneyNoCompletedItems": "目前没有可关联的已结束物品。",
+  "ownershipJourneyCameBefore": "{{name}} 在这件物品之前",
+  "ownershipJourneyCameAfter": "{{name}} 在这件物品之后",
+  "ownershipJourneyBeforeAndAfter": "查看之前和之后的物品",
+  "ownershipJourneyAfterOnly": "查看之后的物品",
+  "ownershipJourneyDescription": "看看这件物品在你长期持有的物品中处于什么位置。",
+  "ownershipJourneyThisItem": "这件物品"
 };
 
 export default translation;
