@@ -769,6 +769,7 @@ describe('Settings component', () => {
 
   test('guards against duplicate equivalent deletion during the mutation and Motion exit', async () => {
     let resolveRemove;
+    mockRemoveEquivalent.mockReset();
     mockRemoveEquivalent.mockImplementation(() => new Promise((resolve) => {
       resolveRemove = resolve;
     }));
