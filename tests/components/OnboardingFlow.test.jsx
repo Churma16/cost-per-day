@@ -158,7 +158,7 @@ describe('first-run onboarding flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enter Worthwhile' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      "We couldn't save your setup. Please try again."
+      'Your setup choices are still here. Nothing was lost.'
     );
     expect(screen.queryByText('temporary save failure')).not.toBeInTheDocument();
 
