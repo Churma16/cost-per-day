@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { IoLogInOutline } from 'react-icons/io5';
 import OwnershipLoader from '../ui/OwnershipLoader';
+import { InlineStateNotice } from '../ui/AsyncState';
 
 function AccountSettingsSection({
   isInteractionBlocked,
@@ -59,9 +60,11 @@ function AccountSettingsSection({
         </button>
       </div>
       {authError && (
-        <p role="alert" className="mt-2 text-center text-xs text-red-600">
-          {authError.message || t('authSessionError')}
-        </p>
+        <InlineStateNotice
+          variant="error"
+          message={t('authSessionError')}
+          className="mt-2"
+        />
       )}
     </div>
   );
