@@ -13,6 +13,8 @@ import {
   IoSparkles
 } from 'react-icons/io5';
 import { useDashboard } from '../hooks/useDashboard';
+import { useLoadingPhases } from '../hooks/useLoadingPhases';
+import { HeroSkeleton } from './ui/AsyncState';
 
 const DEFAULT_AUTO_ADVANCE_MS = 6000;
 
@@ -131,6 +133,9 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
   const { data: dashboardData, isLoading, isError } = queryResult;
 
   const insights = insightsOverride ?? (dashboardData?.insights || []);
+  const dashboardLoadingState = useLoadingPhases(
+    isLoading && dashboardData == null && !insightsOverride
+  );
 
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -217,12 +222,12 @@ function HeroCarousel({ insightsOverride, autoAdvanceIntervalMs = DEFAULT_AUTO_A
     }
   };
 
-  if (isLoading && dashboardData == null && !insightsOverride) {
-    return (
-      <div className="flex h-[178px] items-center justify-center p-6 text-white/70">
-        <p className="text-sm animate-pulse">{t('loading')}</p>
-      </div>
-    );
+  if (dashboardLoadingState.phase === 'blank') {
+    return <div aria-hidden="true" className="min-h-[178px]" />;
+  }
+
+  if (dashboardLoadingState.showSkeleton) {
+    return <HeroSkeleton paused={dashboardLoadingState.showSlowIndicator} />;
   }
 
   if (isError && dashboardData == null && !insightsOverride) {
