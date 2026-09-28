@@ -84,7 +84,7 @@ function HomeHeader({
           aria-busy={isBusy}
         >
           <div className="home-reflection-surface relative isolate w-full min-w-0 text-white">
-            <div className={`home-reflection-content relative z-[1] w-full min-w-0 ${isCollapsed ? 'home-reflection-content--collapsed' : ''}`}>
+            <div className={`home-reflection-content relative z-[1] w-full min-w-0 min-h-[218px] ${isCollapsed ? 'home-reflection-content--collapsed' : ''}`}>
               <div
                 aria-hidden={!isLoadingSkeleton}
                 data-home-hero-loading-panel
@@ -178,7 +178,6 @@ function Home() {
     initialItemsLoading || (items.length > 0 && initialDashboardLoading)
   );
   const isTrueEmpty = itemsQuery.data !== undefined
-    && !itemsQuery.isError
     && items.length === 0;
   const isInitialItemsError = itemsQuery.isError && itemsQuery.data === undefined;
   const isInitialDashboardError = isDashboardError

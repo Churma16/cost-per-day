@@ -67,6 +67,7 @@
 
 .home-reflection-content {
   padding: 1.25rem;
+  min-height: 218px;
 }
 
 .home-reflection-content-inner {

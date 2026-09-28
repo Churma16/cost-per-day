@@ -215,6 +215,17 @@ describe('PlannedPurchases Component', () => {
     expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });
 
+  it('surfaces retryable notice when cached-empty planned purchases background refresh fails', async () => {
+    queryClient.setQueryData(queryKeys.plannedPurchases, [], { updatedAt: 1 });
+    plannedPurchaseService.fetchPlannedPurchases.mockRejectedValue(new Error('Temporary network failure'));
+
+    renderComponent();
+
+    expect(screen.getByText('No purchase plans yet')).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't refresh right now. Showing your last saved data.", {}, { timeout: 3500 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
   it('includes planning-page-content class to match shared shell', async () => {
     plannedPurchaseService.fetchPlannedPurchases.mockResolvedValue([]);
     const { container } = renderComponent();

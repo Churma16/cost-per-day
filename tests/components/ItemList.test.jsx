@@ -209,6 +209,24 @@ describe('ItemList lifecycle display', () => {
     expect(screen.getByRole('button', { name: 'Add your first item' })).toBeInTheDocument();
   });
 
+  test('surfaces retryable notice when cached-empty items background refresh fails', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.items, [], { updatedAt: 1 });
+    getAllItems.mockRejectedValue(new Error('Network error on refetch'));
+
+    testingLibraryRender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ItemList />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    expect(await screen.findByText('Your items will appear here.')).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't refresh right now. Showing your last saved data.", {}, { timeout: 3500 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
   test('uses backend-derived final and net costs for sold history', async () => {
     getAllItems.mockResolvedValue([
       {

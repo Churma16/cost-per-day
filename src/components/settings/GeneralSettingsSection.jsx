@@ -12,7 +12,7 @@ import {
   SettingsRowIcon,
   SettingsSection,
 } from './SettingsList';
-import { ErrorCard, SlowLoadIndicator } from '../ui/AsyncState';
+import { ErrorCard, NoticeCard, SlowLoadIndicator } from '../ui/AsyncState';
 import { useLoadingPhases } from '../../hooks/useLoadingPhases';
 
 function GeneralSettingsSkeleton({ paused }) {
@@ -44,10 +44,13 @@ function GeneralSettingsSection({
   languageName,
   selectedCurrencyOption,
   isLoading,
+  loadError,
+  onRetry,
   isInteractionBlocked,
   onOpenLanguage,
   onOpenCurrency,
   errorMessage,
+  onDismissError,
 }) {
   const { t } = useTranslation();
   const loadingState = useLoadingPhases(isLoading);
@@ -55,6 +58,14 @@ function GeneralSettingsSection({
 
   return (
     <SettingsSection id="general-settings-heading" title={t('general')}>
+      {loadError && (
+        <NoticeCard
+          body={loadError}
+          actionLabel={t('tryAgain')}
+          onAction={onRetry}
+          className="mb-3"
+        />
+      )}
       {showLoadingState ? (
         <div aria-busy="true">
           {loadingState.phase === 'blank' ? (
@@ -109,6 +120,7 @@ function GeneralSettingsSection({
         <ErrorCard
           title={t('preferenceUpdateErrorTitle')}
           body={errorMessage}
+          onDismiss={onDismissError}
         />
       )}
     </SettingsSection>

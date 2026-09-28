@@ -145,7 +145,17 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
           actionLabel={t('tryAgain')}
           onAction={() => refetch()}
         />
-      ) : items.length === 0 ? (
+      ) : (
+        <>
+          {itemsData !== undefined && (isRefetchError || isError) && (
+            <NoticeCard
+              body={t('refreshShowingSavedData')}
+              actionLabel={t('tryAgain')}
+              onAction={() => refetch()}
+              className="mb-1"
+            />
+          )}
+          {items.length === 0 ? (
         <div className="space-y-2.5">
           <ItemListToolbar
             title={t('yourItems')}
@@ -171,13 +181,6 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
             />
           )}
 
-          {itemsData !== undefined && (isRefetchError || isError) && (
-            <NoticeCard
-              body={t('refreshShowingSavedData')}
-              actionLabel={t('tryAgain')}
-              onAction={() => refetch()}
-            />
-          )}
           <ItemListToolbar
             title={t('yourItems')}
             actionLabel={t('organizeItems')}
@@ -219,6 +222,8 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
           ))}
         </>
       )}
+    </>
+  )}
 
       <ItemOrganizationDialog
         isOpen={isOrganizationOpen}

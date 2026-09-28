@@ -41,14 +41,16 @@ function Settings() {
   const {
     language,
     changeLanguage,
-    error: languageError,
+    loadError: languageLoadError,
     isLoading: isLoadingLanguage,
+    refetchSettings: refetchLanguageSettings,
   } = useLanguage();
   const {
     currencyCode,
     changeCurrency,
-    error: currencyError,
+    loadError: currencyLoadError,
     isLoading: isLoadingCurrency,
+    refetchSettings: refetchCurrencySettings,
   } = useCurrency();
   const {
     isGuest,
@@ -138,12 +140,15 @@ function Settings() {
     clearNotificationTimer();
   }, [clearNotificationTimer]);
 
-  useEffect(() => {
-    const settingsError = languageError || currencyError;
-    if (settingsError) {
-      setPreferenceError(t('errorLoadingSettings'));
+  const generalLoadError = languageLoadError || currencyLoadError;
+  const handleRetryGeneralSettings = useCallback(() => {
+    if (typeof refetchLanguageSettings === 'function') {
+      refetchLanguageSettings();
     }
-  }, [languageError, currencyError, t]);
+    if (typeof refetchCurrencySettings === 'function') {
+      refetchCurrencySettings();
+    }
+  }, [refetchLanguageSettings, refetchCurrencySettings]);
 
   const handleLanguageChange = async (code) => {
     setShowLanguageDropdown(false);
@@ -391,6 +396,8 @@ function Settings() {
           languageName={getLanguageName(language)}
           selectedCurrencyOption={selectedCurrencyOption}
           isLoading={Boolean(isLoadingLanguage || isLoadingCurrency)}
+          loadError={generalLoadError ? t('errorLoadingSettings') : null}
+          onRetry={handleRetryGeneralSettings}
           isInteractionBlocked={Boolean(activeModal)}
           onOpenLanguage={() => {
             setActiveModal('language');
@@ -401,6 +408,7 @@ function Settings() {
             setShowCurrencyDropdown(true);
           }}
           errorMessage={preferenceError}
+          onDismissError={() => setPreferenceError(null)}
         />
 
         <ValueEquivalentsSection

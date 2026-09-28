@@ -176,25 +176,28 @@ function PlannedPurchases() {
             actionLabel={t('tryAgain')}
             onAction={() => refetch()}
           />
-        ) : plannedPurchases.length === 0 ? (
-          <EmptyState
-            motif="planning"
-            title={t('noPlannedPurchases')}
-            description={t('noPlannedPurchasesDescription')}
-            actionLabel={t('newPlan')}
-            onAction={() => navigate('/add?type=planned')}
-          />
         ) : (
-          /* List of Cards */
-          <div className="state-content-enter space-y-2.5" data-plans-state="loaded">
+          <>
             {plannedPurchasesData !== undefined && (isRefetchError || isError) && (
               <NoticeCard
                 body={t('refreshShowingSavedData')}
                 actionLabel={t('tryAgain')}
                 onAction={() => refetch()}
+                className="mb-2.5"
               />
             )}
-            <div className="space-y-3">
+            {plannedPurchases.length === 0 ? (
+              <EmptyState
+                motif="planning"
+                title={t('noPlannedPurchases')}
+                description={t('noPlannedPurchasesDescription')}
+                actionLabel={t('newPlan')}
+                onAction={() => navigate('/add?type=planned')}
+              />
+            ) : (
+              /* List of Cards */
+              <div className="state-content-enter space-y-2.5" data-plans-state="loaded">
+                <div className="space-y-3">
               {plannedPurchases.map((plannedPurchase) => (
                 <PlannedPurchaseCard
                   key={plannedPurchase.id}
@@ -209,7 +212,9 @@ function PlannedPurchases() {
                 />
               ))}
             </div>
-          </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

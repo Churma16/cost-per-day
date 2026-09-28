@@ -157,23 +157,12 @@ export function ErrorCard({
 export function HeroSkeleton({ paused = false, compact = false }) {
   const skeletonClass = paused ? 'state-skeleton state-skeleton--paused' : 'state-skeleton';
 
-  if (compact) {
-    return (
-      <div
-        aria-hidden="true"
-        className="px-0.5 py-2"
-        data-hero-skeleton="base"
-      >
-        <div className={`${skeletonClass} h-2 w-[90px] rounded bg-[var(--skeleton-bar-hero)]`} />
-        <div className={`${skeletonClass} mt-4 h-4 w-3/5 rounded-md bg-white/30`} />
-        <div className={`${skeletonClass} mt-5 h-[9px] w-[85%] rounded bg-[var(--skeleton-bar-hero)]`} />
-        <div className={`${skeletonClass} mt-2.5 h-[9px] w-[70%] rounded bg-[var(--skeleton-bar-hero)]`} />
-      </div>
-    );
-  }
-
   return (
-    <div aria-hidden="true" className="min-h-[178px] px-0.5 py-2">
+    <div
+      aria-hidden="true"
+      className="flex min-h-[178px] flex-col justify-center px-0.5 py-2"
+      data-hero-skeleton={compact ? 'base' : undefined}
+    >
       <div className={`${skeletonClass} h-2 w-[90px] rounded bg-[var(--skeleton-bar-hero)]`} />
       <div className={`${skeletonClass} mt-4 h-4 w-3/5 rounded-md bg-white/30`} />
       <div className={`${skeletonClass} mt-5 h-[9px] w-[85%] rounded bg-[var(--skeleton-bar-hero)]`} />

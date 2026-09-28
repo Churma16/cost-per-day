@@ -38,7 +38,10 @@ export const LanguageProvider = ({ children }) => {
       language,
       changeLanguage,
       isLoading,
-      error: settingsQuery.error || updateSettingMutation.error
+      error: settingsQuery.error,
+      loadError: settingsQuery.error,
+      updateError: updateSettingMutation.error,
+      refetchSettings: settingsQuery.refetch
     }}>
       {children}
     </LanguageContext.Provider>

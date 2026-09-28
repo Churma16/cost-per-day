@@ -169,7 +169,8 @@ describe('HomeHeader', () => {
 
     expect(heroCard).toHaveAttribute('data-hero-state', 'collapsed');
     expect(heroCard).toHaveAttribute('aria-busy', 'true');
-    expect(heroContent).toHaveClass('home-reflection-content--collapsed');
+    expect(heroContent).toHaveClass('home-reflection-content--collapsed', 'min-h-[218px]');
+    expect(container.querySelector('[data-hero-skeleton="base"]')).toHaveClass('min-h-[178px]');
     expect(loadingPanel).toHaveClass('grid-rows-[1fr]', 'duration-300', 'ease-out');
     expect(contentPanel).toHaveClass('grid-rows-[0fr]', 'duration-300', 'ease-out');
     expect(container.querySelector('[data-hero-skeleton="base"]')).toBeInTheDocument();
@@ -193,6 +194,24 @@ describe('HomeHeader', () => {
     expect(contentPanel).toHaveClass('grid-rows-[1fr]', 'opacity-100', 'visible');
     expect(screen.getByText('Insight carousel')).toBeInTheDocument();
     expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$12.50');
+  });
+
+  test('retains empty hero state when cached-empty items background refresh fails', () => {
+    useDashboard.mockReturnValue({
+      data: { totalDailyCost: 0, currencyCode: 'IDR' },
+      isError: false,
+    });
+    useItems.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: true,
+      isRefetchError: true,
+      error: new Error('Refetch failure'),
+    });
+
+    render(<Home />);
+    expect(screen.getByText('Your ownership history starts here')).toBeInTheDocument();
+    expect(screen.queryByText('Insight carousel')).not.toBeInTheDocument();
   });
 
   test('waits for initial dashboard insights without putting the loaded item list back into loading', () => {

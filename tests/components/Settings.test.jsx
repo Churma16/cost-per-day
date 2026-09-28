@@ -714,7 +714,7 @@ describe('Settings component', () => {
     expect(screen.queryByText('No everyday references yet.')).not.toBeInTheDocument();
   });
 
-  test('keeps cached value equivalents visible when refresh fails', () => {
+  test('keeps cached value equivalents visible and allows adding when refresh fails', () => {
     useValueEquivalents.mockReturnValue({
       valueEquivalents: [
         { id: 'eq-cached', name: 'Coffee', amount: 5, currencyCode: 'USD' },
@@ -734,6 +734,57 @@ describe('Settings component', () => {
       "Couldn't refresh right now. Showing your last saved data."
     );
     expect(screen.queryByText('raw refresh failure')).not.toBeInTheDocument();
+    const addReferenceButton = screen.getByRole('button', { name: /Add Reference/i });
+    expect(addReferenceButton).toBeInTheDocument();
+    fireEvent.click(addReferenceButton);
+    expect(screen.getByRole('heading', { name: 'Add Reference' })).toBeInTheDocument();
+  });
+
+  test('surfaces mutation-specific error when changing language fails without generic load error override', async () => {
+    mockChangeLanguage.mockRejectedValueOnce(new Error('Failed to update language setting'));
+
+    render(<Settings />);
+
+    const languageButton = screen.getByRole('button', { name: /language.*english/i });
+    fireEvent.click(languageButton);
+
+    const indonesianOption = screen.getByRole('button', { name: /Bahasa Indonesia/i });
+    fireEvent.click(indonesianOption);
+
+    await waitFor(() => {
+      expect(screen.getByText("Language wasn't updated. Your current setting is unchanged. Try again.")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Couldn't load these preferences. Your other settings are still available.")).not.toBeInTheDocument();
+  });
+
+  test('renders retryable notice card when loading general preferences fails, and clears it on retry', () => {
+    const mockRefetchLanguage = vi.fn();
+    useLanguage.mockReturnValue({
+      language: 'en',
+      changeLanguage: mockChangeLanguage,
+      isLoading: false,
+      loadError: new Error('Network error loading language'),
+      refetchSettings: mockRefetchLanguage,
+    });
+
+    const { rerender } = render(<Settings />);
+
+    expect(screen.getByText("Couldn't load these preferences. Your other settings are still available.")).toBeInTheDocument();
+    const tryAgainButton = screen.getByRole('button', { name: 'Try again' });
+    fireEvent.click(tryAgainButton);
+    expect(mockRefetchLanguage).toHaveBeenCalledTimes(1);
+
+    useLanguage.mockReturnValue({
+      language: 'en',
+      changeLanguage: mockChangeLanguage,
+      isLoading: false,
+      loadError: null,
+      refetchSettings: mockRefetchLanguage,
+    });
+
+    rerender(<Settings />);
+
+    expect(screen.queryByText("Couldn't load these preferences. Your other settings are still available.")).not.toBeInTheDocument();
   });
 
   test('delays value-equivalent loading feedback before skeleton and slow status', () => {

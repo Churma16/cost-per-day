@@ -41,7 +41,7 @@ function ValueEquivalentsSection({
       id="value-equivalents-heading"
       title={t('valueEquivalents')}
       description={t('valueEquivalentsSubtitle')}
-      action={!isLoading && !error && valueEquivalents.length > 0 ? (
+      action={!isLoading && valueEquivalents.length > 0 ? (
         <button
           type="button"
           className="flex min-h-9 flex-none items-center gap-1 rounded-lg px-2 text-xs font-semibold text-[#2F7473] transition-colors hover:bg-teal-50/60 hover:text-[#265e5d]"

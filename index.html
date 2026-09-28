@@ -99,47 +99,6 @@
         animation: ownership-loader-dot-breathe 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
       }
 
-      .pre-react-launch__label {
-        margin: 0;
-        color: #6f7782;
-        font-size: 0.75rem;
-      }
-
-      .pre-react-launch__tip {
-        box-sizing: border-box;
-        position: fixed;
-        right: 1.5rem;
-        bottom: max(2.5rem, env(safe-area-inset-bottom));
-        left: 1.5rem;
-        width: calc(100% - 3rem);
-        max-width: 20rem;
-        margin: 0 auto;
-        border: 1px solid #e6e8ec;
-        border-radius: 0.75rem;
-        background: rgba(255, 255, 255, 0.8);
-        padding: 0.75rem 1rem;
-        text-align: left;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-        visibility: hidden;
-        opacity: 0;
-        animation: pre-react-tip-in 160ms ease-out 2s both;
-      }
-
-      .pre-react-launch__tip-label {
-        margin: 0;
-        color: #177a6f;
-        font-size: 0.625rem;
-        font-weight: 600;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-      }
-
-      .pre-react-launch__tip-copy {
-        margin: 0.25rem 0 0;
-        color: #6f7782;
-        font-size: 0.75rem;
-        line-height: 1.25rem;
-      }
 
       @keyframes ownership-loader-rotate {
         from { transform: rotate(0deg); }
@@ -162,11 +121,6 @@
         to { opacity: 1; }
       }
 
-      @keyframes pre-react-tip-in {
-        from { visibility: hidden; opacity: 0; }
-        to { visibility: visible; opacity: 1; }
-      }
-
       @media (prefers-reduced-motion: reduce) {
         .pre-react-launch__content,
         .ownership-loader__spin,
@@ -175,9 +129,6 @@
           animation: none;
         }
 
-        .pre-react-launch__tip {
-          animation: pre-react-tip-in 1ms linear 2s both;
-        }
       }
     </style>
     <title>Worthwhile</title>
@@ -188,7 +139,7 @@
     </noscript>
     <div id="root">
       <main class="pre-react-launch">
-        <section class="pre-react-launch__content" role="status" aria-label="Loading Worthwhile">
+        <section class="pre-react-launch__content" role="status" aria-label="Worthwhile">
           <img
             class="pre-react-launch__mark"
             src="/logo192.png"
@@ -214,12 +165,7 @@
               </g>
               <circle class="ownership-loader__dot" cx="13" cy="13" r="2.2" fill="#1b8a7e" />
             </svg>
-            <p class="pre-react-launch__label">Getting your items ready...</p>
           </div>
-          <aside class="pre-react-launch__tip" role="note">
-            <p class="pre-react-launch__tip-label">Worth knowing</p>
-            <p class="pre-react-launch__tip-copy">Cost per day gradually settles as the days of ownership add up.</p>
-          </aside>
         </section>
       </main>
     </div>
