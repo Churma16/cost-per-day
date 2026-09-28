@@ -236,7 +236,7 @@ function PlannedPurchaseForm({
           aria-busy={isSubmitting ? 'true' : undefined}
           className="w-full rounded-xl bg-[var(--accent-strong)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#146E65] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSubmitting ? <ActionLoadingContent /> : t('save')}
+          {isSubmitting ? <ActionLoadingContent label={t('saving')} /> : t('save')}
         </button>
         {isSlowSaving && (
           <p role="status" className="text-center text-xs text-[var(--text-secondary)]">

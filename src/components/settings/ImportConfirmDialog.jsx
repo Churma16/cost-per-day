@@ -57,7 +57,7 @@ function ImportConfirmDialog({
               className="flex-1 rounded-xl border-[1.5px] border-[var(--error-outline)] bg-white px-4 py-3 text-sm font-medium text-[var(--error-text)] disabled:opacity-50"
               onClick={onConfirm}
             >
-              {isImporting ? <ActionLoadingContent /> : t('importData')}
+              {isImporting ? <ActionLoadingContent label={t('importing')} /> : t('importData')}
             </button>
           </div>
         </>

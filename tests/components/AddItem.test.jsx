@@ -85,6 +85,7 @@ vi.mock('react-i18next', () => ({
         itemNotFound: 'Item not found. It may have been deleted.',
         backToWorthwhile: 'Back to Worthwhile',
         tryAgain: 'Try again',
+        refreshShowingSavedData: "Couldn't refresh just now. Showing your saved data.",
         stillLoadingItem: 'Still loading this item...',
         enterItemNameToContinue: 'Enter an item name to continue.',
         enterPriceToContinue: 'Enter a price to continue.',
@@ -683,6 +684,7 @@ describe('AddItem component date localization', () => {
     );
 
     expect(await screen.findByDisplayValue('Cached Laptop')).toBeInTheDocument();
+    expect(await screen.findByText("Couldn't refresh just now. Showing your saved data.", {}, { timeout: 3500 })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
     expect(screen.queryByText('Temporary network failure')).not.toBeInTheDocument();
   });

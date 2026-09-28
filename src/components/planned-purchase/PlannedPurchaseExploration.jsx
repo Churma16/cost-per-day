@@ -244,7 +244,7 @@ function PlannedPurchaseExploration({
                     onClick={handleApply}
                     className="flex-1 rounded-xl bg-[var(--accent-strong)] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#146E65] disabled:opacity-50 sm:flex-none"
                   >
-                    {isApplying ? <ActionLoadingContent /> : t('applyChanges')}
+                    {isApplying ? <ActionLoadingContent label={t('saving')} /> : t('applyChanges')}
                   </button>
                 </>
               ) : (

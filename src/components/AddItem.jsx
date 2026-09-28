@@ -100,6 +100,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     data: itemsData,
     isLoading: itemsLoading,
     error: itemsError,
+    isRefetchError: itemsRefetchError,
     refetch: refetchItems,
   } = useItems();
   const items = itemsData ?? [];
@@ -390,6 +391,14 @@ function AddItem({ showHeader = true, isVisible = true }) {
           />
         ) : (
           <>
+            {isEditMode && itemsData !== undefined && (itemsRefetchError || Boolean(itemsError)) && (
+              <NoticeCard
+                body={t('refreshShowingSavedData')}
+                actionLabel={t('tryAgain')}
+                onAction={() => refetchItems()}
+                className="mb-3"
+              />
+            )}
             {errorMessage && (
               <ErrorCard
                 title={
@@ -524,7 +533,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
                   || (isEditMode && !itemLoaded)
                 }
               >
-                {isSaving ? <ActionLoadingContent /> : t('save')}
+                {isSaving ? <ActionLoadingContent label={t('saving')} /> : t('save')}
               </button>
               {isSlowSaving && (
                 <p role="status" className="text-center text-xs text-[var(--text-secondary)]">

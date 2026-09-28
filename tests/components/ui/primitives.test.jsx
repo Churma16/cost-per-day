@@ -5,7 +5,11 @@ import { IoCashOutline, IoCreateOutline } from 'react-icons/io5';
 import CollapsibleCard from '../../../src/components/ui/CollapsibleCard';
 import InfoTile from '../../../src/components/ui/InfoTile';
 import ActionButton from '../../../src/components/ui/ActionButton';
-import { SlowLoadIndicator } from '../../../src/components/ui/AsyncState';
+import {
+  ActionLoadingContent,
+  ErrorCard,
+  SlowLoadIndicator,
+} from '../../../src/components/ui/AsyncState';
 
 describe('UI Primitives', () => {
   describe('SlowLoadIndicator', () => {
@@ -163,5 +167,60 @@ describe('UI Primitives', () => {
       expect(mainElement).toHaveClass('max-w-4xl');
     });
   });
-});
+  describe('ErrorCard', () => {
+    it('renders dismiss button with default accessible name and calls onDismiss', () => {
+      const handleDismiss = vi.fn();
+      render(
+        <ErrorCard
+          title="Something went wrong"
+          body="Please try again later."
+          onDismiss={handleDismiss}
+        />
+      );
 
+      const dismissButton = screen.getByRole('button', { name: 'Dismiss' });
+      expect(dismissButton).toBeInTheDocument();
+      fireEvent.click(dismissButton);
+      expect(handleDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it('supports custom localized dismissLabel', () => {
+      const handleDismiss = vi.fn();
+      render(
+        <ErrorCard
+          title="Ada masalah"
+          body="Silakan coba lagi."
+          dismissLabel="Tutup"
+          onDismiss={handleDismiss}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: 'Tutup' })).toBeInTheDocument();
+    });
+  });
+
+  describe('ActionLoadingContent', () => {
+    it('preserves button accessible name when pending with a label', () => {
+      render(
+        <button type="button" disabled>
+          <ActionLoadingContent label="Saving..." />
+        </button>
+      );
+
+      const button = screen.getByRole('button', { name: 'Saving...' });
+      expect(button).toBeInTheDocument();
+      expect(button).toBeDisabled();
+    });
+
+    it('falls back to default loading text when no label is provided', () => {
+      render(
+        <button type="button" disabled>
+          <ActionLoadingContent />
+        </button>
+      );
+
+      const button = screen.getByRole('button', { name: /loading/i });
+      expect(button).toBeInTheDocument();
+    });
+  });
+});

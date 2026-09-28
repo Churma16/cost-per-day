@@ -217,7 +217,7 @@ function EquivalentFormModal({
                 aria-busy={isSaving ? 'true' : undefined}
                 className="flex-1 rounded-xl bg-[var(--accent-strong)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#146E65] disabled:opacity-50"
               >
-                {isSaving ? <ActionLoadingContent /> : t('save')}
+                {isSaving ? <ActionLoadingContent label={t('saving')} /> : t('save')}
               </button>
             </div>
             {isSlowSaving && (

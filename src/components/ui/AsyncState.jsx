@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { IoClose, IoInformationCircleOutline } from 'react-icons/io5';
 import OwnershipLoader from './OwnershipLoader';
 
@@ -115,8 +116,12 @@ export function ErrorCard({
   actionLabel,
   onAction,
   onDismiss,
+  dismissLabel,
   className = '',
 }) {
+  const { t } = useTranslation();
+  const localizedDismiss = typeof t === 'function' ? t('dismiss') : null;
+  const resolvedDismissLabel = dismissLabel || (localizedDismiss && localizedDismiss !== 'dismiss' ? localizedDismiss : 'Dismiss');
   return (
     <section
       role="alert"
@@ -138,7 +143,7 @@ export function ErrorCard({
           <button
             type="button"
             onClick={onDismiss}
-            aria-label="Dismiss"
+            aria-label={resolvedDismissLabel}
             className="absolute right-2.5 top-2.5 rounded-md p-1 text-[var(--neutral-detail)] hover:bg-[#F6F7F8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             <IoClose aria-hidden="true" className="h-4 w-4" />
@@ -281,10 +286,13 @@ export function SlowLoadIndicator({ message, className = '' }) {
 }
 
 export function ActionLoadingContent({ label }) {
+  const { t } = useTranslation();
+  const defaultLoading = typeof t === 'function' ? t('loading') : null;
+  const resolvedLabel = label ?? (defaultLoading && defaultLoading !== 'loading' ? defaultLoading : 'Loading...');
   return (
     <span className="inline-flex items-center justify-center gap-2">
       <OwnershipLoader active className="h-4 w-4" />
-      {label ? <span>{label}</span> : null}
+      <span>{resolvedLabel}</span>
     </span>
   );
 }

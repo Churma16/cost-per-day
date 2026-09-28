@@ -7,7 +7,7 @@ import { formatCurrency } from '../utils/formatters';
 import HeroCarousel from './HeroCarousel';
 import { ItemListContent } from './ItemList';
 import WorthwhileBrandLockup from './WorthwhileBrandLockup';
-import { HeroSkeleton } from './ui/AsyncState';
+import { HeroSkeleton, NoticeCard } from './ui/AsyncState';
 import { useLoadingPhases } from '../hooks/useLoadingPhases';
 
 export const calculateActiveItemsDailyCost = (items = []) => items.reduce((total, item) => {
@@ -159,6 +159,7 @@ function HomeHeader({
 }
 
 function Home() {
+  const { t } = useTranslation();
   const {
     data: dashboardData,
     isLoading: isDashboardLoading,
@@ -211,6 +212,15 @@ function Home() {
         state={homeState}
         onRetryDashboard={refetchDashboard}
       />
+      {homeState === 'content' && isRefetchError && (
+        <div className="mx-auto max-w-lg px-4 pt-3">
+          <NoticeCard
+            body={t('refreshShowingSavedData')}
+            actionLabel={t('tryAgain')}
+            onAction={refetchDashboard}
+          />
+        </div>
+      )}
       <ItemListContent
         itemsQuery={itemsQuery}
         loadingPhase={itemLoadingState.phase}

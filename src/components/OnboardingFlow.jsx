@@ -528,7 +528,7 @@ function OnboardingFlow({ onComplete }) {
             onClick={() => finish()}
             className="flex-1 rounded-xl bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white hover:bg-[#146E65] disabled:opacity-50"
           >
-            {isSaving ? <ActionLoadingContent /> : t('onboardingEnter')}
+            {isSaving ? <ActionLoadingContent label={t('saving')} /> : t('onboardingEnter')}
           </button>
         </div>
         {isSlowSaving && (

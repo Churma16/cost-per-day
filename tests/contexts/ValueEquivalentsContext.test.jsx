@@ -1,5 +1,5 @@
 import React from 'react';
-import { render as testingLibraryRender, screen, waitFor, act } from '@testing-library/react';
+import { render as testingLibraryRender, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import {
@@ -35,7 +35,8 @@ const TestConsumer = () => {
     error,
     addEquivalent,
     editEquivalent,
-    removeEquivalent
+    removeEquivalent,
+    refreshEquivalents
   } = useValueEquivalents();
 
   if (isLoading) {
@@ -68,6 +69,7 @@ const TestConsumer = () => {
         Edit Coffee
       </button>
       <button onClick={() => removeEquivalent('1')}>Delete Coffee</button>
+      <button data-testid="refresh-btn" onClick={() => refreshEquivalents()}>Refresh</button>
     </div>
   );
 };
@@ -113,6 +115,31 @@ describe('ValueEquivalentsContext', () => {
 
     expect(screen.getByTestId('item-cached-1')).toHaveTextContent('Coffee: 15000 IDR');
     expect(screen.queryByTestId('error-message')).not.toBeInTheDocument();
+  });
+
+  it('keeps cached equivalents visible and surfaces error when background refetch fails', async () => {
+    const cachedEquivalents = [
+      { id: 'cached-1', name: 'Coffee', amount: 15000, currencyCode: 'IDR' }
+    ];
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.valueEquivalents, cachedEquivalents, { updatedAt: Date.now() });
+    getAllValueEquivalents.mockRejectedValue(new Error('Background network failure'));
+
+    testingLibraryRender(
+      <QueryClientProvider client={queryClient}>
+        <ValueEquivalentsProvider><TestConsumer /></ValueEquivalentsProvider>
+      </QueryClientProvider>
+    );
+
+    expect(screen.getByTestId('item-cached-1')).toHaveTextContent('Coffee: 15000 IDR');
+    expect(screen.queryByTestId('error-message')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('refresh-btn'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-message')).toHaveTextContent('Background network failure');
+      expect(screen.getByTestId('item-cached-1')).toHaveTextContent('Coffee: 15000 IDR');
+    }, { timeout: 3500 });
   });
 
   it('adds, edits, and removes value equivalents optimistically/server updated', async () => {

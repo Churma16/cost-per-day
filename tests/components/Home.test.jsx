@@ -18,6 +18,7 @@ vi.mock('react-i18next', () => ({
       homeDashboardErrorBody: 'Your items are still here. Check your connection and try again.',
       insights: 'Insights',
       tryAgain: 'Try again',
+      refreshShowingSavedData: "Couldn't refresh just now. Showing your saved data.",
     }[key] || key),
   }),
 }));
@@ -237,6 +238,7 @@ describe('HomeHeader', () => {
   });
 
   test('falls back to active items when cached dashboard data is stale after a refetch error', () => {
+    const refetchDashboard = vi.fn();
     useDashboard.mockReturnValue({
       data: {
         totalDailyCost: 42.5,
@@ -244,6 +246,7 @@ describe('HomeHeader', () => {
       },
       isError: true,
       isRefetchError: true,
+      refetch: refetchDashboard,
     });
     useItems.mockReturnValue({
       data: [
@@ -259,7 +262,11 @@ describe('HomeHeader', () => {
 
     expect(screen.getByText(/Today, what you own is worth about/)).toHaveTextContent('$5.50');
     expect(screen.getByText('Item list: 3')).toBeInTheDocument();
+    expect(screen.getByText("Couldn't refresh just now. Showing your saved data.")).toBeInTheDocument();
     expect(useItems).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(refetchDashboard).toHaveBeenCalledTimes(1);
   });
 
   test('falls back to active items when dashboard data is unavailable', () => {

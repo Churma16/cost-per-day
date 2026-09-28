@@ -75,7 +75,7 @@ function DataManagementSection({
         >
           <SettingsRowIcon><IoCloudDownloadOutline className="h-4 w-4" /></SettingsRowIcon>
           <SettingsRowText title={t('exportData')} subtitle={t('exportDataSubtitle')} />
-          {isExporting ? <ActionLoadingContent /> : <SettingsChevron />}
+          {isExporting ? <ActionLoadingContent label={t('exporting')} /> : <SettingsChevron />}
         </button>
 
         <SettingsDivider />
@@ -91,7 +91,7 @@ function DataManagementSection({
         >
           <SettingsRowIcon><IoCloudUploadOutline className="h-4 w-4" /></SettingsRowIcon>
           <SettingsRowText title={t('importData')} subtitle={t('importDataSubtitle')} />
-          {isImporting ? <ActionLoadingContent /> : <SettingsChevron />}
+          {isImporting ? <ActionLoadingContent label={t('importing')} /> : <SettingsChevron />}
         </button>
 
         <input
@@ -119,7 +119,7 @@ function DataManagementSection({
           </SettingsRowIcon>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium leading-5 text-[var(--error-text)]">
-              {isSigningOut ? <ActionLoadingContent /> : t('signOut')}
+              {isSigningOut ? <ActionLoadingContent label={t('signingOut')} /> : t('signOut')}
             </span>
             <span className="mt-0.5 block text-xs leading-5 text-gray-500">
               {t('signOutSubtitle')}

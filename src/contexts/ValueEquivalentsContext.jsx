@@ -65,7 +65,7 @@ export const ValueEquivalentsProvider = ({ children }) => {
     <ValueEquivalentsContext.Provider value={{
       valueEquivalents: equivalentsQuery.data || [],
       isLoading: equivalentsQuery.isLoading && !equivalentsQuery.data,
-      error: equivalentsQuery.data === undefined ? equivalentsQuery.error : null,
+      error: equivalentsQuery.error,
       addEquivalent: (data) => createMutation.mutateAsync(data),
       editEquivalent: (id, data) => updateMutation.mutateAsync({ id, data }),
       removeEquivalent: (id) => deleteMutation.mutateAsync(id),

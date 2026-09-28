@@ -55,7 +55,7 @@ function ItemDeleteConfirmDialog({
             onClick={onConfirm}
             disabled={isDeleting}
           >
-            {isDeleting ? <ActionLoadingContent /> : t('delete')}
+            {isDeleting ? <ActionLoadingContent label={t('deleting')} /> : t('delete')}
           </button>
         </div>
       </div>
