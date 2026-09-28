@@ -76,6 +76,16 @@ vi.mock('react-i18next', () => ({
         back: 'Back',
         discardDraft: 'Discard draft',
         guestItemLimitReached: 'You\'ve reached the ' + options?.limit + '-item limit without an account.',
+        errorSavingItem: 'Failed to save the item. Please try again.',
+        errorDeletingItem: 'Failed to delete this item.',
+        editItemLoadingTitle: 'Bringing this item into view',
+        editItemLoadingDescription: 'Worthwhile is loading the ownership details you saved.',
+        editItemLoadErrorTitle: "This item didn't load",
+        editItemLoadErrorDescription: "Your saved item hasn't been changed. Try loading it again.",
+        itemNotFoundTitle: 'This item is no longer here',
+        itemNotFound: 'Item not found. It may have been deleted.',
+        backToWorthwhile: 'Back to Worthwhile',
+        retry: 'Retry',
       };
       return translationDictionary[translationKey] || translationKey;
     }
@@ -217,9 +227,10 @@ describe('AddItem component date localization', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Unable to reach the server. Check the backend connection and try again.'
+        'Failed to save the item. Please try again.'
       );
     });
+    expect(screen.queryByText(/Unable to reach the server/i)).not.toBeInTheDocument();
   });
 
   test('renders the localized guest item limit prompt from structured error metadata', async () => {
@@ -407,7 +418,7 @@ describe('AddItem component date localization', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Temporary save failure');
+      expect(screen.getByRole('alert')).toHaveTextContent('Failed to save the item. Please try again.');
     });
     expect(window.localStorage.getItem(storageKey)).not.toBeNull();
   });
@@ -552,6 +563,34 @@ describe('AddItem component date localization', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
+  test('shows a dedicated loading state before edit data is hydrated', () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    getAllItems.mockReturnValue(new Promise(() => {}));
+
+    render(
+      <MemoryRouter initialEntries={['/edit?id=42']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent('Bringing this item into view');
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+  });
+
+  test('shows a dedicated item-not-found state instead of an empty edit form', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    getAllItems.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter initialEntries={['/edit?id=missing']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('This item is no longer here')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+  });
+
   test('does not expose delete when edit data fails to load', async () => {
     useLanguage.mockReturnValue({
       language: 'en'
@@ -565,9 +604,12 @@ describe('AddItem component date localization', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole('alert', {}, { timeout: 3000 })).toHaveTextContent('Unable to load item.');
+    const errorState = await screen.findByRole('alert', {}, { timeout: 3000 });
+    expect(errorState).toHaveTextContent("This item didn't load");
+    expect(errorState).not.toHaveTextContent('Unable to load item.');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Delete Item' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 
   test('populates edit form from cached items when a background refresh fails', async () => {
