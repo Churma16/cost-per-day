@@ -94,6 +94,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [errorContext, setErrorContext] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const { currencyCode, currencySymbol } = useCurrency();
   const {
     data: itemsData,
@@ -208,6 +209,8 @@ function AddItem({ showHeader = true, isVisible = true }) {
 
   const {
     isValid: isFormValid,
+    lifecycleFormValid,
+    targetFormValid,
     numericPrice,
     numericTargetValue,
     purchaseDateValue,
@@ -266,6 +269,32 @@ function AddItem({ showHeader = true, isVisible = true }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const nextFieldErrors = {};
+    if (!name.trim()) {
+      nextFieldErrors.name = t('enterItemNameToContinue');
+    }
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+      nextFieldErrors.price = t('enterPriceToContinue');
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setErrorMessage(null);
+      setErrorContext(null);
+      window.requestAnimationFrame(() => {
+        const firstFieldId = nextFieldErrors.name ? 'owned-item-name' : 'owned-item-price';
+        document.getElementById(firstFieldId)?.focus();
+      });
+      return;
+    }
+
+    if (!isFormValid) {
+      setErrorContext('validation');
+      setErrorMessage(t('itemValidationErrorBody'));
+      return;
+    }
+
+    setFieldErrors({});
     const itemData = buildItemPayload(formValues, { isEditMode });
     setErrorMessage(null);
     setErrorContext(null);
@@ -370,7 +399,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
                     ? t('itemSaveErrorTitle')
                     : errorContext === 'delete'
                       ? t('itemDeleteErrorTitle')
-                      : undefined
+                      : errorContext === 'validation'
+                        ? t('checkItemDetails')
+                        : undefined
                 }
                 body={errorMessage}
                 onDismiss={() => {
@@ -392,14 +423,26 @@ function AddItem({ showHeader = true, isVisible = true }) {
             {/* Required Section Card */}
             <ItemRequiredFieldsCard
               name={name}
-              onNameChange={setName}
+              onNameChange={(nextName) => {
+                setName(nextName);
+                if (fieldErrors.name) {
+                  setFieldErrors((current) => ({ ...current, name: null }));
+                }
+              }}
               price={price}
-              onPriceChange={setPrice}
+              onPriceChange={(nextPrice) => {
+                setPrice(nextPrice);
+                if (fieldErrors.price) {
+                  setFieldErrors((current) => ({ ...current, price: null }));
+                }
+              }}
               purchaseDate={purchaseDate}
               onPurchaseDateChange={setPurchaseDate}
               currencySymbol={currencySymbol}
               currencyCode={currencyCode}
               language={language}
+              nameError={fieldErrors.name}
+              priceError={fieldErrors.price}
             />
 
             {/* Optional Details Card */}
@@ -477,8 +520,9 @@ function AddItem({ showHeader = true, isVisible = true }) {
                 aria-busy={isSaving ? 'true' : undefined}
                 className="w-full rounded-xl bg-[var(--accent-strong)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#146E65] disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={
-                  !isFormValid
-                  || isSaving
+                  isSaving
+                  || !lifecycleFormValid
+                  || !targetFormValid
                   || (isEditMode && !itemLoaded)
                 }
               >
