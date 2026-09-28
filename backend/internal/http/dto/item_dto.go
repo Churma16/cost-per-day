@@ -1,5 +1,29 @@
 package dto
 
+import "encoding/json"
+
+// OptionalString tracks whether a nullable string field was present in a JSON request.
+type OptionalString struct {
+	Set   bool
+	Value *string
+}
+
+// UnmarshalJSON distinguishes an omitted field from an explicit null.
+func (optionalString *OptionalString) UnmarshalJSON(data []byte) error {
+	optionalString.Set = true
+	if string(data) == "null" {
+		optionalString.Value = nil
+		return nil
+	}
+
+	var value string
+	if unmarshalError := json.Unmarshal(data, &value); unmarshalError != nil {
+		return unmarshalError
+	}
+	optionalString.Value = &value
+	return nil
+}
+
 // CreateItemRequestDTO represents the incoming JSON payload to create a new item.
 type CreateItemRequestDTO struct {
 	Name         string   `json:"name"`
@@ -7,8 +31,9 @@ type CreateItemRequestDTO struct {
 	PurchaseDate string   `json:"purchaseDate"`
 	Category     *string  `json:"category"`
 	Brand        *string  `json:"brand"`
-	TargetType   *string  `json:"targetType"`
-	TargetValue  *float64 `json:"targetValue"`
+	TargetType      *string  `json:"targetType"`
+	TargetValue     *float64 `json:"targetValue"`
+	ReplacesItemID  *string  `json:"replacesItemId"`
 }
 
 // UpdateItemRequestDTO represents the incoming JSON payload to update an existing item and its lifecycle.
@@ -21,8 +46,9 @@ type UpdateItemRequestDTO struct {
 	SalePrice    *float64 `json:"salePrice"`
 	Category     *string  `json:"category"`
 	Brand        *string  `json:"brand"`
-	TargetType   *string  `json:"targetType"`
-	TargetValue  *float64 `json:"targetValue"`
+	TargetType      *string        `json:"targetType"`
+	TargetValue     *float64       `json:"targetValue"`
+	ReplacesItemID  OptionalString `json:"replacesItemId"`
 }
 
 // ReplacementBenchmarkResponseDTO represents the JSON payload returned by GET /api/items/:id/replacement-benchmark.
