@@ -14,6 +14,7 @@ import {
   SettingsRowText,
   SettingsSection,
 } from './SettingsList';
+import { InlineStateNotice } from '../ui/AsyncState';
 
 function DataManagementSection({
   fileInputRef,
@@ -106,9 +107,11 @@ function DataManagementSection({
         </button>
       </SettingsCard>
       {(signOutError || authError) && (
-        <p role="alert" className="mt-2 text-center text-xs text-red-600">
-          {signOutError || authError?.message || t('signOutError')}
-        </p>
+        <InlineStateNotice
+          variant="error"
+          message={signOutError || t('signOutError')}
+          className="mt-2"
+        />
       )}
     </SettingsSection>
   );
