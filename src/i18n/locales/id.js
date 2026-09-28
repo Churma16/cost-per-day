@@ -199,7 +199,7 @@ const translation = {
   "onboardingReferenceLunch": "Makan siang",
   "onboardingCustomReference": "Kustom",
   "onboardingReferenceError": "Isi nama dan nominal lebih dari nol untuk setiap pembanding.",
-  "onboardingSaveError": "Belum tersimpan. Pilihan pengaturanmu masih ada. Tidak ada yang hilang.",
+  "onboardingSaveError": "Pilihan pengaturanmu masih ada. Tidak ada yang hilang.",
   "onboardingEnter": "Masuk ke Worthwhile",
   "removeReference": "Hapus pembanding",
   "continue": "Lanjut",
