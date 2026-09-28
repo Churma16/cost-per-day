@@ -221,6 +221,7 @@ function OnboardingFlow({ onComplete }) {
   const [, setSavedReferenceRevision] = useState(0);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const isSlowSaving = useSlowAction(isSaving);
   const currencies = useMemo(() => getSupportedCurrencies().map((item) => ({
     ...item,
     name: t(item.nameKey),
@@ -511,17 +512,31 @@ function OnboardingFlow({ onComplete }) {
         </div>
 
         {error && (
-          <InlineStateNotice
-            variant="error"
-            message={error}
+          <ErrorCard
+            title={t('notSavedYet')}
+            body={error}
+            onDismiss={() => setError(null)}
             className="mt-4"
           />
         )}
 
         <div className="mt-6 flex gap-3">
           <button type="button" disabled={isSaving} onClick={() => finish({ skipReferences: true })} className="flex-1 rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50">{t('skipForNow')}</button>
-          <button type="button" disabled={isSaving} onClick={() => finish()} className="flex-1 rounded-xl bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white hover:bg-[#146E65] disabled:opacity-50">{isSaving ? t('saving') : t('onboardingEnter')}</button>
+          <button
+            type="button"
+            disabled={isSaving}
+            aria-busy={isSaving ? 'true' : undefined}
+            onClick={() => finish()}
+            className="flex-1 rounded-xl bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white hover:bg-[#146E65] disabled:opacity-50"
+          >
+            {isSaving ? <ActionLoadingContent /> : t('onboardingEnter')}
+          </button>
         </div>
+        {isSlowSaving && (
+          <p role="status" className="mt-2 text-center text-xs text-[var(--text-secondary)]">
+            {t('saving')}
+          </p>
+        )}
       </div>
     </OnboardingShell>
   );
