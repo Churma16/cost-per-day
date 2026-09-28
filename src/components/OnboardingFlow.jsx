@@ -547,29 +547,36 @@ export function OnboardingGate({ children }) {
   const settingsQuery = useSettings();
   const navigate = useNavigate();
   const [, setCompletionRevision] = useState(0);
+  const loadingState = useLoadingPhases(
+    settingsQuery.isLoading && !settingsQuery.data
+  );
 
-  if (settingsQuery.isLoading && !settingsQuery.data) {
+  if (loadingState.phase !== 'idle') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-4">
-        <div className="w-full max-w-sm">
-          <StatePanel
-            variant="loading"
-            title={t('onboardingLoadingTitle')}
-            description={t('onboardingLoadingDescription')}
-          />
-        </div>
+      <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] p-4">
+        <section
+          aria-busy="true"
+          className="min-h-[360px] w-full max-w-lg rounded-3xl border border-[var(--border)] bg-white p-6"
+        >
+          {loadingState.phase !== 'blank' && (
+            <>
+              <FormSkeleton paused={loadingState.showSlowIndicator} />
+              {loadingState.showSlowIndicator && (
+                <SlowLoadIndicator message={t('stillLoadingSetup')} />
+              )}
+            </>
+          )}
+        </section>
       </main>
     );
   }
   if (settingsQuery.error && !settingsQuery.data) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-4">
-        <div className="w-full max-w-sm">
-          <StatePanel
-            variant="error"
-            title={t('onboardingLoadErrorTitle')}
-            description={t('onboardingLoadErrorDescription')}
-            actionLabel={t('retry')}
+      <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] p-4">
+        <div className="w-full max-w-lg">
+          <NoticeCard
+            body={t('onboardingLoadErrorDescription')}
+            actionLabel={t('tryAgain')}
             onAction={() => settingsQuery.refetch()}
           />
         </div>
