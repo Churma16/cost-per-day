@@ -231,6 +231,7 @@ describe('first-run onboarding flow', () => {
 
   test('uses a designed loading state while onboarding settings bootstrap', () => {
     mocks.settingsQuery = {
+      data: undefined,
       isLoading: true,
       error: null,
       refetch: vi.fn(),
@@ -249,6 +250,7 @@ describe('first-run onboarding flow', () => {
   test('offers retry when onboarding settings bootstrap fails', () => {
     const refetch = vi.fn();
     mocks.settingsQuery = {
+      data: undefined,
       isLoading: false,
       error: new Error('raw settings transport failure'),
       refetch,
