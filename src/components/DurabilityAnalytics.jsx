@@ -6,6 +6,7 @@ import {
 } from '../hooks/useDurabilityAnalytics';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { formatCurrency } from '../utils/formatters';
+import { InlineStateNotice, StatePanel } from './ui/AsyncState';
 import {
   IoShieldCheckmarkOutline,
   IoStatsChartOutline,
@@ -15,7 +16,6 @@ import {
   IoChevronUpOutline,
   IoFilterOutline,
   IoInformationCircleOutline,
-  IoRefreshOutline,
   IoCashOutline,
   IoCalendarOutline,
   IoConstructOutline,
@@ -31,11 +31,15 @@ function DurabilityAnalytics() {
     data: analyticsData,
     isLoading,
     isError,
-    error,
+    isRefetchError,
     refetch,
   } = useDurabilityAnalytics({ category: selectedCategory });
 
   const { data: availableCategories = [] } = useCategories();
+  const hasAnalyticsCategories = Boolean(analyticsData?.categories?.length);
+  const isFilteredEmpty = Boolean(selectedCategory)
+    && Number(analyticsData?.totalCategorizedCompletedItems || 0) > 0
+    && !hasAnalyticsCategories;
 
   const toggleBrandEvidence = (brandKey) => {
     setExpandedBrandKeys((previousState) => ({
@@ -104,24 +108,30 @@ function DurabilityAnalytics() {
 
       {/* Loading & Error States */}
       {isLoading && analyticsData == null && (
-        <div className="text-center py-12 text-gray-500 text-sm">
-          {t('loading')}
-        </div>
+        <StatePanel
+          variant="loading"
+          title={t('analyticsLoadingTitle')}
+          description={t('analyticsLoadingDescription')}
+        />
       )}
 
       {isError && analyticsData == null && (
-        <div className="rounded-xl bg-red-50 p-4 border border-red-200 flex items-center justify-between">
-          <div className="text-sm text-red-700">
-            {error?.message || t('errorLoadingDurability')}
-          </div>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-800"
-          >
-            <IoRefreshOutline /> {t('retry')}
-          </button>
-        </div>
+        <StatePanel
+          variant="error"
+          title={t('analyticsLoadErrorTitle')}
+          description={t('analyticsLoadErrorDescription')}
+          actionLabel={t('retry')}
+          onAction={() => refetch()}
+        />
+      )}
+
+      {analyticsData != null && (isRefetchError || isError) && (
+        <InlineStateNotice
+          variant="error"
+          message={t('analyticsRefreshError')}
+          actionLabel={t('retry')}
+          onAction={() => refetch()}
+        />
       )}
 
       {/* Analytics Content */}
@@ -176,18 +186,16 @@ function DurabilityAnalytics() {
           </div>
 
           {/* Empty State */}
-          {(!analyticsData.categories || analyticsData.categories.length === 0) && (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-10 text-center space-y-3">
-              <div className="mx-auto w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
-                <IoShieldCheckmarkOutline className="text-2xl" />
-              </div>
-              <h3 className="text-base font-semibold text-gray-900">
-                {t('noDurabilityDataTitle')}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
-                {t('noDurabilityDataDescription')}
-              </p>
-            </div>
+          {!hasAnalyticsCategories && (
+            <StatePanel
+              variant="empty"
+              title={isFilteredEmpty ? t('analyticsFilteredEmptyTitle') : t('noDurabilityDataTitle')}
+              description={isFilteredEmpty
+                ? t('analyticsFilteredEmptyDescription')
+                : t('noDurabilityDataDescription')}
+              actionLabel={isFilteredEmpty ? t('clearCategoryFilter') : undefined}
+              onAction={isFilteredEmpty ? () => setSelectedCategory('') : undefined}
+            />
           )}
 
           {/* Categories & Brand Insights Breakdown */}
