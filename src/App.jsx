@@ -17,7 +17,10 @@ import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
-import { InlineStateNotice, StatePanel } from './components/ui/AsyncState';
+import {
+  ErrorCard,
+  SlowLoadIndicator,
+} from './components/ui/AsyncState';
 import LegalDocumentPage from './components/LegalDocumentPage';
 import { OnboardingGate } from './components/OnboardingFlow';
 import AboutPage from './components/AboutPage';
@@ -25,6 +28,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { PRODUCT_NAME } from './constants/branding';
 import { SERVER_STATE_STALE_TIME } from './query/queryConfig';
 import { useVersionCheck } from './hooks/useVersionCheck';
+import { useLoadingPhases } from './hooks/useLoadingPhases';
 
 const applicationQueryClient = new QueryClient({
   defaultOptions: {
@@ -134,6 +138,7 @@ function AuthGate() {
   const { t } = useTranslation();
   const { user, isGuest, isLoading, error, signIn, continueAsGuest } = useAuth();
   const [pendingAction, setPendingAction] = React.useState(null);
+  const loadingState = useLoadingPhases(isLoading);
 
   const startAuthAction = (action, callback) => {
     if (pendingAction) return;
@@ -146,16 +151,30 @@ function AuthGate() {
     document.title = t('appTitle');
   }, [t]);
 
-  if (isLoading) {
+  if (loadingState.phase !== 'idle') {
+    const showSkeleton = loadingState.phase !== 'blank';
+
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-4">
-        <div className="w-full max-w-sm">
-          <StatePanel
-            variant="loading"
-            title={t('authLoadingTitle')}
-            description={t('authLoadingDescription')}
-          />
-        </div>
+      <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] p-4">
+        <section
+          aria-busy="true"
+          className="min-h-[420px] w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white px-6 py-7"
+        >
+          {showSkeleton && (
+            <>
+              <div aria-hidden="true" className="flex flex-col items-center">
+                <div className={`state-skeleton h-20 w-20 rounded-full bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
+                <div className={`state-skeleton mt-5 h-5 w-32 rounded bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
+                <div className={`state-skeleton mt-3 h-2.5 w-4/5 rounded bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
+                <div className={`state-skeleton mt-8 h-12 w-full rounded-xl bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
+                <div className={`state-skeleton mt-5 h-12 w-full rounded-xl bg-[var(--skeleton-bar)] ${loadingState.showSlowIndicator ? 'state-skeleton--paused' : ''}`} />
+              </div>
+              {loadingState.showSlowIndicator && (
+                <SlowLoadIndicator message={t('authStillLoading')} />
+              )}
+            </>
+          )}
+        </section>
       </main>
     );
   }
@@ -167,9 +186,9 @@ function AuthGate() {
           key="authentication"
           exit={{ opacity: 0, x: -14, scale: 0.994 }}
           transition={authFlowTransition}
-          className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-1.5 sm:p-6"
+          className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] p-1.5 sm:p-6"
         >
-          <section className="w-full max-w-sm rounded-2xl bg-[#F8F9FA] px-6 py-7 text-center sm:px-7">
+          <section className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-white px-6 py-7 text-center shadow-[0_1px_3px_rgba(0,0,0,0.05)] sm:px-7">
           <img
             src="/logo192.png"
             alt="Worthwhile"
@@ -180,9 +199,8 @@ function AuthGate() {
             {t('authDescription')}
           </p>
           {error && (
-            <InlineStateNotice
-              variant="error"
-              message={t('authSessionError')}
+            <ErrorCard
+              body={t('authSignInErrorBody')}
               className="mt-4 text-left"
             />
           )}
