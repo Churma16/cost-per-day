@@ -16,7 +16,7 @@ function ItemDeleteConfirmModal({
 
   useEffect(() => {
     if (isOpen) {
-      window.requestAnimationFrame(() => keepButtonRef.current?.focus());
+      keepButtonRef.current?.focus();
     }
   }, [isOpen]);
 
