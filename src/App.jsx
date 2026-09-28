@@ -17,6 +17,7 @@ import DurabilityAnalytics from './components/DurabilityAnalytics';
 import Footer from './components/Footer';
 import PageMetadata from './components/PageMetadata';
 import OwnershipLoader from './components/ui/OwnershipLoader';
+import { InlineStateNotice, StatePanel } from './components/ui/AsyncState';
 import LegalDocumentPage from './components/LegalDocumentPage';
 import { OnboardingGate } from './components/OnboardingFlow';
 import AboutPage from './components/AboutPage';
@@ -147,9 +148,15 @@ function AuthGate() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-purple-600">{t('loading')}</div>
-      </div>
+      <main className="flex min-h-screen items-center justify-center bg-[#E9EAEC] p-4">
+        <div className="w-full max-w-sm">
+          <StatePanel
+            variant="loading"
+            title={t('authLoadingTitle')}
+            description={t('authLoadingDescription')}
+          />
+        </div>
+      </main>
     );
   }
 
@@ -173,9 +180,11 @@ function AuthGate() {
             {t('authDescription')}
           </p>
           {error && (
-            <p role="alert" className="mt-4 text-sm text-red-600">
-              {t('authSessionError')}
-            </p>
+            <InlineStateNotice
+              variant="error"
+              message={t('authSessionError')}
+              className="mt-4 text-left"
+            />
           )}
           <div className="mt-7 flex flex-col items-center gap-3">
             <button
