@@ -421,6 +421,8 @@ const translation = {
   "ownershipJourneyAfterOnly": "See what came after this",
   "ownershipJourneyDescription": "See how this item fits into what you've owned over time.",
   "ownershipJourneyThisItem": "This item",
+  "ownershipJourneyCameAfterItem": "Came after {{name}}",
+  "ownershipJourneyLaterItems": "Items that came after this",
 
   // Taxonomy (Category & Brand)
   "category": "Category",
