@@ -476,6 +476,23 @@ const translation = {
   "benchmarkMissingPriceHint": "Isi harga barang di formulir utama terlebih dahulu untuk menghitung acuan ini.",
   "benchmarkUnmatchableZeroCost": "Barang ini memiliki biaya kepemilikan bersih nol atau negatif (dijual sama dengan atau di atas harga beli). Pembelian baru tidak dapat menyamai biaya nol.",
 
+  // Ownership Journey
+  "ownershipJourney": "Perjalanan kepemilikan",
+  "ownershipJourneyOptional": "Perjalanan kepemilikan (opsional)",
+  "ownershipJourneyQuestion": "Barang ini menggantikan apa?",
+  "ownershipJourneyHelper": "Tautkan barang ini dengan sesuatu yang pernah kamu miliki sebelumnya.",
+  "ownershipJourneyNone": "Tidak ada yang ditautkan",
+  "ownershipJourneyRemoveLink": "Hapus tautan",
+  "ownershipJourneyNoCompletedItems": "Belum ada barang selesai yang bisa ditautkan.",
+  "ownershipJourneyCameBefore": "Sebelum ini: {{name}}",
+  "ownershipJourneyCameAfter": "Setelah ini: {{name}}",
+  "ownershipJourneyBeforeAndAfter": "Lihat yang ada sebelum dan sesudahnya",
+  "ownershipJourneyAfterOnly": "Lihat yang ada setelah ini",
+  "ownershipJourneyDescription": "Lihat posisi barang ini dalam perjalanan kepemilikanmu dari waktu ke waktu.",
+  "ownershipJourneyThisItem": "Barang ini",
+  "ownershipJourneyCameAfterItem": "Setelah {{name}}",
+  "ownershipJourneyLaterItems": "Barang yang hadir setelah ini",
+
   // Taxonomy (Category & Brand)
   "category": "Kategori",
   "categoryOptional": "Kategori (Opsional)",
