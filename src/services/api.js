@@ -50,6 +50,13 @@ const toItemPayload = (item) => {
   if (Object.prototype.hasOwnProperty.call(item, 'brand')) {
     payload.brand = item.brand === '' || item.brand === undefined ? null : item.brand;
   }
+  if (Object.prototype.hasOwnProperty.call(item, 'replacesItemId')) {
+    payload.replacesItemId = item.replacesItemId === null
+      || item.replacesItemId === undefined
+      || item.replacesItemId === ''
+      ? null
+      : String(item.replacesItemId);
+  }
 
   return payload;
 };
