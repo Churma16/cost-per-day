@@ -637,7 +637,7 @@ describe('ItemList lifecycle display', () => {
     }, { timeout: 1000 });
 
     expect(document.getElementById('item-details-middle'))
-      .toHaveAttribute('aria-hidden', 'false');
+      .not.toHaveAttribute('aria-hidden');
     expect(screen.getByRole('button', {
       name: 'Ownership journey: See what came before and after',
     })).toHaveFocus();
