@@ -74,6 +74,12 @@ For example, if Indonesian helper copy wraps to an additional line, the language
 
 Avoid scaling text to fake a height transition. Text should crossfade normally while the controls below it animate their positions.
 
+### Calm collapse primitive
+
+Use [`CalmCollapse`](../src/components/ui/CalmCollapse.jsx) for presence-based card disclosures with content-driven heights. It owns the shared expand/collapse timing, `CALM_HEIGHT_EASE`, reduced-motion behavior, and the inert exit state so callers do not duplicate lifecycle plumbing.
+
+This primitive was introduced by [#105](https://github.com/Churma16/cost-per-day/issues/105), follows the Motion lifecycle convention established by [#103](https://github.com/Churma16/cost-per-day/issues/103), and supports the calm interaction direction in [#33](https://github.com/Churma16/cost-per-day/issues/33).
+
 ## Copy and language changes
 
 Language preview is a local state change, not page navigation.

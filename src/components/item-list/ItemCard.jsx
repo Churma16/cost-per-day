@@ -21,6 +21,8 @@ import {
   getLifecycleTranslationKey,
   getNextDurationUnit,
 } from '../../utils/itemLifecycle';
+import CalmCollapse, { CALM_EASE } from '../ui/CalmCollapse';
+
 
 export const getCategoryIconInfo = (category) => {
   const normalizedCategory = String(category || '').trim().toLowerCase();
@@ -124,6 +126,7 @@ function ItemCard({
   valueEquivalents,
 }) {
   const { t, i18n } = useTranslation();
+  const shouldReduceMotion = useReducedMotion();
   const [durationUnit, setDurationUnit] = useState('days');
   const [syncRotation, setSyncRotation] = useState(0);
   const [hasCycledDuration, setHasCycledDuration] = useState(false);
@@ -192,30 +195,31 @@ function ItemCard({
           <p className="text-sm font-semibold text-[#20242A] tabular-nums">
             {formatCurrency(itemCostPerDay, currencyCode)}
           </p>
-          <IoChevronDown
+          <motion.span
+            data-item-card-chevron
             aria-hidden="true"
-            className={`transition-transform duration-300 ease-out motion-reduce:transition-none text-base ${
-              isExpanded ? 'rotate-180 text-teal-600' : 'text-[#6F7782]'
+            initial={false}
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{
+              duration: shouldReduceMotion ? 0 : 0.46,
+              ease: CALM_EASE,
+            }}
+            className={`inline-flex text-base ${
+              isExpanded ? 'text-teal-600' : 'text-[#6F7782]'
             }`}
-          />
+          >
+            <IoChevronDown />
+          </motion.span>
         </div>
       </button>
 
-      <div
+      <CalmCollapse
+        isOpen={isExpanded}
         id={`item-details-${item.id}`}
-        role="region"
-        aria-labelledby={`item-trigger-${item.id}`}
-        aria-hidden={!isExpanded}
-        inert={!isExpanded}
-        className={`grid transition-[grid-template-rows,opacity,visibility] duration-300 ease-out motion-reduce:transition-none ${
-          isExpanded
-            ? 'grid-rows-[1fr] opacity-100 visible'
-            : 'grid-rows-[0fr] opacity-0 pointer-events-none invisible'
-        }`}
+        ariaLabelledby={`item-trigger-${item.id}`}
       >
-        <div className="overflow-hidden">
-          <div className="px-4 pb-4 border-t border-[#E6E8EC] pt-3">
-            <div className="space-y-3">
+            <div className="px-4 pb-4 border-t border-[#E6E8EC] pt-3">
+              <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="bg-[#F6F7F8] rounded-xl p-3 border border-[#E6E8EC]">
                   <div className="flex items-center gap-1.5 text-xs text-[#6F7782] mb-1">
@@ -240,7 +244,6 @@ function ItemCard({
 
               <button
                 type="button"
-                tabIndex={isExpanded && isDurationInteractive ? 0 : -1}
                 disabled={!isDurationInteractive}
                 onClick={handleCycleDurationUnit}
                 className={`w-full rounded-xl bg-[#F6F7F8] border border-[#E6E8EC] p-3 flex items-center justify-between text-xs transition-[background-color] duration-300 text-left ${
@@ -256,11 +259,18 @@ function ItemCard({
                     {t(lifecycleTranslationKey)}
                   </span>
                   {isDurationInteractive && (
-                    <IoSyncOutline
-                      className="text-xs text-[#6F7782] transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
-                      style={{ transform: `rotate(${syncRotation}deg)` }}
+                    <motion.span
+                      initial={false}
+                      animate={{ rotate: syncRotation }}
+                      transition={{
+                        duration: shouldReduceMotion ? 0 : 0.6,
+                        ease: CALM_EASE,
+                      }}
+                      className="inline-flex text-xs text-[#6F7782]"
                       aria-hidden="true"
-                    />
+                    >
+                      <IoSyncOutline />
+                    </motion.span>
                   )}
                 </div>
                 <CalmCycleText text={displayDuration} hasCycled={hasCycledDuration} />
@@ -349,7 +359,6 @@ function ItemCard({
               {!isActive && !isGuest && (
                 <button
                   type="button"
-                  tabIndex={isExpanded ? 0 : -1}
                   className="w-full mt-2 flex items-center justify-center gap-2 p-2 bg-teal-50 hover:bg-teal-100 rounded-lg text-sm font-medium text-teal-800 transition-colors border border-teal-200"
                   onClick={() => onBenchmark(item)}
                 >
@@ -360,7 +369,6 @@ function ItemCard({
               <div className="flex items-center gap-2 pt-1">
                 <button
                   type="button"
-                  tabIndex={isExpanded ? 0 : -1}
                   className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#F6F7F8] hover:bg-[#EEF0F3] border border-[#E6E8EC] rounded-lg text-sm font-medium text-[#20242A] transition-colors"
                   onClick={(event) => {
                     event.stopPropagation();
@@ -371,7 +379,6 @@ function ItemCard({
                 </button>
                 <button
                   type="button"
-                  tabIndex={isExpanded ? 0 : -1}
                   className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-600 transition-colors"
                   onClick={(event) => {
                     event.stopPropagation();
@@ -381,10 +388,9 @@ function ItemCard({
                   <IoTrashOutline className="text-base" /> {t('deleteItem')}
                 </button>
               </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+      </CalmCollapse>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import ItemCard from '../../../src/components/item-list/ItemCard';
 
@@ -79,14 +79,13 @@ describe('ItemCard', () => {
     );
 
     const trigger = screen.getByRole('button', { name: /Sold Phone/i });
-    const details = document.getElementById('item-details-3');
     const valueStack = trigger.querySelector('[data-item-card-value-stack]');
     expect(valueStack).toHaveClass('flex-col', 'items-end', 'self-stretch', 'justify-between');
-    expect(valueStack.lastElementChild.tagName.toLowerCase()).toBe('svg');
+    expect(valueStack.lastElementChild).toHaveAttribute('data-item-card-chevron');
+    expect(valueStack.lastElementChild.querySelector('svg')).toBeInTheDocument();
     expect(within(trigger).queryByText('Changed Hands')).not.toBeInTheDocument();
     expect(within(trigger).queryByText('Final gross cost per day')).not.toBeInTheDocument();
-    expect(within(details).getByText('Changed Hands')).toBeInTheDocument();
-    expect(details).toHaveAttribute('aria-hidden', 'true');
+    expect(document.getElementById('item-details-3')).not.toBeInTheDocument();
 
     rerender(
       <ItemCard
@@ -101,7 +100,43 @@ describe('ItemCard', () => {
       />
     );
 
-    expect(document.getElementById('item-details-3')).toHaveAttribute('aria-hidden', 'false');
+    const details = document.getElementById('item-details-3');
+    expect(details).toBeInTheDocument();
+    expect(details).not.toHaveAttribute('aria-hidden');
+    expect(within(details).getByText('Changed Hands')).toBeInTheDocument();
+  });
+
+  test('keeps exiting details inert until the Motion collapse completes', async () => {
+    const item = {
+      id: 'motion-details',
+      name: 'Camera',
+      price: 600,
+      purchaseDate: '2026-01-01T00:00:00Z',
+      ownershipDays: 60,
+      grossCostPerDay: 10,
+      status: 'active',
+    };
+    const props = {
+      item,
+      onToggle: vi.fn(),
+      onEdit: vi.fn(),
+      onDelete: vi.fn(),
+      onBenchmark: vi.fn(),
+      currencyCode: 'USD',
+      valueEquivalents: [],
+    };
+    const { rerender } = render(<ItemCard {...props} isExpanded />);
+
+    rerender(<ItemCard {...props} isExpanded={false} />);
+
+    const exitingDetails = document.getElementById('item-details-motion-details');
+    expect(exitingDetails).toHaveAttribute('aria-hidden', 'true');
+    expect(exitingDetails).toHaveAttribute('inert');
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(document.getElementById('item-details-motion-details')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
   });
 
   test('keeps duration cycling local to the item presentation boundary', () => {
