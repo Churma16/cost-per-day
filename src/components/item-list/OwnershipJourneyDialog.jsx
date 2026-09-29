@@ -5,6 +5,73 @@ import { IoArrowDown, IoClose, IoTimeOutline } from 'react-icons/io5';
 import { formatDisplayDate } from '../../utils/formatters';
 import { buildOwnershipJourney } from '../../utils/itemLineage';
 
+function JourneyItemCard({ item, isCurrent, t, language }) {
+  return (
+    <div
+      aria-current={isCurrent ? 'true' : undefined}
+      className={`rounded-xl border p-3 ${isCurrent
+        ? 'border-teal-200 bg-teal-50/60'
+        : 'border-[#E6E8EC] bg-[#F6F7F8]'}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium text-sm text-[#20242A] break-words">
+            {item.name}
+          </p>
+          {item.purchaseDate && (
+            <p className="mt-0.5 text-xs text-[#6F7782]">
+              {t('purchaseDate')}: {formatDisplayDate(item.purchaseDate, language)}
+            </p>
+          )}
+        </div>
+        {isCurrent && (
+          <span className="flex-shrink-0 rounded-full border border-teal-200 bg-white px-2 py-1 text-[11px] font-medium text-teal-700">
+            {t('ownershipJourneyThisItem')}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SuccessorNode({ node, parentItem, t, language }) {
+  const parentId = String(parentItem.id);
+
+  return (
+    <li
+      data-successor-parent-id={parentId}
+      className="rounded-xl border border-[#E6E8EC] bg-white p-2.5"
+    >
+      <JourneyItemCard
+        item={node.item}
+        isCurrent={false}
+        t={t}
+        language={language}
+      />
+      <p className="mt-1.5 px-1 text-[11px] text-[#8A929C]">
+        {t('ownershipJourneyCameAfterItem', { name: parentItem.name })}
+      </p>
+
+      {node.successors.length > 0 && (
+        <ul
+          aria-label={t('ownershipJourneyLaterItems')}
+          className="mt-2 ml-3 space-y-2 border-l border-[#D5D8DF] pl-3"
+        >
+          {node.successors.map((childNode) => (
+            <SuccessorNode
+              key={childNode.item.id}
+              node={childNode}
+              parentItem={node.item}
+              t={t}
+              language={language}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 function OwnershipJourneyDialog({
   isOpen,
   item,
@@ -18,9 +85,9 @@ function OwnershipJourneyDialog({
   const currentItemId = item?.id === null || item?.id === undefined
     ? null
     : String(item.id);
-  const journeyItems = isOpen && item
+  const journey = isOpen && item
     ? buildOwnershipJourney(items, item)
-    : [];
+    : { ancestors: [], currentItem: item ?? null, successors: [] };
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -108,6 +175,11 @@ function OwnershipJourneyDialog({
     },
   };
 
+  const linearItems = [
+    ...journey.ancestors,
+    ...(journey.currentItem ? [journey.currentItem] : []),
+  ];
+
   return (
     <AnimatePresence>
       {isOpen && item && (
@@ -159,48 +231,51 @@ function OwnershipJourneyDialog({
               </p>
 
               <div className="mt-4">
-                {journeyItems.map((journeyItem, index) => {
-                  const journeyItemId = String(journeyItem.id);
-                  const isCurrent = journeyItemId === currentItemId;
-
-                  return (
-                    <React.Fragment key={journeyItemId}>
+                {linearItems.map((journeyItem, index) => (
+                  <React.Fragment key={journeyItem.id}>
+                    <JourneyItemCard
+                      item={journeyItem}
+                      isCurrent={String(journeyItem.id) === currentItemId}
+                      t={t}
+                      language={i18n?.language}
+                    />
+                    {index < linearItems.length - 1 && (
                       <div
-                        aria-current={isCurrent ? 'true' : undefined}
-                        className={`rounded-xl border p-3 ${isCurrent
-                          ? 'border-teal-200 bg-teal-50/60'
-                          : 'border-[#E6E8EC] bg-[#F6F7F8]'}`}
+                        data-testid="ownership-journey-linear-arrow"
+                        className="flex justify-center py-1 text-[#9AA1AA]"
+                        aria-hidden="true"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm text-[#20242A] break-words">
-                              {journeyItem.name}
-                            </p>
-                            {journeyItem.purchaseDate && (
-                              <p className="mt-0.5 text-xs text-[#6F7782]">
-                                {t('purchaseDate')}: {formatDisplayDate(
-                                  journeyItem.purchaseDate,
-                                  i18n?.language,
-                                )}
-                              </p>
-                            )}
-                          </div>
-                          {isCurrent && (
-                            <span className="flex-shrink-0 rounded-full border border-teal-200 bg-white px-2 py-1 text-[11px] font-medium text-teal-700">
-                              {t('ownershipJourneyThisItem')}
-                            </span>
-                          )}
-                        </div>
+                        <IoArrowDown className="text-sm" />
                       </div>
+                    )}
+                  </React.Fragment>
+                ))}
 
-                      {index < journeyItems.length - 1 && (
-                        <div className="flex justify-center py-1 text-[#9AA1AA]" aria-hidden="true">
-                          <IoArrowDown className="text-sm" />
-                        </div>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
+                {journey.successors.length > 0 && journey.currentItem && (
+                  <>
+                    <div
+                      data-testid="ownership-journey-successor-transition"
+                      className="flex justify-center py-1 text-[#9AA1AA]"
+                      aria-hidden="true"
+                    >
+                      <IoArrowDown className="text-sm" />
+                    </div>
+                    <ul
+                      aria-label={t('ownershipJourneyLaterItems')}
+                      className="space-y-2"
+                    >
+                      {journey.successors.map((node) => (
+                        <SuccessorNode
+                          key={node.item.id}
+                          node={node}
+                          parentItem={journey.currentItem}
+                          t={t}
+                          language={i18n?.language}
+                        />
+                      ))}
+                    </ul>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
