@@ -70,6 +70,51 @@ describe('frontend API client', () => {
     });
   });
 
+  test('sends explicit ownership journey links and clear operations', async () => {
+    global.fetch
+      .mockResolvedValueOnce(response(201, {
+        id: 'new-headphones',
+        name: 'New Headphones',
+        price: 300,
+        purchaseDate: '2026-09-22T12:00:00Z',
+        replacesItemId: 'old-headphones',
+      }))
+      .mockResolvedValueOnce(response(200, {
+        id: 'new-headphones',
+        name: 'New Headphones',
+        price: 300,
+        purchaseDate: '2026-09-22T12:00:00Z',
+      }));
+
+    await addItem({
+      name: 'New Headphones',
+      price: 300,
+      purchaseDate: '2026-09-22T12:00:00Z',
+      replacesItemId: 'old-headphones',
+    });
+
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({
+      name: 'New Headphones',
+      price: 300,
+      purchaseDate: '2026-09-22T12:00:00Z',
+      replacesItemId: 'old-headphones',
+    });
+
+    await updateItem('new-headphones', {
+      name: 'New Headphones',
+      price: 300,
+      purchaseDate: '2026-09-22T12:00:00Z',
+      replacesItemId: null,
+    });
+
+    expect(JSON.parse(global.fetch.mock.calls[1][1].body)).toEqual({
+      name: 'New Headphones',
+      price: 300,
+      purchaseDate: '2026-09-22T12:00:00Z',
+      replacesItemId: null,
+    });
+  });
+
   test('updates lifecycle facts without sending derived ownership metrics', async () => {
     global.fetch.mockResolvedValue(response(200, {
       id: '9',
