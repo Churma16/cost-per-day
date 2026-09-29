@@ -421,6 +421,8 @@ const translation = {
   "ownershipJourneyAfterOnly": "Lihat yang ada setelah ini",
   "ownershipJourneyDescription": "Lihat posisi barang ini dalam perjalanan kepemilikanmu dari waktu ke waktu.",
   "ownershipJourneyThisItem": "Barang ini",
+  "ownershipJourneyCameAfterItem": "Setelah {{name}}",
+  "ownershipJourneyLaterItems": "Barang yang hadir setelah ini",
 
   // Taxonomy (Category & Brand)
   "category": "Kategori",
