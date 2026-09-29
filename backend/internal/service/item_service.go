@@ -25,6 +25,7 @@ type ItemService interface {
 		brand *string,
 		targetType *domain.OwnershipTargetType,
 		targetValue *float64,
+		replacesItemID ...*string,
 	) (domain.Item, error)
 	UpdateItem(
 		ctx context.Context,
@@ -40,6 +41,7 @@ type ItemService interface {
 		brand *string,
 		targetType *domain.OwnershipTargetType,
 		targetValue *float64,
+		replacesItemID ...*string,
 	) (domain.Item, error)
 	DeleteItem(ctx context.Context, userID string, itemID string) error
 	ReplaceItems(ctx context.Context, userID string, items []domain.Item) ([]domain.Item, error)
@@ -127,6 +129,7 @@ func (serviceInstance *itemServiceImpl) CreateItem(
 	brand *string,
 	targetType *domain.OwnershipTargetType,
 	targetValue *float64,
+	replacesItemID ...*string,
 ) (domain.Item, error) {
 	normalizedUserID, identityError := normalizeUserID(userID)
 	if identityError != nil {
@@ -153,6 +156,17 @@ func (serviceInstance *itemServiceImpl) CreateItem(
 		return domain.Item{}, validationError
 	}
 
+	normalizedReplacesItemID, replacementError := serviceInstance.validateReplacementRelationship(
+		ctx,
+		normalizedUserID,
+		"",
+		firstReplacementItemID(replacesItemID),
+	)
+	if replacementError != nil {
+		return domain.Item{}, replacementError
+	}
+	validatedItem.ReplacesItemID = normalizedReplacesItemID
+
 	createdItem, repositoryError := serviceInstance.itemRepository.Create(ctx, normalizedUserID, validatedItem)
 	if repositoryError != nil {
 		return domain.Item{}, repositoryError
@@ -176,6 +190,7 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 	brand *string,
 	targetType *domain.OwnershipTargetType,
 	targetValue *float64,
+	replacesItemID ...*string,
 ) (domain.Item, error) {
 	normalizedUserID, identityError := normalizeUserID(userID)
 	if identityError != nil {
@@ -185,6 +200,11 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 	trimmedItemID := strings.TrimSpace(itemID)
 	if trimmedItemID == "" {
 		return domain.Item{}, domain.ErrItemNotFound
+	}
+
+	currentItem, currentItemError := serviceInstance.itemRepository.GetByID(ctx, normalizedUserID, trimmedItemID)
+	if currentItemError != nil {
+		return domain.Item{}, currentItemError
 	}
 
 	rawItem := domain.Item{
@@ -208,6 +228,32 @@ func (serviceInstance *itemServiceImpl) UpdateItem(
 	validatedItem, validationError := validateItem(resolvedItem)
 	if validationError != nil {
 		return domain.Item{}, validationError
+	}
+
+	var normalizedReplacesItemID *string
+	if len(replacesItemID) == 0 {
+		normalizedReplacesItemID = currentItem.ReplacesItemID
+	} else {
+		var replacementError error
+		normalizedReplacesItemID, replacementError = serviceInstance.validateReplacementRelationship(
+			ctx,
+			normalizedUserID,
+			trimmedItemID,
+			replacesItemID[0],
+		)
+		if replacementError != nil {
+			return domain.Item{}, replacementError
+		}
+	}
+	validatedItem.ReplacesItemID = normalizedReplacesItemID
+
+	if reactivationError := serviceInstance.validateReplacementTargetReactivation(
+		ctx,
+		normalizedUserID,
+		currentItem,
+		validatedItem,
+	); reactivationError != nil {
+		return domain.Item{}, reactivationError
 	}
 
 	updatedItem, repositoryError := serviceInstance.itemRepository.Update(ctx, normalizedUserID, validatedItem)
@@ -241,6 +287,9 @@ func (serviceInstance *itemServiceImpl) ReplaceItems(ctx context.Context, userID
 
 	validatedItems := make([]domain.Item, 0, len(items))
 	for _, item := range items {
+		// ReplaceAll regenerates identifiers, so persisted lineage cannot be safely
+		// reconstructed from identifiers supplied by the caller.
+		item.ReplacesItemID = nil
 		resolvedItem, taxonomyError := serviceInstance.resolveItemTaxonomy(ctx, normalizedUserID, item)
 		if taxonomyError != nil {
 			return nil, taxonomyError
@@ -341,6 +390,98 @@ func (serviceInstance *itemServiceImpl) CalculateReplacementBenchmark(
 	}
 
 	return benchmark, nil
+}
+
+func firstReplacementItemID(values []*string) *string {
+	if len(values) == 0 {
+		return nil
+	}
+	return values[0]
+}
+
+func (serviceInstance *itemServiceImpl) validateReplacementTargetReactivation(
+	ctx context.Context,
+	userID string,
+	currentItem domain.Item,
+	updatedItem domain.Item,
+) error {
+	currentStatus := currentItem.Status
+	if currentStatus == "" {
+		currentStatus = domain.ItemStatusActive
+	}
+	if currentStatus == domain.ItemStatusActive || updatedItem.Status != domain.ItemStatusActive {
+		return nil
+	}
+
+	items, repositoryError := serviceInstance.itemRepository.List(ctx, userID)
+	if repositoryError != nil {
+		return repositoryError
+	}
+	for _, candidate := range items {
+		if candidate.ReplacesItemID == nil {
+			continue
+		}
+		if strings.TrimSpace(*candidate.ReplacesItemID) == currentItem.ID {
+			return domain.ErrReplacementTargetStillReferenced
+		}
+	}
+
+	return nil
+}
+
+func (serviceInstance *itemServiceImpl) validateReplacementRelationship(
+	ctx context.Context,
+	userID string,
+	sourceItemID string,
+	replacesItemID *string,
+) (*string, error) {
+	if replacesItemID == nil {
+		return nil, nil
+	}
+
+	targetItemID := strings.TrimSpace(*replacesItemID)
+	if targetItemID == "" {
+		return nil, nil
+	}
+	if sourceItemID != "" && targetItemID == sourceItemID {
+		return nil, domain.ErrReplacementSelfReference
+	}
+
+	targetItem, repositoryError := serviceInstance.itemRepository.GetByID(ctx, userID, targetItemID)
+	if repositoryError != nil {
+		return nil, repositoryError
+	}
+	targetStatus := targetItem.Status
+	if targetStatus == "" {
+		targetStatus = domain.ItemStatusActive
+	}
+	if targetStatus == domain.ItemStatusActive {
+		return nil, domain.ErrReplacementItemNotCompleted
+	}
+
+	if sourceItemID != "" {
+		visited := map[string]struct{}{sourceItemID: struct{}{}}
+		currentItem := targetItem
+		for currentItem.ReplacesItemID != nil {
+			nextItemID := strings.TrimSpace(*currentItem.ReplacesItemID)
+			if nextItemID == "" {
+				break
+			}
+			if nextItemID == sourceItemID {
+				return nil, domain.ErrReplacementCycle
+			}
+			if _, alreadyVisited := visited[nextItemID]; alreadyVisited {
+				return nil, domain.ErrReplacementCycle
+			}
+			visited[nextItemID] = struct{}{}
+			currentItem, repositoryError = serviceInstance.itemRepository.GetByID(ctx, userID, nextItemID)
+			if repositoryError != nil {
+				return nil, repositoryError
+			}
+		}
+	}
+
+	return &targetItemID, nil
 }
 
 // resolveItemTaxonomy normalizes optional taxonomy names and resolves canonical user-scoped entries.

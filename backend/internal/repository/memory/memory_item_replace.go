@@ -24,6 +24,7 @@ func (repositoryInstance *MemoryItemRepository) ReplaceAll(_ context.Context, us
 	currentTimestamp := time.Now().UTC()
 
 	for _, itemToCreate := range items {
+		itemToCreate.ReplacesItemID = nil
 		nextID++
 		itemToCreate.ID = strconv.FormatInt(nextID, 10)
 		itemToCreate.UserID = normalizedUserID
