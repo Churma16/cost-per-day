@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> This repository is a historical public snapshot of Worthwhile development through `public-cutoff-2026-09-29`.
+> Active Worthwhile development has moved to a private standalone repository as the project transitions toward a SaaS product.
+> This repository is no longer used for new feature development. Previously published source remains available under the license terms that applied when it was distributed.
+
 # Worthwhile
 
 A progressive web application designed to help you make big purchases make sense over time. Understand big purchases through time—before buying and throughout ownership.
