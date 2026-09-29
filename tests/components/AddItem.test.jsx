@@ -1240,7 +1240,9 @@ describe('AddItem component date localization', () => {
 
     const journeySelect = await screen.findByLabelText('What did this replace?');
     expect(journeySelect).toHaveValue('');
+    await screen.findByRole('option', { name: 'Old Headphones' });
     fireEvent.change(journeySelect, { target: { value: 'old-headphones' } });
+    expect(journeySelect).toHaveValue('old-headphones');
 
     fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
       target: { value: 'New Headphones' },
