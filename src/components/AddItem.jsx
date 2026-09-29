@@ -72,6 +72,10 @@ function AddItem({ showHeader = true, isVisible = true }) {
     () => createInitialItemFormValues(initialDraft),
     [initialDraft]
   );
+  const normalizedInitialDraft = useMemo(
+    () => initialDraft ? itemFormValuesToDraftData(initialFormValues) : null,
+    [initialDraft, initialFormValues]
+  );
 
   const [name, setName] = useState(initialFormValues.name);
   const [price, setPrice] = useState(initialFormValues.price);
@@ -159,7 +163,7 @@ function AddItem({ showHeader = true, isVisible = true }) {
     enabled: isAddMode,
     userId: draftUserId,
     draftData: addDraftData,
-    initialDraft,
+    initialDraft: normalizedInitialDraft,
   });
 
   useEffect(() => {
