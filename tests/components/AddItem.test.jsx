@@ -73,6 +73,12 @@ vi.mock('react-i18next', () => ({
         setManually: 'Set manually',
         fromCompletedItem: 'Based on past item',
         ownershipTargetSubheading: 'Choose one way to set a milestone for this item.',
+        ownershipJourneyOptional: 'Ownership journey (optional)',
+        ownershipJourneyQuestion: 'What did this replace?',
+        ownershipJourneyHelper: 'Link this item to something you owned before.',
+        ownershipJourneyNone: 'Nothing linked',
+        ownershipJourneyRemoveLink: 'Remove link',
+        ownershipJourneyNoCompletedItems: 'No completed items are available to link yet.',
         back: 'Back',
         discardDraft: 'Discard draft',
         guestItemLimitReached: 'You\'ve reached the ' + options?.limit + '-item limit without an account.',
@@ -1204,6 +1210,109 @@ describe('AddItem component date localization', () => {
       );
     });
   });
+  test('saves an explicitly selected ownership journey relationship', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const completedItem = {
+      id: 'old-headphones',
+      name: 'Old Headphones',
+      price: 200,
+      purchaseDate: '2025-01-01T12:00:00Z',
+      status: 'retired',
+      endedAt: '2026-01-01T12:00:00Z',
+      grossCostPerDay: 1,
+      ownershipDays: 365,
+    };
+    getAllItems.mockResolvedValue([completedItem]);
+    addItem.mockResolvedValueOnce({
+      id: 'new-headphones',
+      name: 'New Headphones',
+      price: 300,
+      purchaseDate: '2026-09-20T12:00:00.000Z',
+      status: 'active',
+      replacesItemId: 'old-headphones',
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/add']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    const journeySelect = await screen.findByLabelText('What did this replace?');
+    expect(journeySelect).toHaveValue('');
+    await screen.findByRole('option', { name: 'Old Headphones' });
+    fireEvent.change(journeySelect, { target: { value: 'old-headphones' } });
+    expect(journeySelect).toHaveValue('old-headphones');
+
+    fireEvent.change(screen.getByPlaceholderText('Enter item name'), {
+      target: { value: 'New Headphones' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Enter price'), {
+      target: { value: '300' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(addItem).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'New Headphones',
+        price: 300,
+        replacesItemId: 'old-headphones',
+      }));
+    });
+  });
+
+  test('hydrates and explicitly clears an existing ownership journey relationship', async () => {
+    useLanguage.mockReturnValue({ language: 'en' });
+    const completedItem = {
+      id: 'old-headphones',
+      name: 'Old Headphones',
+      price: 200,
+      purchaseDate: '2025-01-01T12:00:00Z',
+      status: 'retired',
+      endedAt: '2026-01-01T12:00:00Z',
+      grossCostPerDay: 1,
+      ownershipDays: 365,
+    };
+    const currentItem = {
+      id: 'new-headphones',
+      name: 'New Headphones',
+      price: 300,
+      purchaseDate: '2026-09-20T12:00:00Z',
+      status: 'active',
+      grossCostPerDay: 30,
+      ownershipDays: 10,
+      replacesItemId: 'old-headphones',
+    };
+    getAllItems.mockResolvedValue([completedItem, currentItem]);
+    updateItem.mockResolvedValueOnce({
+      ...currentItem,
+      replacesItemId: undefined,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/edit?id=new-headphones']}>
+        <AddItem />
+      </MemoryRouter>
+    );
+
+    const journeySelect = await screen.findByLabelText('What did this replace?');
+    await waitFor(() => expect(journeySelect).toHaveValue('old-headphones'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove link' }));
+    expect(journeySelect).toHaveValue('');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(updateItem).toHaveBeenCalledWith(
+        'new-headphones',
+        expect.objectContaining({
+          replacesItemId: null,
+        }),
+      );
+    });
+  });
+
 });
 
 

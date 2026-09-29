@@ -35,6 +35,7 @@ describe('itemForm', () => {
       targetValue: '730',
       targetMode: 'manual',
       selectedBenchmarkItemId: 'old-laptop',
+      replacesItemId: 'older-laptop',
     });
 
     expect(values).toMatchObject({
@@ -47,6 +48,7 @@ describe('itemForm', () => {
       targetValue: '730',
       targetMode: 'manual',
       selectedBenchmarkItemId: 'old-laptop',
+      replacesItemId: 'older-laptop',
     });
     expect(values.purchaseDate.toISOString()).toBe('2026-09-20T12:00:00.000Z');
     expect(itemFormValuesToDraftData(values).purchaseDate).toBe('2026-09-20');
@@ -77,6 +79,7 @@ describe('itemForm', () => {
       salePrice: '100',
       targetType: 'cost_per_day',
       targetValue: '2.5',
+      replacesItemId: '',
     });
   });
 
@@ -106,6 +109,30 @@ describe('itemForm', () => {
     expect(benchmarkBrowsing.targetFormValid).toBe(true);
   });
 
+  it('hydrates and serializes the explicit ownership journey relationship', () => {
+    const hydrated = itemToFormValues({
+      id: 'new-headphones',
+      name: 'New Headphones',
+      price: 300,
+      purchaseDate: '2026-09-20T12:00:00.000Z',
+      replacesItemId: 'old-headphones',
+    });
+
+    expect(hydrated.replacesItemId).toBe('old-headphones');
+
+    expect(buildItemPayload(createFormValues({
+      replacesItemId: 'old-headphones',
+    }))).toEqual(expect.objectContaining({
+      replacesItemId: 'old-headphones',
+    }));
+
+    expect(buildItemPayload(createFormValues({
+      replacesItemId: '',
+    }), { isEditMode: true })).toEqual(expect.objectContaining({
+      replacesItemId: null,
+    }));
+  });
+
   it('builds create and edit payloads with canonical ownership timestamps', () => {
     expect(buildItemPayload(createFormValues({
       name: '  Laptop  ',
@@ -120,6 +147,7 @@ describe('itemForm', () => {
       brand: 'Example',
       targetType: 'duration',
       targetValue: 365,
+      replacesItemId: null,
     });
 
     expect(buildItemPayload(createFormValues({
@@ -138,6 +166,7 @@ describe('itemForm', () => {
       salePrice: 400,
       targetType: null,
       targetValue: null,
+      replacesItemId: null,
     });
   });
 });

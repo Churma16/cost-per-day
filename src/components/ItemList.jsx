@@ -18,6 +18,8 @@ import {
   SlowLoadIndicator,
 } from './ui/AsyncState';
 import { useLoadingPhases } from '../hooks/useLoadingPhases';
+import OwnershipJourneyDialog from './item-list/OwnershipJourneyDialog';
+import { getOwnershipJourneyContext } from '../utils/itemLineage';
 import { IoOptionsOutline } from 'react-icons/io5';
 
 const OWNERSHIP_STATE_LABEL_KEYS = {
@@ -61,6 +63,7 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
   const { t, i18n } = useTranslation();
   const [expandedItem, setExpandedItem] = useState(null);
   const [benchmarkModalItem, setBenchmarkModalItem] = useState(null);
+  const [ownershipJourneyItem, setOwnershipJourneyItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [isOrganizationOpen, setIsOrganizationOpen] = useState(false);
@@ -213,6 +216,8 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
                     setItemToDelete(item);
                   }}
                   onBenchmark={setBenchmarkModalItem}
+                  ownershipJourney={getOwnershipJourneyContext(items, item)}
+                  onOpenOwnershipJourney={setOwnershipJourneyItem}
                   isGuest={isGuest}
                   currencyCode={currencyCode}
                   valueEquivalents={valueEquivalents}
@@ -239,6 +244,13 @@ function ItemListContent({ itemsQuery, loadingPhase = null }) {
         isDeleting={deleteItemMutation.isPending}
         onCancel={() => setItemToDelete(null)}
         onConfirm={confirmDeleteItem}
+      />
+
+      <OwnershipJourneyDialog
+        isOpen={Boolean(ownershipJourneyItem)}
+        item={ownershipJourneyItem}
+        items={items}
+        onClose={() => setOwnershipJourneyItem(null)}
       />
 
       {benchmarkModalItem && (
