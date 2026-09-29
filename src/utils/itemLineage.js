@@ -13,6 +13,28 @@ const sortByPurchaseDateThenId = (left, right) => {
   return String(left?.id ?? '').localeCompare(String(right?.id ?? ''));
 };
 
+const buildSuccessorTree = (items, parentItem, blockedIds) => {
+  const parentId = normalizeItemId(parentItem?.id);
+  if (!parentId) return [];
+
+  return items
+    .filter(
+      (candidate) => normalizeItemId(candidate?.replacesItemId) === parentId,
+    )
+    .filter((candidate) => !blockedIds.has(normalizeItemId(candidate?.id)))
+    .sort(sortByPurchaseDateThenId)
+    .map((candidate) => {
+      const candidateId = normalizeItemId(candidate.id);
+      const nextBlockedIds = new Set(blockedIds);
+      nextBlockedIds.add(candidateId);
+
+      return {
+        item: candidate,
+        successors: buildSuccessorTree(items, candidate, nextBlockedIds),
+      };
+    });
+};
+
 export const getOwnershipJourneyContext = (items, item) => {
   const safeItems = Array.isArray(items) ? items : [];
   const currentItemId = normalizeItemId(item?.id);
@@ -51,7 +73,11 @@ export const buildOwnershipJourney = (items, item) => {
   const currentItemId = normalizeItemId(item?.id);
 
   if (!currentItemId) {
-    return [];
+    return {
+      ancestors: [],
+      currentItem: item ?? null,
+      successors: [],
+    };
   }
 
   const itemsById = new Map(
@@ -61,7 +87,7 @@ export const buildOwnershipJourney = (items, item) => {
   );
   const currentItem = itemsById.get(currentItemId) ?? item;
   const visited = new Set([currentItemId]);
-  const before = [];
+  const ancestors = [];
 
   let cursor = currentItem;
   while (cursor?.replacesItemId !== null && cursor?.replacesItemId !== undefined) {
@@ -76,40 +102,13 @@ export const buildOwnershipJourney = (items, item) => {
     }
 
     visited.add(previousItemId);
-    before.unshift(previousItem);
+    ancestors.unshift(previousItem);
     cursor = previousItem;
   }
 
-  const after = [];
-  cursor = currentItem;
-
-  while (cursor) {
-    const cursorId = normalizeItemId(cursor.id);
-    const nextCandidates = safeItems
-      .filter(
-        (candidate) => normalizeItemId(candidate?.replacesItemId) === cursorId,
-      )
-      .filter((candidate) => !visited.has(normalizeItemId(candidate?.id)))
-      .sort(sortByPurchaseDateThenId);
-
-    if (nextCandidates.length === 0) {
-      break;
-    }
-
-    // A replacement journey is expected to be linear. If historical data ever
-    // branches, keep every directly linked item visible rather than inventing
-    // an arbitrary sequence beyond that branch.
-    if (nextCandidates.length > 1) {
-      after.push(...nextCandidates);
-      break;
-    }
-
-    const nextItem = nextCandidates[0];
-    const nextItemId = normalizeItemId(nextItem.id);
-    visited.add(nextItemId);
-    after.push(nextItem);
-    cursor = nextItem;
-  }
-
-  return [...before, currentItem, ...after];
+  return {
+    ancestors,
+    currentItem,
+    successors: buildSuccessorTree(safeItems, currentItem, visited),
+  };
 };
